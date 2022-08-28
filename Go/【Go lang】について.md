@@ -1,7 +1,8 @@
 ## Go Workspace
-- bin
-- pkg
-- src
++ /some_directory
+  + /bin
+  + /pkg
+  + /src
 
 ## Go Module
 - 
