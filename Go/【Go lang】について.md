@@ -18,7 +18,14 @@
     - points to your binary installation of Go
 
 ## Go Module
-- 
+   ##### Go Module作成(初期化)
+   - `go mod init <Module名>`で初期化  
+     → `go.mod`が作成される
+
+#### パッケージ関連
+- 初期のGoでは`go get`でパッケージをビルド/インストールしていたが、  
+  現在は`go get`は`go.mod`の依存関係の調整にだけ使われる。  
+  現在は`go install`でパッケージのビルド/インストールを行う
 
 #### その他Goについて色々
 - GoはClassがない（Goはオブジェクト指向言語ではない）<br><br>
