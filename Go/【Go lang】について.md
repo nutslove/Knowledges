@@ -1,3 +1,9 @@
+### Go Workspace
+- bin
+- pkg
+- src
+
+#### その他Goについて色々
 - GoはClassがない（Goはオブジェクト指向言語ではない）<br><br>
 - Goはtry catch(except)ではなく、errorというエラー専用型(interface)がある<br><br>
 - gofmtコマンドを使うとgoのフォーマットに変換してくれる
