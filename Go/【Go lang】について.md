@@ -1,8 +1,23 @@
 ## Go Workspace
-+ /some_directory
-  + /bin
-  + /pkg
-  + /src
+- Workspaceには以下の3つのディレクトリが必要
+  - /bin
+  - /pkg
+  - /src
+
+:::note info
+- bin
+  - コンパイルされたものが格納される
+- pkg
+  - プログラムから呼び出されるライブラリ(?)
+- src
+  - ??
+:::
+
+  #### 環境変数
+  - GOPATH
+    - points to your go workspace
+  - GOROOT
+    - points to your binary installation of Go
 
 ## Go Module
 - 
