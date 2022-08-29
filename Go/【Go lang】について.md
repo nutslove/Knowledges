@@ -32,18 +32,23 @@
   現在は`go install`でパッケージのビルド/インストールを行う
 
 ## その他Goについて色々
-- GoはClassがない（Goはオブジェクト指向言語ではない）<br><br>
-- Goはtry catch(except)ではなく、errorというエラー専用型(interface)がある<br><br>
-- gofmtコマンドを使うとgoのフォーマットに変換してくれる
-`gofmt -w <対象goファイル>`<br><br>
-- main()関数以外はmainもしくはinit関数内で明示的に呼び出す必要がある<br><br>
-- init()関数がmain()関数より先に実行される<br><br>
+- GoはClassがない（Goはオブジェクト指向言語ではない）
+- Goはtry catch(except)ではなく、errorというエラー専用型(interface)がある
+- gofmtコマンドを使うとgoのフォーマットに変換してくれる  
+`gofmt -w <対象goファイル>`
+- main()関数以外はmainもしくはinit関数内で明示的に呼び出す必要がある
+- init()関数がmain()関数より先に実行される
 - GoにもGCが存在する
   - ただ、fileなど明示的に開放しなければいけないものもある
-  - 明示的に開放する必要があるものはdeferを使って開放する<br><br>
-- Goは大文字/小文字、全角/半角は別の文字として扱われる<br><br>
+  - 明示的に開放する必要があるものはdeferを使って開放する
+- Goは大文字/小文字、全角/半角は別の文字として扱われる
 - Goは宣言された変数は必ず利用されている必要がある
   (変数宣言だけしといて使わないとエラーになる)
+- 戻り値などで定義は必要だけど使わない変数は`_`で捨てる  
+  - 例
+    ~~~go
+    変数, _ = strconv.Atoi(string)
+    ~~~
 
 #### Goインストール（Linux）
 - `wget https://dl.google.com/go/go1.18.4.linux-amd64.tar.gz`
@@ -96,7 +101,7 @@
   → "" (empty string)
 - bool  
   → false
-- floats
+- floats  
   → 0.0
 
 #### スライス
