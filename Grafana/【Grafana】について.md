@@ -30,5 +30,5 @@ therefore each alert will go into its own group. It is different from the defaul
       > The Grafana Alerting system has two main components: a Scheduler and an internal Alertmanager. The Scheduler evaluates your alert rules, while the internal Alertmanager manages routing and grouping.
       - Scheduler  
         → alert rulesを評価する
-      - Alertmanager
+      - Alertmanager  
         → Alertのroutingとgroupingを行う
