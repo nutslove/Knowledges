@@ -23,3 +23,12 @@ GrafanaのAlertもPrometheusと同様にラベルによるGroupingを行う
 therefore each alert will go into its own group. It is different from the default of group_by: null where all alerts go into a single group.  
 - 複数のNotification policiesが存在する場合、各Policy側で`Group by`設定を`...`に上書きすること  
   ![Notification_policies](https://github.com/nutslove/all_I_need/blob/master/Knowledges/Grafana/image/NotificationPolicies.jpg)
+
+  ##### ・GrafanaのAlertに関するコンポーネントについて
+    https://grafana.com/docs/grafana/next/alerting/high-availability/
+    - Grafana Alerting systemは内部的に`Scheduler`と`Alertmanager`を持っている
+      > The Grafana Alerting system has two main components: a Scheduler and an internal Alertmanager. The Scheduler evaluates your alert rules, while the internal Alertmanager manages routing and grouping.
+      - Scheduler  
+        → alert rulesを評価する
+      - Alertmanager
+        → Alertのroutingとgroupingを行う
