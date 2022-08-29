@@ -18,16 +18,20 @@
     - points to your binary installation of Go
 
 ## Go Module
+- ModuleはGoパッケージ管理の手助けをしてくれるもの
+  - パッケージのバージョンを固定したり、常に最新バージョンを使うように設定したりすることができる
    ##### Go Module作成(初期化)
    - `go mod init <Module名>`で初期化  
      → `go.mod`が作成される
+     - `go.mod`とは
+       - Goモジュールのパスを書いておくファイル
 
 #### パッケージ関連
 - 初期のGoでは`go get`でパッケージをビルド/インストールしていたが、  
   現在は`go get`は`go.mod`の依存関係の調整にだけ使われる。  
   現在は`go install`でパッケージのビルド/インストールを行う
 
-#### その他Goについて色々
+## その他Goについて色々
 - GoはClassがない（Goはオブジェクト指向言語ではない）<br><br>
 - Goはtry catch(except)ではなく、errorというエラー専用型(interface)がある<br><br>
 - gofmtコマンドを使うとgoのフォーマットに変換してくれる
@@ -85,9 +89,15 @@
 - 変数とは違い、型を指定しない場合、
   定義時に代入する値から型を推論するのではなく、使われる時に型を推論する
 
-#### 各変数のデフォルト値
-- int -> 0
-- string -> empty string (i.e "")
+#### 各型のデフォルト値
+- int  
+  → 0
+- string  
+  → "" (empty string)
+- bool  
+  → false
+- floats
+  → 0.0
 
 #### スライス
 
