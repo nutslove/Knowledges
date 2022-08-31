@@ -113,7 +113,7 @@
 - 変数とは違い、型を指定しない場合、
   定義時に代入する値から型を推論するのではなく、使われる時に型を推論する
 
-#### 各型のデフォルト値 (変数だけ宣言して値を代入しなかった場合に入る値)
+#### 各型のデフォルト値(Zero Value)
 - int  
   → 0
 - string  
@@ -124,6 +124,41 @@
   → 0.0
 - その他  
   → nil
+
+#### Goは独自のTypeを作成することができる
+- Format
+  ~~~go
+  type <Type名> <実際の型>
+  ~~~
+  → この「実際の型」を`Underlying Type`という
+- 例
+  ~~~go
+  type my_type string
+  ~~~
+- 独自Typeを使って変数宣言
+  ~~~go
+  var x my_type
+  ~~~
+- 独自Typeの型は`main.<Type名>`
+  ~~~go
+  var x my_type
+  fmt.Printf("%T\n", x)  → main.my_typeと出力される
+  ~~~
+- 独自Typeの元となる型に直接代入はできない（Conversionが必要）
+  - NG
+    ~~~go
+    type my_type int
+    var x my_type = 10
+    var y int
+    y = x
+    ~~~
+  - OK
+    ~~~go
+    type my_type int
+    var x my_type = 10
+    var y int
+    y = int(x)
+    ~~~
 
 #### スライス
 
