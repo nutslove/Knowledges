@@ -45,6 +45,7 @@
 - Goは宣言された変数は必ず利用されている必要がある
   (変数宣言だけしといて使わないとエラーになる)
 - Goは型変換をConversionという（他の言語ではCastingというらしい）  
+  https://go.dev/ref/spec#Conversions  
   https://go.dev/doc/effective_go#conversions
 - 戻り値などで定義は必要だけど使わない変数は`_`で捨てる  
   - 例
