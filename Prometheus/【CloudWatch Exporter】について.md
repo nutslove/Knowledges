@@ -1,6 +1,6 @@
 https://github.com/prometheus/cloudwatch_exporter
 
-#### GetMetricData vs GetMetricStatistics
+## GetMetricData vs GetMetricStatistics
 - CloudWatch Metricsを取得するAPIには`GetMetricData`と`GetMetricStatistics`の2種類がある
 - ２つの違いについては以下URL参照  
   https://aws.amazon.com/jp/premiumsupport/knowledge-center/cloudwatch-getmetricdata-api/  
@@ -8,7 +8,7 @@ https://github.com/prometheus/cloudwatch_exporter
   - 基本的に`GetMetricData`が推奨されている
 - CloudWatch Exporterは`GetMetricStatistics`を使っていたけど、`GetMetricData`へ移行されつつある。(2022/08/22時点ではオプションでどっちを使うか選択できる)
 
-#### メトリクス取得間隔
+## メトリクス取得間隔
 - CloudWatch ExporterはPrometheusの`scrape_interval`に指定した間隔で、
   CloudWatchからメトリクスを取得する。  
   ※CloudWatch Exporterの/metricsにアクセス(GET?)するたびにAPIを叩く？  
@@ -21,7 +21,7 @@ https://github.com/prometheus/cloudwatch_exporter
     scrape_timeout: 1m
     ~~~
 
-#### Proxy設定
+## Proxy設定
 - OS環境変数ではなく、Java実行時引数として渡す必要がある
   ~~~yaml
         command:
@@ -38,7 +38,7 @@ https://github.com/prometheus/cloudwatch_exporter
           - '/config/config.yml'
   ~~~
 
-#### リソースのTagによる集計
+## リソースのTagによる集計
 - 直接メトリクスのラベルにリソースTagが反映されたり、
   収集するメトリクスが絞られるわけではない  
   ※下記の例だとUnHealthyHostCountメトリクスは「Project: PODB」Tagを持ってるものだけではなく、すべてのNLBのUnHealthyHostCountメトリクスを収集される
