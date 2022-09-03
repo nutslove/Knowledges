@@ -11,7 +11,7 @@
    | /pkg | プログラムから呼び出されるライブラリ(?) |
    | /src | ?? |
 
-  #### 環境変数
+  ### 環境変数
   - GOPATH
     - points to your go workspace
   - GOROOT
@@ -20,13 +20,13 @@
 ## Go Module
 - ModuleはGoパッケージ管理の手助けをしてくれるもの
   - パッケージのバージョンを固定したり、常に最新バージョンを使うように設定したりすることができる
-   ##### Go Module作成(初期化)
+   #### Go Module作成(初期化)
    - `go mod init <Module名>`で初期化  
      → `go.mod`が作成される
      - `go.mod`とは
        - Goモジュールのパスを書いておくファイル
 
-#### パッケージ関連
+### パッケージ関連
 - 初期のGoでは`go get`でパッケージをビルド/インストールしていたが、  
   現在は`go get`は`go.mod`の依存関係の調整にだけ使われる。  
   現在は`go install`でパッケージのビルド/インストールを行う
@@ -50,14 +50,14 @@
   https://go.dev/doc/effective_go#conversions
 - Goも本当は構文の最後に`;`が付くけど、コンパイラーがコンパイル時に付けてくれるので人が意識する(付ける)必要はない。ただ、for文やif文など1行に複数の構文を書く場合は明示的に`;`を付ける必要がある
 
-#### Goインストール（Linux）
+### Goインストール（Linux）
 - `wget https://dl.google.com/go/go1.18.4.linux-amd64.tar.gz`
 - `rm -rf /usr/local/go && tar -C /usr/local -xzf go1.18.4.linux-amd64.tar.gz`
 - `export PATH=$PATH:/usr/local/go/bin`
 - `go version`
 
 ## Goの文法
-#### 変数の書き方
+### 変数の書き方
 1. varを使った定義
    - 関数の外側でも定義可  
       → その場合コード(パッケージ)内のすべての関数で参照可  
@@ -90,7 +90,7 @@
       ~~~
     - 省略型に整数/少数の値を代入する場合、自動的に`int`/`float64`型になる
 
-#### 戻り値を`_`で捨てる
+### 戻り値を`_`で捨てる
 - 戻り値などで定義は必要だけど使わない変数は`_`で捨てる  
   - 例
     ~~~go
@@ -109,7 +109,7 @@
   `
   ~~~
 
-#### 定数（const）
+### 定数（const）
 - 作成した後に値の変更ができない
   ~~~go
   const 定数 = 値
@@ -118,13 +118,13 @@
 - 変数とは違い、型を指定しない場合、
   定義時に代入する値から型を推論するのではなく、使われる時に型を推論する
 
-#### 各型について
+### 各型について
 - 
 
-#### 演算子
+### 演算子
 - 
 
-#### 各型のデフォルト値(Zero Value)
+### 各型のデフォルト値(Zero Value)
 - int  
   → 0
 - string  
@@ -136,7 +136,7 @@
 - その他  
   → nil
 
-#### Goは独自のTypeを作成することができる
+### Goは独自のTypeを作成することができる
 - Format
   ~~~go
   type <Type名> <実際の型>
@@ -171,11 +171,11 @@
     y = int(x)
     ~~~
 
-#### スライス
+### スライス
 
-#### map
+### map
 
-#### 関数
+### 関数
 - いくつかのパターンがある 
   1. 関数名、引数、戻り値を定義
       ~~~go
@@ -185,7 +185,7 @@
       ~~~
   2. 
 
-#### if文
+### if文
 ~~~go
 if 条件式 {
  　・・・処理・・・
@@ -210,41 +210,63 @@ if 条件式 {
     // fmt.Println(num) → num is undefinedとエラーになる
     ~~~ 
 
-#### `!`を使って条件を否定
-- 例
-  ~~~go
-  func main() {
-    if !false {
-		  fmt.Println("true, printed")
-	  }
-
-    if !true {
-		  fmt.Println("false, Not printed")
+### Conditional logic operators
+- `&&`
+  - 複数の条件を**AND**で比較
+  - 例
+    ~~~go
+    func main() {
+      fmt.Println(true && true) // → true
+      fmt.Println(true && false) // → false
+      fmt.Println(!true)
     }
+    ~~~
+- `||`
+  - 複数の条件を**OR**で比較
+  - 例
+    ~~~go
+    func main() {
+      fmt.Println(true || true) // → true
+      fmt.Println(true || false)// → true
+      fmt.Println(!true)
+    }
+    ~~~
+- `!`
+  - 条件を**否定**
+  - 例
+    ~~~go
+    func main() {
+      if !false {
+  		  fmt.Println("true, printed")
+	    }
 
-	  if (2 == 2) {
-	    fmt.Println("true, printed")
-    }	
+      if !true {
+	  	  fmt.Println("false, Not printed")
+      }
 
-	  if !(2 == 2) {
-	    fmt.Println("false, Not printed")
-    }	
+  	  if (2 == 2) {
+	      fmt.Println("true, printed")
+      }	
 
-	  if !(2 != 2) {
-	    fmt.Println("true, printed")
-    }	
-  }
-  ~~~
+  	  if !(2 == 2) {
+	      fmt.Println("false, Not printed")
+      }	
 
-#### switch文
+  	  if !(2 != 2) {
+	      fmt.Println("true, printed")
+      }	
+    }
+    ~~~
+
+### switch文
 - caseの中でtrueとなる条件が複数ある場合、デフォルトでは上にある条件だけが実行される  
   (trueとなったらその下は判定せず抜ける)  
   ただ`fallthrough`でtrueとなる条件の下の条件も判定するようにすることができる  
 
-   > **Note**  
+   > **Warning**  
    > 基本`fallthrough`は使わないこと！
 
-- `default`でtrueのなる条件がない場合のみ実行する処理を定義することができる
+- `default`でtrueとなる(一致する)caseがない場合のみ実行する処理を定義することができる
   - `default`が実行されない例
     ~~~go
     func main() {
@@ -269,6 +291,21 @@ if 条件式 {
         }
     }
     ~~~
+- `case`で`,`区切りはORを意味する
+  - 以下の例では"miss money or bond or dr no"が出力される
+    ~~~go
+    func main() {
+      n := "Bond"
+      switch n {
+      case "Moneypenny", "Bond", "Do No":
+        fmt.Println("miss money or bond or dr no")
+      case "M":
+        fmt.Println("m")
+      default:
+        fmt.Println("this is default")
+      }
+    }
+    ~~~
 - 例文  ([参考URL](https://gobyexample.com/switch))
   ~~~go
   func main() {
@@ -285,7 +322,7 @@ if 条件式 {
       }
 
       switch time.Now().Weekday() {
-      case time.Saturday, time.Sunday:
+      case time.Saturday, time.Sunday: // ","区切り = or
           fmt.Println("It's the weekend")
       default:
           fmt.Println("It's a weekday")
@@ -315,7 +352,7 @@ if 条件式 {
   }
   ~~~
 
-#### for文
+### for文
 - 3つの書き方がある
   1. `for init; condition; post { }`
       - 例
@@ -354,7 +391,7 @@ if 条件式 {
         }
         ~~~
 
-#### break & continueについて
+### break & continueについて
 - continueの下は実行されない
 - breakはfor文から抜ける
   - 例（2から2の倍数だけ100まで出力されて最後にdoneが出力される）
@@ -378,10 +415,10 @@ if 条件式 {
     }
     ~~~
 
-#### 配列
+### 配列
 
 
-#### ポインタ
+### ポインタ
 - 値が入るメモリのアドレス
 - `*int`がポインタ型変数
 - メモリアドレスの指定には変数の前に`&`を指定
@@ -395,7 +432,7 @@ fmt.Println(*p)  → メモリアドレス(p)に格納されている値 100 が
 fmt.Println(*p)  → メモリアドレス(p)に格納されている値 300 が表示される
 ~~~
 
-#### パッケージ(import)
+### パッケージ(import)
 - importパッケージ名はファイル名ではなく、import対象ファイルの`package`名
   - `input.go` (importされる側)
       ~~~go
@@ -429,7 +466,7 @@ fmt.Println(*p)  → メモリアドレス(p)に格納されている値 300 が
       }
       ~~~
 
-#### 文字列と数値の型変換
+### 文字列と数値の型変換
 - 「strconv」というパッケージを使って型変換を行う
 - 1目の変数には変換後の型の値が渡されて、2つ目の変数(err)には型変換に失敗した時、
  「error」型のエラー情報が渡される（正常に型変換された場合は「nil」が渡される）
