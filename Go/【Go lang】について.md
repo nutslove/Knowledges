@@ -241,8 +241,8 @@ if 条件式 {
   (trueとなったらその下は判定せず抜ける)  
   ただ`fallthrough`でtrueとなる条件の下の条件も判定するようにすることができる  
 
-{.warning} 注意
-: 基本`fallthrough`は使わないこと！
+  > **Note**
+  > 基本`fallthrough`は使わないこと！
 
 - `default`でtrueのなる条件がない場合のみ実行する処理を定義することができる
   - `default`が実行されない例
