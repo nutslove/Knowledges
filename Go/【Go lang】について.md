@@ -237,9 +237,40 @@ if 条件式 {
   ~~~
 
 #### switch文
+- caseの中でtrueとなる条件が複数ある場合、デフォルトでは上にある条件だけが実行される  
+  (trueとなったらその下は判定せず抜ける)  
+  ただ`fallthrough`でtrueとなる条件の下の条件も判定するようにすることができる  
 
-- 
-- 例 ([参考URL]https://gobyexample.com/switch)
+:::note warn
+警告
+基本`fallthrough`は使わないこと！
+:::
+- `default`でtrueのなる条件がない場合のみ実行する処理を定義することができる
+  - `default`が実行されない例
+    ~~~go
+    func main() {
+        switch {
+        case (2 == 2):
+            fmt.Println("this should print")
+        default:
+            fmt.Println("this is default")
+        }
+    }
+    ~~~
+  - `default`が実行される例
+    ~~~go
+    func main() {
+        switch {
+        case false:
+            fmt.Println("this should not print")
+        case (2 == 4):
+            fmt.Println("this should not print2")
+        default:
+            fmt.Println("this is default")
+        }
+    }
+    ~~~
+- 例文  ([参考URL](https://gobyexample.com/switch))
   ~~~go
   func main() {
 
