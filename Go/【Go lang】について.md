@@ -34,6 +34,7 @@
 ## その他Goについて色々
 - GoはClassがない（Goはオブジェクト指向言語ではない）
 - Goはtry catch(except)ではなく、errorというエラー専用型(interface)がある
+- Goにwhileはない
 - gofmtコマンドを使うとgoのフォーマットに変換してくれる  
 `gofmt -w <対象goファイル>`
 - main()関数以外はmainもしくはinit関数内で明示的に呼び出す必要がある
@@ -42,29 +43,12 @@
   - ただ、fileなど明示的に開放しなければいけないものもある
   - 明示的に開放する必要があるものはdeferを使って開放する
 - Goは大文字/小文字、全角/半角は別の文字として扱われる
-- Goは宣言された変数は必ず利用されている必要がある
+- Goは宣言された変数は必ず利用されている必要がある  
   (変数宣言だけしといて使わないとエラーになる)
 - Goは型変換をConversionという（他の言語ではCastingというらしい）  
   https://go.dev/ref/spec#Conversions  
   https://go.dev/doc/effective_go#conversions
-- 戻り値などで定義は必要だけど使わない変数は`_`で捨てる  
-  - 例
-    ~~~go
-    変数, _ = strconv.Atoi(string)
-    ~~~
-- 変数の型を確認する方法  
-  ~~~go
-  fmt.Printf("%T\n", <確認したい変数>)
-  ~~~
-- stringの中でダブルクォーテーションを扱いたい場合、``で囲む
-  ~~~go
-  var a string = `She said "You are doing well"`
-  var b string = `I said
-  "yeahaaaaaaaaaaaaaa
-  hoooooooooooooooooo"
-  `
-  ~~~
-
+- Goも本当は構文の最後に`;`が付くけど、コンパイラーがコンパイル時に付けてくれるので人が意識する(付ける)必要はない。ただ、for文やif文など1行に複数の構文を書く場合は明示的に`;`を付ける必要がある
 
 #### Goインストール（Linux）
 - `wget https://dl.google.com/go/go1.18.4.linux-amd64.tar.gz`
@@ -72,6 +56,7 @@
 - `export PATH=$PATH:/usr/local/go/bin`
 - `go version`
 
+## Goの文法
 #### 変数の書き方
 1. varを使った定義
    - 関数の外側でも定義可  
@@ -104,6 +89,25 @@
       変数 := 値
       ~~~
     - 省略型に整数/少数の値を代入する場合、自動的に`int`/`float64`型になる
+
+#### 戻り値を`_`で捨てる
+- 戻り値などで定義は必要だけど使わない変数は`_`で捨てる  
+  - 例
+    ~~~go
+    変数, _ = strconv.Atoi(string)
+    ~~~
+- 変数の型を確認する方法  
+  ~~~go
+  fmt.Printf("%T\n", <確認したい変数>)
+  ~~~
+- stringの中でダブルクォーテーションを扱いたい場合、``で囲む
+  ~~~go
+  var a string = `She said "You are doing well"`
+  var b string = `I said
+  "yeahaaaaaaaaaaaaaa
+  hoooooooooooooooooo"
+  `
+  ~~~
 
 #### 定数（const）
 - 作成した後に値の変更ができない
@@ -191,8 +195,161 @@ if 条件式 {
  　・・・処理・・・
 }
 ~~~
+- if文の中で変数を初期化して使うことができる
+  - `if <変数初期化>; <条件> {}`
+  - if文の中で定義(初期化)して変数はif文の中でしか使えない
+  - 例
+    ~~~go
+    if num := 9; num < 0 {
+        fmt.Println(num, "is negative")
+    } else if num < 10 {
+        fmt.Println(num, "has 1 digit")
+    } else {
+        fmt.Println(num, "has multiple digits")
+    }
+    // fmt.Println(num) → num is undefinedとエラーになる
+    ~~~ 
+
+#### `!`を使って条件を否定
+- 例
+  ~~~go
+  func main() {
+    if !false {
+		  fmt.Println("true, printed")
+	  }
+
+    if !true {
+		  fmt.Println("false, Not printed")
+    }
+
+	  if (2 == 2) {
+	    fmt.Println("true, printed")
+    }	
+
+	  if !(2 == 2) {
+	    fmt.Println("false, Not printed")
+    }	
+
+	  if !(2 != 2) {
+	    fmt.Println("true, printed")
+    }	
+  }
+  ~~~
 
 #### switch文
+
+- 
+- 例 ([参考URL]https://gobyexample.com/switch)
+  ~~~go
+  func main() {
+
+      i := 2
+      fmt.Print("Write ", i, " as ")
+      switch i {
+      case 1:
+          fmt.Println("one")
+      case 2:
+          fmt.Println("two")
+      case 3:
+          fmt.Println("three")
+      }
+
+      switch time.Now().Weekday() {
+      case time.Saturday, time.Sunday:
+          fmt.Println("It's the weekend")
+      default:
+          fmt.Println("It's a weekday")
+      }
+
+      t := time.Now()
+      switch {
+      case t.Hour() < 12:
+          fmt.Println("It's before noon")
+      default:
+          fmt.Println("It's after noon")
+      }
+
+      whatAmI := func(i interface{}) {
+          switch t := i.(type) {
+          case bool:
+              fmt.Println("I'm a bool")
+          case int:
+              fmt.Println("I'm an int")
+          default:
+              fmt.Printf("Don't know type %T\n", t)
+          }
+      }
+      whatAmI(true)
+      whatAmI(1)
+      whatAmI("hey")
+  }
+  ~~~
+
+#### for文
+- 3つの書き方がある
+  1. `for init; condition; post { }`
+      - 例
+        ~~~go
+	      for i := 0; i <= 10; i++ {
+		      fmt.Println(i)
+      	}
+        ~~~
+  2. `for condition { }`
+      - `while <condition>`のような感じ
+      - 例
+        ~~~go
+        func main() {
+	        x := 1
+	        for x < 10 {
+		        fmt.Println(x)
+		        x++
+	        }
+	        fmt.Println("done.")
+        }
+        ~~~
+  3. `for { }`
+      - `while true`のような感じ
+      - 例
+        ~~~go
+        func main() {
+	        x := 1
+	        for {
+		        if x > 9 {
+			        break
+		        }
+		        fmt.Println(x)
+		        x++
+	        }
+	        fmt.Println("done.")
+        }
+        ~~~
+
+#### break & continueについて
+- continueの下は実行されない
+- breakはfor文から抜ける
+  - 例（2から2の倍数だけ100まで出力されて最後にdoneが出力される）
+    ~~~go
+    func main() {
+	    x := 1
+	    for {
+		    x++
+		    if x > 100 {
+			    break
+		    }
+
+		    if x%2 != 0 {
+			    continue
+		    }
+
+		    fmt.Println(x)
+		    }
+
+	    fmt.Println("done.")
+    }
+    ~~~
+
+#### 配列
+
 
 #### ポインタ
 - 値が入るメモリのアドレス
