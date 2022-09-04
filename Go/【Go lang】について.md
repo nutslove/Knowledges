@@ -109,6 +109,22 @@
   `
   ~~~
 
+### Array(配列)
+- Format
+  1. `var <変数名>[配列数]<型>`
+      ~~~go
+      var x [5]int
+      ~~~
+  2. ``
+      ~~~go
+      ~~~
+  3. ``
+      ~~~go
+      ~~~
+  > **Warning**  
+  > GoではArrayの代わりにSlicesを使うことが推奨されている
+  > https://go.dev/doc/effective_go#arrays
+
 ### 定数（const）
 - 作成した後に値の変更ができない
   ~~~go
