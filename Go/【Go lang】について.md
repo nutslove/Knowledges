@@ -122,7 +122,7 @@
       ~~~go
       ~~~
   > **Warning**  
-  > GoではArrayの代わりにSlicesを使うことが推奨されている
+  > GoではArrayの代わりにSlicesを使うことが推奨されている  
   > https://go.dev/doc/effective_go#arrays
 
 ### 定数（const）
