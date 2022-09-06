@@ -40,4 +40,4 @@ https://grafana.com/docs/grafana/latest/alerting/fundamentals/alert-rules/alert-
 - 1つのAlert Ruleから発行される複数のアラートは1回の処理で連携される  
   例えばWebhookに連携する場合、以下添付のように1つのAlert Ruleから同時に発行される複数のAlertは1回のWebhook(POST)で連携される  
   (jsonの中に含まれている)
-![Alert](https://github.com/nutslove/all_I_need/blob/master/Knowledges/Grafana/image/Grafana_MultipleAlerts.jpg)
+![Alert](https://github.com/nutslove/Knowledges/blob/main/Grafana/image/Grafana_MultipleAlerts.jpg)
