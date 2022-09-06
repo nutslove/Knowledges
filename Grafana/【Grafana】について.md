@@ -33,11 +33,15 @@ https://grafana.com/docs/grafana/next/alerting/high-availability/
 - Alertmanager  
   → Alertのroutingとgroupingを行う
 
+#### ・Grafana Alerting(Webhook)から発行されるアラートデータ形式
+- Alertmanager形式と同じ
+  - https://prometheus.io/docs/alerting/latest/clients/
+  - https://prometheus.io/docs/alerting/latest/notifications/
+
 #### ・GrafanaのAlert発行単位について
 https://grafana.com/docs/grafana/latest/alerting/fundamentals/alert-rules/alert-instances/
 - Grafanaは1つのAlert Ruleで複数のインスタンすを作成できる
 - つまり、1つのAlert Ruleから複数のアラートが発行される（上記URL参照）
 - 1つのAlert Ruleから発行される複数のアラートは1回の処理で連携される  
-  例えばWebhookに連携する場合、以下添付のように1つのAlert Ruleから同時に発行される複数のAlertは1回のWebhook(POST)で連携される  
-  (jsonの中に含まれている)
+  例えばWebhookに連携する場合、以下添付のように1つのAlert Ruleから同時に発行される62個のAlertは1回のWebhook(POST)で連携される  
 ![Alert](https://github.com/nutslove/Knowledges/blob/main/Grafana/image/Grafana_MultipleAlerts.jpg)
