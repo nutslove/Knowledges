@@ -5,7 +5,7 @@
 
 ## Architecture
 ![Loki_Architecture](https://github.com/nutslove/Knowledges/blob/main/Loki(promtail)/image/Loki_Architecture.jpg)
-[^1]出典: https://grafana.com/blog/2021/08/11/a-guide-to-deploying-grafana-loki-and-grafana-tempo-without-kubernetes-on-aws-fargate/
+出典: https://grafana.com/blog/2021/08/11/a-guide-to-deploying-grafana-loki-and-grafana-tempo-without-kubernetes-on-aws-fargate/
 
 ## Components
 - __Querier__
@@ -17,8 +17,8 @@
 ## Observability
 - Loki/promtailも自身に関するメトリクスを開示している
   - https://grafana.com/docs/loki/latest/operations/observability/
-- 役に立つメトリクス[^2]
-  [^2]: 参考URL: https://taisho6339.gitbook.io/grafana-loki-deep-dive/monitoring
+- 役に立つメトリクス[^1]
+  [^1]: 参考URL: https://taisho6339.gitbook.io/grafana-loki-deep-dive/monitoring
   - __Distributor__
     - `loki_distributor_lines_received_total` (counter)  
       → Distributorが受け付けたログ数(per tanant)
