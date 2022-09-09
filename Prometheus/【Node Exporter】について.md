@@ -1,3 +1,9 @@
+## Node_Exporterの設定
+- Node_ExporterをPodとして動かす時、ノード関連メトリクスを収集できるよう`hostNetwork: true`と`hostPID: true`の設定が必要
+- 参照URL
+  - https://github.com/prometheus/node_exporter/issues/2161
+  - https://github.com/prometheus/node_exporter/issues/2321
+
 ## Disk関連
 - 参考URL  
   - https://brian-candler.medium.com/interpreting-prometheus-metrics-for-linux-disk-i-o-utilization-4db53dfedcfc

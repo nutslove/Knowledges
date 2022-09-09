@@ -46,6 +46,15 @@ https://grafana.com/docs/grafana/latest/alerting/fundamentals/alert-rules/alert-
   例えば、Webhookに連携する場合、以下添付のように1つのAlert Ruleから同時に発行される62個のAlertは1回のWebhook(POST)で連携される  
 ![Alert](https://github.com/nutslove/Knowledges/blob/main/Grafana/image/Grafana_MultipleAlerts.jpg)
 
+## Plugin
+#### X-Ray Plugin
+- 参考URL
+  - https://github.com/grafana/x-ray-datasource
+  - https://grafana.com/grafana/plugins/grafana-x-ray-datasource/
+- X-Rayプラグインを利用に必要なIAMポリシーに`ec2:DescribeRegions`も含まれる
+  - be used to list regions
+  - https://github.com/grafana/x-ray-datasource/issues/135
+
 ## その他
 - GrafanaもGrafanaに関するメトリクスを開示している  
   - https://grafana.com/docs/grafana/latest/alerting/fundamentals/evaluate-grafana-alerts/#metrics-from-the-alerting-engine
