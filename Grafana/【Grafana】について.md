@@ -51,7 +51,7 @@ https://grafana.com/docs/grafana/latest/alerting/fundamentals/alert-rules/alert-
 - 参考URL
   - https://github.com/grafana/x-ray-datasource
   - https://grafana.com/grafana/plugins/grafana-x-ray-datasource/
-- X-Rayプラグインを利用に必要なIAMポリシーに`ec2:DescribeRegions`も含まれる
+- X-Rayプラグイン利用に必要なIAMポリシーに`ec2:DescribeRegions`も含まれる
   - be used to list regions
   - https://github.com/grafana/x-ray-datasource/issues/135
 
