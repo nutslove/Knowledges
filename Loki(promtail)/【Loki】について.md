@@ -11,17 +11,33 @@
 - __Query Frontend__
   - Grafana等からのクエリーを最初に受け付ける
   - 広い範囲のデカいクエリーを小さく分割して複数のQuerierにパラレルに実行させてQuerierから帰ってきた結果をaggregationする
+    - Query frontendが内部でqueueを持っていてそこに分割したクエリーを入れて、Querierがそこからqueueを取り出してクエリーを実行して結果をQuery frontendに返す
+    - どの単位でクエリーを分割するかは`split_queries_by_interval`(defaultは30m)で設定できる  
+    → 例えばデフォルト(30m)で2h範囲のクエリーを実行したら、4つのクエリーに分割してパラレルにQuerierに実行させる
   - 参考URL
     - https://grafana.com/docs/loki/latest/fundamentals/architecture/components/#query-frontend
     - https://grafana.com/docs/loki/latest/configuration/query-frontend/
     - https://github.com/taisho6339/loki-book/tree/main/query-process
-    - 
 - __Querier__
   - Query Frontendから連携されるクエリーを実際にIngesterとBackend(S3)に投げて処理する
   - 
   - 参考URL
     - https://grafana.com/docs/loki/latest/fundamentals/architecture/components/#querier
     - 
+
+## Configuration
+#### ingester
+- 参考URL
+  - https://grafana.com/docs/loki/latest/configuration/#ingester
+  - https://grafana.com/docs/loki/latest/best-practices/#use-chunk_target_size
+- 以下の3つがingesterからBackend(S3等)にflushされるタイミングに影響する設定  
+  → 個の3つの値を大きくするとメモリ使用量も上がるので要注意
+  - `chunk_target_size`
+    - chunkがここに設定したsizeに達したらingesterがBackend(S3)にchunkをflushする
+  - `max_chunk_age`
+    - ここに指定した時間が経過したchunkをflushする
+  - `chunk_idle_period`
+    - ここに指定した時間の間、chunkに更新がない場合flushする
 
 ## Observability
 - Loki/promtailも自身に関するメトリクスを開示している
@@ -42,15 +58,3 @@
        ・`idle` → `chunk_idle_period`の条件を満たしてflushされたもの  
        ・`max_age` → `max_chunk_age`の条件を満たしてflushされたもの  
   - __promtail__
-
-## Configuration
-#### ingester
-- https://grafana.com/docs/loki/latest/configuration/#ingester
-- 以下の3つがingesterからBackend(S3等)にflushされるタイミングに影響する設定  
-  → 個の3つの値を大きくするとメモリ使用量も上がるので要注意
-  - `chunk_target_size`
-    - chunkがここに設定したsizeに達したらingesterがBackend(S3)にchunkをflushする
-  - `max_chunk_age`
-    - ここに指定した時間が経過したchunkをflushする
-  - `chunk_idle_period`
-    - ここに指定した時間の間、chunkに更新がない場合flushする
