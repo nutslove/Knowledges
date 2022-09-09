@@ -4,13 +4,22 @@
 - https://speakerdeck.com/line_developers/grafana-loki-deep-dive
 
 ## Architecture
-![Loki_Architecture](https://github.com/nutslove/Knowledges/blob/main/Loki(promtail)/image/Loki_Architecture.jpg)
+![Loki_Architecture](https://github.com/nutslove/Knowledges/blob/main/Loki(promtail)/image/Loki_Architecture.jpg)  
 出典: https://grafana.com/blog/2021/08/11/a-guide-to-deploying-grafana-loki-and-grafana-tempo-without-kubernetes-on-aws-fargate/
 
 ## Components
+- __Query Frontend__
+  - Grafana等からのクエリーを最初に受け付ける
+  - 広い範囲のデカいクエリーを小さく分割して複数のQuerierにパラレルに実行させてQuerierから帰ってきた結果をaggregationする
+  - 参考URL
+    - https://grafana.com/docs/loki/latest/fundamentals/architecture/components/#query-frontend
+    - https://grafana.com/docs/loki/latest/configuration/query-frontend/
+    - https://github.com/taisho6339/loki-book/tree/main/query-process
+    - 
 - __Querier__
-  - LogQLで
-  - 参照URL
+  - Query Frontendから連携されるクエリーを実際にIngesterとBackend(S3)に投げて処理する
+  - 
+  - 参考URL
     - https://grafana.com/docs/loki/latest/fundamentals/architecture/components/#querier
     - 
 
@@ -38,7 +47,7 @@
 #### ingester
 - https://grafana.com/docs/loki/latest/configuration/#ingester
 - 以下の3つがingesterからBackend(S3等)にflushされるタイミングに影響する設定  
-  → 個の3つの値を大きくしすぎるとメモリ使用量も上がるので要注意
+  → 個の3つの値を大きくするとメモリ使用量も上がるので要注意
   - `chunk_target_size`
     - chunkがここに設定したsizeに達したらingesterがBackend(S3)にchunkをflushする
   - `max_chunk_age`
