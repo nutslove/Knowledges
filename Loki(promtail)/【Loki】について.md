@@ -15,11 +15,11 @@
       → Distributorが受け付けたログ数(per tanant)
     - `loki_distributor_ingester_append_failures_total` (counter)  
       → The total number of failed batch appends sent to ingesters.  
-        > **Warning**  
+        > **Note**  
         > ingesterへのappendが失敗した場合再送されるのか、このメトリクスの影響を確認！  
   - __Ingester__
     - `loki_ingester_chunks_flushed_total` (counter)  
-      → どの要因でflushされたか`reason`ごとにflushされた件数  
+      → どの要因でflushされたか、以下の`reason`ごとにflushされた件数  
        ・`full` → `chunk_target_size`の条件を満たしてflushされたもの  
        ・`idle` → `chunk_idle_period`の条件を満たしてflushされたもの  
        ・`max_age` → `max_chunk_age`の条件を満たしてflushされたもの  
