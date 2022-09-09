@@ -8,15 +8,28 @@
 ## Observability
 - Loki/promtailも自身に関するメトリクスを開示している
   - https://grafana.com/docs/loki/latest/operations/observability/
-- 監視した方が良いメトリクス[^1]
+- 役に立つメトリクス[^1]
   [^1]: 参考URL: https://taisho6339.gitbook.io/grafana-loki-deep-dive/monitoring
-  - `loki_distributor_lines_received_total`
-  - 
+  - __Distributor__
+    - `loki_distributor_lines_received_total` (counter)  
+      → Distributorが受け付けたログ数(per tanant)
+    - `loki_distributor_ingester_append_failures_total` (counter)  
+      → The total number of failed batch appends sent to ingesters.  
+        > **Warning**  
+        > ingesterへのappendが失敗した場合再送されるのか、このメトリクスの影響を確認！  
+  - __Ingester__
+    - `loki_ingester_chunks_flushed_total` (counter)  
+      → どの要因でflushされたか`reason`ごとにflushされた件数  
+       ・`full` → `chunk_target_size`の条件を満たしてflushされたもの  
+       ・`idle` → `chunk_idle_period`の条件を満たしてflushされたもの  
+       ・`max_age` → `max_chunk_age`の条件を満たしてflushされたもの  
+  - __promtail__
 
 ## Configuration
 #### ingester
 - https://grafana.com/docs/loki/latest/configuration/#ingester
-- 以下の3つがingesterからBackend(S3等)にflushされるタイミングに関連する設定
+- 以下の3つがingesterからBackend(S3等)にflushされるタイミングに影響する設定  
+  → 個の3つの値を大きくしすぎるとメモリ使用量も上がるので要注意
   - `chunk_target_size`
     - chunkがここに設定したsizeに達したらingesterがBackend(S3)にchunkをflushする
   - `max_chunk_age`
