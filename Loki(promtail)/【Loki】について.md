@@ -8,6 +8,11 @@
 出典: https://grafana.com/blog/2021/08/11/a-guide-to-deploying-grafana-loki-and-grafana-tempo-without-kubernetes-on-aws-fargate/
 
 ## Components
+#### Write path
+- __Distributor__
+- __Ingester__
+
+#### Read path
 - __Query Frontend__
   - Grafana等からのクエリーを最初に受け付ける
   - 広い範囲のデカいクエリーを小さく分割して複数のQuerierにパラレルに実行させてQuerierから帰ってきた結果をaggregationする
@@ -20,10 +25,10 @@
     - https://github.com/taisho6339/loki-book/tree/main/query-process
 - __Querier__
   - Query Frontendから連携されるクエリーを実際にIngesterとBackend(S3)に投げて処理する
-  - 
+  - QuerierがStateful？
+    - https://grafana.com/docs/loki/latest/operations/storage/boltdb-shipper/
   - 参考URL
     - https://grafana.com/docs/loki/latest/fundamentals/architecture/components/#querier
-    - 
 
 ## Configuration
 #### ingester
@@ -58,3 +63,7 @@
        ・`idle` → `chunk_idle_period`の条件を満たしてflushされたもの  
        ・`max_age` → `max_chunk_age`の条件を満たしてflushされたもの  
   - __promtail__
+    - `promtail_sent_entries_total` (counter)  
+      → promtailがingesterに送ったログ数
+    - `promtail_dropped_entries_total` (counter)  
+      → promtailが設定されているすべてのretry回数内にingesterへの送信に失敗した(dropされた)ログ数
