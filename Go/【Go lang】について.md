@@ -119,9 +119,85 @@
       ~~~go
       b := [5]int{1, 2, 3, 5, 7}
       ~~~
+- `len(配列変数名)`で配列数を確認できる
+- Arrayは固定長で`append`による要素の追加ができない
   > **Warning**  
   > GoではArrayの代わりにSlicesを使うことが推奨されている  
   > https://go.dev/doc/effective_go#arrays
+
+### Slices
+- Format
+  1. `<変数> := []<型>{Values}`
+      ~~~go
+      x := []int{1, 2, 3, 5, 7}
+      ~~~
+  2. `<変数> := make([]<型>{<長さ>, <容量>})`
+      ~~~go
+      x := make([]int{5, 10})
+      ~~~
+- ArrayとSliceの違いについて  
+  - https://qiita.com/seihmd/items/d9bc98a4f4f606ecaef7
+  - https://qiita.com/tchnkmr/items/10071a53a8bce87b62a3
+- Arrayと同様に`len(Slice名)`でSliceの長さを確認できる
+- Sliceは`append`による要素の追加ができる  
+  ~~~go
+  slice := []int{1, 2, 3}
+  slice = append(slice, 4)
+  ~~~
+- 要素の削除は``で行う
+- rangeを使ってforでSliceのループ処理ができる
+  ~~~go
+  x := []int{10, 20, 30}
+  for index, value := range x {
+    fmt.Println(index, value)
+  }
+  ~~~
+  → `0 10\n 1 20\n 2 30\n`が出力される
+
+### Map
+- Format
+  1. `var 変数 map[<Key型>]<Value型>`
+  2. `変数 := map[<Key型>]<Value型> { Key1: Value1, Key2: Value2, ・・・, }`  
+    → 最後の要素の後にも`,`が必要
+      ~~~go
+      m := map[string]int {
+        "Lee": 35,
+        "Yamagiwa": 28,
+      }
+      ~~~
+- MapのValue参照
+  - `<Map変数名>[<Key名>]`  
+    → `fmt.Println(m["Lee"])`
+- Mapは該当のKeyが存在しなくてもエラーにならず、Zero Value(初期値)を返すので要注意!  
+  Mapは実は2つの戻り値があって2つ目の戻り値(bool)でそのKeyが存在有無を判断する
+  ~~~go
+  if v, ok := m["Kim"]; ok {
+    fmt.Println(v)
+  }
+  → "Kim"は存在しないので何も表示されない
+  if v, ok := m["Lee"]; ok {
+    fmt.Println(v)
+  }
+  → "Lee"は存在するので35が表示される
+  ~~~
+- 要素追加
+  - `<Map変数名>[<追加するKey名>] = <追加するValue>`  
+    → `m["Kim"] = 51`
+- 要素削除
+  - `delete(<Map変数名>[<削除するKey名>])`  
+    → `delete(m, "Kim")`  
+  - 削除するKeyが存在しなくてもエラーにならないので本当に削除されたか確認するためには2つ目の戻り値(bool)で確認してから削除する
+    ~~~go
+    if v, ok := m["Kim"]; ok {
+      delete(m, "Kim")
+    }
+    ~~~
+- rangeを使ってforでMapのループ処理ができる
+  ~~~go
+  for k, v := range m {
+    fmt.Println("Key: ", k, "Value: ", v)
+  }
+  ~~~
 
 ### 定数（const）
 - 作成した後に値の変更ができない
@@ -184,10 +260,6 @@
     var y int
     y = int(x)
     ~~~
-
-### スライス
-
-### map
 
 ### 関数
 - いくつかのパターンがある 
@@ -429,9 +501,6 @@ if 条件式 {
     }
     ~~~
 
-### 配列
-
-
 ### ポインタ
 - 値が入るメモリのアドレス
 - `*int`がポインタ型変数
@@ -445,6 +514,8 @@ fmt.Println(*p)  → メモリアドレス(p)に格納されている値 100 が
 *p = 300         → メモリアドレス(p)に格納されている値を100 → 300 に変更
 fmt.Println(*p)  → メモリアドレス(p)に格納されている値 300 が表示される
 ~~~
+
+### make
 
 ### パッケージ(import)
 - importパッケージ名はファイル名ではなく、import対象ファイルの`package`名
