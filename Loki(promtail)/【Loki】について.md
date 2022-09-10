@@ -26,7 +26,7 @@
     - https://grafana.com/docs/loki/latest/configuration/query-frontend/
     - https://github.com/taisho6339/loki-book/tree/main/query-process
 - __Querier__
-  - Query Frontendから連携されるクエリーを実際にIngesterとBackend(S3)に投げて処理する
+  - Query Frontendから連携されたクエリーをIngesterとBackend(S3)に投げて処理する
   - QuerierがStateful？
     - https://grafana.com/docs/loki/latest/operations/storage/boltdb-shipper/
   - 参考URL
@@ -35,6 +35,7 @@
 ## BoltDB Shipper
 - __背景__
   - Lokiは`index`と`chunk`2種類のデータを保存する必要がある
+    > Grafana Loki needs to store two different types of data: chunks and indexes.
     > Loki receives logs in separate streams, where each stream is uniquely identified by its tenant ID and its set of labels. As log entries from a stream arrive, they are compressed as “chunks” and saved in the chunks store. 
     - `index`  
       → labelとtenant IDの組合せから生成されるchunkを検索するためのindex
@@ -42,9 +43,11 @@
       → logデータが圧縮されたもの
     ![Write_Path](https://github.com/nutslove/Knowledges/blob/main/Loki(promtail)/image/Write_Path.jpg)  
   - 最初の頃のLokiではindex(ex. DynamoDB)とchunk(ex. S3)を別々のところに保存していた
-  - あるVerからindexもchunkと同じObject Storageに保存できるよう、BoltDB Shipperが登場した
+  - あるVerからindexもchunkと同じObject Storageに保存できるようにするためにBoltDB Shipperが登場した
 - __仕組み__
-  - BoltDBという組み込み型KVS
+  - BoltDB[^1]という組み込み型KVSにindexを保存し、
+    [^1]: 参考URL: https://grafana.com/docs/loki/latest/storage/#boltdb
+    [^1]: 参考URL: https://github.com/boltdb/bolt
 - 参考URL
   - https://grafana.com/docs/loki/latest/operations/storage/boltdb-shipper/
   - https://grafana.com/docs/loki/latest/fundamentals/architecture/
@@ -66,8 +69,8 @@
 ## Observability
 - Loki/promtailも自身に関するメトリクスを開示している
   - https://grafana.com/docs/loki/latest/operations/observability/
-- 役に立つメトリクス[^1]
-  [^1]: 参考URL: https://taisho6339.gitbook.io/grafana-loki-deep-dive/monitoring
+- 役に立つメトリクス[^2]
+  [^2]: 参考URL: https://taisho6339.gitbook.io/grafana-loki-deep-dive/monitoring
   - __Distributor__
     - `loki_distributor_lines_received_total` (counter)  
       → Distributorが受け付けたログ数(per tanant)
