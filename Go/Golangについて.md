@@ -519,15 +519,17 @@ if 条件式 {
       age   int
     }
 
-    p1 := person {
-      first: "James",
-      last: "Bond",
-      age: 28,
-    }
+    func main() {
+      p1 := person {
+        first: "James",
+        last: "Bond",
+        age: 28,
+      }
 
-    fmt.Println(p1)
-	  fmt.Println(p1.first)
+      fmt.Println(p1)  
+	  fmt.Println(p1.first)  
 	  fmt.Println(p1.age)
+    }
     ~~~
 - __Embedded structs__
   - 既存のstructを
