@@ -501,6 +501,37 @@ if 条件式 {
     }
     ~~~
 
+### Struct (構造体)
+- 色んな型を値をひとまとめにしたもの
+- Format
+  ~~~go
+  type <type名> struct {
+    <field1名> <型>
+    <field2名> <型>
+    ...
+  }
+  ~~~
+  - 例
+    ~~~go
+    type person struct {
+      first string
+      last  string
+      age   int
+    }
+
+    p1 := person {
+      first: "James",
+      last: "Bond",
+      age: 28,
+    }
+
+    fmt.Println(p1)
+	  fmt.Println(p1.first)
+	  fmt.Println(p1.age)
+    ~~~
+- __Embedded structs__
+  - 既存のstructを
+
 ### ポインタ
 - 値が入るメモリのアドレス
 - `*int`がポインタ型変数
@@ -514,6 +545,9 @@ fmt.Println(*p)  → メモリアドレス(p)に格納されている値 100 が
 *p = 300         → メモリアドレス(p)に格納されている値を100 → 300 に変更
 fmt.Println(*p)  → メモリアドレス(p)に格納されている値 300 が表示される
 ~~~
+
+### goto
+
 
 ### make
 

@@ -1,6 +1,11 @@
 - Prometheusを本番環境で利用する際に直面する可能性のある問題について  
   https://labs.gree.jp/blog/2017/10/16614/
 
+#### Prometheus Podを差起動せずConfigをReloadする方法
+- 
+- 修正後のConfigMapをapplyしてから少し間を空けて(1分くらい?)、Reloadすること
+
+#### label_replaceによる
 - Prometheus側の設定`relabel_configs`による永続的なリラベルではなく、PromQL`label_replace`で一時的(そのクエリーに限る)にリラベルするとこができる  
   https://stackoverflow.com/questions/71794543/promql-join-on-different-label-names  
   https://prometheus.io/docs/prometheus/latest/querying/functions/#label_replace  
