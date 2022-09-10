@@ -19,6 +19,8 @@
     - Query frontendが内部でqueueを持っていてそこに分割したクエリーを入れて、Querierがそこからqueueを取り出してクエリーを実行して結果をQuery frontendに返す
     - どの単位でクエリーを分割するかは`split_queries_by_interval`(defaultは30m)で設定できる  
     → 例えばデフォルト(30m)で2h範囲のクエリーを実行したら、4つのクエリーに分割してパラレルにQuerierに実行させる
+  - クエリー結果をResult cacheにキャッシュする
+  - クエリーrequestが失敗したら`max_retries`に設定された回数(defaultは5回)リトライする
   - 参考URL
     - https://grafana.com/docs/loki/latest/fundamentals/architecture/components/#query-frontend
     - https://grafana.com/docs/loki/latest/configuration/query-frontend/
@@ -29,6 +31,23 @@
     - https://grafana.com/docs/loki/latest/operations/storage/boltdb-shipper/
   - 参考URL
     - https://grafana.com/docs/loki/latest/fundamentals/architecture/components/#querier
+
+## BoltDB Shipper
+- __背景__
+  - Lokiは`index`と`chunk`2種類のデータを保存する必要がある
+    > Loki receives logs in separate streams, where each stream is uniquely identified by its tenant ID and its set of labels. As log entries from a stream arrive, they are compressed as “chunks” and saved in the chunks store. 
+    - `index`  
+      → labelとtenant IDの組合せから生成されるchunkを検索するためのindex
+    - `chunk`  
+      → logデータが圧縮されたもの
+    ![Write_Path](https://github.com/nutslove/Knowledges/blob/main/Loki(promtail)/image/Write_Path.jpg)  
+  - 最初の頃のLokiではindex(ex. DynamoDB)とchunk(ex. S3)を別々のところに保存していた
+  - あるVerからindexもchunkと同じObject Storageに保存できるよう、BoltDB Shipperが登場した
+- __仕組み__
+  - BoltDBという組み込み型KVS
+- 参考URL
+  - https://grafana.com/docs/loki/latest/operations/storage/boltdb-shipper/
+  - https://grafana.com/docs/loki/latest/fundamentals/architecture/
 
 ## Configuration
 #### ingester
