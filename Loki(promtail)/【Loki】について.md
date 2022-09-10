@@ -46,8 +46,7 @@
   - あるVerからindexもchunkと同じObject Storageに保存できるようにするためにBoltDB Shipperが登場した
 - __仕組み__
   - BoltDB[^1]という組み込み型KVSにindexを保存し、
-    [^1]: 参考URL: https://grafana.com/docs/loki/latest/storage/#boltdb
-    [^1]: 参考URL: https://github.com/boltdb/bolt
+    [^1]: https://grafana.com/docs/loki/latest/storage/#boltdb  https://github.com/boltdb/bolt
 - 参考URL
   - https://grafana.com/docs/loki/latest/operations/storage/boltdb-shipper/
   - https://grafana.com/docs/loki/latest/fundamentals/architecture/
@@ -70,7 +69,7 @@
 - Loki/promtailも自身に関するメトリクスを開示している
   - https://grafana.com/docs/loki/latest/operations/observability/
 - 役に立つメトリクス[^2]
-  [^2]: 参考URL: https://taisho6339.gitbook.io/grafana-loki-deep-dive/monitoring
+  [^2]: https://taisho6339.gitbook.io/grafana-loki-deep-dive/monitoring
   - __Distributor__
     - `loki_distributor_lines_received_total` (counter)  
       → Distributorが受け付けたログ数(per tanant)
