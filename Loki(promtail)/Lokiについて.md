@@ -51,6 +51,20 @@
   - https://grafana.com/docs/loki/latest/operations/storage/boltdb-shipper/
   - https://grafana.com/docs/loki/latest/fundamentals/architecture/
 
+## LogがDropされるのを防ぐための仕組み
+- 参考URL
+  - https://grafana.com/blog/2021/02/16/the-essential-config-settings-you-should-use-so-you-wont-drop-logs-in-loki/
+  - https://grafana.com/docs/loki/latest/operations/storage/boltdb-shipper/#queriers
+- __Replication factor__
+- __WAL__
+
+## chunkの圧縮
+- 転送速度向上およびストレージコスト削減のため、ログはgzip[^3]で圧縮されてchunkとして保存される
+  [^3]: defaultではgzipだけどingesterの設定`chunk_encoding`にてsnappy(圧縮率は低いけどその分検索が早い)などに変えることもできる
+- 参考URL
+  - https://grafana.com/docs/loki/latest/operations/storage/boltdb-shipper/#operational-details
+  - https://grafana.com/docs/loki/latest/configuration/#ingester
+
 ## Configuration
 #### ingester
 - 参考URL
@@ -77,6 +91,7 @@
       → The total number of failed batch appends sent to ingesters.  
         > **Note**  
         > ingesterへのappendが失敗した場合再送されるのか、このメトリクスの影響を確認！  
+        > replication_factorの中で一部失敗したけど過半数は成功したので問題なしとか？
   - __Ingester__
     - `loki_ingester_chunks_flushed_total` (counter)  
       → どの要因でflushされたか、以下の`reason`ごとにflushされた件数  
