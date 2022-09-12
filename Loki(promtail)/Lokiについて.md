@@ -17,7 +17,7 @@
 #### Read path
 - __Query Frontend__
   - Grafana等からのクエリーを最初に受け付ける
-  - 広い範囲のデカいクエリーを小さく分割して複数のQuerierにパラレルに実行させてQuerierから帰ってきた結果をaggregation(+deduplication)する
+  - 広い範囲のデカいクエリーを小さく分割して複数のQuerierにパラレルに実行させてQuerierから帰ってきた結果をaggregationする
     - Query frontendが内部でqueueを持っていてそこに分割したクエリーを入れて、Querierがそこからqueueを取り出してクエリーを実行して結果をQuery frontendに返す
     - どの単位でクエリーを分割するかは`split_queries_by_interval`(defaultは30m)で設定できる  
     → 例えばデフォルト(30m)で2h範囲のクエリーを実行したら、4つのクエリーに分割してパラレルにQuerierに実行させる
@@ -29,9 +29,17 @@
     - https://github.com/taisho6339/loki-book/tree/main/query-process
 - __Querier__
   - Query Frontendから連携されたクエリーをIngesterとBackend(S3)に投げて処理する
+  - [Querier](https://grafana.com/docs/loki/latest/fundamentals/architecture/components/#querier)はデータのdeduplicationを行う
+    > Queriers query all ingesters for in-memory data before falling back to running the same query against the backend store. Because of the replication factor, it is possible that the querier may receive duplicate data. To resolve this, the querier internally deduplicates data that has the same nanosecond timestamp, label set, and log message.
   - QuerierがStateful？
-    - indexを保持するため、Stateful
-    - `index-gateway`という
+    - indexを保持するためStateful
+    - ただ、Read Performanceに影響するもので[Querier](https://grafana.com/docs/loki/latest/operations/storage/boltdb-shipper/#queriers)が落ちても再度indexをObject storageからダウンロードして終わりの話の気がする。。  
+    → つまりQueriorがStatefulであることはそこまで気にしなくて良いのでは？  
+      >  When a querier receives a read request, the query range from the request is resolved to period numbers and all the files for those period numbers are downloaded to cache_location, if not already.   
+
+      しかもQueriorにも専用のEBSをProvisioningするので再起動を気にせず、QueriorにMemoryのLimitsを設定して良さそう。
+      > Within Kubernetes, if you are not using an Index Gateway, we recommend running Queriers as a StatefulSet with persistent storage for downloading and querying index files. This will obtain better read performance, and it will avoid using node disk.
+    - [Index Gateway](https://grafana.com/docs/loki/latest/operations/storage/boltdb-shipper/#queriers)という別コンポーネントをデプロイすればQueriorをStatelessにすることができる。
     - https://grafana.com/docs/loki/latest/operations/storage/boltdb-shipper/
   - 参考URL
     - https://grafana.com/docs/loki/latest/fundamentals/architecture/components/#querier
