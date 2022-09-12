@@ -13,7 +13,7 @@
 - __Ingester__
 
 #### Read path
-    ![Read_Path](https://github.com/nutslove/Knowledges/blob/main/Loki(promtail)/image/Read_Path.jpg)  
+![Read_Path](https://github.com/nutslove/Knowledges/blob/main/Loki(promtail)/image/Read_Path.jpg)  
 - __Query Frontend__
   - Grafana等からのクエリーを最初に受け付ける
   - 広い範囲のデカいクエリーを小さく分割して複数のQuerierにパラレルに実行させてQuerierから帰ってきた結果をaggregationする
