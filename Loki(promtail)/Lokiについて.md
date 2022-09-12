@@ -32,7 +32,8 @@
   - [Querier](https://grafana.com/docs/loki/latest/fundamentals/architecture/components/#querier)はデータのdeduplicationを行う
     > Queriers query all ingesters for in-memory data before falling back to running the same query against the backend store. Because of the replication factor, it is possible that the querier may receive duplicate data. To resolve this, the querier internally deduplicates data that has the same nanosecond timestamp, label set, and log message.
   - QuerierがStateful？
-    - indexを保持するためStateful
+    - 検索時に使うindexを保持するためStateful
+    - [Querier](https://grafana.com/docs/loki/latest/operations/storage/boltdb-shipper/#queriers)はObject storageからBoltDBファイルを`cache_location`で設定したディレクトリに非同期でダウンロード(lazily loads)し、read requestを受けた時にcache(index memcache)やダウンロードしたBoltDBファイルに該当indexが存在しない場合はObject storageから同様に`cache_location`で設定したディレクトリにダウンロードし、cache(index memcache)にindexを保存する。
     - ただ、Read Performanceに影響するもので[Querier](https://grafana.com/docs/loki/latest/operations/storage/boltdb-shipper/#queriers)が落ちても再度indexをObject storageからダウンロードして終わりの話の気がする。。  
     → つまりQueriorがStatefulであることはそこまで気にしなくて良いのでは？  
       >  When a querier receives a read request, the query range from the request is resolved to period numbers and all the files for those period numbers are downloaded to cache_location, if not already.   
@@ -40,9 +41,9 @@
       しかもQueriorにも専用のEBSをProvisioningするので再起動を気にせず、QueriorにMemoryのLimitsを設定して良さそう。
       > Within Kubernetes, if you are not using an Index Gateway, we recommend running Queriers as a StatefulSet with persistent storage for downloading and querying index files. This will obtain better read performance, and it will avoid using node disk.
     - [Index Gateway](https://grafana.com/docs/loki/latest/operations/storage/boltdb-shipper/#queriers)という別コンポーネントをデプロイすればQueriorをStatelessにすることができる。
-    - https://grafana.com/docs/loki/latest/operations/storage/boltdb-shipper/
   - 参考URL
     - https://grafana.com/docs/loki/latest/fundamentals/architecture/components/#querier
+    - https://grafana.com/docs/loki/latest/operations/storage/boltdb-shipper/
 
 ![Read_Path](https://github.com/nutslove/Knowledges/blob/main/Loki(promtail)/image/Read_Path.jpg)  
 
