@@ -8,13 +8,13 @@
 出典: https://grafana.com/blog/2021/08/11/a-guide-to-deploying-grafana-loki-and-grafana-tempo-without-kubernetes-on-aws-fargate/
 
 ## Components
-#### Write path
+### Write path
 - __Distributor__
 - __Ingester__
 
 ![Write_Path_summarize](https://github.com/nutslove/Knowledges/blob/main/Loki(promtail)/image/Write_Path_summarize.jpg)  
 
-#### Read path
+### Read path
 - __Query Frontend__
   - Grafana等からのクエリーを最初に受け付ける
   - 広い範囲のデカいクエリーを小さく分割して複数のQuerierにパラレルに実行させてQuerierから帰ってきた結果をaggregationする
@@ -89,7 +89,7 @@
   - https://grafana.com/blog/2021/02/16/the-essential-config-settings-you-should-use-so-you-wont-drop-logs-in-loki/
 
 ## Configuration
-#### ingester
+### ingester
 - 参考URL
   - https://grafana.com/docs/loki/latest/configuration/#ingester
   - https://grafana.com/docs/loki/latest/best-practices/#use-chunk_target_size
