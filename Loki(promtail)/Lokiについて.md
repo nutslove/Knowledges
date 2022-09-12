@@ -62,14 +62,14 @@
 - __仕組み__
   - BoltDB[^1]という組み込み型KVSにindexを保存し、それをObject Storageに送信したり、逆にObject Storageから別のIngesterから生成されたindexを受信して同期する
     [^1]: https://grafana.com/docs/loki/latest/storage/#boltdb、https://github.com/boltdb/bolt
-  - BoltDBとBoltDB Shipperを利用するのはIngesterとQuerior
+  - BoltDBとBoltDB Shipperが使われるのはIngesterとQuerior
     - [Ingesters](https://grafana.com/docs/loki/latest/operations/storage/boltdb-shipper/#ingesters)
       > Ingesters keep writing the index to BoltDB files in active_index_directory and BoltDB Shipper keeps looking for new and updated files in that directory every 1 Minutes to upload them to the shared object store. When running Loki in clustered mode there could be multiple ingesters serving write requests hence each of them generating BoltDB files locally.
-
+      > 
       > Note: To avoid any loss of index when Ingester crashes it is recommended to run Ingesters as statefulset(when using k8s) with a persistent storage for storing index files.
-
+      > 
       > Another important detail to note is when chunks are flushed they are available for reads in object store instantly while index is not since we only upload them every 15 Minutes with BoltDB shipper. Ingesters expose a new RPC for letting Queriers query the Ingester’s local index for chunks which were recently flushed but its index might not be available yet with Queriers. For all the queries which require chunks to be read from the store, Queriers also query Ingesters over RPC for IDs of chunks which were recently flushed which is to avoid missing any logs from queries.
-    - [Querior](https://grafana.com/docs/loki/latest/operations/storage/boltdb-shipper/#queriers)
+    - [Querior](https://grafana.com/docs/loki/latest/operations/storage/boltdb-shipper/#queriers)については上の***QuerierがStateful？***を参照
 - 参考URL
   - https://grafana.com/docs/loki/latest/operations/storage/boltdb-shipper/
   - https://grafana.com/docs/loki/latest/fundamentals/architecture/
