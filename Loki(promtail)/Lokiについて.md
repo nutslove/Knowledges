@@ -12,6 +12,8 @@
 - __Distributor__
 - __Ingester__
 
+![Write_Path_summarize](https://github.com/nutslove/Knowledges/blob/main/Loki(promtail)/image/Write_Path_summarize.jpg)  
+
 #### Read path
 - __Query Frontend__
   - Grafana等からのクエリーを最初に受け付ける
