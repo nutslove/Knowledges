@@ -13,10 +13,9 @@
 - __Ingester__
 
 #### Read path
-![Read_Path](https://github.com/nutslove/Knowledges/blob/main/Loki(promtail)/image/Read_Path.jpg)  
 - __Query Frontend__
   - Grafana等からのクエリーを最初に受け付ける
-  - 広い範囲のデカいクエリーを小さく分割して複数のQuerierにパラレルに実行させてQuerierから帰ってきた結果をaggregationする
+  - 広い範囲のデカいクエリーを小さく分割して複数のQuerierにパラレルに実行させてQuerierから帰ってきた結果をaggregation(+deduplication)する
     - Query frontendが内部でqueueを持っていてそこに分割したクエリーを入れて、Querierがそこからqueueを取り出してクエリーを実行して結果をQuery frontendに返す
     - どの単位でクエリーを分割するかは`split_queries_by_interval`(defaultは30m)で設定できる  
     → 例えばデフォルト(30m)で2h範囲のクエリーを実行したら、4つのクエリーに分割してパラレルにQuerierに実行させる
@@ -29,9 +28,12 @@
 - __Querier__
   - Query Frontendから連携されたクエリーをIngesterとBackend(S3)に投げて処理する
   - QuerierがStateful？
+    - indexを保持するため、Stateful
+    - `index-gateway`という
     - https://grafana.com/docs/loki/latest/operations/storage/boltdb-shipper/
   - 参考URL
     - https://grafana.com/docs/loki/latest/fundamentals/architecture/components/#querier
+![Read_Path](https://github.com/nutslove/Knowledges/blob/main/Loki(promtail)/image/Read_Path.jpg)  
 
 ## BoltDB Shipper
 - __背景__
@@ -55,8 +57,11 @@
 ## LogがDropされるのを防ぐための仕組み
 - __Replication factor__
 - __WAL (Write Ahead Log)__
-  - 書き込みを受け付ける前にまず先にログをDiskに全部書き込んでからメモリに書き込む。そして、ingesterが何らかの理由で落ちたら、起動時にメモリにあったすべてのログを読み込んで修復する。
+  - ingesterが書き込みを受け付ける前にまず先にログをDiskに全部書き込んでからメモリに書き込む。  
+  そして、ingesterが何らかの理由で落ちたら、起動時にメモリにあったすべてのログを読み込んで修復する。
     > This is a new feature, available starting in the 2.2 release, which helps ensure Loki doesn’t drop logs by writing all incoming data to disk before acknowledging the write. If an ingester dies for some reason, it will replay this log upon startup, safely ensuring all the data it previously had in memory has been recovered.
+- WALから読み込む(replay)時にWALサイズがingesterが利用可能な(割り当てられている)メモリサイズより大きい場合、幸いにメモリが制限されている状態でもbackpressureの形でreplayが実行されるけど、`replay_memory_ceiling`の設定でreplayデータ量が設定値に達したらreplayを一旦止めてflushさせてから再開させることができる。
+  > replay_memory_ceiling It’s possible that after an outage scenario, a WAL is larger than the available memory of an ingester. Fortunately, the WAL implements a form of backpressure, allowing large replays even when memory is constrained. This replay_memory_ceiling config is the threshold at which the WAL will pause replaying and signal the ingester to flush its data before continuing. Because this is a less efficient operation, we suggest setting this threshold to a high, but reasonable, bound, or about 75% of the ingester’s normal memory limits. 
 - 参考URL
   - https://grafana.com/blog/2021/02/16/the-essential-config-settings-you-should-use-so-you-wont-drop-logs-in-loki/
   - https://grafana.com/docs/loki/latest/design-documents/2020-09-write-ahead-log/
@@ -109,3 +114,8 @@
       → promtailがingesterに送ったログ数
     - `promtail_dropped_entries_total` (counter)  
       → promtailが設定されているすべてのretry回数内にingesterへの送信に失敗した(dropされた)ログ数
+
+## HelmによるMicroServices Modeのデプロイ
+- githubリポジトリ
+  - https://github.com/grafana/helm-charts/tree/main/charts/loki-distributed
+- Volumesは`/var/loki`にマウントされるので、各設定上のdirectoryは`/var/loki`配下(e. g. `/var/loki/index`, `/var/loki/cache`)に設定すること
