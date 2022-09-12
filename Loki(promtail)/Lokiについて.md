@@ -13,6 +13,7 @@
 - __Ingester__
 
 #### Read path
+    ![Read_Path](https://github.com/nutslove/Knowledges/blob/main/Loki(promtail)/image/Read_Path.jpg)  
 - __Query Frontend__
   - Grafana等からのクエリーを最初に受け付ける
   - 広い範囲のデカいクエリーを小さく分割して複数のQuerierにパラレルに実行させてQuerierから帰ってきた結果をaggregationする
@@ -52,18 +53,23 @@
   - https://grafana.com/docs/loki/latest/fundamentals/architecture/
 
 ## LogがDropされるのを防ぐための仕組み
+- __Replication factor__
+- __WAL (Write Ahead Log)__
+  - 書き込みを受け付ける前にまず先にログをDiskに全部書き込んでからメモリに書き込む。そして、ingesterが何らかの理由で落ちたら、起動時にメモリにあったすべてのログを読み込んで修復する。
+    > This is a new feature, available starting in the 2.2 release, which helps ensure Loki doesn’t drop logs by writing all incoming data to disk before acknowledging the write. If an ingester dies for some reason, it will replay this log upon startup, safely ensuring all the data it previously had in memory has been recovered.
 - 参考URL
   - https://grafana.com/blog/2021/02/16/the-essential-config-settings-you-should-use-so-you-wont-drop-logs-in-loki/
+  - https://grafana.com/docs/loki/latest/design-documents/2020-09-write-ahead-log/
   - https://grafana.com/docs/loki/latest/operations/storage/boltdb-shipper/#queriers
-- __Replication factor__
-- __WAL__
 
 ## chunkの圧縮
 - 転送速度向上およびストレージコスト削減のため、ログはgzip[^3]で圧縮されてchunkとして保存される
   [^3]: defaultではgzipだけどingesterの設定`chunk_encoding`にてsnappy(圧縮率は低いけどその分検索が早い)などに変えることもできる
+  > gzip is the default and has the best compression ratio, but we suggest snappy for its faster decompression rate, which results in better query speeds.
 - 参考URL
   - https://grafana.com/docs/loki/latest/operations/storage/boltdb-shipper/#operational-details
   - https://grafana.com/docs/loki/latest/configuration/#ingester
+  - https://grafana.com/blog/2021/02/16/the-essential-config-settings-you-should-use-so-you-wont-drop-logs-in-loki/
 
 ## Configuration
 #### ingester
