@@ -33,6 +33,7 @@
     - https://grafana.com/docs/loki/latest/operations/storage/boltdb-shipper/
   - 参考URL
     - https://grafana.com/docs/loki/latest/fundamentals/architecture/components/#querier
+
 ![Read_Path](https://github.com/nutslove/Knowledges/blob/main/Loki(promtail)/image/Read_Path.jpg)  
 
 ## BoltDB Shipper
