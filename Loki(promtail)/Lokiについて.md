@@ -47,6 +47,14 @@
 
 ![Read_Path](https://github.com/nutslove/Knowledges/blob/main/Loki(promtail)/image/Read_Path.jpg)  
 
+### その他
+- __Compactor__
+  - 複数のindexファイルを圧縮
+    - compact前
+      ![before_compact](https://github.com/nutslove/Knowledges/blob/main/Loki(promtail)/image/before_compact_2.jpg)  
+    - compact後
+      ![after_compact](https://github.com/nutslove/Knowledges/blob/main/Loki(promtail)/image/after_compact_2.jpg)  
+
 ## BoltDB Shipper
 - __背景__
   - Lokiは`index`と`chunk`2種類のデータを保存する必要がある
