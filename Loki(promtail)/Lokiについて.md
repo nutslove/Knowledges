@@ -48,12 +48,16 @@
 ![Read_Path](https://github.com/nutslove/Knowledges/blob/main/Loki(promtail)/image/Read_Path.jpg)  
 
 ### その他
-- __Compactor__
-  - 複数のindexファイルを圧縮
-    - compact前
-      ![before_compact](https://github.com/nutslove/Knowledges/blob/main/Loki(promtail)/image/before_compact_2.jpg)  
-    - compact後
-      ![after_compact](https://github.com/nutslove/Knowledges/blob/main/Loki(promtail)/image/after_compact_2.jpg)  
+- [__Compactor__](https://grafana.com/docs/loki/latest/operations/storage/boltdb-shipper/#compactor)
+  - 複数のindexを重複排除して1つのファイルとしてまとめる
+  - query latencyの改善につながる
+  - Compactorは1つだけ動かさないといけない
+    - 複数動かすとdata lossにつながる問題を起こす恐れがある
+      > Note: There should be only 1 compactor instance running at a time that otherwise could create problems and may lead to data loss.
+  - compact前
+    ![before_compact](https://github.com/nutslove/Knowledges/blob/main/Loki(promtail)/image/before_compact_2.jpg)  
+  - compact後
+    ![after_compact](https://github.com/nutslove/Knowledges/blob/main/Loki(promtail)/image/after_compact_2.jpg)  
 
 ## BoltDB Shipper
 - __背景__
@@ -147,3 +151,6 @@
 - githubリポジトリ
   - https://github.com/grafana/helm-charts/tree/main/charts/loki-distributed
 - Volumesは`/var/loki`にマウントされるので、各設定上のdirectoryは`/var/loki`配下(e. g. `/var/loki/index`, `/var/loki/cache`)に設定すること
+
+## migration between k8s clusters (for k8s cluster VerUp)
+- 
