@@ -153,4 +153,18 @@
 - Volumesは`/var/loki`にマウントされるので、各設定上のdirectoryは`/var/loki`配下(e. g. `/var/loki/index`, `/var/loki/cache`)に設定すること
 
 ## migration between k8s clusters (for k8s cluster VerUp)
-- 
+1. Cluster VerUp前
+![migration_1](https://github.com/nutslove/Knowledges/blob/main/Loki(promtail)/image/loki_migration_1.jpg)
+2. 新Ver Cluster作成
+![migration_2](https://github.com/nutslove/Knowledges/blob/main/Loki(promtail)/image/loki_migration_2.jpg)
+3. NLB Target Groupに新Ver Cluster上のLokiを登録
+![migration_3](https://github.com/nutslove/Knowledges/blob/main/Loki(promtail)/image/loki_migration_3.jpg)
+4. NLB Target Groupから旧Ver Cluster上のLokiを削除
+![migration_4](https://github.com/nutslove/Knowledges/blob/main/Loki(promtail)/image/loki_migration_4.jpg)
+5. 旧Ver Cluster上のLoki(ingester)に対してflushを実行
+![migration_5](https://github.com/nutslove/Knowledges/blob/main/Loki(promtail)/image/loki_migration_5.jpg)
+6. 新クラスター上のLokiから旧Lokiにあったログがすべて見えることを確認[^4]
+  [^4]: 数十分～1時間くらいかかる
+![migration_6](https://github.com/nutslove/Knowledges/blob/main/Loki(promtail)/image/loki_migration_6.jpg)
+7. 旧クラスター上のLokiを削除（EBSも明示的に削除）
+![migration_7](https://github.com/nutslove/Knowledges/blob/main/Loki(promtail)/image/loki_migration_7.jpg)
