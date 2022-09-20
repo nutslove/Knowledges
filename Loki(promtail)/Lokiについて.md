@@ -173,7 +173,7 @@
 - Volumesは`/var/loki`にマウントされるので、各設定上のdirectoryは`/var/loki`配下(e. g. `/var/loki/index`, `/var/loki/cache`)に設定すること
 
 ## Migration between k8s clusters (for k8s cluster VerUp)
-> **Warn**  
+> **Warning**  
 > 検証中！  
 1. Cluster VerUp前  
 ![migration_1](https://github.com/nutslove/Knowledges/blob/main/Loki(promtail)/image/loki_migration_1.jpg)
