@@ -14,7 +14,7 @@ https://go-journey.club/archives/7519
     [^2]:対称暗号化方式 ⇒ 共通鍵暗号方式  
     非対称暗号化方式 ⇒ 公開鍵暗号方式
 - TLS handshakeはTCP handshakeでTCP接続が開かれた後に行われる
-  ![TLS handshake](https://github.com/nutslove/all_I_need/blob/master/Knowledges/SSL(TLS)/image/TLS-handshake.jpg)
+  ![TLS handshake](https://github.com/nutslove/Knowledges/blob/main/SSL(TLS)/image/TLS-handshake.jpg)
 
   #### TLS handshakeの具体的な手順
    使用される鍵交換アルゴリズムの種類と、両側でサポートする暗号スイートによって異なる。<br>ここでは最も頻繁に使われる**RSA鍵交換アルゴリズム**のケースで説明  
