@@ -87,13 +87,15 @@
   - https://grafana.com/docs/loki/latest/fundamentals/architecture/
 
 ## LogがDropされるのを防ぐための仕組み
-- __Replication factor__
-- __WAL (Write Ahead Log)__
-  - ingesterが書き込みを受け付ける前にまず先にログをDiskに全部書き込んでからメモリに書き込む。  
-  そして、ingesterが何らかの理由で落ちたら、起動時にメモリにあったすべてのログを読み込んで修復する。
-    > This is a new feature, available starting in the 2.2 release, which helps ensure Loki doesn’t drop logs by writing all incoming data to disk before acknowledging the write. If an ingester dies for some reason, it will replay this log upon startup, safely ensuring all the data it previously had in memory has been recovered.
-  - WALから読み込む(replay)時にWALサイズがingesterが利用可能な(割り当てられている)メモリサイズより大きい場合、幸いにメモリが制限されている状態でもbackpressureの形でreplayが実行されるけど、`replay_memory_ceiling`の設定でreplayデータ量が設定値に達したらreplayを一旦止めてflushさせてから再開させることができる
-    > replay_memory_ceiling It’s possible that after an outage scenario, a WAL is larger than the available memory of an ingester. Fortunately, the WAL implements a form of backpressure, allowing large replays even when memory is constrained. This replay_memory_ceiling config is the threshold at which the WAL will pause replaying and signal the ingester to flush its data before continuing. Because this is a less efficient operation, we suggest setting this threshold to a high, but reasonable, bound, or about 75% of the ingester’s normal memory limits. 
+1. __Replication factor__
+   - Distributorから
+   - 
+2. __WAL (Write Ahead Log)__
+   - ingesterが書き込みを受け付ける前にまず先にログをDiskに全部書き込んでからメモリに書き込む。  
+    そして、ingesterが何らかの理由で落ちたら、起動時にメモリにあったすべてのログをWALから読み込んで修復する。
+      > This is a new feature, available starting in the 2.2 release, which helps ensure Loki doesn’t drop logs by writing all incoming data to disk before acknowledging the write. If an ingester dies for some reason, it will replay this log upon startup, safely ensuring all the data it previously had in memory has been recovered.
+   - WALから読み込む(replay)時にWALサイズがingesterが利用可能な(割り当てられている)メモリサイズより大きい場合、幸いにメモリが制限されている状態でもbackpressureの形でreplayが実行されるけど、`replay_memory_ceiling`の設定でreplayデータ量が設定値に達したらreplayを一旦止めてflushさせてから再開させることができる
+      > replay_memory_ceiling It’s possible that after an outage scenario, a WAL is larger than the available memory of an ingester. Fortunately, the WAL implements a form of backpressure, allowing large replays even when memory is constrained. This replay_memory_ceiling config is the threshold at which the WAL will pause replaying and signal the ingester to flush its data before continuing. Because this is a less efficient operation, we suggest setting this threshold to a high, but reasonable, bound, or about 75% of the ingester’s normal memory limits. 
 - 参考URL
   - https://grafana.com/blog/2021/02/16/the-essential-config-settings-you-should-use-so-you-wont-drop-logs-in-loki/
   - https://grafana.com/docs/loki/latest/design-documents/2020-09-write-ahead-log/
@@ -125,6 +127,24 @@
 ## Observability
 - Loki/promtailも自身に関するメトリクスを開示している
   - https://grafana.com/docs/loki/latest/operations/observability/
+- Lokiのmetricsを収集するためのPrometheus設定
+  - 以下はLokiと同じcluster内にPrometheusが存在する時の設定例
+    ~~~yaml
+    scrape_configs:
+      - job_name: 'sos-loki'
+        kubernetes_sd_configs:
+        - role: endpoints
+        relabel_configs:
+        - source_labels: [__meta_kubernetes_pod_name]
+          regex: ^sos-loki-distributed-(distributor|ingester|quer).+
+          action: keep
+        - source_labels: [__meta_kubernetes_pod_name]
+          target_label: pod
+        - source_labels: [__meta_kubernetes_pod_ip]
+          regex: (.+)
+          target_label: __address__
+          replacement: ${1}:3100
+    ~~~
 - 役に立つメトリクス[^2]
   [^2]: https://taisho6339.gitbook.io/grafana-loki-deep-dive/monitoring
   - __Distributor__
@@ -152,7 +172,9 @@
   - https://github.com/grafana/helm-charts/tree/main/charts/loki-distributed
 - Volumesは`/var/loki`にマウントされるので、各設定上のdirectoryは`/var/loki`配下(e. g. `/var/loki/index`, `/var/loki/cache`)に設定すること
 
-## migration between k8s clusters (for k8s cluster VerUp)
+## Migration between k8s clusters (for k8s cluster VerUp)
+> **Warn**  
+> 検証中！  
 1. Cluster VerUp前  
 ![migration_1](https://github.com/nutslove/Knowledges/blob/main/Loki(promtail)/image/loki_migration_1.jpg)
 2. 新Ver Cluster作成  
