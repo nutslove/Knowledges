@@ -1,21 +1,22 @@
 ## DashBoard / Panel設定
-#### ・Tooltipについて  
-グラフにマウスをかざした時に表示する対象についての設定  
+#### ■ Tooltipについて  
+- グラフにマウスをかざした時に表示する対象についての設定  
 ![Tooltip](https://github.com/nutslove/Knowledges/blob/main/Grafana/image/Tooltip.jpg)
-- Single  
-  → 1つだけ表示
-![Tooltip_Single](https://github.com/nutslove/Knowledges/blob/main/Grafana/image/Tooltip_Single.jpg)
-- All  
-  → すべて表示
-![Tooltip_All](https://github.com/nutslove/Knowledges/blob/main/Grafana/image/Tooltip_All.jpg)
-- Hidden  
-  → 表示しない
-![Tooltip_Hidden](https://github.com/nutslove/Knowledges/blob/main/Grafana/image/Tooltip_Hidden.jpg)
+  - Single  
+    → 1つだけ表示
+    ![Tooltip_Single](https://github.com/nutslove/Knowledges/blob/main/Grafana/image/Tooltip_Single.jpg)
+  - All  
+    → すべて表示
+    ![Tooltip_All](https://github.com/nutslove/Knowledges/blob/main/Grafana/image/Tooltip_All.jpg)
+  - Hidden  
+    → 表示しない
+    ![Tooltip_Hidden](https://github.com/nutslove/Knowledges/blob/main/Grafana/image/Tooltip_Hidden.jpg)
 
 ## Alert設定
-#### ・AlertのGroupingについて
-https://grafana.com/docs/grafana/latest/alerting/notifications/  
-GrafanaのAlertもPrometheusと同様にラベルによるGroupingを行う  
+#### ■ AlertのGroupingについて
+- 参考URL
+  - https://grafana.com/docs/grafana/latest/alerting/notifications/  
+- GrafanaのAlertもPrometheusと同様にラベルによるGroupingを行う  
 - `Group by`に何も設定しない場合はすべてのAlertが1つのGroupとして扱う
 - `Group by`に`...`を設定するとすべてのlabelによってGroupingされるので、すべてのアラートが個別のGroupとして扱われる  
   (1つのalertnameに属していてもpodやhostname等が違えば別のGroupとして扱われる)
@@ -24,29 +25,31 @@ therefore each alert will go into its own group. It is different from the defaul
 - 複数のNotification policiesが存在する場合、各Policy側で`Group by`設定を`...`に上書きすること  
   ![Notification_policies](https://github.com/nutslove/Knowledges/blob/main/Grafana/image/NotificationPolicies.jpg)
 
-#### ・GrafanaのAlertに関するコンポーネントについて
-https://grafana.com/docs/grafana/next/alerting/high-availability/
+#### ■ GrafanaのAlertに関するコンポーネントについて
+- 参考URL
+  - https://grafana.com/docs/grafana/next/alerting/high-availability/
 - Grafana Alerting systemは内部的に`Scheduler`と`Alertmanager`を持っている
-> The Grafana Alerting system has two main components: a Scheduler and an internal Alertmanager. The Scheduler evaluates your alert rules, while the internal Alertmanager manages routing and grouping.
+  > The Grafana Alerting system has two main components: a Scheduler and an internal Alertmanager. The Scheduler evaluates your alert rules, while the internal Alertmanager manages routing and grouping.
 - Scheduler  
   → alert rulesを評価する
 - Alertmanager  
   → Alertのroutingとgroupingを行う
 
-#### ・Grafana Alerting(Webhook)から発行されるアラートデータ形式
+#### ■ Grafana Alerting(Webhook)から発行されるアラートデータ形式
 - Alertmanager形式と同じ
   - https://prometheus.io/docs/alerting/latest/clients/
   - https://prometheus.io/docs/alerting/latest/notifications/
 
-#### ・GrafanaのAlert発行単位について
-https://grafana.com/docs/grafana/latest/alerting/fundamentals/alert-rules/alert-instances/
+#### ■ GrafanaのAlert発行単位について
+- 参考URL
+  - https://grafana.com/docs/grafana/latest/alerting/fundamentals/alert-rules/alert-instances/
 - Grafanaは1つのAlert Ruleで複数のインスタンすを作成できる
 - つまり、1つのAlert Ruleから複数のアラートが発行される（上記URL参照）
 - 1つのAlert Ruleから発行される複数のアラートは1回の処理で連携される。  
   例えば、Webhookに連携する場合、以下添付のように1つのAlert Ruleから同時に発行される62個のAlertは1回のWebhook(POST)で連携される  
 ![Alert](https://github.com/nutslove/Knowledges/blob/main/Grafana/image/Grafana_MultipleAlerts.jpg)
 
-#### ・CloudWatch LogsのAlert設定
+#### ■ CloudWatch LogsのAlert設定
 - CloudWatch Logsに対してアラートを設定するためにはCloudwatch Logs Insightsを使ってnumericデータが返ってくるようにクエリーを投げる必要がある
   > Alerting require queries that return numeric data, which CloudWatch Logs support. For example through the use of the stats command, alerts are supported.
 
@@ -77,7 +80,7 @@ https://grafana.com/docs/grafana/latest/alerting/fundamentals/alert-rules/alert-
   - https://qiita.com/suuu/items/8387df88f134348f22c7 
 
 ## Plugin
-#### X-Ray Plugin
+#### ■ X-Ray Plugin
 - 参考URL
   - https://github.com/grafana/x-ray-datasource
   - https://grafana.com/grafana/plugins/grafana-x-ray-datasource/
