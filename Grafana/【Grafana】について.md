@@ -24,6 +24,18 @@ therefore each alert will go into its own group. It is different from the defaul
 - 複数のNotification policiesが存在する場合、各Policy側で`Group by`設定を`...`に上書きすること  
   ![Notification_policies](https://github.com/nutslove/Knowledges/blob/main/Grafana/image/NotificationPolicies.jpg)
 
+#### ・CloudWatch LogsのAlert設定
+- CloudWatch Logsに対してアラートを設定するためにはCloudwatch Logs Insightsを使ってnumericデータが返ってくるようにクエリーを投げる必要がある
+  > Alerting require queries that return numeric data, which CloudWatch Logs support. For example through the use of the stats command, alerts are supported.
+
+  > **Warning**  
+  > When trying to alert on a query, if an error like `input data must be a wide series but got ...` is received, make sure that your query returns valid numeric data that can be printed in a Time series panel.
+- 参考URL
+  - https://grafana.com/docs/grafana/latest/datasources/aws-cloudwatch/
+  - https://docs.aws.amazon.com/ja_jp/AmazonCloudWatch/latest/logs/CWL_QuerySyntax.html
+  - https://qiita.com/suuu/items/8387df88f134348f22c7
+- 
+
 #### ・GrafanaのAlertに関するコンポーネントについて
 https://grafana.com/docs/grafana/next/alerting/high-availability/
 - Grafana Alerting systemは内部的に`Scheduler`と`Alertmanager`を持っている
