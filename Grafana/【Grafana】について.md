@@ -24,18 +24,6 @@ therefore each alert will go into its own group. It is different from the defaul
 - 複数のNotification policiesが存在する場合、各Policy側で`Group by`設定を`...`に上書きすること  
   ![Notification_policies](https://github.com/nutslove/Knowledges/blob/main/Grafana/image/NotificationPolicies.jpg)
 
-#### ・CloudWatch LogsのAlert設定
-- CloudWatch Logsに対してアラートを設定するためにはCloudwatch Logs Insightsを使ってnumericデータが返ってくるようにクエリーを投げる必要がある
-  > Alerting require queries that return numeric data, which CloudWatch Logs support. For example through the use of the stats command, alerts are supported.
-
-  > **Warning**  
-  > When trying to alert on a query, if an error like `input data must be a wide series but got ...` is received, make sure that your query returns valid numeric data that can be printed in a Time series panel.
-- 参考URL
-  - https://grafana.com/docs/grafana/latest/datasources/aws-cloudwatch/
-  - https://docs.aws.amazon.com/ja_jp/AmazonCloudWatch/latest/logs/CWL_QuerySyntax.html
-  - https://qiita.com/suuu/items/8387df88f134348f22c7
-- 
-
 #### ・GrafanaのAlertに関するコンポーネントについて
 https://grafana.com/docs/grafana/next/alerting/high-availability/
 - Grafana Alerting systemは内部的に`Scheduler`と`Alertmanager`を持っている
@@ -57,6 +45,36 @@ https://grafana.com/docs/grafana/latest/alerting/fundamentals/alert-rules/alert-
 - 1つのAlert Ruleから発行される複数のアラートは1回の処理で連携される。  
   例えば、Webhookに連携する場合、以下添付のように1つのAlert Ruleから同時に発行される62個のAlertは1回のWebhook(POST)で連携される  
 ![Alert](https://github.com/nutslove/Knowledges/blob/main/Grafana/image/Grafana_MultipleAlerts.jpg)
+
+#### ・CloudWatch LogsのAlert設定
+- CloudWatch Logsに対してアラートを設定するためにはCloudwatch Logs Insightsを使ってnumericデータが返ってくるようにクエリーを投げる必要がある
+  > Alerting require queries that return numeric data, which CloudWatch Logs support. For example through the use of the stats command, alerts are supported.
+
+  > **Warning**  
+  > When trying to alert on a query, if an error like `input data must be a wide series but got ...` is received, make sure that your query returns valid numeric data that can be printed in a Time series panel.
+- `fileds`で`@message`を指定し、`filter`で`like`または`not like`や`=~`で検知したい文字列を特定し、`stats count(*) by bin(1m)`で件数を取得する
+- `bin`はLogQL`count_over_time`の`[]`で指定する時間と同じ感覚で、件数をまとめる間隔を指定
+  - 例えばあるログが12:00に2件、12:03に5件、12:08に3件あったとした場合、`bin(10m)`は`12:00 10件`と表示されるけど、`bin(1m)`は`12:00 2件`,`12:03 5件`,`12:08 3件`と表示される
+  - 1mが無難
+- Cloudwatch Logs Insightsクエリー例
+  - 条件が1つのみの場合
+    ```
+    fields @message
+    | filter @message like /error/
+    | stats count(*) by bin(1m)
+    ```
+  - 条件が複数の場合は`and`や`or`でつなげることができる
+    ```
+    fields @message
+    | filter @message like /error/ and @message not like /exception/
+    | stats count(*) by bin(1m)
+    ```
+- `fields`で指定できる項目はマネコンのCloudwatch Logs Insightsから確認できる
+![CloudWatch_Logs_Insights_fields](https://github.com/nutslove/Knowledges/blob/main/Grafana/image/CloudWatch_Logs_Insights_fields.jpg)
+- 参考URL
+  - https://grafana.com/docs/grafana/latest/datasources/aws-cloudwatch/
+  - https://docs.aws.amazon.com/ja_jp/AmazonCloudWatch/latest/logs/CWL_QuerySyntax.html
+  - https://qiita.com/suuu/items/8387df88f134348f22c7 
 
 ## Plugin
 #### X-Ray Plugin
