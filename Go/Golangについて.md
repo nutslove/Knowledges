@@ -153,6 +153,14 @@
   }
   ~~~
   → `0 10\n 1 20\n 2 30\n`が出力される
+    - sliceではなくても`range`でindexとvalueを取得できる
+      下記は文字のindexと各文字のASCIIコードが表示される
+      ~~~go
+	    m := "Hello Lee!"
+	    for k, v := range m {
+		    fmt.Println("Key: ", k, "Value: ", v)
+	    }
+      ~~~
 
 ### Map
 - Format
@@ -519,6 +527,7 @@ if 条件式 {
 
 ### Struct (構造体)
 - 色んな型を値をひとまとめにしたもの
+- 他の言語のClassのような感じで、1つのstructに対して (下のp1とp2のように) 何回でも変数宣言できる
 - Format
   ~~~go
   type <type名> struct {
@@ -540,6 +549,12 @@ if 条件式 {
         first: "James",
         last: "Bond",
         age: 28,
+      }
+
+      p2 := person {
+        first: "Joonki",
+        last: "Lee",
+        age: 35,
       }
 
       fmt.Println(p1)  
