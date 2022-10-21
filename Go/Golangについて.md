@@ -153,7 +153,7 @@
   }
   ~~~
   → `0 10\n 1 20\n 2 30\n`が出力される
-    - sliceではなくても`range`でindexとvalueを取得できる
+    - sliceでなくても`range`でindexとvalueを取得できる  
       下記は文字のindexと各文字のASCIIコードが表示される
       ~~~go
 	    m := "Hello Lee!"
@@ -533,7 +533,8 @@ if 条件式 {
   type <type名> struct {
     <field1名> <型>
     <field2名> <型>
-    ...
+          ・
+          ・
   }
   ~~~
   - 例
@@ -548,7 +549,7 @@ if 条件式 {
       p1 := person {
         first: "James",
         last: "Bond",
-        age: 28,
+        age: 28, -----→ 最後の要素の後ろにも,が要る
       }
 
       p2 := person {
@@ -563,7 +564,68 @@ if 条件式 {
     }
     ~~~
 - __Embedded structs__
-  - 既存のstructを
+  - 他の言語のClassの継承みたいな感じ
+  - 既存のstructの中のfieldを継承し、追加のfieldを追加して使う
+    - Format
+      ~~~go
+      type <Struct名> struct {
+        <継承するStruct名>
+        <追加field1名> <型>
+        <追加field2名> <型>
+                ・
+                ・
+      }
+      <変数> := <Struct名> {
+        <継承したStruct名>: <継承したStruct名> {
+            <継承したStruct名の中のfield1>: <値>,
+            <継承したStruct名の中のfield2>: <値>,
+                          ・
+                          ・
+        },
+        <追加field1名>: <値>,
+        <追加field2名>: <値>,
+                ・
+                ・
+      }
+      ~~~
+    - 例
+      ~~~go
+      type person struct {
+        name string
+        sex string
+        age int
+      }
+      type killer struct {
+        person
+        pay int
+        country string
+      }
+      agent := killer {
+        person: person {
+          name: "Anonymous",
+          sex: "Unknown",
+          age: 100,
+        },
+        pay: 500000,
+        country: "USA",
+      }
+      fmt.Println(agent.name, agent.sex, agent.age, agent.pay, agent.country)
+      -→ agent.person.nameのようにpersonを入れなくて良い 
+      ~~~
+
+- __Anonymous structs__
+  - `type <struct名>`でstructを宣言せず、1回限りの (1つの変数だけで使える) struct
+    ~~~go
+    p1 := struct {
+        name string
+        sex string
+        age int
+    }{
+        name: "Joonki Lee",
+        sex: "male",
+        age: 35,
+    }
+    ~~~
 
 ### ポインタ
 - 値が入るメモリのアドレス
