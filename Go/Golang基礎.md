@@ -647,6 +647,29 @@ fmt.Println(*p)  → メモリアドレス(p)に格納されている値 300 が
 ### make
 
 ### パッケージ(import)
+- Format
+  1. 1つずつ個別にimport
+    ~~~go
+    import "fmt"
+    import "os"
+    import "time"
+    ~~~
+  2. まとめてimport
+    ~~~go
+    import (
+      "fmt"
+      "os"
+      "time"
+    )
+    ~~~
+  3. alias(別名)でimport
+    ~~~go
+    import (
+      f "fmt" -→ f.Println() になる 
+      "os"
+      t "time" -→ t.Sleep() になる
+    )
+    ~~~
 - importパッケージ名はファイル名ではなく、import対象ファイルの`package`名
   - `input.go` (importされる側)
       ~~~go
