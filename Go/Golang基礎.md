@@ -126,15 +126,45 @@
   > https://go.dev/doc/effective_go#arrays
 
 ### Slices
+- 参照URL
+  - https://go.dev/tour/moretypes/11#:~:text=The%20capacity%20of%20a%20slice,provided%20it%20has%20sufficient%20capacity.
+- スライスはArrayの参照であって、値の実体はArrayにある
+- __length (長さ)__
+  - The length of a slice is the number of elements it contains.
+  - 現在スライスが持っている要素数
+  - `len(スライス変数名)`でスライスの長さが確認できる
+- __capacity (容量)__
+  - The capacity of a slice is the number of elements in the underlying array, counting from the first element in the slice.
+  - Arrayからスライスを作成した場合、元のArrayの要素数
+  - 別にcapacityの数までしか要素を作成できない等の制約はなく、capacity数以上の要素を追加できる(capacity数以下に要素の削除もできる)
+  - `cap(<スライス変数名>)`でスライスの容量が確認できる
 - Format
   1. `<変数> := []<型>{Values}`
       ~~~go
       x := []int{1, 2, 3, 5, 7}
+      myslices := []int{} ------→ valueを入れずに作成することもできる
       ~~~
-  2. `<変数> := make([]<型>{<長さ>, <容量>})`
+  2. `<変数> := make([]<型>{<長さ>, <容量>})`  
+     `<変数> := make([]<型>{<長さ>)` → 容量を省略した場合は容量=長さ
       ~~~go
       x := make([]int{5, 10})
+      y := make([]int{5})
       ~~~
+  3. arrayからslicingしてスライスを作成。その場合容量(cap)はarrayの要素数になる
+      ~~~go
+      arr1 := [6]int{10, 11, 12, 13, 14,15}
+      myslice := arr1[2:4]
+
+      fmt.Printf("myslice = %v\n", myslice) ------→ [12 13]
+      fmt.Printf("length = %d\n", len(myslice)) --→ 2
+      fmt.Printf("capacity = %d\n", cap(myslice)) -→ 4
+      ~~~
+  4. `var <変数> []型`
+      ~~~go
+      var bytes []byte
+      bytes = append(bytes, 64)
+      ~~~
+      ※byteは`uint8`型の別名。uint8型は8bit、つまり1バイト分の表現が可能で、1バイトごとに分割して扱う。[参照ページ](https://qiita.com/s_zaq/items/a6d1df0d1bf79f5bcc2a)
 - ArrayとSliceの違いについて  
   - https://qiita.com/seihmd/items/d9bc98a4f4f606ecaef7
   - https://qiita.com/tchnkmr/items/10071a53a8bce87b62a3
