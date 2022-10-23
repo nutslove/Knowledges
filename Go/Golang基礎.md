@@ -164,7 +164,7 @@
       var bytes []byte
       bytes = append(bytes, 64)
       ~~~
-      ※byteは`uint8`型の別名。uint8型は8bit、つまり1バイト分の表現が可能で、1バイトごとに分割して扱う。[参照ページ](https://qiita.com/s_zaq/items/a6d1df0d1bf79f5bcc2a)
+      ※byteは`uint8`型の別名。uint8型は8bit、つまり1バイト分の表現が可能で、データを1バイトごとに分割して扱う。[参照ページ](https://qiita.com/s_zaq/items/a6d1df0d1bf79f5bcc2a)
 - ArrayとSliceの違いについて  
   - https://qiita.com/seihmd/items/d9bc98a4f4f606ecaef7
   - https://qiita.com/tchnkmr/items/10071a53a8bce87b62a3
@@ -261,6 +261,187 @@
   ~~~
 - 変数とは違い、型を指定しない場合、
   定義時に代入する値から型を推論するのではなく、使われる時に型を推論する
+
+
+### Struct (構造体)
+- 色んな型を値をひとまとめにしたもの
+- 他の言語のClassのような感じで、1つのstructに対して (下のp1とp2のように) 何回でも変数宣言できる
+- Format
+  ~~~go
+  type <type名> struct {
+    <field1名> <型>
+    <field2名> <型>
+          ・
+          ・
+  }
+  ~~~
+  - 例
+    ~~~go
+    type person struct {
+      first string
+      last  string
+      age   int
+    }
+
+    func main() {
+      p1 := person {
+        first: "James",
+        last: "Bond",
+        age: 28, -----→ 最後の要素の後ろにも,が要る
+      }
+
+      p2 := person {
+        first: "Joonki",
+        last: "Lee",
+        age: 35,
+      }
+
+      fmt.Println(p1)  
+	  fmt.Println(p1.first)  
+	  fmt.Println(p1.age)
+    }
+    ~~~
+- __Embedded structs__
+  - 他の言語のClassの継承みたいな感じ
+  - 既存のstructの中のfieldを継承し、追加のfieldを追加して使う
+    - Format
+      ~~~go
+      type <Struct名> struct {
+        <継承するStruct名>
+        <追加field1名> <型>
+        <追加field2名> <型>
+                ・
+                ・
+      }
+      <変数> := <Struct名> {
+        <継承したStruct名>: <継承したStruct名> {
+            <継承したStruct名の中のfield1>: <値>,
+            <継承したStruct名の中のfield2>: <値>,
+                          ・
+                          ・
+        },
+        <追加field1名>: <値>,
+        <追加field2名>: <値>,
+                ・
+                ・
+      }
+      ~~~
+    - 例
+      ~~~go
+      type person struct {
+        name string
+        sex string
+        age int
+      }
+      type killer struct {
+        person
+        pay int
+        country string
+      }
+      agent := killer {
+        person: person {
+          name: "Anonymous",
+          sex: "Unknown",
+          age: 100,
+        },
+        pay: 500000,
+        country: "USA",
+      }
+      fmt.Println(agent.name, agent.sex, agent.age, agent.pay, agent.country)
+      -→ agent.person.nameのようにpersonを入れなくて良い 
+      ~~~
+
+- __Anonymous structs__
+  - `type <struct名>`でstructを宣言せず、1回限りの (1つの変数だけで使える) struct
+    ~~~go
+    p1 := struct {
+        name string
+        sex string
+        age int
+    }{
+        name: "Joonki Lee",
+        sex: "male",
+        age: 35,
+    }
+    ~~~
+
+### ポインタ
+- 値が入るメモリのアドレス
+- `*int`がポインタ型変数
+- メモリアドレスの指定には変数の前に`&`を指定
+- メモリアドレスに格納されている値を操作する場合はポインタ型変数の前に`*`を付ける
+~~~go
+var n int = 100
+var p *int = &n  → ポインタ型変数Pに変数nが格納されているメモリアドレスを格納
+fmt.Println(p)   → "0xc00007c008"等の変数nが格納されているメモリアドレスが表示される
+fmt.Println(*p)  → メモリアドレス(p)に格納されている値 100 が表示される
+*p = 300         → メモリアドレス(p)に格納されている値を100 → 300 に変更
+fmt.Println(*p)  → メモリアドレス(p)に格納されている値 300 が表示される
+~~~
+
+### パッケージ(import)
+- Format
+  1. 1つずつ個別にimport
+      ~~~go
+      import "fmt"
+      import "os"
+      import "time"
+      ~~~
+  2. まとめてimport
+      ~~~go
+      import (
+        "fmt"
+        "os"
+        "time"
+      )
+      ~~~
+  3. alias(別名)でimport
+      ~~~go
+      import (
+        f "fmt" -→ f.Println() になる 
+        "os"
+        t "time" -→ t.Sleep() になる
+      )
+    ~~~
+- importパッケージ名はファイル名ではなく、import対象ファイルの`package`名
+  - `input.go` (importされる側)
+      ~~~go
+      package hello ⇒ ここの名前がimport時に使われる
+
+      import (
+         "bufio"
+         "fmt"
+         "os"
+      )
+
+      func Input(msg string) string {
+         canner := bufio.NewScanner(os.Stdin)
+         fmt.Print(msg + ": ")
+         scanner.Scan()
+         return scanner.Text()
+      }
+      ~~~
+   - `hello.go` (importする側)
+      ~~~go
+      package main
+
+      import (
+         "fmt"
+         "hello" ⇒ ファイル名のinputではなく、packageで指定されたhello
+      )
+
+      func main() {
+         name := hello.Input("type your name")
+         fmt.Println("Hello, " + name + "!!")
+      }
+      ~~~
+
+### make
+
+
+### goto
+
+
 
 ### 各型について
 - 
@@ -554,184 +735,6 @@ if 条件式 {
 	    fmt.Println("done.")
     }
     ~~~
-
-### Struct (構造体)
-- 色んな型を値をひとまとめにしたもの
-- 他の言語のClassのような感じで、1つのstructに対して (下のp1とp2のように) 何回でも変数宣言できる
-- Format
-  ~~~go
-  type <type名> struct {
-    <field1名> <型>
-    <field2名> <型>
-          ・
-          ・
-  }
-  ~~~
-  - 例
-    ~~~go
-    type person struct {
-      first string
-      last  string
-      age   int
-    }
-
-    func main() {
-      p1 := person {
-        first: "James",
-        last: "Bond",
-        age: 28, -----→ 最後の要素の後ろにも,が要る
-      }
-
-      p2 := person {
-        first: "Joonki",
-        last: "Lee",
-        age: 35,
-      }
-
-      fmt.Println(p1)  
-	  fmt.Println(p1.first)  
-	  fmt.Println(p1.age)
-    }
-    ~~~
-- __Embedded structs__
-  - 他の言語のClassの継承みたいな感じ
-  - 既存のstructの中のfieldを継承し、追加のfieldを追加して使う
-    - Format
-      ~~~go
-      type <Struct名> struct {
-        <継承するStruct名>
-        <追加field1名> <型>
-        <追加field2名> <型>
-                ・
-                ・
-      }
-      <変数> := <Struct名> {
-        <継承したStruct名>: <継承したStruct名> {
-            <継承したStruct名の中のfield1>: <値>,
-            <継承したStruct名の中のfield2>: <値>,
-                          ・
-                          ・
-        },
-        <追加field1名>: <値>,
-        <追加field2名>: <値>,
-                ・
-                ・
-      }
-      ~~~
-    - 例
-      ~~~go
-      type person struct {
-        name string
-        sex string
-        age int
-      }
-      type killer struct {
-        person
-        pay int
-        country string
-      }
-      agent := killer {
-        person: person {
-          name: "Anonymous",
-          sex: "Unknown",
-          age: 100,
-        },
-        pay: 500000,
-        country: "USA",
-      }
-      fmt.Println(agent.name, agent.sex, agent.age, agent.pay, agent.country)
-      -→ agent.person.nameのようにpersonを入れなくて良い 
-      ~~~
-
-- __Anonymous structs__
-  - `type <struct名>`でstructを宣言せず、1回限りの (1つの変数だけで使える) struct
-    ~~~go
-    p1 := struct {
-        name string
-        sex string
-        age int
-    }{
-        name: "Joonki Lee",
-        sex: "male",
-        age: 35,
-    }
-    ~~~
-
-### ポインタ
-- 値が入るメモリのアドレス
-- `*int`がポインタ型変数
-- メモリアドレスの指定には変数の前に`&`を指定
-- メモリアドレスに格納されている値を操作する場合はポインタ型変数の前に`*`を付ける
-~~~go
-var n int = 100
-var p *int = &n  → ポインタ型変数Pに変数nが格納されているメモリアドレスを格納
-fmt.Println(p)   → "0xc00007c008"等の変数nが格納されているメモリアドレスが表示される
-fmt.Println(*p)  → メモリアドレス(p)に格納されている値 100 が表示される
-*p = 300         → メモリアドレス(p)に格納されている値を100 → 300 に変更
-fmt.Println(*p)  → メモリアドレス(p)に格納されている値 300 が表示される
-~~~
-
-### goto
-
-
-### make
-
-### パッケージ(import)
-- Format
-  1. 1つずつ個別にimport
-      ~~~go
-      import "fmt"
-      import "os"
-      import "time"
-      ~~~
-  2. まとめてimport
-      ~~~go
-      import (
-        "fmt"
-        "os"
-        "time"
-      )
-      ~~~
-  3. alias(別名)でimport
-      ~~~go
-      import (
-        f "fmt" -→ f.Println() になる 
-        "os"
-        t "time" -→ t.Sleep() になる
-      )
-    ~~~
-- importパッケージ名はファイル名ではなく、import対象ファイルの`package`名
-  - `input.go` (importされる側)
-      ~~~go
-      package hello ⇒ ここの名前がimport時に使われる
-
-      import (
-         "bufio"
-         "fmt"
-         "os"
-      )
-
-      func Input(msg string) string {
-         canner := bufio.NewScanner(os.Stdin)
-         fmt.Print(msg + ": ")
-         scanner.Scan()
-         return scanner.Text()
-      }
-      ~~~
-   - `hello.go` (importする側)
-      ~~~go
-      package main
-
-      import (
-         "fmt"
-         "hello" ⇒ ファイル名のinputではなく、packageで指定されたhello
-      )
-
-      func main() {
-         name := hello.Input("type your name")
-         fmt.Println("Hello, " + name + "!!")
-      }
-      ~~~
 
 ### 文字列と数値の型変換
 - 「strconv」というパッケージを使って型変換を行う
