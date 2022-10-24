@@ -8,7 +8,7 @@
   - https://www.subthread.co.jp/blog/20190424/
   - https://www.ponkotsu-log.com/entry/2017/07/02/002353
   - http://nginx.org/en/docs/http/ngx_http_core_module.html#resolver
-- 基本、nginxの起動時に解決IPアドレスをずっと使い続けるらしい。なのでAutoScaling等でIPアドレスが変わった時に対応できない。  
+- 基本、nginxの起動時の解決IPアドレスをずっと使い続けるらしい。なのでAutoScaling等でIPアドレスが変わった時に対応できない。  
 それを解決するために「resolver」でDNSサーバを指定し、ホスト名(FQDN)を変数にしてproxy_passには変数を指定すれば定期的に名前解決をするらしい。
     ~~~
     location ~ /hoge/(.*) {
