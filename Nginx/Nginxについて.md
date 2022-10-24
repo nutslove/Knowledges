@@ -9,7 +9,7 @@
   - https://www.ponkotsu-log.com/entry/2017/07/02/002353
   - http://nginx.org/en/docs/http/ngx_http_core_module.html#resolver
 - 基本、nginxの起動時の解決IPアドレスをずっと使い続けるらしい。なのでAutoScaling等でIPアドレスが変わった時に対応できない。  
-それを解決するために「resolver」でDNSサーバを指定し、ホスト名(FQDN)を変数にしてproxy_passには変数を指定すれば定期的に名前解決をするらしい。
+それを解決するために`resolver`でDNSサーバを指定し、ホスト名(FQDN)を変数にして`proxy_pass`には変数を指定すれば定期的に名前解決を行うらしい。
     ~~~
     location ~ /hoge/(.*) {
         resolver 172.31.0.2 valid=5s;
@@ -48,7 +48,7 @@
   >     - If the longest matching prefix location does not use the`^~`modifier, the match is stored by Nginx for the moment so that the focus of the search can be shifted.
   > - After the longest matching prefix location is determined and stored, Nginx moves on to evaluating the regular expression locations (both case sensitive and insensitive). If there are any regular expression locations within the longest matching prefix location, Nginx will move those to the top of its list of regex locations to check. Nginx then tries to match against the regular expression locations sequentially. The first regular expression location that matches the request URI is immediately selected to serve the request.
   > - If no regular expression locations are found that match the request URI, the previously stored prefix location is selected to serve the request.
-  >   
+  >>
   > It is important to understand that, by default, Nginx will serve regular expression matches in preference to prefix matches. However, it evaluates prefix locations first, allowing for the administer to override this tendency by specifying locations using the`=`and`^~`modifiers.
   >
   > It is also important to note that, while prefix locations generally select based on the longest, most specific match, regular expression evaluation is stopped when the first matching location is found. This means that positioning within the configuration has vast implications for regular expression locations.
