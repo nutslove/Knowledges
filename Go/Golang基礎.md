@@ -93,7 +93,7 @@
 ### `...`について（Lexical elementsと呼ぶらしい）
 - https://go.dev/ref/spec#Operators_and_punctuation
 - `...<型>`
-  - 上記はスライス (つまり`[]<型>`と同じ) である
+  - スライス (つまり`[]<型>`と同じ) を作成
   - 例
     ~~~go
     func main() {
@@ -105,6 +105,49 @@
 	    fmt.Printf("%T\n", x) --→ []intと出力される
     }
     ~~~
+- `<型>...`
+  - スライスから1つずつ展開する
+  - 例えば`a := []int{1,2,3}`は`a[0]`,`a[1]`,`a[2]`に展開される
+  - 例
+    ~~~go
+    func main() {
+      xi := []int{1,2,3,4,5}
+      foo(xi...) -------------→ スライス(xi)を展開して関数に渡す
+    }
+    func foo(xi ...int) { ----→ 展開されたものを再度スライスにする
+      fmt.Println(xi) --------→ [1 2 3 4 5]が出力される
+      fmt.Printf("%T\n", xi) -→ []intが出力される
+    }
+    ~~~
+    - 以下のように引数なしでもできる
+      ~~~go
+      func main() {
+        foo() --------→ この場合xiに連携された値はnil
+      }
+      func foo(xi ...int) {
+        fmt.Println(xi) --------→ []が出力される
+        fmt.Printf("%T\n", xi) -→ []intが出力される
+      }
+      ~~~
+    - `...<型>`が複数の引数の中で最後にある場合、呼び出す側は`<型>...`がなくても良い（その場合`...<型>`にはnilが連携される）
+      https://go.dev/ref/spec
+      > Passing arguments to ... parameters
+      > If f is variadic with a final parameter p of type ...T, then within f the type of p is equivalent to type []T. If f is invoked with no actual arguments for p, the value passed to p is nil. Otherwise, the value passed is a new slice of type []T with a new underlying array whose successive elements are the actual arguments, which all must be assignable to T. The length and capacity of the slice is therefore the number of arguments bound to p and may differ for each call site.
+      > 
+      > Given the function and calls
+      > 
+      > func Greeting(prefix string, who ...string)
+      > Greeting("nobody")
+      > Greeting("hello:", "Joe", "Anna", "Eileen")
+      > within Greeting, who will have the value nil in the first call, and []string{"Joe", "Anna", "Eileen"} in the second.
+      > 
+      >If the final argument is assignable to a slice type []T and is followed by ..., it is passed unchanged as the value for a ...T parameter. In this case no new slice is created.
+      > 
+      > Given the slice s and call
+      > 
+      > s := []string{"James", "Jasmine"}
+      > Greeting("goodbye:", s...)
+      > within Greeting, who will have the same value as s with the same underlying array.
 
 ### 戻り値を`_`で捨てる
 - 戻り値などで定義は必要だけど使わない変数は`_`で捨てる  
@@ -156,6 +199,7 @@
   - Arrayからスライスを作成した場合、元のArrayの要素数
   - 別にcapacityの数までしか要素を作成できない等の制約はなく、capacity数以上の要素を追加できる(capacity数以下に要素の削除もできる)
   - `cap(<スライス変数名>)`でスライスの容量が確認できる
+- Arrayからではなく、最初からSliceを作成した場合はlength=capacityとなる
 - Format
   1. `<変数> := []<型>{Values}`
       ~~~go
@@ -790,6 +834,26 @@ if 条件式 {
 	    fmt.Println("done.")
     }
     ~~~
+
+### deferについて
+- deferは関数内の記述場所に関係なく、関数内のすべての処理か完了して関数が終了する直前に実行される
+- ファイルをcloseする処理などで良く使われる
+- 例  
+  → foo()が上にあるけどbar()が先に実行されてbar → fooの順に出力される
+  ~~~go
+  func main() {
+	  defer foo()
+	  bar()
+  }
+
+  func foo() {
+	  fmt.Println("foo")
+  }
+
+  func bar() {
+	  fmt.Println("bar")
+  }
+  ~~~
 
 ### 文字列と数値の型変換
 - 「strconv」というパッケージを使って型変換を行う
