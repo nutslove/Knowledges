@@ -10,7 +10,7 @@
   - Monitoring APIのEndpoint
     - https://telemetry-ingestion.ap-tokyo-1.oraclecloud.com
     - https://telemetry-ingestion.ap-osaka-1.oraclecloud.com
-  - __API to find mettric names and dimensions__
+  - __API to find metric names and dimensions__
     - [ListMetrics](https://docs.oracle.com/en-us/iaas/api/#/en/monitoring/20180401/Metric/ListMetrics)
   - __API to query metrics by name__
     - [SummarizeMetricsData](https://docs.oracle.com/en-us/iaas/api/#/en/monitoring/20180401/MetricData/SummarizeMetricsData)
