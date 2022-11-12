@@ -12,6 +12,12 @@
     → 表示しない
     ![Tooltip_Hidden](https://github.com/nutslove/Knowledges/blob/main/Grafana/image/Tooltip_Hidden.jpg)
 
+### Graph(old) Panel
+- Grafana9.0からGraph(old)がPanelから選択できないようになった
+  - 既存のGraph(old)Panelはそのまま使い続けられる
+- ただ一旦Timeseries Panelを作成後、jsonからtypeをtimeseries → graphに変更することでGraph(old) Panelを作成できる
+  - https://stackoverflow.com/questions/73353757/grafana-get-graph-old-back 
+
 ## Alert設定
 #### ■ AlertのGroupingについて
 - 参考URL
@@ -80,13 +86,18 @@ therefore each alert will go into its own group. It is different from the defaul
   - https://qiita.com/suuu/items/8387df88f134348f22c7 
 
 ## Plugin
-#### ■ X-Ray Plugin
+#### ■ X-Ray
 - 参考URL
   - https://github.com/grafana/x-ray-datasource
   - https://grafana.com/grafana/plugins/grafana-x-ray-datasource/
 - X-Rayプラグイン利用に必要なIAMポリシーに`ec2:DescribeRegions`も含まれる
   - be used to list regions
   - https://github.com/grafana/x-ray-datasource/issues/135
+
+#### ■ CloudWatch
+- Grafanaから表示できるCloudWatch LogsのLog Groupsの数は50個までだが、これはGrafanaの制約ではなく、AWS側の制約である
+  - AWSの`DescribeLogGroups`APIの制約
+  - https://github.com/grafana/grafana/issues/50532
 
 ## その他
 - GrafanaもGrafanaに関するメトリクスを開示している  
