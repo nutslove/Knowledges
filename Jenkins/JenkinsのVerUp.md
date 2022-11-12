@@ -1,0 +1,2 @@
+- JenkinsをDockerコンテナとして`/var/jenkins_home`をサーバにmountして起動している場合、既存のコンテナを停止/削除して新しいJenkinsバージョンのDocker imageを使って同じサーバ上の`/var/jenkins_home`をmountしてJenkinsコンテナを起動すればOK
+  - https://frontl1ne.net/2019/05/version-up-jenkins-with-docker/

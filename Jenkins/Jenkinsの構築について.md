@@ -1,0 +1,4 @@
+- JenkinsをEKS上にPodとして構築する場合、Jenkins HomeとしてEFSを使うことでJenkinsをAZレベル冗長構成にすることができる
+  - https://aws.amazon.com/jp/blogs/storage/deploying-jenkins-on-amazon-eks-with-amazon-efs/
+  - https://medium.com/@CloudifyOps/setting-up-jenkins-high-availability-with-efs-in-the-backend-ce970c55da87
+- API Tokenを利用したAPIの実行もNLB経由でできることを実機確認済
