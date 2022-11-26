@@ -18,7 +18,10 @@
       - http:
           paths:
           - path: /pay
+            pathType: Prefix
             backend:
-              serviceName: pay-service
-              servicePort: 8282
+              service:
+                name: pay-service
+                port:
+                  number: 8282
     ~~~
