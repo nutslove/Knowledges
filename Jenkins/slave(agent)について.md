@@ -1,3 +1,7 @@
+- 用語について (https://cloudbees.techmatrix.jp/blog/struggle-story-about-ci-5/)
+  - slave(旧) = agent(新)
+  - master(旧) = controller(新)
+
 - Jenkins slave(agent)はjavaが実行できる環境である必要がある（つまりJavaのインストールが必要）
 
 - Jenkins masterからslave(agent)への接続には以下の2つの方法等がある
