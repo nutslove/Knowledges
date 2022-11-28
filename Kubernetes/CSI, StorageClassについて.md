@@ -24,6 +24,7 @@
   - Dynamic Volume ProvisioningにStorageClassが必要
     - https://kubernetes.io/ja/docs/concepts/storage/dynamic-provisioning/
   - AWS EFSなど、特定のProviderが提供するStorageをVolumeとして使うために必要なもの
+  - `provisioner`は必須でどこから提供されるどのようなストレージなのか(提供元)を指定する
   - `kind: StorageClass`で指定した`metadata.name`名と`PersistentVolume`の`storageClassName`を合せる必要がある
     - 例
       ~~~yaml
