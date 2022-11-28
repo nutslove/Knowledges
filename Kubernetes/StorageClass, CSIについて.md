@@ -1,0 +1,52 @@
+## StorageClass
+- StorageClassとは
+  > 스토리지클래스는 관리자가 제공하는 스토리지의 "classes"를 설명할 수 있는 방법을 제공한다. 다른 클래스는 서비스의 품질 수준 또는 백업 정책, 클러스터 관리자가 정한 임의의 정책에 매핑될 수 있다. 쿠버네티스 자체는 클래스가 무엇을 나타내는지에 대해 상관하지 않는다.
+  - StorageClassはストレージの種類を示すオブジェクト
+  - Dynamic Volume ProvisioningにStorageClassが必要
+    - https://kubernetes.io/ja/docs/concepts/storage/dynamic-provisioning/
+  - AWS EFSなど、特定のProviderが提供するStorageをVolumeとして使うために必要なもの
+  - `kind: StorageClass`で指定した`metadata.name`名と`PersistentVolume`の`storageClassName`を合せる必要がある
+    - 例
+      ~~~yaml
+      ---
+      kind: StorageClass
+      apiVersion: storage.k8s.io/v1
+      metadata:
+        name: efs-sc -------------------------→ ここの名前
+      provisioner: efs.csi.aws.com
+      ---
+      apiVersion: v1
+      kind: PersistentVolume
+      metadata:
+        name: efs-pv1
+        namespace: monitoring
+      spec:
+        capacity:
+          storage: 5Gi
+        volumeMode: Filesystem
+        accessModes:
+          - ReadWriteOnce
+        persistentVolumeReclaimPolicy: Retain
+        storageClassName: efs-sc -------------→ ここの名前
+        csi:
+          driver: efs.csi.aws.com
+          volumeHandle: fs-0b0725443cb825a46:/vmstorage-1      
+      ~~~
+- 参考URL
+  - https://kubernetes.io/ko/docs/concepts/storage/storage-classes/
+  - https://cstoku.dev/posts/2018/k8sdojo-12/
+
+## CSI (Container Storage Interface)
+- asd
+- CSIに沿って実装された外部ストレージを使うためにはCSI Driverをデプロイする必要がある
+  - CSI Driverは通常コンテナイメージ(Pod)として提供される
+  ![CSI Driver](https://github.com/nutslove/Knowledges/blob/main/Kubernetes/image/CSIDriver.jpg)
+- 参考URL
+  - https://thinkit.co.jp/article/17635
+  - https://access.redhat.com/documentation/ja-jp/openshift_container_platform/4.2/html/storage/persistent-storage-using-csi
+
+#### EBS-CSI
+- Dynamic Volume ProvisioningとしてEBSを使うためにはebs-csi-driverのデプロイが必要
+- helmでデプロイすることも可能
+  - https://github.com/kubernetes-sigs/aws-ebs-csi-driver/blob/master/docs/install.md
+  - デプロイ後`kube-system`namespaceで`ebs-csi-controller`と`ebs-csi-node`が動いていることを確認 
