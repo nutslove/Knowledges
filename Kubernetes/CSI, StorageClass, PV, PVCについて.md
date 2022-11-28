@@ -53,6 +53,16 @@
           volumeHandle: fs-0b0725443cb825a46:/vmstorage-1      
       ~~~  
       ※_PVCとPVの`accessModes`が一致しないとPVCがPendingになる_
+- `VOLUMEBINDINGMODE`によってPVに対してPVCをデプロイした時の挙動が異なる
+  - `WaitForFirstConsumer`
+    - PVCを作成してもそのPVCを要求するPodが生成されるまではPending状態となる
+  - `Immediate`
+    - PVCを作成したタイミングでそれを要求するPodがなくてもBoundとなる
 - 参考URL
   - https://kubernetes.io/ko/docs/concepts/storage/storage-classes/
   - https://cstoku.dev/posts/2018/k8sdojo-12/
+
+## PV (Persistent Volume), PVC (Persistent Volume Claim)
+- PVとPVCの`accessModes`が異なるとPVCがPending状態になる
+- PVCの`resources.requests.storage`の容量をPVの`capacity.storage`の容量より小さくしても、PVの`capacity.storage`の容量をCAPACITYとして持つ
+- PVCがPodにより使われている場合、PVCを削除してもTeminating状態のままで削除されない
