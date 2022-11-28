@@ -51,7 +51,8 @@
         csi:
           driver: efs.csi.aws.com
           volumeHandle: fs-0b0725443cb825a46:/vmstorage-1      
-      ~~~
+      ~~~  
+      ※_PVCとPVの`accessModes`が一致しないとPVCがPendingになる_
 - 参考URL
   - https://kubernetes.io/ko/docs/concepts/storage/storage-classes/
   - https://cstoku.dev/posts/2018/k8sdojo-12/
