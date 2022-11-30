@@ -22,10 +22,10 @@
   - 参考URL
     - https://medium-company.com/%E3%83%9A%E3%83%BC%E3%82%B8%E3%83%B3%E3%82%B0%E6%96%B9%E5%BC%8F/
 
-#### VSS (Virtual Set Size)
+### VSS (Virtual Set Size)
 - プロセスがアクセスできるメモリ領域サイズの総和。VSSには仮想メモリ上にのみ確保している領域も計上されるため、プロセスがまだ使用していないメモリ領域も含まれる。プロセスが実際にどれだけ物理メモリを使用しているかについては、VSSだけでは判別できない。  
 
-#### RSS (Resident Set Size)
+### RSS (Resident Set Size)
 - プロセスが確保している物理メモリの使用量
 - 物理メモリの使用量の指標
 > **Note**
