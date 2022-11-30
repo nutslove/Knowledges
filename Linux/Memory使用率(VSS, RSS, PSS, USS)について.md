@@ -31,4 +31,4 @@
   > **Note**
   > RSSは複数のプロセス間で共有されているメモリ領域も合計して算出されるので、同じライブラリを使う複数のプロセスがあると`プロセス数*ライブラリ容量`が重複されて算出されてしまう
 
-[RSS](https://github.com/nutslove/Knowledges/blob/main/Linux/image/RSS.jpg)  
+![RSS](https://github.com/nutslove/Knowledges/blob/main/Linux/image/RSS.jpg)  
