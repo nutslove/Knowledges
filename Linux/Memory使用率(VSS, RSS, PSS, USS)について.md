@@ -22,6 +22,12 @@
   - 参考URL
     - https://medium-company.com/%E3%83%9A%E3%83%BC%E3%82%B8%E3%83%B3%E3%82%B0%E6%96%B9%E5%BC%8F/
 
+- スワッピング ≒ ページング
+  - スワッピング
+    - **プロセス(プログラム)単位**でメインメモリと補助記憶装置間でやりとり
+  - ページング
+    - **ページ単位**でメインメモリと補助記憶装置間でやりとり
+
 ### VSS (Virtual Set Size)
 - プロセスがアクセスできるメモリ領域サイズの総和。VSSには仮想メモリ上にのみ確保している領域も計上されるため、プロセスがまだ使用していないメモリ領域も含まれる。プロセスが実際にどれだけ物理メモリを使用しているかについては、VSSだけでは判別できない。  
 
@@ -32,3 +38,15 @@
 > RSSは複数のプロセス間で共有されているメモリ領域も合計して算出されるので、同じライブラリを使う複数のプロセスがあると`プロセス数*ライブラリ容量`が重複されて算出されてしまう
 
 ![RSS](https://github.com/nutslove/Knowledges/blob/main/Linux/image/RSS.jpg)  
+
+### PSS (Proportional Set Size)
+- RSS のうち共有メモリの使用量をプロセス間で等分することで得られる物理メモリの使用量
+
+### USS (Unique Set Size)
+- プロセスが確保している物理メモリ(RSS)のうち、他のどのプロセスとも共有していない領域の合計サイズ
+
+### WSS (Working Set Size)
+- WSS is how much memory an application needs to keep working.
+  >Your application may have 100 Gbytes of main memory allocated and page mapped, but it is only touching 50 Mbytes each second to do its job. That's the working set size: the "hot" memory that is frequently used. It is useful to know for capacity planning and scalability analysis.
+- 参考URL
+  - https://www.brendangregg.com/wss.html
