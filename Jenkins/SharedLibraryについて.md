@@ -5,16 +5,16 @@
 ### Jenkins設定
 - `Jenkinsの管理` → `システムの設定` → `Global Pipeline Libraries`
 
-|  設定項目名  |  設定内容  | 備考 |
-| ---- | ---- | ---- |
-|  Name  |  ライブラリ名.<br>Pipelineでインポートする際に利用  |    |
-|  Default version  |  TD  |    |
-|  Retrieval method  |  TD  |    |
-|  Source Code Management |  TD  |    |
-|  Project Repository  |  TD  |    |
-|  Credentials  |  TD  |    |
-|  Behaviors  |  TD  |    |
-|  Library Path (optional)  |  TD  |    |
+|  設定項目名  |  設定内容  |  必須/任意  |  設定例  |  備考  |
+| ---- | ---- | ---- | ---- | ---- |
+|  Name  |  ライブラリ名.<br>Pipelineでインポートする際に利用  |  必須  |  id-ope  |    |
+|  Default version  |  Gitのブランチ名やタグを指定  |  任意  |  master  |    |
+|  Retrieval method  |  利用するSCM(Source Code Management)  |  必須  |  Modern SCM  |    |
+|  Source Code Management |  利用するSCMサービス  |  必須  |  Git  |    |
+|  Project Repository  |  Git URL  |  必須  |  HTTPS/SSH Git URL  |    |
+|  Credentials  |  Git認証に使うCredential  |  必須  |  設定済みのCredentialから選択  |    |
+|  Behaviors  |  Gitに対する動作  |  必須  |  Discover branches  |    |
+|  Library Path (optional)  |  src,resources,varsディレクトリがあるパス  |  任意  |  shared-libraries  |    |
 
 ### Directory構造
 - src
@@ -25,3 +25,5 @@
 - resources
   - groovyではないファイル（xxx.jsonやxxx.sh等）を格納  
   - libraryResourceを利用してメソッド内で利用が可能
+
+### 使い方
