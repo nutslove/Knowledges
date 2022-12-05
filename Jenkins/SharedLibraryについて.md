@@ -53,9 +53,9 @@
       log.info 'Starting'
       log.warning 'Nothing to do!'
       ~~~
-    > **Note**
-    > vars内変数の呼び出しは`script`ブロック内でしか使えない....
-    > 下の例で言うとコメントアウトされている`log.info`はエラーとなる
+    > **Note**  
+    > vars内変数の呼び出しは`script`ブロック内でしか使えない.  
+    > 下の例で言うとコメントアウトされている`log.info`はエラーとなる.
     > ~~~groovy
     > @Library('utils') _
     > pipeline {
