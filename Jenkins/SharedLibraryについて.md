@@ -34,44 +34,44 @@
 - vars内の関数と呼び方に2つのやり方がある
 - https://www.jenkins.io/doc/book/pipeline/shared-libraries/#defining-global-variables
   1. __vars側は`def 変数名`で定義し、Jenkinsfileの方で`ファイル名.関数名`で呼び出す__  
-    - vars内groovy
-      ~~~groovy
-      // vars/log.groovy
-      def info(message) {
-        echo "INFO: ${message}"
-      }
+       - vars内groovy
+        ~~~groovy
+        // vars/log.groovy
+        def info(message) {
+          echo "INFO: ${message}"
+        }
 
-      def warning(message) {
-        echo "WARNING: ${message}"
-      }
-      ~~~
-    - 呼び出し側
-      ~~~groovy
-      // Jenkinsfile
-      @Library('utils') _
+        def warning(message) {
+          echo "WARNING: ${message}"
+        }
+        ~~~
+       - 呼び出し側
+        ~~~groovy
+        // Jenkinsfile
+        @Library('utils') _
 
-      log.info 'Starting'
-      log.warning 'Nothing to do!'
-      ~~~
-    > **Note**  
-    > vars内変数の呼び出しは`script`ブロック内でしか使えない.  
-    > 下の例で言うとコメントアウトされている`log.info`はエラーとなる.
-    > ~~~groovy
-    > @Library('utils') _
-    > pipeline {
-    >   agent none
-    >   stages {
-    >     stage ('Example') {
-    >        steps {
-    >            // log.info 'Starting' 
-    >            script { 
-    >                log.info 'Starting'
-    >                log.warning 'Nothing to do!'
-    >            }
-    >        }
-    >     }
-    >   }
-    >}
-    > ~~~
+        log.info 'Starting'
+        log.warning 'Nothing to do!'
+        ~~~
+      > **Note**  
+      > vars内変数の呼び出しは`script`ブロック内でしか使えない.  
+      > 下の例で言うとコメントアウトされている`log.info`はエラーとなる.
+      > ~~~groovy
+      > @Library('utils') _
+      > pipeline {
+      >   agent none
+      >   stages {
+      >     stage ('Example') {
+      >        steps {
+      >            // log.info 'Starting' 
+      >            script { 
+      >                log.info 'Starting'
+      >                log.warning 'Nothing to do!'
+      >            }
+      >        }
+      >     }
+      >   }
+      >}
+      > ~~~
 
   2. __vars側の関数は`call`固定で__
