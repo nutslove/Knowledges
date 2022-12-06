@@ -23,6 +23,7 @@
   ~~~
 
 ##### Parametersについて
+- https://www.jenkins.io/doc/book/pipeline/syntax/
 - JenkinsのGUIにてPipelineのParameterを手動で追加しなくても、  
   Jenkinsfileの方で下記のように`parameters`に定義しておくと自動でPipeline(GUI)に反映される
   ~~~groovy
