@@ -83,3 +83,41 @@
 
         ~~~ 
       - 呼び出し側
+
+### vars内でstageを使う方法
+1. vars呼び出し側ですでに`pipeline`、`agent`、`stages`等を定義している場合
+   - vars側には`stage`だけ定義
+   - `pipeline`や`agent`,`stages`,`steps`等が入るとエラーになる
+      ~~~groovy
+      def call(AWS_ACCOUNT,AWS_IAM_USERS) {
+        stage("AWS IAM User作成") {
+          script {
+
+            try {
+              def IAM_USERS_LIST =  AWS_IAM_USERS.split(",")
+
+              for ( iam_usr in IAM_USERS_LIST ) {
+                IAM_USER_RETURN_CODE = this.steps.sh(script: "aws iam get-user --user-name ${iam_usr} 2> /dev/null 1> /dev/null", returnStatus: true)
+                if (IAM_USER_RETURN_CODE != 0){
+                  sh """
+                    aws iam create-user --user-name ${iam_usr}
+                    aws iam create-login-profile --user-name ${iam_usr} --password パスワード --password-reset-required
+                    aws iam add-user-to-group --user-name ${iam_usr} --group-name Default-Policy-Group
+                  """
+                  println "IAM USER[" + iam_usr + "] is created"
+                } else {
+                  println "IAM USER[" + iam_usr + "] already exist"
+                }
+              }
+            } catch (e) {
+              throw e
+            }
+
+          }
+        }
+      }
+      ~~~
+
+1. vars呼び出し側に何もなく、関数のみで呼び出している場合
+   - https://www.jenkins.io/doc/book/pipeline/shared-libraries/#defining-declarative-pipelines
+   - `pipeline`から`agent`,`stages`,`steps`等、すべてvars側に定義
