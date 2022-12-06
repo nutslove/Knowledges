@@ -74,4 +74,12 @@
       >}
       > ~~~
 
-  2. __vars側の関数は`call`固定で__
+      > **Note**  
+      > `@Library`の後に`_`が必要！
+
+  2. __vars側の関数は`call`固定で、Jenkinsfileの方で`ファイル名`で呼び出す__
+      - vars内groovy
+        ~~~groovy
+
+        ~~~ 
+      - 呼び出し側
