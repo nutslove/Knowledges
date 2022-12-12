@@ -8,7 +8,7 @@
   なのでTLS handshakeにて最初に公開鍵暗号方式でサーバ/クライアント間で共通鍵を生成/交換した後、実際のデータのやり取り時は共通鍵を使って暗号化/復号化を行う。
 - Root証明書 = CA(認証局)の公開鍵
 
-###### Hash関数
+##### Hash関数
 - 一方向性関数
   - inputからoutputを出すことはできるけど、outputからinputを導き出すことはできない(難しい)関数
 - いかなる長さのデータを入力しても(inputデータ短くても長くても)固定長の擬似乱数データを出力(output)する関数
@@ -35,7 +35,7 @@
 - TLS handshakeはTCP handshakeでTCP接続が開かれた後に行われる
   ![TLS handshake](https://github.com/nutslove/Knowledges/blob/main/SSL(TLS)/image/TLS-handshake.jpg)
 
-#### TLS handshakeの具体的な手順
+#### ■ TLS handshakeの具体的な手順
   使用される鍵交換アルゴリズムの種類と、両側でサポートする暗号スイートによって異なる。<br>ここでは最も頻繁に使われる**RSA鍵交換アルゴリズム**のケースで説明  
 1.  **「Client Hello」メッセージ**  
   クライアントがサーバーに「Hello」というメッセージを送信することによってhandshakeを開始する。このメッセージには、クライアントがサポートするTLSのバージョン、対応する暗号スイート、「クライアントランダム」というランダムなバイト文字列が含まれている。
