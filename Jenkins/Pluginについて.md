@@ -1,3 +1,4 @@
+### Pluginのinstall
 - インストールするPluginを記述したファイルを用意してJenkins Dockerイメージビルド時にそのファイルを読み込ませてインストールすることができる
   - 前のバージョンでは`install-plugins.sh`が用意されていてそれを使って`install-plugins.sh < pluginlist.txt`のようにインストールしていたが、最近のバージョンでは`install-plugins.sh`が無くなり、代わりに`jenkins-plugin-cli`が用意されて`jenkins-plugin-cli -f pluginlist.txt`のようにインストールする  
     ※pluginlist.txtはインストールするPluginリストが書かれているファイル(ファイル名は任意)
@@ -8,7 +9,8 @@
   }
   ~~~
 
-##### Pipeline Utility Steps
+## 各種Plugin
+#### Pipeline Utility Steps
 - 参考URL
   - https://www.jenkins.io/doc/pipeline/steps/pipeline-utility-steps/#readjson-read-json-from-files-in-the-workspace
   - https://plugins.jenkins.io/pipeline-utility-steps/
