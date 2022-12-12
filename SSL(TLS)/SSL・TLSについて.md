@@ -1,9 +1,17 @@
-https://blog.naver.com/alice_k106/221468341565  
-https://go-journey.club/archives/7519
+##### 参照URL
+- https://blog.naver.com/alice_k106/221468341565  
+- https://go-journey.club/archives/7519
 
-### TLS handshake
-- 参照URL  
-  https://www.cloudflare.com/ja-jp/learning/ssl/what-happens-in-a-tls-handshake/
+##### その他
+- 現在はTLS 1.3が主流
+- 共通鍵暗号方式(対称鍵暗号方式)の方が公開鍵暗号方式(非対称鍵暗号方式)より処理が早く効率が良い。  
+  なのでTLS handshakeにて最初に公開鍵暗号方式でサーバ/クライアント間で共通鍵を生成/交換した後、実際のデータのやり取り時は共通鍵を使って暗号化/復号化を行う。
+
+## 
+
+## TLS handshake
+- 参照URL
+  - https://www.cloudflare.com/ja-jp/learning/ssl/what-happens-in-a-tls-handshake/
 - TLS handshakeはTLS暗号化を使った通信セッションを始めるプロセス
 - TLS handshakeの間通信する二者がメッセージをやり取りして互いを認識し、検証し、使用する暗号化アルゴリズムを決定し、セッションキーについて合意する
   - 使用するTLSのバージョン（TLS 1.0、1.2、1.3など）を指定
