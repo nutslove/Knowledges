@@ -1,5 +1,5 @@
 ##### 参照URL
-- https://blog.naver.com/alice_k106/221468341565  
+- https://blog.naver.com/alice_k106/221468341565（KR）
 - https://go-journey.club/archives/7519
 
 ##### その他
@@ -73,3 +73,8 @@
 #### ディジタル証明書の構造
 1. Root
 2. 中間証明書
+・・確認・・
+
+## KubernetesでのSSL/TLS
+- 参考URL(KR)
+  - https://ikcoo.tistory.com/25
