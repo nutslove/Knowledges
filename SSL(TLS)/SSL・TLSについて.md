@@ -1,5 +1,5 @@
 ##### 参照URL
-- https://blog.naver.com/alice_k106/221468341565（KR）
+- https://blog.naver.com/alice_k106/221468341565 （KR）
 - https://go-journey.club/archives/7519
 
 ##### その他
@@ -70,11 +70,15 @@
 3. **EV認証(EV)**
     - 上記2つの認証に加えて更に厳格な審査を受ける
 
-#### ディジタル証明書の構造
-1. Root
-2. 中間証明書
-・・確認・・
+#### 中間証明書について
+- 参考URL
+  - https://ssl.sakura.ad.jp/column/difference-in-ssl/
+・・要整理・・
 
 ## KubernetesでのSSL/TLS
-- 参考URL(KR)
+- 参考URL (KR)
   - https://ikcoo.tistory.com/25
+- Public Key
+  - `*.crt`もしくは`*.pem`
+- Private Key
+  - `*.key`もしくは`*.key.pem`
