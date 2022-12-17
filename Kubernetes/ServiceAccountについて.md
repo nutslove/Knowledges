@@ -12,7 +12,8 @@
   - このTokenは**無期限**だった
 - このTokenはTypeが`kubernetes.io/service-account-token`の`Secret`として保存される  
   ![Secret](https://github.com/nutslove/Knowledges/blob/main/Kubernetes/image/Secret.jpg)  
-  ![Secret2](https://github.com/nutslove/Knowledges/blob/main/Kubernetes/image/Secret2.jpg =250x250)
+  <img src="https://github.com/nutslove/Knowledges/blob/main/Kubernetes/image/Secret2.jpg" width="500" height="500">
+  <!-- ![Secret2](https://github.com/nutslove/Knowledges/blob/main/Kubernetes/image/Secret2.jpg =250x250) -->
 - Podが作成される時にこのTokenがPod内の`/var/run/secrets/kubernetes.io/serviceaccount`にvolumeとして自動的にMountされる  
   ![Secret_Mount](https://github.com/nutslove/Knowledges/blob/main/Kubernetes/image/Secret_Mount.jpg)  
   - Podの中で`/var/run/secrets/kubernetes.io/serviceaccount`ディレクトリを見ると`token`がファイルとして存在していることを確認できる  
