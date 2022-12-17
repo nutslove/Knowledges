@@ -1,11 +1,11 @@
-#### 基本的な知識
+## 基本的な知識
 - ServiceAccountはプラグラム(Podで実行されるプロセス)がkube-apiserverへ認証するためのもの
 - ServiceAccountはNamespacedリソース
 - Podに`serviceAccountName`による明示的なServiceAccountの指定がなければ、Namespace内の`default` ServiceAccountを使用する
 - 参考URL
   - https://kubernetes.io/ko/docs/reference/access-authn-authz/service-accounts-admin/
 
-#### v1.24以前
+## v1.24以前
 - v1.23まではServiceAccountを作成すると自動的にToken(Secret)が作成された  
   ![ServiceAccount_Token](https://github.com/nutslove/Knowledges/blob/main/Kubernetes/image/ServiceAccout_Token.jpg)
   - このTokenがPodがkube-apiserverへの認証の際に使われる
@@ -20,8 +20,9 @@
   - `/var/run/secrets/kubernetes.io/serviceaccount`内の`ca.crt`はkube-apiserverが提供する証明書の検証に使われる
     - https://kubernetes.io/ko/docs/tasks/run-application/access-api-from-pod/
 
-#### v1.24以降
+## v1.24以降
 - v1.24からはServiceAccountを作成しても自動的にToken(Secret)が作成されなくなった
+  ![v1.24_ServiceAccount](https://github.com/nutslove/Knowledges/blob/main/Kubernetes/image/v1.24_ServiceAccount.jpg) 
 - ServiceAccountとは別で`kubectl create token`コマンドでTokenを作成する必要がある
   > **Note**  
   > ただ、`kubectl create token`コマンドで生成されたTokenには有効期限がある（defaultは1時間）  
@@ -30,14 +31,16 @@
   - Secretを作成するとTokenが自動的に作成されてSecretに保存される
     - https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account/#manually-create-a-long-lived-api-token-for-a-serviceaccount
     - https://kubernetes.io/docs/concepts/configuration/secret/
-  - Secret例
+  - Secretを作成した後のServiceAccountにTokenが付いていることが分かる
+    ![v1.24_ServiceAccount_After_Secret](https://github.com/nutslove/Knowledges/blob/main/Kubernetes/image/v1.24_ServiceAccount_After_Secret.jpg) 
+  - Secretマニフェストファイルの例
     ~~~yaml
     apiVersion: v1
     kind: Secret
     metadata:
-        name: sa-token
-        namespace: monitoring
-        annotations:
+      name: sa-token
+      namespace: monitoring
+      annotations:
         kubernetes.io/service-account.name: default ---> ServiceAccount名に合せる
     type: kubernetes.io/service-account-token
     ~~~
