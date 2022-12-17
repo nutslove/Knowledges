@@ -1,18 +1,16 @@
-- 参考URL
-  - https://kubernetes.io/ko/docs/reference/access-authn-authz/service-accounts-admin/
-
 #### 基本的な知識
 - ServiceAccountはプラグラム(Podで実行されるプロセス)がkube-apiserverへ認証するためのもの
 - ServiceAccountはNamespacedリソース
 - Podに`serviceAccountName`による明示的なServiceAccountの指定がなければ、Namespace内の`default` ServiceAccountを使用する
-- 
+- 参考URL
+  - https://kubernetes.io/ko/docs/reference/access-authn-authz/service-accounts-admin/
 
 #### v1.24以前
 - v1.23まではServiceAccountを作成すると自動的にToken(Secret)が作成された  
   ![ServiceAccount_Token](https://github.com/nutslove/Knowledges/blob/main/Kubernetes/image/ServiceAccout_Token.jpg)
   - このTokenがPodがkube-apiserverへの認証の際に使われる
   - このTokenは**無期限**だった
-- このTokenはTypeが`kubernetes.io/service-account-token`の`Secret`として作成される  
+- このTokenはTypeが`kubernetes.io/service-account-token`の`Secret`として保存される  
   ![Secret](https://github.com/nutslove/Knowledges/blob/main/Kubernetes/image/Secret.jpg)  
   ![Secret2](https://github.com/nutslove/Knowledges/blob/main/Kubernetes/image/Secret2.jpg)
 - Podが作成される時にこのTokenがPod内の`/var/run/secrets/kubernetes.io/serviceaccount`にvolumeとして自動的にMountされる  
@@ -24,5 +22,31 @@
 
 #### v1.24以降
 - v1.24からはServiceAccountを作成しても自動的にToken(Secret)が作成されなくなった
+- ServiceAccountとは別で`kubectl create token`コマンドでTokenを作成する必要がある
+  > **Note**  
+  > ただ、`kubectl create token`コマンドで生成されたTokenには有効期限がある（defaultは1時間）  
+  > https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account/#manually-create-an-api-token-for-a-serviceaccount
+- **v1.23までのように無期限のTokenを作成したい場合はSecretを作成する必要がある**
+  - Secretを作成するとTokenが自動的に作成されてSecretに保存される
+    - https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account/#manually-create-a-long-lived-api-token-for-a-serviceaccount
+    - https://kubernetes.io/docs/concepts/configuration/secret/
+  - Secret例
+    ~~~yaml
+    apiVersion: v1
+    kind: Secret
+    metadata:
+        name: sa-token
+        namespace: monitoring
+        annotations:
+        kubernetes.io/service-account.name: default ---> ServiceAccount名に合せる
+    type: kubernetes.io/service-account-token
+    ~~~
+    > **Note**  
+    > ServiceAccountを先に作成してからSecretを作成すること
+
+    > **Note**  
+    > `metadata.annotations.kubernetes.io/service-account.name`と  
+    > `type: kubernetes.io/service-account-token`を忘れないこと！
+
 - 参考URL
   - https://zaki-hmkc.hatenablog.com/entry/2022/07/27/002213
