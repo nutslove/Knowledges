@@ -12,7 +12,7 @@
   - このTokenは**無期限**だった
 - このTokenはTypeが`kubernetes.io/service-account-token`の`Secret`として保存される  
   ![Secret](https://github.com/nutslove/Knowledges/blob/main/Kubernetes/image/Secret.jpg)  
-  ![Secret2](https://github.com/nutslove/Knowledges/blob/main/Kubernetes/image/Secret2.jpg)
+  ![Secret2](https://github.com/nutslove/Knowledges/blob/main/Kubernetes/image/Secret2.jpg =250x250)
 - Podが作成される時にこのTokenがPod内の`/var/run/secrets/kubernetes.io/serviceaccount`にvolumeとして自動的にMountされる  
   ![Secret_Mount](https://github.com/nutslove/Knowledges/blob/main/Kubernetes/image/Secret_Mount.jpg)  
   - Podの中で`/var/run/secrets/kubernetes.io/serviceaccount`ディレクトリを見ると`token`がファイルとして存在していることを確認できる  
@@ -21,7 +21,7 @@
     - https://kubernetes.io/ko/docs/tasks/run-application/access-api-from-pod/
 
 ## v1.24以降
-- v1.24からはServiceAccountを作成しても自動的にToken(Secret)が作成されなくなった
+- v1.24からはServiceAccountを作成しても自動的にToken(Secret)が作成されなくなった  
   ![v1.24_ServiceAccount](https://github.com/nutslove/Knowledges/blob/main/Kubernetes/image/v1.24_ServiceAccount.jpg) 
 - ServiceAccountとは別で`kubectl create token`コマンドでTokenを作成する必要がある
   > **Note**  
@@ -31,7 +31,7 @@
   - Secretを作成するとTokenが自動的に作成されてSecretに保存される
     - https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account/#manually-create-a-long-lived-api-token-for-a-serviceaccount
     - https://kubernetes.io/docs/concepts/configuration/secret/
-  - Secretを作成した後のServiceAccountにTokenが付いていることが分かる
+  - Secretを作成した後のServiceAccountにTokenが付いていることが分かる  
     ![v1.24_ServiceAccount_After_Secret](https://github.com/nutslove/Knowledges/blob/main/Kubernetes/image/v1.24_ServiceAccount_After_Secret.jpg) 
   - Secretマニフェストファイルの例
     ~~~yaml
