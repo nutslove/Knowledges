@@ -8,9 +8,9 @@
 - 
 
 #### v1.24以前
-- v1.23まではServiceAccountを作成すると自動的にTokenが作成された
-  - このTokenがPodがkube-apiserverへの認証の際に使われる
+- v1.23まではServiceAccountを作成すると自動的にTokenが作成された  
   ![ServiceAccount_Token](https://github.com/nutslove/Knowledges/blob/main/Kubernetes/image/ServiceAccout_Token.jpg)
+  - このTokenがPodがkube-apiserverへの認証の際に使われる
 - このTokenはTypeが`kubernetes.io/service-account-token`のSecretが作成され、
 - 順番的に
 
