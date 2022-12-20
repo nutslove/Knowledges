@@ -253,6 +253,10 @@
 		    fmt.Println("Key: ", k, "Value: ", v)
 	    }
       ~~~
+- Sliceの最後の要素を取得する方法
+  - pythonみたいに`<Slice名>[-1]`では取得できない(エラーになる)
+  - `<Slice名>[len(<Slice名>)-1]`というふうにSliceの長さから-1して最後の要素を取得する
+    - 例：`fmt.Println("Metric:",*resp.Items[i].AggregatedDatapoints[len(resp.Items[i].AggregatedDatapoints)-1].Value)`
 
 ### Map
 - Format
@@ -324,6 +328,132 @@
 - 変数とは違い、型を指定しない場合、
   定義時に代入する値から型を推論するのではなく、使われる時に型を推論する
 
+### 関数
+- 関数もStringやintと同様にTypeの1つである  
+  → 関数もreturnすることができる
+- 定義方法にいくつかパターンがある 
+  1. 引数や戻り値がないパターン
+      ~~~go
+      func 関数名() {
+        ・・・処理・・・
+      }
+      ~~~
+  2. 引数だけあるパターン
+      ~~~go
+      func 関数名(引数 引数の型) {
+        ・・・処理・・・
+      }
+      ~~~
+  3. 引数、戻り値があるパターン
+      ~~~go
+      func 関数名(引数 引数の型) 戻り値の型 { 
+         ・・・処理・・・
+         return 戻り値
+      }
+      ~~~
+      - 例
+        ~~~go
+        func woofoo(s string) int {
+          fmt.Println(s)
+          return 4
+        }
+        ~~~
+  4. 複数の引数、戻り値があるパターン
+      ~~~go
+      func 関数名(引数1 引数1の型, 引数2 引数2の型[,・・・]) (戻り値1の型, 戻り値2の型[,・・・]) {
+         ・・・処理・・・
+         return 戻り値1, 戻り値2[,・・・]
+      }
+      ~~~
+      - 例
+        ~~~go
+        func test(s1 string, s2 string, s3 string) (int, bool, string) {
+	      ・・・処理・・・
+      	  return 4, true, "Wow!"
+        }
+        ~~~
+      - すべての引数の型が同じの場合は型は最後に1回だけ書いても良い
+        ~~~go
+        func yeah(s1, s2, s3 string)
+        ~~~
+  5. 無名関数
+      ~~~go
+      func() {
+        ・・・<処理>・・・
+      }()
+      ~~~
+      - 例
+        ~~~go
+        func(x int) {
+          fmt.Println("Age:", x)
+        }(36)
+        ~~~
+  6. 関数を変数に代入して変数から呼び出すこともできる
+       - 例
+        ~~~go
+        f := func() {
+          fmt.Println("Yeah")
+        }
+        f()
+
+        y := func(x int) {
+          fmt.Println("Next year:",x)
+        }
+        y(2023)
+        ~~~
+  7. 関数から関数を返す
+      - 例（func bar()の次の`func() int`が戻り値）
+        ~~~go
+        func main() {
+          fmt.Println(bar()()) ------→ 1212と出力される
+
+          x := bar()
+          i := x()
+          fmt.Println(i) ------→ 同様に1212と出力される
+
+          x1 := bar()
+          fmt.Println(x1()) ------→ 同様に1212と出力される
+        }
+        func bar() func() int {
+          return func() int {
+            return 1212
+          }
+        }
+        ~~~
+  8. Callback関数
+      - Callback関数とは関数の引数としてfuncを引き渡すこと
+      - 例
+        ~~~go
+        package main
+
+        import (
+          "fmt"
+        )
+
+        func main() {
+          t := evenSum(sum, []int{1, 2, 3, 4, 5, 6, 7, 8, 9}...)
+          fmt.Println(t)
+        }
+
+        func sum(x ...int) int {
+          n := 0
+          for _, v := range x {
+            n += v
+          }
+          return n
+        }
+
+        func evenSum(f func(x ...int) int, y ...int) int {
+          var xi []int
+          for _, v := range y {
+            if v%2 == 0 {
+              xi = append(xi, v)
+            }
+          }
+          total := f(xi...)
+          return total
+        }
+        ~~~
 
 ### Struct (構造体)
 - 色んな型を値をひとまとめにしたもの
@@ -361,6 +491,22 @@
       fmt.Println(p1)  
 	  fmt.Println(p1.first)  
 	  fmt.Println(p1.age)
+    }
+    ~~~
+  - 例２（Sliceがある場合）
+    ~~~go
+    type metrics struct {
+      namespace  string
+      metricname []string
+    }
+
+    var test = metrics {
+      namespace:  "oci_compute",
+      metricname: []string{
+        "cpu",
+        "memory",
+        "diskio",
+      },
     }
     ~~~
 - __Embedded structs__
@@ -427,19 +573,260 @@
     }
     ~~~
 
+### Methods
+- A method is nothing more than a FUNC attached to a TYPE
+- Methodは、特別なreceiver引数を関数に取る
+- receiverはfuncキーワードとMethod名の間に自身の引数リストで表現
+  - `func (<receiver名> <type名>) Method名([引数]) [戻り値の型] { ・・・処理・・・ }`
+  - `receiver名`をMethod内でtypeの値を扱える
+- 呼び出す側はMethodのreseiverのtypeの値を含む変数を使って`<変数名>.<Method関数名>()`で呼び出す
+- 例
+  ~~~go
+  type person struct {
+  	firstname string
+  	lastname  string
+  }
+
+  type secretAgent struct {
+  	person
+  	ltk bool
+  }
+
+  func (s secretAgent) speak() { ----------------→ これがMethod
+  	fmt.Println("I am", s.firstname, s.lastname)
+  	fmt.Println(s)
+  }
+
+  func main() {
+  	sa1 := secretAgent{
+  		person: person{
+  			"James",
+  			"Bond",
+  		},
+  		ltk: true,
+  	}
+
+  	sa2 := secretAgent{
+  		person: person{
+  			"Miss",
+  			"Moneypenny",
+  		},
+  		ltk: true,
+  	}
+
+  	sa1.speak() ---→ "I am James Bond"と出力される
+  	sa2.speak() ---→ "I am Miss Moneypenny"と出力される
+  }
+  ~~~
+
+### Interfaces
+- InterfaceはMethod(s)を持つ(Methodのラッピング？)
+- Format
+  ~~~go
+  type <Interface名> interface {
+    <Method名([引数])> <Methodでreturnされる型>
+  }
+  ~~~
+- 例１
+  ~~~go
+  type Circle struct {
+	  Radius int
+  }
+
+  func (c Circle) GetArea() int {
+	  return 3 * c.Radius * c.Radius
+  }
+
+  type Square struct {
+	  Height int
+  }
+
+  func (s Square) GetArea() int {
+	  return s.Height * s.Height
+  }
+
+  type Figure interface {
+	  GetArea() int
+  }
+
+  func DisplayArea(f Figure) {
+	  fmt.Printf("%T\n", f)
+	  fmt.Printf("面積は%vです\n", f.GetArea())
+  }
+
+  func main() {
+	  circle := Circle{Radius: 2}
+	  DisplayArea(circle) ------------→ 3*2*2で"面積は12です"と出力される
+
+	  square := Square{Height: 3}
+	  DisplayArea(square) ------------→ 3*3で"面積は9です"と出力される
+  }
+  ~~~
+- 例２
+  ~~~go
+  type person struct {
+	  first string
+	  last  string
+  }
+
+  type secretAgent struct {
+	  person
+	  ltk bool
+  }
+
+  func (s secretAgent) speak() {
+	  fmt.Println("I am", s.first, s.last, " - the secretAgent speak")
+  }
+
+  func (p person) speak() {
+	  fmt.Println("I am", p.first, p.last, " - the person speak")
+  }
+
+  type human interface {
+	  speak()
+  }
+
+  func bar(h human) {
+	  switch h.(type) {
+	  case person:
+		  fmt.Println("I was passed into bar. I am person", h.(person).first)
+	  case secretAgent:
+		  fmt.Println("I was passed into bar. I am secretAgent", h.(secretAgent).first)
+	  }
+  }
+
+  type hotdog int
+
+  func main() {
+	sa1 := secretAgent{
+		person: person{
+			"James",
+			"Bond",
+		},
+		ltk: true,
+	}
+
+	sa2 := secretAgent{
+		person: person{
+			"Miss",
+			"Moneypenny",
+		},
+		ltk: true,
+	}
+
+	p1 := person{
+		first: "Dr.",
+		last:  "Yes",
+	}
+
+	bar(sa1)
+	bar(sa2)
+	bar(p1)
+  }
+  ~~~
+- 参考URL
+  - https://go.dev/play/p/rZH2Efbpot
+  - https://dev-yakuza.posstree.com/golang/interface/
+
 ### ポインタ
-- 値が入るメモリのアドレス
-- `*int`がポインタ型変数
-- メモリアドレスの指定には変数の前に`&`を指定
+- 変数(の値)が入るメモリのアドレスを保管する変数
+- ポインタ型変数には値を直接保管(代入)することはできない  
+  → 値が保管されている変数のメモリアドレスを代入する
+- ポインタ型変数は`var 変数名 *型`で定義
+  - 例： `var x *string`
+- メモリアドレスの指定には変数の前に`&`を指定（値が入っているメモリアドレスが知りたい場合、変数の前に`&`をつける）  
+  - `&`は`ampersand(アンパサンド/엠퍼센드)`と読むらしい
 - メモリアドレスに格納されている値を操作する場合はポインタ型変数の前に`*`を付ける
+- `*&<変数>`で直接メモリにある値を指定することもできる
+- `int`と`*int`は(stringとintのように)完全に違うタイプである
 ~~~go
 var n int = 100
-var p *int = &n  → ポインタ型変数Pに変数nが格納されているメモリアドレスを格納
+var p *int = &n  → ポインタ型変数pに変数nが格納されているメモリアドレスを格納  
+  →「p := $n」にすることもできる
 fmt.Println(p)   → "0xc00007c008"等の変数nが格納されているメモリアドレスが表示される
 fmt.Println(*p)  → メモリアドレス(p)に格納されている値 100 が表示される
 *p = 300         → メモリアドレス(p)に格納されている値を100 → 300 に変更
 fmt.Println(*p)  → メモリアドレス(p)に格納されている値 300 が表示される
+x := 41
+fmt.Println(*&x) → 41が表示される
 ~~~
+
+### Goroutine
+- Goroutineは並列処理を保証するのではなく、並列処理を実行できる環境の場合のみ並列処理をする
+  - 例えばcpuコアが1つしかないコンピューターではGoroutineを使っても、並列(parallel)ではなく、並行(concurrent)処理になる
+- 関数の前に`go`をつけるとGoroutineになる
+  - 例：`go foo()`
+- __WaitGroup__
+  - Goroutineで実行した処理はデフォルトでは待ってもらえず、main関数が終了すればGoroutine処理が終わってなくてもプログラムは終了してしまう
+  - Goroutine処理が終わるまで待ってもらうためのものが`WaitGroup`
+  - 例えば以下のコードではfooは出力されず、barだけ出力されて終了する
+    ~~~go
+    package main
+
+    import (
+      "fmt"
+    )
+
+    func main() {
+      go foo()
+      bar()
+    }
+
+    func foo() {
+      for i := 0; i < 10; i++ {
+        fmt.Println("foo:", i)
+      }
+    }
+
+    func bar() {
+      for i := 0; i < 10; i++ {
+        fmt.Println("bar:", i)
+      }
+    }    
+    ~~~
+  - WaitGroupで以下を定義して明示的にGoroutine処理完了を待ってもらう
+    - `sync.WaitGroup.Add(待たすGoroutine数)`
+    - `sync.WaitGroup.Wait()`
+    - `sync.WaitGroup.Done()`
+      ~~~go
+      package main
+
+      import (
+        "fmt"
+        "sync"
+      )
+
+      var wg sync.WaitGroup
+
+      func main() {
+        wg.Add(1)
+
+        go foo()
+        bar()
+        wg.Wait()
+      }
+
+      func foo() {
+        for i := 0; i < 10; i++ {
+          fmt.Println("foo:", i)
+        }
+        wg.Done()
+      }
+
+      func bar() {
+        for i := 0; i < 10; i++ {
+          fmt.Println("bar:", i)
+        }
+      }
+    ~~~
+
+### Channels
+- Channels are the pipes that connect concurrent goroutines. You can send values into channels from one goroutine and receive those values into another goroutine.
+- `make(chen int)`でChannelを作成する
+  - buffer channelを作る場合は`make(chen int, <buffer数>)`
+- 例
+  ~~~go
+  ~~~
 
 ### パッケージ(import)
 - Format
@@ -557,53 +944,6 @@ fmt.Println(*p)  → メモリアドレス(p)に格納されている値 300 が
     var y int
     y = int(x)
     ~~~
-
-### 関数
-- いくつかのパターンがある 
-  1. 引数や戻り値がないパターン
-      ~~~go
-      func 関数名() {
-        ・・・処理・・・
-      }
-      ~~~
-  2. 引数だけあるパターン
-      ~~~go
-      func 関数名(引数 引数の型) {
-        ・・・処理・・・
-      }
-      ~~~
-  3. 引数、戻り値があるパターン
-      ~~~go
-      func 関数名(引数 引数の型) 戻り値の型 { 
-         ・・・処理・・・
-         return 戻り値
-      }
-      ~~~
-      - 例
-        ~~~go
-        func woofoo(s string) int {
-          fmt.Println(s)
-          return 4
-        }
-        ~~~
-  4. 複数の引数、戻り値があるパターン
-      ~~~go
-      func 関数名(引数1 引数1の型, 引数2 引数2の型[,・・・]) (戻り値1の型, 戻り値2の型[,・・・]) {
-         ・・・処理・・・
-         return 戻り値1, 戻り値2[,・・・]
-      }
-      ~~~
-      - 例
-        ~~~go
-        func test(s1 string, s2 string, s3 string) (int, bool, string) {
-	      ・・・処理・・・
-      	  return 4, true, "Wow!"
-        }
-        ~~~
-      - すべての引数の型が同じの場合は型は最後に1回だけ書いても良い
-        ~~~go
-        func yeah(s1, s2, s3 string)
-        ~~~
 
 ### if文
 ~~~go
