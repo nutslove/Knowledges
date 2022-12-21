@@ -75,3 +75,17 @@
     }
   }
   ~~~
+
+##### ファイルの扱い
+- __ファイル作成__
+  - `writeFile`
+    1. `writeFile file: "<生成するファイル名>", text: "ファイルに書き込む内容"`
+    2. `writeFile(file: "<生成するファイル名>", text: "ファイルに書き込む内容")`
+  - 例
+    ~~~groovy
+    writeFile file: "output/usefulfile.txt", text: "This file is useful, need to archive it."
+    writeFile(file: "aws_cli/exec/${POLICY_FILE_NAME}", text: "${REPLACED_IAM_POLICY_STR}")
+    ~~~
+  - 参考URL
+    - https://www.jenkins.io/doc/pipeline/steps/workflow-basic-steps/#writefile-write-file-to-workspace
+    - https://www.jenkins.io/doc/pipeline/examples/#archive-build-output-artifacts
