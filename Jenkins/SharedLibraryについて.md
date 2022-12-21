@@ -118,6 +118,29 @@
       }
       ~~~
 
-1. vars呼び出し側に何もなく、関数のみで呼び出している場合
+2. vars呼び出し側に何もなく、関数のみで呼び出している場合
    - https://www.jenkins.io/doc/book/pipeline/shared-libraries/#defining-declarative-pipelines
    - `pipeline`から`agent`,`stages`,`steps`等、すべてvars側に定義
+
+### vars内で`node`で実行エージェントを指定する方法
+- `node(<ノード名>) { script { ・・・処理・・・ } }`
+- 例
+  ~~~groovy
+  def call(envConfigInformaion) {
+    stage("TEST"){
+      node('cicd') {
+        script {
+          try {
+
+          ・・・処理・・・
+
+          } catch (e) {
+            throw e
+          }
+        }
+      }
+    }
+  }
+  ~~~
+- 参考URL
+  - https://www.jenkins.io/blog/2020/10/21/a-sustainable-pattern-with-shared-library/
