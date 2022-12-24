@@ -1,4 +1,4 @@
-##### List
+### List
 - 参考URL
   - https://koji-k.github.io/groovy-tutorial/collection/list.html
   - https://gist.github.com/aeg/3741669
@@ -11,7 +11,7 @@
 - Listの要素数確認
   - `<List名>.size()`
 
-##### Map
+### Map
 - 参考URL
   - https://koji-k.github.io/groovy-tutorial/collection/map.html
   - https://www.tutorialspoint.com/groovy/groovy_maps_get.htm
@@ -23,7 +23,7 @@
 - MapからValueを取得
   - `<Map名>.get("<Key名>")`
 
-##### 複数の戻り値をやり取りする方法
+### 複数の戻り値をやり取りする方法
 - 関数を呼び出す側
   - 戻り値を受け取る変数を`()`で囲む必要がある
       ~~~groovy
@@ -36,14 +36,14 @@
       return [ENVIRONMENT_NAME, teststrresponse]
       ~~~
 
-##### Pipelineの中でawkコマンドを使う方法
+### Pipelineの中でawkコマンドを使う方法
 - 他にもできるかもだけど、私の場合shを`"""`で囲みawkは`''`で囲んで`$`の前にエスケープ文字を入れたらできた
 - 例
   ~~~groovy
   def ip_addr = sh(script: """ip a | grep -E 'inet .* eth' | awk '{print \$2}' | cut -d'.' -f 1,2""", returnStdout: true).trim()
   ~~~
 
-##### 文字列置換
+### 文字列置換
 - `replace`と`replaceAll`両方ともすべての該当する文字列を変換する
   - 例
     ~~~groovy
@@ -61,14 +61,14 @@
   - 参考URL
     - https://stackoverflow.com/questions/9788983/simple-groovy-replace-using-regex
 
-##### 文字列から配列に変換
+### 文字列から配列に変換
 - `split`で区切り文字で分割してList化
 - 例
   ~~~groovy
   List ERROR_USRLIST = ERROR_USERLIST.split(",")
   ~~~
 
-##### Parametersについて
+### Parametersについて
 - https://www.jenkins.io/doc/book/pipeline/syntax/#available-parameters
 - JenkinsのGUIにてPipelineのParameterを手動で追加しなくても、  
   Jenkinsfileの方で下記のように`parameters`に定義しておくと自動でPipeline(GUI)に反映される
@@ -101,7 +101,7 @@
   }
   ~~~
 
-##### ファイルの扱い
+### ファイルの扱い
 - 参考URL
   - https://www.jenkins.io/doc/pipeline/steps/workflow-basic-steps/#writefile-write-file-to-workspace
   - https://www.jenkins.io/doc/pipeline/examples/#archive-build-output-artifacts
@@ -120,3 +120,13 @@
     1. `readFile(file: "<読み込むファイル名>")`
     2. `readFile file: "<読み込むファイル名>"`
 
+### Pipelineの中の`sh`で異常終了について
+- Jenkinsは`sh`(shell)をDefaultで`/bin/sh -xe`で実行する
+  - `-x`: means to print every command executed
+  - `-e`: means to exit with failure if any of the commands in the script failed  
+          → つまりRCが0以外の場合は異常終了する
+- `sh`を0以外のRCの時も異常終了しないようにする方法と
+  1. `set +e`を設定
+  2. `command || exit 0` or `command || true`
+- 参考URL
+  - https://stackoverflow.com/questions/14392349/dont-fail-jenkins-build-if-execute-shell-fails
