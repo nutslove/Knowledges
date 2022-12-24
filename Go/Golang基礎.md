@@ -456,7 +456,7 @@
         ~~~
 
 ### Struct (構造体)
-- 色んな型を値をひとまとめにしたもの
+- 色んな型をひとまとめにしたもの
 - 他の言語のClassのような感じで、1つのstructに対して (下のp1とp2のように) 何回でも変数宣言できる
 - Format
   ~~~go
@@ -574,10 +574,12 @@
     ~~~
 
 ### Methods
+- *a method is just a function with a receiver argument.*
+  - つまり、MethodはStructをReceiver引数として持つ関数
 - A method is nothing more than a FUNC attached to a TYPE
 - Methodは、特別なreceiver引数を関数に取る
 - receiverはfuncキーワードとMethod名の間に自身の引数リストで表現
-  - `func (<receiver名> <type名>) Method名([引数]) [戻り値の型] { ・・・処理・・・ }`
+  - `func (<receiver名> <Struct名>) Method名([引数]) [戻り値の型] { ・・・処理・・・ }`
   - `receiver名`をMethod内でtypeの値を扱える
 - 呼び出す側はMethodのreseiverのtypeの値を含む変数を使って`<変数名>.<Method関数名>()`で呼び出す
 - 例
@@ -621,6 +623,12 @@
 
 ### Interfaces
 - InterfaceはMethod(s)を持つ(Methodのラッピング？)
+- Interfaceを通じて動作を定義できる
+  - 下記例の`GetArea() int`や`speak()`
+- InterfaceのTypeはInterfaceに指定したMethodを持つStructのTypeになれる（Interfaceは値が1つ以上のTypeになり得るようにする）
+  - Interfaceに指定したMethodを持つStructが複数ある場合はそのすべてのStructのTypeになれる
+  - 例えば例１の場合、`Figure`は`Circle`Typeにも`Square`Typeにもなり得る
+- Structがある → そのStructをReceiver引数として持つMethodがある → そのMethodを持つInterfaceがある
 - Format
   ~~~go
   type <Interface名> interface {
@@ -687,15 +695,16 @@
   }
 
   func bar(h human) {
+    // human Interfaceが指定しているspeak() Methodを持つStructがpersonとsecretAgent、２つあるのでh(human)のtypeはpersonとsecretAgent両方になり得る
 	  switch h.(type) {
 	  case person:
+      fmt.Printf("%T\n",h) -----------→ "main.person"と表示される
+      fmt.Printf("%T\n",h.(person)) --→ "main.person"と表示される
 		  fmt.Println("I was passed into bar. I am person", h.(person).first)
 	  case secretAgent:
 		  fmt.Println("I was passed into bar. I am secretAgent", h.(secretAgent).first)
 	  }
   }
-
-  type hotdog int
 
   func main() {
 	sa1 := secretAgent{
@@ -727,6 +736,44 @@
 - 参考URL
   - https://go.dev/play/p/rZH2Efbpot
   - https://dev-yakuza.posstree.com/golang/interface/
+
+### CallBack
+- 引数として関数を引き渡すこと
+- 例
+  ~~~go
+  package main
+
+  import (
+	"fmt"
+  )
+
+  func main() {
+	ii := []int{1, 2, 3, 4, 5, 6, 7, 8, 9}
+	s := sum(ii...)
+	fmt.Println("all numbers", s)
+
+	s2 := even(sum, ii...)
+	fmt.Println("even numbers", s2)
+  }
+
+  func sum(xi ...int) int {
+	total := 0
+	for _, v := range xi {
+		total += v
+	}
+	return total
+  }
+
+  func even(f func(xi ...int) int, vi ...int) int {
+	var yi []int
+	for _, v := range vi {
+		if v%2 == 0 {
+			yi = append(yi, v)
+		}
+	}
+	return f(yi...)
+  }
+  ~~~
 
 ### ポインタ
 - 変数(の値)が入るメモリのアドレスを保管する変数
