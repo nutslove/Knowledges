@@ -43,6 +43,31 @@
   def ip_addr = sh(script: """ip a | grep -E 'inet .* eth' | awk '{print \$2}' | cut -d'.' -f 1,2""", returnStdout: true).trim()
   ~~~
 
+##### 文字列置換
+- `replace`と`replaceAll`両方ともすべての該当する文字列を変換する
+  - 例
+    ~~~groovy
+    a = "HERO HERO"
+    println a.replace("ER","ELL") -----> "HELLO HELLO"と出力される
+    println a.replaceAll("ER","ELL") --> "HELLO HELLO"と出力される
+    ~~~
+- `replaceFirst`と`replaceLast`で最初/最後の文字列だけ置換することも可能
+- `//`で囲んでregexを使うことも可能
+  - 例
+    ~~~groovy
+    def mphone = "1+555-555-5555"
+    result = mphone.replaceFirst(/^1/, "")
+    ~~~
+  - 参考URL
+    - https://stackoverflow.com/questions/9788983/simple-groovy-replace-using-regex
+
+##### 文字列から配列に変換
+- `split`で区切り文字で分割してList化
+- 例
+  ~~~groovy
+  List ERROR_USRLIST = ERROR_USERLIST.split(",")
+  ~~~
+
 ##### Parametersについて
 - https://www.jenkins.io/doc/book/pipeline/syntax/#available-parameters
 - JenkinsのGUIにてPipelineのParameterを手動で追加しなくても、  
