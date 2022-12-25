@@ -775,6 +775,82 @@
   }
   ~~~
 
+### Closure
+- one scope enclosing other scopes
+  - variables declared in the outer scope are accessible in inner scopes
+- ポイントとしては、**関数の戻り値に関数を指定する**ことと**戻り値の関数は無名関数**である
+- 戻り値の関数が格納されている変数を使い続ける限り、変数を初期化せずに値を保持しておきたい時に使う
+- 例
+  ~~~go
+  func main() {
+  	a := incrementor()
+	  b := incrementor()
+  	fmt.Println(a()) ---> 1
+	  fmt.Println(a()) ---> 2
+  	fmt.Println(a()) ---> 3
+	  fmt.Println(b()) ---> 1
+  	fmt.Println(b()) ---> 2
+	  fmt.Println(b()) ---> 3
+  }
+
+  // incrementor()関数がClosure
+  func incrementor() func() int {
+	  var x int
+	  return func() int {
+		  x++
+		  return x
+	  }
+  }
+  ~~~
+- 参考URL
+  - https://golangstart.com/go_closure/
+  - https://go.dev/tour/moretypes/25
+  - https://go-tour-jp.appspot.com/moretypes/25
+
+### Recursion
+- 関数が自分自身を呼び出すこと
+- **RecursionでできることはLoopでもできる**
+- 例
+  ~~~go
+  func main() {
+  	n := factorial(4) ---> 24(4 * 3 * 2 * 1)
+	  fmt.Println(n)
+  }
+
+  func factorial(n int) int {
+	  if n == 0 {
+  		return 1
+	  }
+	  return n * factorial(n-1)
+  }
+  ~~~
+  - 同じことをfor文(loop)でやる方法
+    ~~~go
+    func main() {
+	    n2 := loop1(4)
+    	fmt.Println(n2) ---> 24
+
+      n3 := loop2(4)
+      fmt.Println(n3) ---> 24
+    }
+
+    func loop1(n int) int {
+    	total := 1
+    	for ; n > 0; n-- {
+		    total *= n
+    	}
+	    return total
+    }
+
+    func loop2(n int) int {
+    	x := n
+    	for i := 1; i < n; i++ {
+	    	x *= (n - i)
+  	  }
+	    return x
+    }
+    ~~~
+
 ### ポインタ
 - 変数(の値)が入るメモリのアドレスを保管する変数
 - ポインタ型変数には値を直接保管(代入)することはできない  
