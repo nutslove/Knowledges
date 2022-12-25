@@ -1,0 +1,7 @@
+- **copy**
+  - local → target serverのFileコピー
+  - `remote_src`オプションを`yes`にすることでtarget server → target serverのFileコピーも可
+- **fetch**
+  - target server → localのFileコピー
+- **synchronize**
+  - 両方向のFileコピーに対応
