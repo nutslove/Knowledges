@@ -959,7 +959,7 @@ fmt.Println(*&x) → 41が表示される
   ~~~go
   func main() {
 	  c := make(chan int)
-  	c <- 42
+      c <- 42
 	  fmt.Println(<-c)
   }
   ~~~
