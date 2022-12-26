@@ -852,7 +852,8 @@
     ~~~
 
 ### ポインタ
-- 変数(の値)が入るメモリのアドレスを保管する変数
+- 値が保管されたメモリのアドレスを指しているもの
+- 変数(の値)が入るメモリのアドレスを保管するType
 - ポインタ型変数には値を直接保管(代入)することはできない  
   → 値が保管されている変数のメモリアドレスを代入する
 - ポインタ型変数は`var 変数名 *型`で定義
@@ -864,6 +865,7 @@
 - `int`と`*int`は(stringとintのように)完全に違うタイプである
 ~~~go
 var n int = 100
+fmt.Println(&n)  → "0xc00007c008"等の変数nが格納されているメモリアドレスが表示される
 var p *int = &n  → ポインタ型変数pに変数nが格納されているメモリアドレスを格納  
   →「p := $n」にすることもできる
 fmt.Println(p)   → "0xc00007c008"等の変数nが格納されているメモリアドレスが表示される
@@ -873,6 +875,9 @@ fmt.Println(*p)  → メモリアドレス(p)に格納されている値 300 が
 x := 41
 fmt.Println(*&x) → 41が表示される
 ~~~
+- **ポインタの利用シーン**
+  1. big chunk of dataを受け渡ししたい場合
+  2. 特定のメモリアドレスにある値を変更したい場合
 
 ### Goroutine
 - Goroutineは並列処理を保証するのではなく、並列処理を実行できる環境の場合のみ並列処理をする
@@ -945,10 +950,18 @@ fmt.Println(*&x) → 41が表示される
 
 ### Channels
 - Channels are the pipes that connect concurrent goroutines. You can send values into channels from one goroutine and receive those values into another goroutine.
-- `make(chen int)`でChannelを作成する
-  - buffer channelを作る場合は`make(chen int, <buffer数>)`
-- 例
+- Dataを送受信できる空間
+- `make(chan int)`でChannelを作成する  
+  → intを入れるchannel
+  - buffer channelを作る場合は`make(chan int, <buffer数>)`
+- NG例  
+  → `all goroutines are asleep - deadlock!`とエラーになる
   ~~~go
+  func main() {
+	  c := make(chan int)
+  	c <- 42
+	  fmt.Println(<-c)
+  }
   ~~~
 
 ### パッケージ(import)
