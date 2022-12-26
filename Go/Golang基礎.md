@@ -951,9 +951,10 @@ fmt.Println(*&x) → 41が表示される
 ### Channels
 - Channels are the pipes that connect concurrent goroutines. You can send values into channels from one goroutine and receive those values into another goroutine.
 - Dataを送受信できる空間
+- ChannelもType
 - **Channelは値を入れた後に遮断される**
-  - なのでgoroutineでchannelに値を入れるのとchannelから値を取り出すのを同時にするようにコードを書く必要がある
-  - またはbufferを使ってchannelに値が残れるようにする
+  - なので**goroutine**で**channelに値を入れるのとchannelから値を取り出すのを同時に**するようにコードを書く必要がある
+  - または**buffer**を使ってchannelに値が残れるようにする
     - 定義したbufferの数より多くの数の値をchannelに入れようとするとエラーになる  
       → 定義した数の分がbufferに入ってきたらchannelは遮断される
 - `make(chan int)`でChannelを作成する  
@@ -988,7 +989,6 @@ fmt.Println(*&x) → 41が表示される
   }
   ~~~
 
-
 - NG例  
   → `all goroutines are asleep - deadlock!`とエラーになる
   ~~~go
@@ -1008,6 +1008,51 @@ fmt.Println(*&x) → 41が表示される
 	  fmt.Println(<-c)
   }
   ~~~
+
+  #### 単方向(受信だけ or 送信だけ)のChannelも作成できる
+  - 例
+    ~~~go
+    func main() {
+    	c := make(chan int)
+    	cr := make(<-chan int) // receive (Channelから値を取り出す)
+    	cs := make(chan<- int) // send (Channelに値を入れる)
+
+    	fmt.Println("-----")
+    	fmt.Printf("%T\n", c) ------> "chan int"と出力される
+    	fmt.Printf("%T\n", cr) -----> "<-chan int"と出力される
+    	fmt.Printf("%T\n", cs) -----> "chan<- int"と出力される
+    }    
+    ~~~
+  - NG例（送信用Channelに対して受信しようとした場合）  
+    → `invalid operation: cannot receive from send-only channel cs (variable of type chan<- int)`エラーが出る
+    ~~~go
+    func main() {
+      cs := make(chan<- int)
+
+      go func() {
+        cs <- 42
+      }()
+      fmt.Println(<-cs) ---> ここがNG(取り出そうとしている)
+
+      fmt.Printf("------\n")
+      fmt.Printf("cs\t%T\n", cs)
+    }
+    ~~~
+  - NG例（受信用Channelに対して送信しようとした場合）  
+    → `invalid operation: cannot send to receive-only channel cr (variable of type <-chan int)`エラーが出る
+    ~~~go
+    func main() {
+      cr := make(<-chan int)
+
+      go func() {
+        cr <- 42 -------> ここがNG(値を入れようとしている)
+      }()
+      fmt.Println(<-cr)
+
+      fmt.Printf("------\n")
+      fmt.Printf("cr\t%T\n", cr)
+    }
+    ~~~
 
 ### パッケージ(import)
 - Format
@@ -1065,6 +1110,8 @@ fmt.Println(*&x) → 41が表示される
          fmt.Println("Hello, " + name + "!!")
       }
       ~~~
+
+
 
 ### make
 
