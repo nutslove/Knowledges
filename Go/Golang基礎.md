@@ -951,15 +951,60 @@ fmt.Println(*&x) → 41が表示される
 ### Channels
 - Channels are the pipes that connect concurrent goroutines. You can send values into channels from one goroutine and receive those values into another goroutine.
 - Dataを送受信できる空間
+- **Channelは値を入れた後に遮断される**
+  - なのでgoroutineでchannelに値を入れるのとchannelから値を取り出すのを同時にするようにコードを書く必要がある
+  - またはbufferを使ってchannelに値が残れるようにする
+    - 定義したbufferの数より多くの数の値をchannelに入れようとするとエラーになる  
+      → 定義した数の分がbufferに入ってきたらchannelは遮断される
 - `make(chan int)`でChannelを作成する  
   → intを入れるchannel
   - buffer channelを作る場合は`make(chan int, <buffer数>)`
+- OK例（goroutineでchannelへの格納とchannelからの取り出しを同時にする例）
+  ~~~go
+  func main() {
+	  c := make(chan int)
+      go func() {
+        c <- 42
+      }()
+	  fmt.Println(<-c)
+  }
+  ~~~
+- OK例（bufferを使う例）
+  ~~~go
+  func main() {
+	  c := make(chan int, 1)
+      c <- 42
+	  fmt.Println(<-c)
+  }
+  ~~~
+- OK例（bufferを使う例２）
+  ~~~go
+  func main() {
+	  c := make(chan int, 2)
+      c <- 42
+      c <- 43
+	  fmt.Println(<-c) ---> 42と出力される
+	  fmt.Println(<-c) ---> 43と出力される
+  }
+  ~~~
+
+
 - NG例  
   → `all goroutines are asleep - deadlock!`とエラーになる
   ~~~go
   func main() {
 	  c := make(chan int)
       c <- 42
+	  fmt.Println(<-c)
+  }
+  ~~~
+- NG例（定義したbuffer数より多くの値を入れる）  
+  → `all goroutines are asleep - deadlock!`とエラーになる
+  ~~~go
+  func main() {
+	  c := make(chan int, 1)
+      c <- 42
+      c <- 43
 	  fmt.Println(<-c)
   }
   ~~~
