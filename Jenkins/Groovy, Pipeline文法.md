@@ -13,6 +13,20 @@
     - Listの後ろから追加
 - Listの要素数確認
   - `<List名>.size()`
+- Listの中に特定の文字列を含む要素があるか確認(検索)
+  - `<List名>.findAll{it=~/<regex(存在するか確認したい文字列)>/}`
+  - 例
+    ~~~groovy
+    def ERROR_USER_EXIST_FLAG = "false"
+    for (error_user_type in ERROR_USER_TYPE_LIST) {
+      if (ERROR_USER_MAP.get(error_user_type).findAll{it=~/[a-zA-Z0-9]/}) {
+        ERROR_USER_EXIST_FLAG = "true"
+      }
+    }
+    ~~~
+  - 参考URL
+    - https://gist.github.com/kanemu/433317
+    - https://koji-k.github.io/groovy-tutorial/collection/list.html
 
 ### Map
 - 参考URL
