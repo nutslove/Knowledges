@@ -1,3 +1,6 @@
+### 基本的なPipelineの書き方
+- https://www.jenkins.io/doc/book/pipeline/syntax/
+
 ### List
 - 参考URL
   - https://koji-k.github.io/groovy-tutorial/collection/list.html

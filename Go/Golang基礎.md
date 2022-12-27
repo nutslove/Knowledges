@@ -577,7 +577,7 @@
 - *a method is just a function with a receiver argument.*
   - つまり、MethodはStructをReceiver引数として持つ関数
 - A method is nothing more than a FUNC attached to a TYPE
-- Methodは、特別なreceiver引数を関数に取る
+- Method(関数)は、特別なreceiver引数(Struct)を取る
 - receiverはfuncキーワードとMethod名の間に自身の引数リストで表現
   - `func (<receiver名> <Struct名>) Method名([引数]) [戻り値の型] { ・・・処理・・・ }`
   - `receiver名`をMethod内でtypeの値を扱える

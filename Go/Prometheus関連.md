@@ -1,12 +1,16 @@
 - Prometheus Go client library
 https://pkg.go.dev/github.com/prometheus/client_golang
 
-- `MustRegister`関数
+- **`promhttp`Package**
+  - *Sub-packages allow to expose the registered metrics via HTTP*
+  - [promhttpドキュメント](https://pkg.go.dev/github.com/prometheus/client_golang@v1.14.0/prometheus/promhttp)
+
+- **`MustRegister`関数**
   - Metrics have to be registered to be exposed by`MustRegister`func
   - 一般的に`func init()`で登録しておく? 
   - https://pkg.go.dev/github.com/prometheus/client_golang/prometheus@v1.13.0#hdr-Advanced_Uses_of_the_Registry
 
-- `Labels`関数
+- **`Labels`関数**
   - metricにlabelを追加する際に利用
   - 事前にmetricが入る変数にsliceとしてkeyだけ作成しといて`<変数名>.With(prometheus.Labels{"<Key>": "<Value>"}).<演算メソッド>`でlabelを追加する
   - 例(1)
@@ -67,7 +71,7 @@ https://pkg.go.dev/github.com/prometheus/client_golang
     }
     ~~~ 
 
-- `NewMetricWithTimestamp`関数
+- **`NewMetricWithTimestamp`関数**
   - https://pkg.go.dev/github.com/prometheus/client_golang@v1.13.1/prometheus#NewMetricWithTimestamp
   - 一般的にはmetricsにtimestampは定義せず、PrometheusがExporterからscrapeした時刻をtimestampにする(なる)けどすでに外部のmetric sourceから作成されているmetricをPrometheusに取り込む場合(e.g. AWS CloudWatch MetricsをYACE等でPrometheusに取り込む)は元のmetric sourceのtimestampを明示的に使いたい場合は`NewMetricWithTimestamp`関数でメトリクスを生成する
   - コード例は[YACEのコード](https://github.com/nerdswords/yet-another-cloudwatch-exporter/blob/master/pkg/prometheus.go)を参照
