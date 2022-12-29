@@ -7,8 +7,20 @@ https://pkg.go.dev/github.com/prometheus/client_golang
 
 - **`MustRegister`関数**
   - Metrics have to be registered to be exposed by`MustRegister`func
+  > While MustRegister is the by far most common way of registering a Collector, sometimes you might want to handle the errors the registration might cause. As suggested by the name, MustRegister panics if an error occurs. With the Register function, the error is returned and can be handled.
   - 一般的に`func init()`で登録しておく? 
-  - https://pkg.go.dev/github.com/prometheus/client_golang/prometheus@v1.13.0#hdr-Advanced_Uses_of_the_Registry
+  - Format
+    ~~~go
+    func MustRegister(cs ...Collector)
+    ~~~
+    > MustRegister registers the provided Collectors with the DefaultRegisterer and panics if any error occurs.
+    - Type `Collector`
+      - https://pkg.go.dev/github.com/prometheus/client_golang/prometheus#Collector
+  - 参考URL
+    - https://pkg.go.dev/github.com/prometheus/client_golang/prometheus#MustRegister
+    - https://pkg.go.dev/github.com/prometheus/client_golang/prometheus@v1.13.0#hdr-Advanced_Uses_of_the_Registry
+
+- **`MustRegister`関数**
 
 - **`Labels`関数**
   - metricにlabelを追加する際に利用
