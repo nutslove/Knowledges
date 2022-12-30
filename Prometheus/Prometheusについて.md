@@ -5,7 +5,21 @@
 - 
 - 修正後のConfigMapをapplyしてから少し間を空けて(1分くらい?)、Reloadすること
 
-#### label_replaceによる
+#### `rate`と`increase`functionについて
+- **rate**
+  > rate(v range-vector) calculates the per-second average rate of increase of the time series in the range vector.  
+  - Rangeの間の増加値の1秒ごとの平均値
+- **increase**
+  > increase(v range-vector) calculates the increase in the time series in the range vector.
+  - Rangeの間の増加値
+- 2つともCounterタイプのmetricsに対して使う
+- 例えばAというCounterタイプのmetricsが1m(60s)間30増えたとする
+  - `rate(A[60s])` → 0.5
+  - `increase(A[60s])` → 30
+
+  ※ここでいうvectorは1次元リストのこと
+
+#### `label_replace`によるリラベル
 - Prometheus側の設定`relabel_configs`による永続的なリラベルではなく、PromQL`label_replace`で一時的(そのクエリーに限る)にリラベルするとこができる  
   https://stackoverflow.com/questions/71794543/promql-join-on-different-label-names  
   https://prometheus.io/docs/prometheus/latest/querying/functions/#label_replace  
