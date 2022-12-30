@@ -37,6 +37,19 @@ https://pkg.go.dev/github.com/prometheus/client_golang
     ~~~
   - https://pkg.go.dev/github.com/prometheus/client_golang/prometheus#GaugeVec
 
+- **`GaugeVec.With`**
+  - `GaugeVec`にラベルと一緒にメトリクスをセットする
+  > With works as GetMetricWith, but panics where GetMetricWithLabels would have returned an error. Not returning an error allows shortcuts like
+  - Format
+    ~~~go
+    func (v *GaugeVec) With(labels Labels) Gauge
+    ~~~
+  - 実際(?)のGaugeタイプのMetricを追加するFormat
+    ~~~go
+    *GaugeVec.With(prometheus.Labels{"<ラベル名>": <ラベル>,"<ラベル名>": <ラベル>,[・・・]}).Set(メトリクス)
+    ~~~
+  - https://pkg.go.dev/github.com/prometheus/client_golang/prometheus#GaugeVec.With
+
 - **`GaugeOpts`Type**
   > GaugeOpts is an alias for Opts. See there for doc comments.
   - https://pkg.go.dev/github.com/prometheus/client_golang/prometheus#GaugeOpts
@@ -48,32 +61,32 @@ https://pkg.go.dev/github.com/prometheus/client_golang
   - Format
     ~~~go
     type Opts struct {
-        // Namespace, Subsystem, and Name are components of the fully-qualified
-	    // name of the Metric (created by joining these components with
-        // "_"). Only Name is mandatory, the others merely help structuring the
-	    // name. Note that the fully-qualified name of the metric must be a
-        // valid Prometheus metric name.
-	    Namespace string
-        Subsystem string
-	    Name      string
+      // Namespace, Subsystem, and Name are components of the fully-qualified
+      // name of the Metric (created by joining these components with
+      // "_"). Only Name is mandatory, the others merely help structuring the
+      // name. Note that the fully-qualified name of the metric must be a
+      // valid Prometheus metric name.
+      Namespace string
+      Subsystem string
+      Name      string
 
-        // Help provides information about this metric.
-	    //
-        // Metrics with the same fully-qualified name must have the same Help
-	    // string.
-        Help string
+      // Help provides information about this metric.
+      //
+      // Metrics with the same fully-qualified name must have the same Help
+      // string.
+      Help string
 
-        // ConstLabels are used to attach fixed labels to this metric. Metrics
-	    // with the same fully-qualified name must have the same label names in
-        // their ConstLabels.
-	    //
-        // ConstLabels are only used rarely. In particular, do not use them to
-        // attach the same labels to all your metrics. Those use cases are
-        // better covered by target labels set by the scraping Prometheus
-	    // server, or by one specific metric (e.g. a build_info or a
-        // machine_role metric). See also
-	    // https://prometheus.io/docs/instrumenting/writing_exporters/#target-labels-not-static-scraped-labels
-        ConstLabels Labels
+      // ConstLabels are used to attach fixed labels to this metric. Metrics
+      // with the same fully-qualified name must have the same label names in
+      // their ConstLabels.
+      //
+      // ConstLabels are only used rarely. In particular, do not use them to
+      // attach the same labels to all your metrics. Those use cases are
+      // better covered by target labels set by the scraping Prometheus
+      // server, or by one specific metric (e.g. a build_info or a
+      // machine_role metric). See also
+      // https://prometheus.io/docs/instrumenting/writing_exporters/#target-labels-not-static-scraped-labels
+      ConstLabels Labels
     }
     ~~~
   - https://pkg.go.dev/github.com/prometheus/client_golang/prometheus#Opts
