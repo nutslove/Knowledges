@@ -39,8 +39,6 @@
 
     scanner := bufio.NewScanner(strings.NewReader(s))
 
-    fmt.Println(scanner)
-
     for scanner.Scan() {
       line := scanner.Text()
 	  fmt.Println(line) -------> "test", "I am sleepy now", "Keep going"の順で1行ずつ出力される
