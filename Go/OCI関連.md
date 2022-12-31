@@ -2,7 +2,8 @@
 - SDKを使うためにtenancy OCIDやuser credentials情報などを設定しておく必要がある
 - 構成ファイル`~/.oci/config`にtenancyやregionなどを設定した上で`ClientWithConfigurationProvider(common.DefaultConfigProvider())`で読み込む
 - 例  
-  ※`monitoring.NewMonitoring`の部分はリソースによって異なる。例えばComputeの場合は`core.NewComputeClientWithConfigurationProvider`になる
+  ※`monitoring.NewMonitoring`の部分はリソースによって異なる。  
+    例えばComputeの場合は`core.NewComputeClientWithConfigurationProvider`になる
   ~~~go
   client, err := monitoring.NewMonitoringClientWithConfigurationProvider(common.DefaultConfigProvider())
   helpers.FatalIfError(err)
