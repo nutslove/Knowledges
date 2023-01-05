@@ -15,6 +15,15 @@
   - S3の
 
 - 対処
+  - 頻繁に発生しない限りQueueに戻され、再実行されるので無視して良い
+    - 下記Lokiのコード(コメント)にも記載されている
+      > If we're exiting & we failed to flush, out the failed operation back in the queue at a later point.
+      - https://github.com/grafana/loki/blob/776ee95a00cc64592171fa3c25f0d63ea39dbb67/pkg/ingester/flush.go
+    - [S3_Throttling](image/S3_Throttling.jpg)
 
-- 参考URL
+- S3のRateLimit関連URL
+  - https://docs.aws.amazon.com/AmazonS3/latest/userguide/optimizing-performance.html
+
+- この事象に関連するLokiのURL
+  - https://community.grafana.com/t/getting-throttled-by-s3/42441/2
   - 
