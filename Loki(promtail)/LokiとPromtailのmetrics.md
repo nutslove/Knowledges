@@ -25,7 +25,8 @@
     - `loki_distributor_lines_received_total` (counter)  
       → Distributorが受け付けたログ数(per tanant)
     - `loki_distributor_bytes_received_total` (counter)  
-      → Distributorが受信した圧縮前のlogのbytes
+      → Distributorが受信した圧縮前のlogのbytes  
+      → **Lokiに連携されるlogのsizeを確認する時はこのmetric(すべてのdistributorのsum)から確認できそう**
       > The total number of uncompressed bytes received per both tenant and retention hours.
     - `loki_distributor_ingester_append_failures_total` (counter)  
       → The total number of failed batch appends sent to ingesters.  
