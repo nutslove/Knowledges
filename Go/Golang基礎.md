@@ -49,6 +49,7 @@
   https://go.dev/ref/spec#Conversions  
   https://go.dev/doc/effective_go#conversions
 - Goも本当は構文の最後に`;`が付くけど、コンパイラーがコンパイル時に付けてくれるので人が意識する(付ける)必要はない。ただ、for文やif文など1行に複数の構文を書く場合は明示的に`;`を付ける必要がある
+- `return`でプログラムが終了する
 
 ### Goインストール（Linux）
 - `wget https://dl.google.com/go/go1.18.4.linux-amd64.tar.gz`
@@ -867,7 +868,7 @@
 var n int = 100
 fmt.Println(&n)  → "0xc00007c008"等の変数nが格納されているメモリアドレスが表示される
 var p *int = &n  → ポインタ型変数pに変数nが格納されているメモリアドレスを格納  
-  →「p := $n」にすることもできる
+  →「p := &n」にすることもできる
 fmt.Println(p)   → "0xc00007c008"等の変数nが格納されているメモリアドレスが表示される
 fmt.Println(*p)  → メモリアドレス(p)に格納されている値 100 が表示される
 *p = 300         → メモリアドレス(p)に格納されている値を100 → 300 に変更
@@ -947,6 +948,9 @@ fmt.Println(*&x) → 41が表示される
         }
       }
       ~~~
+
+### Context
+
 
 ### Channels
 - Channels are the pipes that connect concurrent goroutines. You can send values into channels from one goroutine and receive those values into another goroutine.
@@ -1053,6 +1057,46 @@ fmt.Println(*&x) → 41が表示される
       fmt.Printf("cr\t%T\n", cr)
     }
     ~~~
+
+### select
+- selectを使うと複数のChannelからの受信を待てる
+- 例（"received one","received two"）
+  ~~~go
+  package main
+
+  import (
+      "fmt"
+      "time"
+  )
+
+  func main() {
+      c1 := make(chan string)
+      c2 := make(chan string)
+
+      go func() {
+          time.Sleep(1 * time.Second)
+          c1 <- "one"
+      }()
+      go func() {
+          time.Sleep(2 * time.Second)
+          c2 <- "two"
+      }()
+
+      for i := 0; i < 2; i++ {
+          select {
+          case msg1 := <-c1:
+              fmt.Println("received", msg1)
+          case msg2 := <-c2:
+              fmt.Println("received", msg2)
+          }
+      }
+  }
+  ~~~
+- `for`と組合せて使うことで
+- 参考URL
+  - https://www.spinute.org/go-by-example/select.html
+  - https://go-tour-jp.appspot.com/concurrency/6
+  - https://www.ardanlabs.com/blog/2013/11/label-breaks-in-go.html
 
 ### パッケージ(import)
 - Format
@@ -1402,6 +1446,38 @@ if 条件式 {
 	    fmt.Println("done.")
     }
     ~~~
+
+### Label付きfor break
+- 多重for文でどのfor文をbreakするか指定することができる
+- Label名は任意
+- `for -> select -> case`文の時も使う
+  - https://www.ardanlabs.com/blog/2013/11/label-breaks-in-go.html
+- 例えば以下のような多重for文はbreakが内側のfor文にあるため無限ループになる
+  ~~~go
+  func main() {
+    for {
+        for {
+          fmt.Println("Start")
+          break
+        }
+        fmt.Println("End")
+    }
+  }
+  ~~~
+- for文の前にfor文のLabelを付けてbreakの次に抜けるfor文のLabelを指定する  
+  → 下記の例だと"End"は出力されず、"Start"だけ出力されて終わる
+  ~~~go
+  func main() {
+  LeeLoop:
+    for {
+      for {
+        fmt.Println("Start")
+        break LeeLoop
+      }
+      fmt.Println("End")
+    }
+  }
+  ~~~
 
 ### deferについて
 - deferは関数内の記述場所に関係なく、関数内のすべての処理か完了して関数が終了する直前に実行される

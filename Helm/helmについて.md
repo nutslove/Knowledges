@@ -1,0 +1,1 @@
+- `helm pull --untar <repo名>/<chart名>`でインストールせず、templatesやvalues.yml等をダウンロードすることができる
