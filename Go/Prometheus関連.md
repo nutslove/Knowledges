@@ -6,7 +6,7 @@ https://pkg.go.dev/github.com/prometheus/client_golang
   - [promhttpドキュメント](https://pkg.go.dev/github.com/prometheus/client_golang@v1.14.0/prometheus/promhttp)
 
 - **`MustRegister`関数**
-  - Metrics have to be registered to be exposed by`MustRegister`func
+  - Metrics have to be registered to be exposed by `MustRegister` func
   > While MustRegister is the by far most common way of registering a Collector, sometimes you might want to handle the errors the registration might cause. As suggested by the name, MustRegister panics if an error occurs. With the Register function, the error is returned and can be handled.
   - 一般的に`func init()`で登録しておく? 
   - Format
