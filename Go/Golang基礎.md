@@ -49,7 +49,7 @@
   https://go.dev/ref/spec#Conversions  
   https://go.dev/doc/effective_go#conversions
 - Goも本当は構文の最後に`;`が付くけど、コンパイラーがコンパイル時に付けてくれるので人が意識する(付ける)必要はない。ただ、for文やif文など1行に複数の構文を書く場合は明示的に`;`を付ける必要がある
-- `return`でプログラムが終了する
+- main関数の中で`return`でプログラムが終了する
 
 ### Goインストール（Linux）
 - `wget https://dl.google.com/go/go1.18.4.linux-amd64.tar.gz`
@@ -887,6 +887,8 @@ fmt.Println(*&x) → 41が表示される
   - 例：`go foo()`
 - __WaitGroup__
   - Goroutineで実行した処理はデフォルトでは待ってもらえず、main関数が終了すればGoroutine処理が終わってなくてもプログラムは終了してしまう
+  - ProcessがkillされるとすべてのGoroutineもcancelされる
+    - Goroutineのleakを防ぐため（Goroutineはmemoryなどリソースを消費する）
   - Goroutine処理が終わるまで待ってもらうためのものが`WaitGroup`
   - 例えば以下のコードではfooは出力されず、barだけ出力されて終了する
     ~~~go
@@ -950,7 +952,23 @@ fmt.Println(*&x) → 41が表示される
       ~~~
 
 ### Context
+- Contextがcancelされると、そのGoroutineから派生したすべてのGoroutineがcancelされる
+  > When a Context is canceled, all Contexts derived from it are also canceled.
+- 以下4つのfunctionがある
+  1. `WithCancel` -> [例](https://pkg.go.dev/context#example-WithCancel)
+  2. `WithDeadline` -> [例](https://pkg.go.dev/context#example-WithDeadline)
+  3. `WithTimeout` -> [例](https://pkg.go.dev/context#example-WithTimeout)
+  4. `WithValue` -> [例](https://pkg.go.dev/context#example-WithValue)
 
+- (一連の)GoroutineのDeadlineやTimeoutを設定して
+  > In Go servers, each incoming request is handled in its own goroutine. Request handlers often start additional goroutines to access backends such as databases and RPC services. The set of goroutines working on a request typically needs access to request-specific values such as the identity of the end user, authorization tokens, and the request’s deadline. When a request is canceled or times out, all the goroutines working on that request should exit quickly so the system can reclaim any resources they are using.
+  > 
+  > At Google, we developed a context package that makes it easy to **pass request-scoped values, cancellation signals, and deadlines across API boundaries to all the goroutines involved in handling a request.**
+- 参考URL
+  - **https://go.dev/blog/context**
+  - **https://peter.bourgon.org/blog/2016/07/11/context.html**
+  - https://pkg.go.dev/context#pkg-overview
+  - https://zenn.dev/hsaki/books/golang-context/viewer/definition
 
 ### Channels
 - Channels are the pipes that connect concurrent goroutines. You can send values into channels from one goroutine and receive those values into another goroutine.
