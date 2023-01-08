@@ -951,6 +951,9 @@ fmt.Println(*&x) → 41が表示される
       }
       ~~~
 
+### Select
+- Select statements pull the value from whatever channel has a value ready to be pulled.
+
 ### Context
 - Contextがcancelされると、そのGoroutineから派生したすべてのGoroutineがcancelされる
   > When a Context is canceled, all Contexts derived from it are also canceled.
