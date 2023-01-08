@@ -1,5 +1,6 @@
 ### SDK/CLIを使うためのConfiguration
 - SDKを使うためにtenancy OCIDやuser credentials情報などを設定しておく必要がある
+  - opensslで鍵を作成して公開鍵をOCIにアップロードして、APIを実行するサーバに秘密鍵を配置する必要がある
 - 構成ファイル`~/.oci/config`にtenancyやregionなどを設定した上で`ClientWithConfigurationProvider(common.DefaultConfigProvider())`で読み込む
 - 例  
   - `monitoring.NewMonitoring`の部分はリソースによって異なる。  
@@ -19,6 +20,7 @@
   resp, err := client.SummarizeMetricsData(context.Background(), req)
   ~~~
 - 構成ファイルに設定が必要な項目
+  - https://docs.oracle.com/ja-jp/iaas/Content/API/Concepts/apisigningkey.htm
   - https://docs.oracle.com/ja-jp/iaas/Content/API/Concepts/sdkconfig.htm
 - 参考URL
   - https://docs.oracle.com/en-us/iaas/Content/API/Concepts/sdkconfig.htm#SDK_and_CLI_Configuration_File
