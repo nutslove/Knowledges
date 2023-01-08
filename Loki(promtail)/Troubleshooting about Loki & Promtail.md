@@ -37,3 +37,14 @@
   - https://community.grafana.com/t/getting-throttled-by-s3/42441/2
   - **https://grafana.slack.com/archives/CEPJRLQNL/p1605809265098700**
   - https://grafana.slack.com/archives/CEPJRLQNL/p1603798598093300
+
+## Python等から直接Lokiにlogをpushした際に出るDistributorからのError
+- 事象
+  - Distributorから以下のようなErrorが出る
+    > "level=warn ts=2023-01-05T11:50:24.072282964Z caller=logging.go:86 traceID=2a11931ed1f9897a orgID=fake msg="POST /loki/api/v1/push (500) 2.01997ms Response: \\\"context canceled\\\\n\\\" ws: false; Accept-Encoding: identity; Connection: close; Content-Length: 1045; Content-Type: application/json; User-Agent: python-urllib3/1.26.9; "\n"
+  - 対象Code
+    ~~~python
+  
+    ~~~
+
+- 原因

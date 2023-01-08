@@ -1,0 +1,4 @@
+- 参考URL
+  - https://linuc.org/study/knowledge/526/
+  - https://atmarkit.itmedia.co.jp/flinux/special/proctune/proctune01a.html
+- メモリの中に作られるファイルシステム
