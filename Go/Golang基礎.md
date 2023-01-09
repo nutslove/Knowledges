@@ -887,6 +887,7 @@ fmt.Println(*&x) → 41が表示される
 - 関数の前に`go`をつけるとGoroutineになる
   - 例：`go foo()`
 - **GoRoutine処理は順番が保証されない**(毎回順番が異なる)。  
+  **処理の順番はGo Schedulerによって決まる。**  
   例えば以下の例では"alpha"→"beta"→"delta"→"gamma"→・・・順ではなく、実行のたびに異なるRandom順で出力される
   ~~~go
   package main
