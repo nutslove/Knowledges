@@ -1,7 +1,7 @@
 ## 基本的な知識
 - ServiceAccountはプラグラム(Podで実行されるプロセス)がkube-apiserverへ認証するためのもの
 - ServiceAccountはNamespacedリソース
-- 各Namespaceには`default`ServiceAccountがある（自動で作成される）
+- 各Namespaceには`default` ServiceAccountがある（自動で作成される）
 - Podに`serviceAccountName`による明示的なServiceAccountの指定がなければ、Namespace内の`default` ServiceAccountを使用する
 - 参考URL
   - https://kubernetes.io/ko/docs/reference/access-authn-authz/service-accounts-admin/
@@ -11,16 +11,18 @@
 - Podの中で`/var/run/secrets/kubernetes.io/serviceaccount`ディレクトリを見ると`token`がファイルとして存在していることを確認できる  
   ![Token_insidepod](https://github.com/nutslove/Knowledges/blob/main/Kubernetes/image/Token_InsidePod.jpg)  
 - `/var/run/secrets/kubernetes.io/serviceaccount`内の`ca.crt`はkube-apiserverが提供する証明書の検証に使われる
+  > Pods can use these certificates to make sure that they are connecting to your cluster's kube-apiserver
   - https://kubernetes.io/ko/docs/tasks/run-application/access-api-from-pod/
-- 上記(既存)方式の問題点
-  - 無期限なので
+- **上記(既存)方式はセキュリティ観点で(無期限である等)課題があった**
 
 ## v1.22以降
-- `Bound Service Account Token`というのがデフォルトで有効になり、
+- `Bound Service Account Token`というのがデフォルトで有効になり、SecretのTokenの代わりに`TokenRequest API`によって取得された短命(Defaultで1時間)のTokenがPodに
+  > By default, the Kubernetes control plane (specifically, the ServiceAccount admission controller) adds a projected volume to Pods, and this volume includes a token for Kubernetes API access.
+  >
+  > A serviceAccountToken source, that contains a token that the kubelet acquires from kube-apiserver. The kubelet fetches time-bound tokens using the TokenRequest API. A token served for a TokenRequest expires either when the pod is deleted or after a defined lifespan (by default, that is 1 hour). The token is bound to the specific Pod and has the kube-apiserver as its audience. 
 - 参考URL
-  - https://kubernetes.io/docs/reference/access-authn-authz/service-accounts-admin/#bound-service-account-token-volume
-  - 
-
+  - **https://kubernetes.io/docs/reference/access-authn-authz/service-accounts-admin/#bound-service-account-token-volume**
+  - https://docs.aws.amazon.com/ja_jp/eks/latest/userguide/kubernetes-versions.html → *Kubernetes 1.22*の部分を参照
 
 ## v1.24以前
 - v1.23まではServiceAccountを作成すると自動的にToken(Secret)が作成された  
@@ -33,8 +35,6 @@
   ![Secret](https://github.com/nutslove/Knowledges/blob/main/Kubernetes/image/Secret.jpg)  
   <img src="https://github.com/nutslove/Knowledges/blob/main/Kubernetes/image/Secret2.jpg" width="1800" height="300">
   <!-- ![Secret2](https://github.com/nutslove/Knowledges/blob/main/Kubernetes/image/Secret2.jpg =250x250) -->
-- Podが作成される時にこのTokenがPod内の`/var/run/secrets/kubernetes.io/serviceaccount`にvolumeとして自動的にMountされる  
-  ![Secret_Mount](https://github.com/nutslove/Knowledges/blob/main/Kubernetes/image/Secret_Mount.jpg)  
 
 ## v1.24以降
 - v1.24からはServiceAccountを作成しても自動的にToken(Secret)が作成されなくなった  
