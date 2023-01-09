@@ -1122,6 +1122,7 @@ fmt.Println(*&x) → 41が表示される
 
 ### select
 - Select statements pull the value from whatever channel has a value ready to be pulled.
+- channelは通常値が入っていなければ受信をブロックするが、select文はブロックしないで処理する時に利用
 - selectを使うと複数のChannelからの受信を待てる
 - 例（"received one","received two"）
   ~~~go

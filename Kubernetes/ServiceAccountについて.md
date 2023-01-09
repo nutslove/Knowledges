@@ -5,10 +5,19 @@
 - 参考URL
   - https://kubernetes.io/ko/docs/reference/access-authn-authz/service-accounts-admin/
 
+## v1.22以前
+- v1.21まではServiceAccountをPod内の``にMountされたToken
+
+## v1.22以降
+
+
+
 ## v1.24以前
 - v1.23まではServiceAccountを作成すると自動的にToken(Secret)が作成された  
   ![ServiceAccount_Token](https://github.com/nutslove/Knowledges/blob/main/Kubernetes/image/ServiceAccout_Token.jpg)
-  - このTokenがPodがkube-apiserverへの認証の際に使われる
+  - **このTokenはPodがkube-apiserverへの認証の際に直接使われるわけではない**
+    - TokenがなくてもPodの中からkubectlが打てた  
+      → https://amateur-engineer-blog.com/kubernetes-service-account/
   - このTokenは**無期限**だった
 - このTokenはTypeが`kubernetes.io/service-account-token`の`Secret`として保存される  
   ![Secret](https://github.com/nutslove/Knowledges/blob/main/Kubernetes/image/Secret.jpg)  
