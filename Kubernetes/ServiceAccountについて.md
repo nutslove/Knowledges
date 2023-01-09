@@ -16,7 +16,7 @@
 - **上記(既存)方式はセキュリティ観点で(無期限である等)課題があった**
 
 ## v1.22以降
-- `Bound Service Account Token`というのがデフォルトで有効になり、SecretのTokenの代わりに`TokenRequest API`によって取得された短命(Defaultで1時間)のTokenがPodに[projected volume](https://kubernetes.io/ko/docs/concepts/storage/projected-volumes/)として追加される
+- `Bound Service Account Token`というのがデフォルトで有効になり、SecretのTokenの代わりに`TokenRequest API`によって取得された短命(Defaultで1時間)のTokenがPodに[projected volume](https://kubernetes.io/ko/docs/concepts/storage/projected-volumes/)としてMountされる
   > By default, the Kubernetes control plane (specifically, the ServiceAccount admission controller) adds a projected volume to Pods, and this volume includes a token for Kubernetes API access.
   >
   > A serviceAccountToken source, that contains a token that the kubelet acquires from kube-apiserver. The kubelet fetches time-bound tokens using the TokenRequest API. A token served for a TokenRequest expires either when the pod is deleted or after a defined lifespan (by default, that is 1 hour). The token is bound to the specific Pod and has the kube-apiserver as its audience. 
