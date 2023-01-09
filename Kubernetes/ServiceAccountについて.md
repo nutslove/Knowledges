@@ -1,15 +1,25 @@
 ## 基本的な知識
 - ServiceAccountはプラグラム(Podで実行されるプロセス)がkube-apiserverへ認証するためのもの
 - ServiceAccountはNamespacedリソース
+- 各Namespaceには`default`ServiceAccountがある（自動で作成される）
 - Podに`serviceAccountName`による明示的なServiceAccountの指定がなければ、Namespace内の`default` ServiceAccountを使用する
 - 参考URL
   - https://kubernetes.io/ko/docs/reference/access-authn-authz/service-accounts-admin/
 
 ## v1.22以前
-- v1.21まではServiceAccountをPod内の``にMountされたToken
+- v1.21まではServiceAccount作成時に一緒に作成されるSecret Object内の**無期限**のTokenが、Pod作成時に自動でPod内の`/var/run/secrets/kubernetes.io/serviceaccount`にMountされて、kube-apiserverへの認証に使われていた
+- Podの中で`/var/run/secrets/kubernetes.io/serviceaccount`ディレクトリを見ると`token`がファイルとして存在していることを確認できる  
+  ![Token_insidepod](https://github.com/nutslove/Knowledges/blob/main/Kubernetes/image/Token_InsidePod.jpg)  
+- `/var/run/secrets/kubernetes.io/serviceaccount`内の`ca.crt`はkube-apiserverが提供する証明書の検証に使われる
+  - https://kubernetes.io/ko/docs/tasks/run-application/access-api-from-pod/
+- 上記(既存)方式の問題点
+  - 無期限なので
 
 ## v1.22以降
-
+- `Bound Service Account Token`というのがデフォルトで有効になり、
+- 参考URL
+  - https://kubernetes.io/docs/reference/access-authn-authz/service-accounts-admin/#bound-service-account-token-volume
+  - 
 
 
 ## v1.24以前
@@ -25,10 +35,6 @@
   <!-- ![Secret2](https://github.com/nutslove/Knowledges/blob/main/Kubernetes/image/Secret2.jpg =250x250) -->
 - Podが作成される時にこのTokenがPod内の`/var/run/secrets/kubernetes.io/serviceaccount`にvolumeとして自動的にMountされる  
   ![Secret_Mount](https://github.com/nutslove/Knowledges/blob/main/Kubernetes/image/Secret_Mount.jpg)  
-  - Podの中で`/var/run/secrets/kubernetes.io/serviceaccount`ディレクトリを見ると`token`がファイルとして存在していることを確認できる  
-      ![Token_insidepod](https://github.com/nutslove/Knowledges/blob/main/Kubernetes/image/Token_InsidePod.jpg)  
-  - `/var/run/secrets/kubernetes.io/serviceaccount`内の`ca.crt`はkube-apiserverが提供する証明書の検証に使われる
-    - https://kubernetes.io/ko/docs/tasks/run-application/access-api-from-pod/
 
 ## v1.24以降
 - v1.24からはServiceAccountを作成しても自動的にToken(Secret)が作成されなくなった  
