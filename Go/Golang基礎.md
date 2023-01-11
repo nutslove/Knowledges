@@ -1004,6 +1004,88 @@ fmt.Println(*&x) → 41が表示される
         }
       }
       ~~~
+  - **`Add()`内の待機するGoroutine数に関係なく、`Add()`と`Wait()`は１対１である必要がある。**  
+    - NG例  
+      `fatal error: all goroutines are asleep - deadlock!`エラーが出る
+      ~~~go
+      package main
+
+      import (
+          "fmt"
+          "sync"
+      )
+
+      var msg string
+
+      func updateMessage(s string, wg *sync.WaitGroup) {
+          msg = s
+          defer wg.Done()
+      }
+
+      func printMessage() {
+          fmt.Println(msg)
+      }
+
+      func main() {
+
+          msg = "Hello, world!"
+          var wg sync.WaitGroup
+
+          wg.Add(3)
+          go updateMessage("Hello, universe!", &wg)
+          wg.Wait()
+          printMessage()
+
+          go updateMessage("Hello, cosmos!", &wg)
+          wg.Wait()
+          printMessage()
+
+          go updateMessage("Hello, world!", &wg)
+          wg.Wait()
+          printMessage()
+      }          
+      ~~~
+    - OK例
+      ~~~go
+      package main
+
+      import (
+          "fmt"
+          "sync"
+      )
+
+      var msg string
+
+      func updateMessage(s string, wg *sync.WaitGroup) {
+          msg = s
+          defer wg.Done()
+      }
+
+      func printMessage() {
+          fmt.Println(msg)
+      }
+
+      func main() {
+
+          msg = "Hello, world!"
+          var wg sync.WaitGroup
+
+          wg.Add(1)
+          go updateMessage("Hello, universe!", &wg)
+          wg.Wait()
+          printMessage()
+
+          wg.Add(1)
+          go updateMessage("Hello, cosmos!", &wg)
+          wg.Wait()
+          printMessage()
+
+          wg.Add(1)
+          go updateMessage("Hello, world!", &wg)
+          wg.Wait()
+          printMessage()
+      }      
+      ~~~
 
 ### Context
 - (一連の)Deadline(`WithDeadline`)やTimeout(`WithTimeout`)を設定してそれが過ぎたら親Goroutineとそこ派生したすべてのGoroutineをcancelしてリソースleakを防いだり、`WithCancel`でGoroutineをcancelするタイミングを制御したり、`WithValue`で1つのrequestで関連する複数のGoroutine間で値をpassしたりするために使われる
