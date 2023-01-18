@@ -126,7 +126,7 @@
 ### `limit_config` block
 - https://grafana.com/docs/loki/latest/configuration/#limits_config
 - **`reject_old_samples_max_age`と`retention_period`の違いについて**
-- ![difference_between_retention_period_and_reject_old_samples_max_age](https://github.com/nutslove/Knowledges/blob/main/Loki(promtail)/image/difference_between_retention_period_and_reject_old_samples_max_age.jpg)
+![difference_between_retention_period_and_reject_old_samples_max_age](https://github.com/nutslove/Knowledges/blob/main/Loki(promtail)/image/difference_between_retention_period_and_reject_old_samples_max_age.jpg)
 
 
 ## HelmによるMicroServices Modeのデプロイ
