@@ -27,7 +27,8 @@
     - `loki_distributor_bytes_received_total` (counter)  
       → Distributorが受信した圧縮前のlogのbytes  
       → **Lokiに連携されるlogのsizeを確認する時はこのmetric(すべてのdistributorのsum)から確認できそう**
-      > The total number of uncompressed bytes received per both tenant and retention hours.
+      > The total number of uncompressed bytes received per both tenant and retention hours.  
+      - 例えば1ヶ月(30日)分のログ(データ)量を確認したい場合は`increase(loki_distributor_bytes_received_total{}[30d])`
     - `loki_distributor_ingester_append_failures_total` (counter)  
       → The total number of failed batch appends sent to ingesters.  
         > **Note**  
