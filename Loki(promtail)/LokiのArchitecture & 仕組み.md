@@ -104,8 +104,9 @@
 ## Consistent Hash Rings
 - 参考URL
   - **https://grafana.com/docs/loki/latest/fundamentals/architecture/rings/**
-- 
-- ringのstatusについて`cortex_ring_members`
+- Ingester Ring Statusは「http://Ingester_IP:3100/ring」から確認できる
+- Distributor Ring Statusは「http://Distributor_IP:3100/distributor/ring」から確認できる
+- ringのstatusについて`cortex_ring_members`metricsで確認できる
 
 ## chunkの圧縮
 - 転送速度向上およびストレージコスト削減のため、ログはgzip[^3]で圧縮されてchunkとして保存される
