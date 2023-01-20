@@ -4,19 +4,6 @@ Port number『7946』 is what loki uses to communicate with other members of the
 
 
 
-『Loki: Internal Server Error. 500. too many unhealthy instances in the ring』
-I encountered this. You could see your ring status through (replace with your host):
-http://loki:3100/ring
-There you can "forget" the unhealthy instance and it should work.
-Having said that, you could have this option in your loki config under:
-common:
-    ring:
-        autoforget_unhealthy: true
-ingester:
-    lifecycler:
-        readiness_check_ring_health: false
-
-
 
 
 

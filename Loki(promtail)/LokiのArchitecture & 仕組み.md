@@ -101,6 +101,12 @@
   - https://grafana.com/docs/loki/latest/design-documents/2020-09-write-ahead-log/
   - https://grafana.com/docs/loki/latest/operations/storage/boltdb-shipper/#queriers
 
+## Consistent Hash Rings
+- 参考URL
+  - **https://grafana.com/docs/loki/latest/fundamentals/architecture/rings/**
+- 
+- ringのstatusについて`cortex_ring_members`
+
 ## chunkの圧縮
 - 転送速度向上およびストレージコスト削減のため、ログはgzip[^3]で圧縮されてchunkとして保存される
   [^3]: defaultではgzipだけどingesterの設定`chunk_encoding`にてsnappy(圧縮率は低いけどその分検索が早い)などに変えることもできる
