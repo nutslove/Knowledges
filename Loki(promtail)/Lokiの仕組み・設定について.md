@@ -128,6 +128,16 @@
 - **`reject_old_samples_max_age`と`retention_period`の違いについて**
 ![difference_between_retention_period_and_reject_old_samples_max_age](https://github.com/nutslove/Knowledges/blob/main/Loki(promtail)/image/difference_between_retention_period_and_reject_old_samples_max_age.jpg)
 
+### `analytics` block
+- defaultではLokiは利用状況と設定情報をGrafana Labsに送るようになっている
+  - https://grafana.com/docs/loki/latest/configuration/#common
+- `reporting_enabled`を`false`にすることでGrafana Labsへの情報転送を無効にすることができる
+- 上記Grafanaドキュメントを見るとcommonブロックで指定しているように見えるが`analytics`ブロックで設定する必要がある  
+  → https://sbcode.net/grafana/install-loki-service/
+  ~~~yaml
+  analytics:
+    reporting_enabled: false
+  ~~~
 
 ## HelmによるMicroServices Modeのデプロイ
 - githubリポジトリ
