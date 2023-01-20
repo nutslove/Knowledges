@@ -38,6 +38,17 @@
   - **https://grafana.slack.com/archives/CEPJRLQNL/p1605809265098700**
   - https://grafana.slack.com/archives/CEPJRLQNL/p1603798598093300
 
+## unhealthy instances(Ingester)によるDistributorからのError
+- 事象
+  - Distributorから以下のようなErrorが出る
+    > level=warn ts=2023-01-20T02:37:18.55702584Z caller=logging.go:86 traceID=681cc3a4f50ce191 orgID=fake msg="POST /loki/api/v1/push (500) 278.729μs Response: \"at least 2 live replicas required, could only find 1 - unhealthy instances: 100.94.21.166:9095\\n\" ws: false; Connection: close; Content-Length: 3574; Content-Type: application/x-protobuf; User-Agent: promtail/2.6.0; "
+  - 複数のunhealthy instancesがある場合はGrafana等で`too many unhealthy instances in the ring`がエラーが出る
+- 原因
+  - 前提としてIngesterは`replication_factor`の値に基づいて必要最低限の数が変わる。(ex. `replication_factor`が3の時は2つのActiveなIngesterが必要)  
+    ringにjoinしているIngesterのうちunhealthy状態になっているものがあり、必要最低限のActive状態のIngesterがなく、Ingesterへのpushが失敗して出るError
+    ![Write_Path_summarize](https://github.com/nutslove/Knowledges/blob/main/Loki(promtail)/image/unhealthy_instances.jpg)
+- **Ingester ringの状態を確認する方法**
+
 ## Python等から直接Lokiにlogをpushした際に出るDistributorからのError
 - 事象
   - Distributorから以下のようなErrorが出る
