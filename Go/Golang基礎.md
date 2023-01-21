@@ -1047,7 +1047,34 @@ fmt.Println(*&x) → 41が表示される
           printMessage()
       }          
       ~~~
-    - OK例
+    - OK例（1）
+      ~~~go
+      package main
+
+      import (
+          "fmt"
+          "sync"
+      )
+
+      var msg string
+      var wg sync.WaitGroup
+
+      func updateMessage(s string) {
+          defer wg.Done()
+          msg = s
+          fmt.Println(msg)
+      }
+
+      func main() {
+          msg = "Hello, world!"
+
+          wg.Add(2)
+          go updateMessage("Hello, universe!")
+          go updateMessage("Hello, cosmos!")
+          wg.Wait()
+      }      
+      ~~~
+    - OK例（2）
       ~~~go
       package main
 
@@ -1088,6 +1115,54 @@ fmt.Println(*&x) → 41が表示される
           printMessage()
       }      
       ~~~
+
+### Mutex
+- Mutual Exclusion(排他制御)の略
+- Race Conditionを防ぐために用いられる
+- go run実行時`-race`オプションをつけることでRace Conditionを検出することができる
+  - ex) `go run -race main.go`
+- 使い方
+  - Goroutine間で共有する変数を`sync.Mutex.Lock()`と`sync.Mutex.Unlock()`で囲むだけ
+    ~~~go
+    package main
+
+    import (
+        "fmt"
+        "sync"
+    )
+
+    var msg string
+    var wg sync.WaitGroup
+
+    func updateMessage(s string, m *sync.Mutex) {
+        defer wg.Done()
+
+        m.Lock()
+        msg = s
+        m.Unlock()
+    }
+
+    func main() {
+        msg = "Hello, world!"
+
+        var mutex sync.Mutex
+
+        wg.Add(2)
+        go updateMessage("Hello, universe!", &mutex)
+        go updateMessage("Hello, cosmos!", &mutex)
+        wg.Wait()
+
+        fmt.Println(msg)
+    }
+    ~~~
+- **Race Condition**とは  
+  → 競合状態
+  > A race condition or race hazard is an undesirable condition of an electronics, software, or other system where the system's substantive behavior is dependent on the sequence or timing of other uncontrollable events. It becomes a bug when one or more of the possible behaviors is undesirable.
+  > A race condition occurs when two Goroutine access a shared variable at the same time. 
+- 参考URL
+  - https://pkg.go.dev/sync#Mutex
+  - https://learn.microsoft.com/en-us/troubleshoot/developer/visualstudio/visual-basic/language-compilers/race-conditions-deadlocks
+  - https://stackoverflow.com/questions/34510/what-is-a-race-condition
 
 ### Context
 - (一連の)Deadline(`WithDeadline`)やTimeout(`WithTimeout`)を設定してそれが過ぎたら親Goroutineとそこ派生したすべてのGoroutineをcancelしてリソースleakを防いだり、`WithCancel`でGoroutineをcancelするタイミングを制御したり、`WithValue`で1つのrequestで関連する複数のGoroutine間で値をpassしたりするために使われる
