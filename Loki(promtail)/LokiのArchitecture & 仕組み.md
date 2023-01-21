@@ -101,6 +101,13 @@
   - https://grafana.com/docs/loki/latest/design-documents/2020-09-write-ahead-log/
   - https://grafana.com/docs/loki/latest/operations/storage/boltdb-shipper/#queriers
 
+## Consistent Hash Rings
+- 参考URL
+  - **https://grafana.com/docs/loki/latest/fundamentals/architecture/rings/**
+- Ingester Ring Statusは「http://Ingester_IP:3100/ring」から確認できる
+- Distributor Ring Statusは「http://Distributor_IP:3100/distributor/ring」から確認できる
+- ringのstatusについて`cortex_ring_members`metricsで確認できる
+
 ## chunkの圧縮
 - 転送速度向上およびストレージコスト削減のため、ログはgzip[^3]で圧縮されてchunkとして保存される
   [^3]: defaultではgzipだけどingesterの設定`chunk_encoding`にてsnappy(圧縮率は低いけどその分検索が早い)などに変えることもできる
@@ -109,25 +116,6 @@
   - https://grafana.com/docs/loki/latest/operations/storage/boltdb-shipper/#operational-details
   - https://grafana.com/docs/loki/latest/configuration/#ingester
   - https://grafana.com/blog/2021/02/16/the-essential-config-settings-you-should-use-so-you-wont-drop-logs-in-loki/
-
-## Configuration
-### ingester
-- 参考URL
-  - https://grafana.com/docs/loki/latest/configuration/#ingester
-  - https://grafana.com/docs/loki/latest/best-practices/#use-chunk_target_size
-- 以下の3つがingesterからBackend(S3等)にflushされるタイミングに影響する設定  
-  → この3つの値を大きくするとメモリ使用量も上がるので要注意
-  - `chunk_target_size`
-    - chunkがここに設定したsizeに達したらingesterがBackend(S3)にchunkをflushする
-  - `max_chunk_age`
-    - ここに指定した時間が経過したchunkをflushする
-  - `chunk_idle_period`
-    - ここに指定した時間の間、chunkに更新がない場合flushする
-### `limit_config` block
-- https://grafana.com/docs/loki/latest/configuration/#limits_config
-- **`reject_old_samples_max_age`と`retention_period`の違いについて**
-![difference_between_retention_period_and_reject_old_samples_max_age](https://github.com/nutslove/Knowledges/blob/main/Loki(promtail)/image/difference_between_retention_period_and_reject_old_samples_max_age.jpg)
-
 
 ## HelmによるMicroServices Modeのデプロイ
 - githubリポジトリ

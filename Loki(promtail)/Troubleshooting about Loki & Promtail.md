@@ -14,7 +14,6 @@
 - 原因
   - S3への書き込みが多すぎたため、S3のRateLimit(3,500 PUT/COPY/POST/DELETE requests per second per partitioned prefix)に引っかかって出るError  
    *※prefixはS3のサブディレクトリのこと(Lokiがsingle tenantの場合は`fake`)*  
-
 - 対処
   - 頻繁に発生しない限りQueueに戻され、再実行されるので無視して良い
     ![S3_Throttling](image/S3_Throttling.jpg)  
@@ -38,13 +37,42 @@
   - **https://grafana.slack.com/archives/CEPJRLQNL/p1605809265098700**
   - https://grafana.slack.com/archives/CEPJRLQNL/p1603798598093300
 
-## Python等から直接Lokiにlogをpushした際に出るDistributorからのError
+## unhealthy instances(Ingester)によるDistributorからのError
+- 事象
+  - Distributorから以下のようなErrorが出る
+    > level=warn ts=2023-01-20T02:37:18.55702584Z caller=logging.go:86 traceID=681cc3a4f50ce191 orgID=fake msg="POST /loki/api/v1/push (500) 278.729μs Response: \"at least 2 live replicas required, could only find 1 - unhealthy instances: 100.94.21.166:9095\\n\" ws: false; Connection: close; Content-Length: 3574; Content-Type: application/x-protobuf; User-Agent: promtail/2.6.0; "
+  - 複数のunhealthy instancesがある場合はGrafana等で`too many unhealthy instances in the ring`がエラーが出る
+- 原因
+  - 前提としてIngesterは`replication_factor`の値に基づいて必要最低限の数が変わる。(ex. `replication_factor`が3の時は2つのActiveなIngesterが必要)  
+    ringにjoinしているIngesterのうちunhealthy状態になっているものがあり、Active状態のIngesterが必要最低限の数より少なく、Ingesterへのpushが失敗して出るError
+    ![unhealthy_instances](https://github.com/nutslove/Knowledges/blob/main/Loki(promtail)/image/unhealthy_instances.jpg)
+- 対処
+  - Ingesterの数を(2→3)増やしたら直った
+    - Ingesterが増えたことで既存のIngesterもRingへの再参加することで状態が直った??
+  - ring status GUIでUnhealthyになっているIngesterを「Forget」ボタンを押せば直るはず？  
+    → ring status GUIではACTIVEに戻ったけどDistributorからErrorが出続けた
+    > 『Loki: Internal Server Error. 500. too many unhealthy instances in the ring』
+I encountered this. You could see your ring status through (replace with your host):
+http://loki:3100/ring
+There you can "forget" the unhealthy instance and it should work.
+Having said that, you could have this option in your loki config under:
+    ~~~
+    common:
+      ring:
+        autoforget_unhealthy: true
+    ingester:
+      lifecycler:
+        readiness_check_ring_health: false
+    ~~~
+- **Ingester ringの状態を確認する方法**
+  - Ingester ringのstatusは「http://IngesterのIPアドレス:3100/ring」から確認できる
+    ![ingester_ring_status](https://github.com/nutslove/Knowledges/blob/main/Loki(promtail)/image/ingester_ring_status.jpg)
+  - HelmからLokiをデプロイした場合、クラスター外からIngesterへ接続できないため`kubectl expose pod <Ingester POD名> --type=NodePort --name=<Service名>`でNodePortのServiceを作成して接続すること
+    - **AWS EKSの場合、PODがVPCのIPを持っているためPODのIPでブラウザからアクセスできる**
+
+## Python等から直接Lokiのエンドポイント(/loki/api/v1/push)にAPIでlogをpushした際に出るDistributorからのError
 - 事象
   - Distributorから以下のようなErrorが出る
     > "level=warn ts=2023-01-05T11:50:24.072282964Z caller=logging.go:86 traceID=2a11931ed1f9897a orgID=fake msg="POST /loki/api/v1/push (500) 2.01997ms Response: \\\"context canceled\\\\n\\\" ws: false; Accept-Encoding: identity; Connection: close; Content-Length: 1045; Content-Type: application/json; User-Agent: python-urllib3/1.26.9; "\n"
-  - 対象Code
-    ~~~python
-  
-    ~~~
-
 - 原因
+  - ???
