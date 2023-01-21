@@ -882,6 +882,8 @@ fmt.Println(*&x) → 41が表示される
   2. 特定のメモリアドレスにある値を変更したい場合
 
 ### Goroutine
+- GoroutineはGoで実行できる一番小さい単位
+  - main関数も1つのGoroutine
 - Goroutineは並列処理を保証するのではなく、並列処理を実行できる環境の場合のみ並列処理をする
   - 例えばcpuコアが1つしかないコンピューターではGoroutineを使っても、並列(parallel)ではなく、並行(concurrent)処理になる
 - 関数の前に`go`をつけるとGoroutineになる
@@ -1151,6 +1153,7 @@ fmt.Println(*&x) → 41が表示される
 
 ### Channels
 - Channels are the pipes that connect concurrent goroutines. You can send values into channels from one goroutine and receive those values into another goroutine.
+- ChannelsはGoroutine間でデータを共有する方法/仕組み
 - Dataを送受信できる空間
 - ChannelもType
 - **Channelは値を入れた後に遮断される**
