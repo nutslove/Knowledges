@@ -1230,9 +1230,70 @@ fmt.Println(*&x) → 41が表示される
 - Channels are the pipes that connect concurrent goroutines. You can send values into channels from one goroutine and receive those values into another goroutine.
 - ChannelsはGoroutine間でデータを共有する方法/仕組み
 - Dataを送受信できる空間
+- Channelは値が入るまで待つ(後続処理を実行しない)ので、WaitGroupが不要
+  ~~~go
+  package main
+
+  import "fmt"
+
+  func goroutine1(s []int, c chan int) {
+      sum := 0
+      for _, v := range s {
+          sum += v
+      }
+      c <- sum
+  }
+
+  func main() {
+      s := []int{1, 2, 3, 4, 5}
+      c := make(chan int)
+
+      go goroutine1(s, c)
+      x := <-c ==============> ここでPrintlnに進まずにxに値が入るまで待つ
+      fmt.Println(x)
+  }
+  ~~~
+- 1つのChannelを複数のGoroutineで共有することもできる
+  ~~~go
+    package main
+
+    import "fmt"
+
+    func goroutine1(s []int, c chan int) {
+        sum := 0
+        for _, v := range s {
+            sum += v
+        }
+        c <- sum
+    }
+
+    func goroutine2(t []int, c chan int) {
+        sum := 0
+        for _, v := range t {
+            sum += v
+        }
+        c <- sum
+    }
+
+    func main() {
+        s := []int{1, 2, 3, 4, 5}
+        t := []int{6, 7, 8, 9, 10}
+
+        c := make(chan int)
+
+        go goroutine1(s, c)
+        go goroutine2(t, c)
+
+        x := <-c
+        fmt.Println(x)
+
+        y := <-c
+        fmt.Println(y)
+    }
+  ~~~
 - ChannelもType
-- **Channelは値を入れた後に遮断される**
-  - なので**goroutine**で**channelに値を入れるのとchannelから値を取り出すのを同時に**するようにコードを書く必要がある
+- **Channelは値を入れた後に遮断(Blocking)される**
+  - なので**goroutine**で**channelに値を入れるのとchannelから値を取り出すのを並行で**実施するようにコードを書く必要がある
   - または**buffer**を使ってchannelに値が残れるようにする
     - 定義したbufferの数より多くの数の値をchannelに入れようとするとエラーになる  
       → 定義した数の分がbufferに入ってきたらchannelは遮断される
@@ -1287,6 +1348,26 @@ fmt.Println(*&x) → 41が表示される
 	  fmt.Println(<-c)
   }
   ~~~
+  - ただ、Channelから値を取り出してから入れればエラーにならない
+    ~~~go
+    package main
+
+    import "fmt"
+
+    func main() {
+        c := make(chan int, 1)
+        c <- 42
+        fmt.Println(len(c)) ==> 1
+        x := <-c
+
+        fmt.Println(x) =======> 42
+        fmt.Println(len(c)) ==> 0
+        c <- 77
+        fmt.Println(len(c)) ==> 1
+        fmt.Println(<-c) =====> 77
+        fmt.Println(len(c)) ==> 0
+    }    
+    ~~~
 
   #### 単方向(受信だけ or 送信だけ)のChannelも作成できる
   - 例
