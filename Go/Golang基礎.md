@@ -57,8 +57,8 @@
 - `export PATH=$PATH:/usr/local/go/bin`
 - `go version`
 
-## Goの文法
-### 変数の書き方
+# Goの文法
+## 変数の書き方
 1. varを使った定義
    - 関数の外側でも定義可  
       → その場合コード(パッケージ)内のすべての関数で参照可  
@@ -91,7 +91,7 @@
       ~~~
     - 省略型に整数/少数の値を代入する場合、自動的に`int`/`float64`型になる
 
-### `...`について（Lexical elementsと呼ぶらしい）
+## `...`について（Lexical elementsと呼ぶらしい）
 - https://go.dev/ref/spec#Operators_and_punctuation
 - `...<型>`
   - スライス (つまり`[]<型>`と同じ) を作成
@@ -150,7 +150,7 @@
       > Greeting("goodbye:", s...)
       > within Greeting, who will have the same value as s with the same underlying array.
 
-### 戻り値を`_`で捨てる
+## 戻り値を`_`で捨てる
 - 戻り値などで定義は必要だけど使わない変数は`_`で捨てる  
   - 例
     ~~~go
@@ -169,7 +169,7 @@
   `
   ~~~
 
-### Array(配列)
+## Array(配列)
 - Format
   1. `var <変数名>[配列数]<型>`
       ~~~go
@@ -187,7 +187,7 @@
   > GoではArrayの代わりにSlicesを使うことが推奨されている  
   > https://go.dev/doc/effective_go#arrays
 
-### Slices
+## Slices
 - 参照URL
   - https://go.dev/tour/moretypes/11#:~:text=The%20capacity%20of%20a%20slice,provided%20it%20has%20sufficient%20capacity.
 - スライスはArrayの参照であって、値の実体はArrayにある
@@ -259,7 +259,7 @@
   - `<Slice名>[len(<Slice名>)-1]`というふうにSliceの長さから-1して最後の要素を取得する
     - 例：`fmt.Println("Metric:",*resp.Items[i].AggregatedDatapoints[len(resp.Items[i].AggregatedDatapoints)-1].Value)`
 
-### Map
+## Map
 - Format
   1. `var 変数 map[<Key型>]<Value型>`
   2. `変数 := map[<Key型>]<Value型> { Key1: Value1, Key2: Value2, ・・・, }`  
@@ -304,7 +304,7 @@
   }
   ~~~
 
-### 定数（const）
+## 定数（const）
 - 作成した後に値の変更ができない
   ~~~go
   const 定数 = 値
@@ -329,7 +329,7 @@
 - 変数とは違い、型を指定しない場合、
   定義時に代入する値から型を推論するのではなく、使われる時に型を推論する
 
-### 関数
+## 関数
 - 関数もStringやintと同様にTypeの1つである  
   → 関数もreturnすることができる
 - 定義方法にいくつかパターンがある 
@@ -456,7 +456,7 @@
         }
         ~~~
 
-### Struct (構造体)
+## Struct (構造体)
 - 色んな型をひとまとめにしたもの
 - 他の言語のClassのような感じで、1つのstructに対して (下のp1とp2のように) 何回でも変数宣言できる
 - Format
@@ -574,7 +574,7 @@
     }
     ~~~
 
-### Methods
+## Methods
 - *a method is just a function with a receiver argument.*
   - つまり、MethodはStructをReceiver引数として持つ関数
 - A method is nothing more than a FUNC attached to a TYPE
@@ -622,7 +622,7 @@
   }
   ~~~
 
-### Interfaces
+## Interfaces
 - InterfaceはMethod(s)を持つ(Methodのラッピング？)
 - Interfaceを通じて動作を定義できる
   - 下記例の`GetArea() int`や`speak()`
@@ -738,7 +738,7 @@
   - https://go.dev/play/p/rZH2Efbpot
   - https://dev-yakuza.posstree.com/golang/interface/
 
-### CallBack
+## CallBack
 - 引数として関数を引き渡すこと
 - 例
   ~~~go
@@ -776,7 +776,7 @@
   }
   ~~~
 
-### Closure
+## Closure
 - one scope enclosing other scopes
   - variables declared in the outer scope are accessible in inner scopes
 - ポイントとしては、**関数の戻り値に関数を指定する**ことと**戻り値の関数は無名関数**である
@@ -808,7 +808,7 @@
   - https://go.dev/tour/moretypes/25
   - https://go-tour-jp.appspot.com/moretypes/25
 
-### Recursion
+## Recursion
 - 関数が自分自身を呼び出すこと
 - **RecursionでできることはLoopでもできる**
 - 例
@@ -852,7 +852,7 @@
     }
     ~~~
 
-### Pointer(ポインタ)
+## Pointer(ポインタ)
 - > All values are stored in memory. Every location in memory has an address. A **pointer is a memory address**.
 - 値が保管されたメモリのアドレスを指しているもの
 - 変数(の値)が入るメモリのアドレスを保管するType
@@ -881,7 +881,7 @@ fmt.Println(*&x) → 41が表示される
   1. big chunk of dataを受け渡ししたい場合
   2. 特定のメモリアドレスにある値を変更したい場合
 
-### Goroutine
+## Goroutine
 - GoroutineはGoで実行できる一番小さい単位
   - main関数も1つのGoroutine
 - Goroutineは並列処理を保証するのではなく、並列処理を実行できる環境の場合のみ並列処理をする
@@ -1116,7 +1116,7 @@ fmt.Println(*&x) → 41が表示される
       }      
       ~~~
 
-### Mutex
+## Mutex
 - Mutual Exclusion(排他制御)の略
 - Race Conditionを防ぐために用いられる
 - go run実行時`-race`オプションをつけることでRace Conditionを検出することができる
@@ -1164,7 +1164,7 @@ fmt.Println(*&x) → 41が表示される
   - https://learn.microsoft.com/en-us/troubleshoot/developer/visualstudio/visual-basic/language-compilers/race-conditions-deadlocks
   - https://stackoverflow.com/questions/34510/what-is-a-race-condition
 
-### Context
+## Context
 - (一連の)Deadline(`WithDeadline`)やTimeout(`WithTimeout`)を設定してそれが過ぎたら親Goroutineとそこ派生したすべてのGoroutineをcancelしてリソースleakを防いだり、`WithCancel`でGoroutineをcancelするタイミングを制御したり、`WithValue`で1つのrequestで関連する複数のGoroutine間で値をpassしたりするために使われる
   > In Go servers, each incoming request is handled in its own goroutine. Request handlers often start additional goroutines to access backends such as databases and RPC services. The set of goroutines working on a request typically needs access to request-specific values such as the identity of the end user, authorization tokens, and the request’s deadline. When a request is canceled or times out, all the goroutines working on that request should exit quickly so the system can reclaim any resources they are using.
   > 
@@ -1226,7 +1226,7 @@ fmt.Println(*&x) → 41が表示される
   - https://pkg.go.dev/context#pkg-overview
   - https://zenn.dev/hsaki/books/golang-context/viewer/definition
 
-### Channels
+## Channels
 - Channels are the pipes that connect concurrent goroutines. You can send values into channels from one goroutine and receive those values into another goroutine.
 - ChannelsはGoroutine間でデータを共有する方法/仕組み
 - Dataを送受信できる空間
@@ -1414,7 +1414,122 @@ fmt.Println(*&x) → 41が表示される
     }
     ~~~
 
-### select
+  #### Channelの`range`によるLoopと`close`について
+  - Goroutineの中で1つのChannelに複数の値を入れる場合、Channelから受け取る処理も複数行う必要がある。  
+    例えば以下のような例では`fmt.Println(x)`で最初にChannelに入れた値"1"しか出力されない
+    ~~~go
+    package main
+
+    import "fmt"
+
+    func goroutine1(s []int, c chan int) {
+        sum := 0
+        for _, v := range s {
+            sum += v
+            c <- sum
+        }
+    }
+
+    func main() {
+        s := []int{1, 2, 3, 4, 5}
+        c := make(chan int)
+
+        go goroutine1(s, c)
+        x := <-c
+        fmt.Println(x) ==> 1
+    }
+    ~~~
+  - Channel内のすべての値を引き出すためにfor文を使わずにやる場合は値の数の分処理が増える
+    ~~~go
+      　　・
+      　　・
+      　　・
+    
+    func main() {
+        s := []int{1, 2, 3, 4, 5}
+        c := make(chan int)
+
+        go goroutine1(s, c)
+        x := <-c
+        x2 := <-c
+        x3 := <-c
+        x4 := <-c
+        x5 := <-c
+        fmt.Println(x) ===> 1
+        fmt.Println(x2) ==> 3
+        fmt.Println(x3) ==> 6
+        fmt.Println(x4) ==> 10
+        fmt.Println(x5) ==> 15
+    }
+    ~~~
+  - そこでfor文を使ってChannel内の値の数の分、処理を回すことができる
+    > Note: これでうまくいくように見えるがエラーになる
+    ~~~go
+    package main
+
+    import "fmt"
+
+    func goroutine1(s []int, c chan int) {
+        sum := 0
+        for _, v := range s {
+            sum += v
+            c <- sum
+        }
+    }
+
+    func main() {
+        s := []int{1, 2, 3, 4, 5}
+        c := make(chan int)
+
+        go goroutine1(s, c)
+
+        for ch := range c {
+            fmt.Println(ch)
+        }
+    }
+    ~~~
+  - 上記ではfor文がChannelから最後(5番目)の値を取り出した後、Channelに値が残ってなくても続けて値を取り出そうとして、(すべての値を出力した後に)以下のようなエラーが出る
+    ~~~
+    1
+    3
+    6
+    10
+    15
+    fatal error: all goroutines are asleep - deadlock!
+
+    goroutine 1 [chan receive]:
+    main.main()
+        /opt/go/concurrency/test2.go:20 +0x125
+    exit status 2
+    ~~~
+    これを防ぐためにChannelにすべての値を入れた後に明示的に`close(<Channel名>)`でChannelをCloseする必要がある
+    ~~~go
+    package main
+
+    import "fmt"
+
+    func goroutine1(s []int, c chan int) {
+        sum := 0
+        for _, v := range s {
+            sum += v
+            c <- sum
+        }
+        close(c) ========> ここ！
+    }
+
+    func main() {
+        s := []int{1, 2, 3, 4, 5}
+        c := make(chan int)
+
+        go goroutine1(s, c)
+
+        for ch := range c {
+            fmt.Println(ch)
+        }
+    }
+    ~~~
+
+## select
 - Select statements pull the value from whatever channel has a value ready to be pulled.
 - channelは通常値が入っていなければ受信をブロックするが、select文はブロックしないで処理する時に利用
 - selectを使うと複数のChannelからの受信を待てる
@@ -1456,7 +1571,7 @@ fmt.Println(*&x) → 41が表示される
   - https://go-tour-jp.appspot.com/concurrency/6
   - https://www.ardanlabs.com/blog/2013/11/label-breaks-in-go.html
 
-### パッケージ(import)
+## パッケージ(import)
 - Format
   1. 1つずつ個別にimport
       ~~~go
@@ -1479,7 +1594,7 @@ fmt.Println(*&x) → 41が表示される
         "os"
         t "time" -→ t.Sleep() になる
       )
-    ~~~
+      ~~~
 - importパッケージ名はファイル名ではなく、import対象ファイルの`package`名
   - `input.go` (importされる側)
       ~~~go
@@ -1515,20 +1630,20 @@ fmt.Println(*&x) → 41が表示される
 
 
 
-### make
+## make
 
 
-### goto
+## goto
 
 
 
-### 各型について
+## 各型について
 - 
 
-### 演算子
+## 演算子
 - 
 
-### 各型のデフォルト値(Zero Value)
+## 各型のデフォルト値(Zero Value)
 - int  
   → 0
 - string  
@@ -1540,7 +1655,7 @@ fmt.Println(*&x) → 41が表示される
 - その他  
   → nil
 
-### Goは独自のTypeを作成することができる
+## Goは独自のTypeを作成することができる
 - Format
   ~~~go
   type <Type名> <実際の型>
@@ -1575,7 +1690,7 @@ fmt.Println(*&x) → 41が表示される
     y = int(x)
     ~~~
 
-### if文
+## if文
 ~~~go
 if 条件式 {
  　・・・処理・・・
@@ -1600,7 +1715,7 @@ if 条件式 {
     // fmt.Println(num) → num is undefinedとエラーになる
     ~~~ 
 
-### Conditional logic operators
+## Conditional logic operators
 - `&&`
   - 複数の条件を**AND**で比較
   - 例
@@ -1648,7 +1763,7 @@ if 条件式 {
     }
     ~~~
 
-### switch文
+## switch文
 - caseの中でtrueとなる条件が複数ある場合、デフォルトでは上にある条件だけが実行される  
   (trueとなったらその下は判定せず抜ける)  
   ただ`fallthrough`でtrueとなる条件の下の条件も判定するようにすることができる  
@@ -1742,7 +1857,7 @@ if 条件式 {
   }
   ~~~
 
-### for文
+## for文
 - 3つの書き方がある
   1. `for init; condition; post { }`
       - 例
@@ -1781,7 +1896,7 @@ if 条件式 {
         }
         ~~~
 
-### break & continueについて
+## break & continueについて
 - continueはループ処理の先頭に戻る（continueの下は実行されない）
 - breakはfor文から抜ける
   - 例（2から2の倍数だけ100まで出力されて最後にdoneが出力される）  
@@ -1808,7 +1923,7 @@ if 条件式 {
 - 参考URL
   - https://itsakura.com/go-for
 
-### Label付きfor break
+## Label付きfor break
 - 多重for文でどのfor文をbreakするか指定することができる
 - Label名は任意
 - `for -> select -> case`文の時も使う
@@ -1840,7 +1955,7 @@ if 条件式 {
   }
   ~~~
 
-### deferについて
+## deferについて
 - deferは関数内の記述場所に関係なく、関数内のすべての処理か完了して関数が終了する直前に実行される
 - ファイルをcloseする処理などで良く使われる
 - 例  
@@ -1860,7 +1975,7 @@ if 条件式 {
   }
   ~~~
 
-### 文字列と数値の型変換
+## 文字列と数値の型変換
 - 「strconv」というパッケージを使って型変換を行う
 - 1目の変数には変換後の型の値が渡されて、2つ目の変数(err)には型変換に失敗した時、
  「error」型のエラー情報が渡される（正常に型変換された場合は「nil」が渡される）
