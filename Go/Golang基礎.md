@@ -1701,9 +1701,10 @@ if 条件式 {
         ~~~
 
 ### break & continueについて
-- continueの下は実行されない
+- continueはループ処理の先頭に戻る（continueの下は実行されない）
 - breakはfor文から抜ける
-  - 例（2から2の倍数だけ100まで出力されて最後にdoneが出力される）
+  - 例（2から2の倍数だけ100まで出力されて最後にdoneが出力される）  
+    → ２の倍数じゃない数字は`if x%2 != 0 { continue }`でループの先頭に戻るので出力されない
     ~~~go
     func main() {
 	    x := 1
@@ -1723,6 +1724,8 @@ if 条件式 {
 	    fmt.Println("done.")
     }
     ~~~
+- 参考URL
+  - https://itsakura.com/go-for
 
 ### Label付きfor break
 - 多重for文でどのfor文をbreakするか指定することができる

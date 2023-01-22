@@ -34,6 +34,65 @@
         > **Note**  
         > ingesterへのappendが失敗した場合再送されるのか、このメトリクスの影響を確認！  
         > replication_factorの中で一部失敗したけど過半数は成功したので問題なしとか？
+
+      　→ githubのソースコード[pkg/distributor/distributor.go](https://github.com/grafana/loki/blob/db3a9c961e65f186f910cc07e7f46b32779ca9a0/pkg/distributor/distributor.go)から確認できる  
+          `sendStreamsErr`Methodの`d.ingesterAppendFailures.WithLabelValues(ingester.Addr).Inc()`で`loki_distributor_ingester_append_failures_total`Metricsをカウントしている  
+          `sendStreams`Methodのコメントに書いてある通り、`loki_distributor_ingester_append_failures_total`が発生しても必要最低限のingesterにpushできれば問題なさそう
+          ~~~go
+          func (d *Distributor) sendStreams(ctx context.Context, ingester ring.InstanceDesc, streamTrackers []*streamTracker, pushTracker *pushTracker) {
+              err := d.sendStreamsErr(ctx, ingester, streamTrackers)
+
+              // If we succeed, decrement each stream's pending count by one.
+              // If we reach the required number of successful puts on this stream, then
+              // decrement the number of pending streams by one.
+              // If we successfully push all streams to min success ingesters, wake up the
+              // waiting rpc so it can return early. Similarly, track the number of errors,
+              // and if it exceeds maxFailures shortcut the waiting rpc.
+              //
+              // The use of atomic increments here guarantees only a single sendStreams
+              // goroutine will write to either channel.
+              for i := range streamTrackers {
+                  if err != nil {
+                      if streamTrackers[i].failed.Inc() <= int32(streamTrackers[i].maxFailures) {
+                          continue
+                      }
+                      if pushTracker.streamsFailed.Inc() == 1 {
+                          pushTracker.err <- err
+                      }
+                  } else {
+                      if streamTrackers[i].succeeded.Inc() != int32(streamTrackers[i].minSuccess) {
+                          continue
+                      }
+                      if pushTracker.streamsPending.Dec() == 0 {
+                          pushTracker.done <- struct{}{}
+                      }
+                  }
+              }
+          }
+
+          func (d *Distributor) sendStreamsErr(ctx context.Context, ingester ring.InstanceDesc, streams []*streamTracker) error {
+              c, err := d.pool.GetClientFor(ingester.Addr)
+              if err != nil {
+                  return err
+              }
+
+              req := &logproto.PushRequest{
+                  Streams: make([]logproto.Stream, len(streams)),
+              }
+              for i, s := range streams {
+                  req.Streams[i] = s.stream
+              }
+
+              _, err = c.(logproto.PusherClient).Push(ctx, req)
+              d.ingesterAppends.WithLabelValues(ingester.Addr).Inc()
+              if err != nil {
+                  d.ingesterAppendFailures.WithLabelValues(ingester.Addr).Inc()
+              }
+              return err
+          }
+          ~~~
+        → `sendStreamsErr`を
+          
   - __Ingester__
     - `loki_ingester_chunks_flushed_total` (counter)  
       → どの要因でflushされたか、以下の`reason`ごとにflushされた件数  
