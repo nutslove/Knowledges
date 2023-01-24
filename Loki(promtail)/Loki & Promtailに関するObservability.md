@@ -32,8 +32,10 @@
     - `loki_distributor_ingester_append_failures_total` (counter)  
       → The total number of failed batch appends sent to ingesters.  
         > **Note**  
-        > ingesterへのappendが失敗した場合再送されるのか、このメトリクスの影響を確認！  
-        > replication_factorの中で一部失敗したけど過半数は成功したので問題なしとか？
+        > このMetricsはLogの喪失を意味しているわけではない
+        > その他の必要最低限数のIngesterにPushできていればLogは喪失されない
+        > 万が一必要最低限数のIngesterにPushできなかった場合はPromtailが再送する
+        ![](image/loki_distributor_ingester_append_failures_total.jpg)
 
       　→ githubのソースコード[pkg/distributor/distributor.go](https://github.com/grafana/loki/blob/db3a9c961e65f186f910cc07e7f46b32779ca9a0/pkg/distributor/distributor.go)から確認できる  
         - **`sendStreamsErr`Methodの`d.ingesterAppendFailures.WithLabelValues(ingester.Addr).Inc()`で`loki_distributor_ingester_append_failures_total`Metricsをカウントしている  
