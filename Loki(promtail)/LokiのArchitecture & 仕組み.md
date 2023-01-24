@@ -4,7 +4,7 @@
 - https://speakerdeck.com/line_developers/grafana-loki-deep-dive
 
 ## Architecture
-![Loki_Architecture](https://github.com/nutslove/Knowledges/blob/main/Loki(promtail)/image/Loki_Architecture.jpg)  
+![Loki_Architecture](image/Loki_Architecture.jpg)  
 出典: https://grafana.com/blog/2021/08/11/a-guide-to-deploying-grafana-loki-and-grafana-tempo-without-kubernetes-on-aws-fargate/
 
 ## Components
@@ -12,7 +12,7 @@
 - __Distributor__
 - __Ingester__
 
-![Write_Path_summarize](https://github.com/nutslove/Knowledges/blob/main/Loki(promtail)/image/Write_Path_summarize.jpg)  
+![Write_Path_summarize](image/Write_Path_summarize.jpg)  
 
 ### Read path
 - __Query Frontend__
@@ -45,7 +45,7 @@
     - https://grafana.com/docs/loki/latest/fundamentals/architecture/components/#querier
     - https://grafana.com/docs/loki/latest/operations/storage/boltdb-shipper/
 
-![Read_Path](https://github.com/nutslove/Knowledges/blob/main/Loki(promtail)/image/Read_Path.jpg)  
+![Read_Path](image/Read_Path.jpg)  
 
 ### その他
 - [__Compactor__](https://grafana.com/docs/loki/latest/operations/storage/boltdb-shipper/#compactor)
@@ -55,9 +55,9 @@
     - 複数動かすとdata lossにつながる問題を起こす恐れがある
       > Note: There should be only 1 compactor instance running at a time that otherwise could create problems and may lead to data loss.
   - compact前
-    ![before_compact](https://github.com/nutslove/Knowledges/blob/main/Loki(promtail)/image/before_compact_2.jpg)  
+    ![before_compact](image/before_compact_2.jpg)  
   - compact後
-    ![after_compact](https://github.com/nutslove/Knowledges/blob/main/Loki(promtail)/image/after_compact_2.jpg)  
+    ![after_compact](image/after_compact_2.jpg)  
 
 ## BoltDB Shipper
 - __背景__
@@ -68,7 +68,7 @@
       → labelとtenant IDの組合せから生成されるchunkを検索するためのindex
     - `chunk`  
       → logデータが圧縮されたもの
-    ![Write_Path](https://github.com/nutslove/Knowledges/blob/main/Loki(promtail)/image/Write_Path.jpg)  
+    ![Write_Path](image/Write_Path.jpg)  
   - v1.5前まではindex(ex. DynamoDB)とchunk(ex. S3)を別々のところに保存していた
   - v1.5からindexもchunkと同じObject Storageに保存できるようにするためにBoltDB Shipperが登場した
 - __仕組み__
@@ -126,17 +126,17 @@
 > **Warning**  
 > 検証中！  
 1. Cluster VerUp前  
-![migration_1](https://github.com/nutslove/Knowledges/blob/main/Loki(promtail)/image/loki_migration_1.jpg)
-2. 新Ver Cluster作成  
-![migration_2](https://github.com/nutslove/Knowledges/blob/main/Loki(promtail)/image/loki_migration_2.jpg)
-3. NLB Target Groupに新Ver Cluster上のLokiを登録
-![migration_3](https://github.com/nutslove/Knowledges/blob/main/Loki(promtail)/image/loki_migration_3.jpg)
-4. NLB Target Groupから旧Ver Cluster上のLokiを削除
-![migration_4](https://github.com/nutslove/Knowledges/blob/main/Loki(promtail)/image/loki_migration_4.jpg)
-5. 旧Ver Cluster上のLoki(ingester)に対してflushを実行
-![migration_5](https://github.com/nutslove/Knowledges/blob/main/Loki(promtail)/image/loki_migration_5.jpg)
-6. 新クラスター上のLokiから旧Lokiにあったログがすべて見えることを確認[^4]
-![migration_6](https://github.com/nutslove/Knowledges/blob/main/Loki(promtail)/image/loki_migration_6.jpg)
+![migration_1](image/loki_migration_1.jpg)
+1. 新Ver Cluster作成  
+![migration_2](image/loki_migration_2.jpg)
+1. NLB Target Groupに新Ver Cluster上のLokiを登録
+![migration_3](image/loki_migration_3.jpg)
+1. NLB Target Groupから旧Ver Cluster上のLokiを削除
+![migration_4](image/loki_migration_4.jpg)
+1. 旧Ver Cluster上のLoki(ingester)に対してflushを実行
+![migration_5](image/loki_migration_5.jpg)
+1. 新クラスター上のLokiから旧Lokiにあったログがすべて見えることを確認[^4]
+![migration_6](image/loki_migration_6.jpg)
 [^4]: 数十分～1時間くらいかかる
-7. 旧クラスター上のLokiを削除（EBSも明示的に削除）
-![migration_7](https://github.com/nutslove/Knowledges/blob/main/Loki(promtail)/image/loki_migration_7.jpg)
+1. 旧クラスター上のLokiを削除（EBSも明示的に削除）
+![migration_7](image/loki_migration_7.jpg)

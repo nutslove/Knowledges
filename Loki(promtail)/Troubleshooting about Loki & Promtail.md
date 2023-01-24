@@ -45,7 +45,7 @@
 - 原因
   - 前提としてIngesterは`replication_factor`の値に基づいて必要最低限の数が変わる。(ex. `replication_factor`が3の時は2つのActiveなIngesterが必要)  
     ringにjoinしているIngesterのうちunhealthy状態になっているものがあり、Active状態のIngesterが必要最低限の数より少なく、Ingesterへのpushが失敗して出るError
-    ![unhealthy_instances](https://github.com/nutslove/Knowledges/blob/main/Loki(promtail)/image/unhealthy_instances.jpg)
+    ![unhealthy_instances](image/unhealthy_instances.jpg)
 - 対処
   - Ingesterの数を(2→3)増やしたら直った
     - Ingesterが増えたことで既存のIngesterもRingへの再参加することで状態が直った??
@@ -66,7 +66,7 @@ Having said that, you could have this option in your loki config under:
     ~~~
 - **Ingester ringの状態を確認する方法**
   - Ingester ringのstatusは「http://IngesterのIPアドレス:3100/ring」から確認できる
-    ![ingester_ring_status](https://github.com/nutslove/Knowledges/blob/main/Loki(promtail)/image/ingester_ring_status.jpg)
+    ![ingester_ring_status](image/ingester_ring_status.jpg)
   - HelmからLokiをデプロイした場合、クラスター外からIngesterへ接続できないため`kubectl expose pod <Ingester POD名> --type=NodePort --name=<Service名>`でNodePortのServiceを作成して接続すること
     - **AWS EKSの場合、PODがVPCのIPを持っているためPODのIPでブラウザからアクセスできる**
 

@@ -29,11 +29,14 @@
       → **Lokiに連携されるlogのsizeを確認する時はこのmetric(すべてのdistributorのsum)から確認できそう**
       > The total number of uncompressed bytes received per both tenant and retention hours.  
       - **例えば1ヶ月(30日)分のログ(データ)量を確認したい場合は`sum(loki_distributor_bytes_received_total)`でGrafanaのTimeRangeを30日に設定して増加値を確認する**
+    - `loki_request_duration_seconds_count` (counter)  
+      → Number of received HTTP requests.  
+      → `status_code`5xx系のやつを注視
     - `loki_distributor_ingester_append_failures_total` (counter)  
       → The total number of failed batch appends sent to ingesters.  
         > **Note**  
-        > このMetricsはLogの喪失を意味しているわけではない
-        > その他の必要最低限数のIngesterにPushできていればLogは喪失されない
+        > このMetricsはLogの喪失を意味しているわけではない  
+        > その他の必要最低限数のIngesterにPushできていればLogは喪失されない  
         > 万が一必要最低限数のIngesterにPushできなかった場合はPromtailが再送する
         ![](image/loki_distributor_ingester_append_failures_total.jpg)
 
