@@ -11,7 +11,7 @@
 ### Write path
 - __Distributor__
 - __Ingester__
-  - Ingesterの中には同じindexが存在する
+  - それぞれのIngesterの中にindexとwalが存在する
     ![](image/ingester-0.jpg)
     ![](image/ingester-1.jpg)
     ![](image/ingester-2.jpg)
