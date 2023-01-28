@@ -1,0 +1,5 @@
+- k8s eventsはtextなのでPrometheusでは監視できない
+- grafana agentを使ってLokiに連携できるみたい
+  - https://grafana.com/blog/2023/01/23/how-to-use-kubernetes-events-for-effective-alerting-and-monitoring/
+- kubernetes-events-exporterもあるみたい
+  - https://github.com/resmoio/kubernetes-event-exporter
