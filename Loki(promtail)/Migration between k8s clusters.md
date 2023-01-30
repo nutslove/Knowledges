@@ -39,7 +39,7 @@
   chunk(ログ)は存在しててもindexが失われて見れない可能性が高い(とのこと)
 ![cause](image/data_loss_cause.jpg)
 
-## 最終的に行った方法
+## 最終的にとった方法
 1. NLB Target Groupから旧EKSクラスター上のLokiを解除
 2. 旧EKS上のloki-gateway(nginx) Podを削除
    - NLB Target Groupからの解除だけでは、promtailから旧EKS上のLokiへのセッションが切れず、  
@@ -50,7 +50,7 @@
 6. NLB Target Groupに新EKSクラスター上のLokiを登録
 > **Warning**  
 > 上記方式では移行中ログ受信ができず、ログ欠損につながる恐れがあるため、  
-> promtailの`backoff_config.max_retries`をdefaultの10より高く(20くらい)に設定して  
+> promtailの`backoff_config.max_retries`をdefaultの10より高く(20くらい?)設定して  
 > 移行中に受信できなかったログをretryで拾えるようにしておく  
 > https://grafana.com/docs/loki/latest/clients/promtail/configuration/#clients  
 > ただ、directでLokiの`/loki/api/v1/push`にAPIでログを送っている場合は、  
