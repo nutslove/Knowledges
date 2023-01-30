@@ -35,7 +35,7 @@
 ### 上記の方法で起きたこと
 - 一部のログが表示されなくなった
 ![log_lost](image/log_lost.jpg)
-- 新EKS上のLokiと旧EKS上のLoki両方からindexが生成され、どっちかのindexが上書きされてしまい、  
+- 新EKS上のLokiと旧EKS上のLoki両方のIngesterからindexが生成され、どっちかのindexが上書きされてしまい、  
   chunk(ログ)は存在しててもindexが失われて見れない可能性が高い(とのこと)
 ![cause](image/data_loss_cause.jpg)
 
