@@ -11,47 +11,47 @@
 - cacheはElastiCache(redis)を利用
 
 ### 最初に考えた方法
-0. Cluster VerUp前  
+- 移行中も継続的にログを受信できるよう、  
+  新EKSクラスターに先にLokiをデプロイしてから移行する方式を検討
+1. Cluster VerUp前  
 ![migration_1](image/loki_migration_1.jpg)
-1. 新EKSクラスターにLokiをデプロイ
+2. 新EKSクラスターにLokiをデプロイ
 ![migration_2](image/loki_migration_2.jpg)
-2. NLB Target Groupに新EKSクラスター上のLokiを登録
+3. NLB Target Groupに新EKSクラスター上のLokiを登録
 ![migration_3](image/loki_migration_3.jpg)
-3. NLB Target Groupから旧EKSクラスター上のLokiを解除
+4. NLB Target Groupから旧EKSクラスター上のLokiを解除
 ![migration_4](image/loki_migration_4.jpg)
-4. Ingesterのメモリにあるflushされてないindexとchunkをflush
+5. 旧EKSクラスター上のIngesterのメモリにあるflushされてないindexとchunkをflush
 ![migration_5](image/loki_migration_5.jpg)
-5. 旧EKSクラスター上のLokiを削除
+6. 旧EKSクラスター上のLokiを削除
 ![migration_7](image/loki_migration_7.jpg)
 
-> **Note**
-> Ingesterにindexとchunkをflushするエンドポイント`/flush`がある
-> https://grafana.com/docs/loki/latest/api/#flush-in-memory-chunks-to-backing-store
+> **Note**  
+> Ingesterにindexとchunkをflushするエンドポイント`/flush`がある  
+> https://grafana.com/docs/loki/latest/api/#flush-in-memory-chunks-to-backing-store  
 > 以下は`/flush`エンドポイントにPOSTを投げた時のingesterのログ
 > ![ingester_flush](image/ingester_flush.jpg)
 
 ### 上記の方法で起きたこと
-- あｓｄ
-  - Ingesterにindexとchunkをflushするエンドポイント`/flush`がある
-  - https://grafana.com/docs/loki/latest/api/#flush-in-memory-chunks-to-backing-store
-
+- 一部のログが表示されなくなった
+![log_lost](image/log_lost.jpg)
+- 新EKS上のLokiと旧EKS上のLoki両方からindexが生成され、どっちかのindexが上書きされてしまい、  
+  chunk(ログ)は存在しててもindexが失われて見れない可能性が高い(とのこと)
+![cause](image/data_loss_cause.jpg)
 
 ## 最終的に行った方法
-
+1. NLB Target Groupから旧EKSクラスター上のLokiを解除
+2. 旧EKS上のloki-gateway(nginx) Podを削除
+   - NLB Target Groupからの解除だけでは、promtailから旧EKS上のLokiへのセッションが切れず、  
+     旧Lokiへログが連携され続けたため、明示的にloki-gateway Podを削除した
+3. 旧EKSクラスター上のIngesterに`/flush`を送る
+4. flushされるまでしばらく待ち、旧EKS上のLokiを削除する
+5. 新EKSクラスターにLokiをデプロイ
+6. NLB Target Groupに新EKSクラスター上のLokiを登録
 > **Warning**  
-> 検証中！  
-1. Cluster VerUp前  
-![migration_1](image/loki_migration_1.jpg)
-1. 新Ver Cluster作成  
-![migration_2](image/loki_migration_2.jpg)
-1. NLB Target Groupに新Ver Cluster上のLokiを登録
-![migration_3](image/loki_migration_3.jpg)
-1. NLB Target Groupから旧Ver Cluster上のLokiを削除
-![migration_4](image/loki_migration_4.jpg)
-1. 旧Ver Cluster上のLoki(ingester)に対してflushを実行
-![migration_5](image/loki_migration_5.jpg)
-1. 新クラスター上のLokiから旧Lokiにあったログがすべて見えることを確認[^4]
-![migration_6](image/loki_migration_6.jpg)
-[^4]: 数十分～1時間くらいかかる
-1. 旧クラスター上のLokiを削除（EBSも明示的に削除）
-![migration_7](image/loki_migration_7.jpg)
+> 上記方式では移行中ログ受信ができず、ログ欠損につながる恐れがあるため、  
+> promtailの`backoff_config.max_retries`をdefaultの10より高く(20くらい)に設定して  
+> 移行中に受信できなかったログをretryで拾えるようにしておく  
+> https://grafana.com/docs/loki/latest/clients/promtail/configuration/#clients  
+> ただ、directでLokiの`/loki/api/v1/push`にAPIでログを送っている場合は、  
+> retryする仕組みを取り入れるなど、ログが失われないようにすること
