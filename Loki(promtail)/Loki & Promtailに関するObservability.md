@@ -1,3 +1,6 @@
+- **There are dashboards grafana labs uses available in the `dashboards` dir in the URL below**
+  - https://github.com/grafana/loki/tree/main/production/loki-mixin
+
 ## Observability
 - Loki/promtailも自身に関するメトリクスを開示している
   - https://grafana.com/docs/loki/latest/operations/observability/
