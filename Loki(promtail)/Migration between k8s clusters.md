@@ -19,12 +19,16 @@
 ![migration_3](image/loki_migration_3.jpg)
 3. NLB Target Groupから旧EKSクラスター上のLokiを解除
 ![migration_4](image/loki_migration_4.jpg)
-4. Ingesterのメモリにあるflushされてないindexとchunkをflush[^1]
-[^1]: Ingesterにindexとchunkをflushするエンドポイント`/flush`がある
-[^1]: https://grafana.com/docs/loki/latest/api/#flush-in-memory-chunks-to-backing-store
+4. Ingesterのメモリにあるflushされてないindexとchunkをflush
 ![migration_5](image/loki_migration_5.jpg)
 5. 旧EKSクラスター上のLokiを削除
 ![migration_7](image/loki_migration_7.jpg)
+
+> **Note**
+> Ingesterにindexとchunkをflushするエンドポイント`/flush`がある
+> https://grafana.com/docs/loki/latest/api/#flush-in-memory-chunks-to-backing-store
+> 以下は`/flush`エンドポイントにPOSTを投げた時のingesterのログ
+> ![ingester_flush](image/ingester_flush.jpg)
 
 ### 上記の方法で起きたこと
 - あｓｄ
