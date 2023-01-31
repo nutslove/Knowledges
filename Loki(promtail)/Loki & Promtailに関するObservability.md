@@ -35,6 +35,11 @@
     - `loki_request_duration_seconds_count` (counter)  
       → Number of received HTTP requests.  
       → `status_code`5xx系のやつを注視
+    - `loki_discarded_samples_total` (counter)  
+      → rejected samples by reason  
+      → distributorのRateLimitやvalidation checkで引っかかって破棄されたログ数  
+      → `reason`ラベルに破棄された理由が入る  
+      → https://grafana.com/docs/loki/latest/operations/request-validation-rate-limits/
     - `loki_distributor_ingester_append_failures_total` (counter)  
       → The total number of failed batch appends sent to ingesters.  
         > **Note**  
@@ -106,6 +111,15 @@
        ・`full` → `chunk_target_size`の条件を満たしてflushされたもの  
        ・`idle` → `chunk_idle_period`の条件を満たしてflushされたもの  
        ・`max_age` → `max_chunk_age`の条件を満たしてflushされたもの  
+    - `loki_ingester_wal_corruptions_total` (counter)  
+      → Ingester再起動によるWALのデータ復元時、WALが部分的に破損/削除が発生した件数  
+      → https://grafana.com/docs/loki/latest/operations/storage/wal/#disclaimer--wal-nuances
+    - `loki_ingester_wal_disk_full_failures_total` (counter)  
+      → WALで使っているストレージ(EBS等)の空き容量がなくなり、WALへの書き込みが失敗した場合  
+      → WALへの書き込みが失敗してもLoki(Ingester)への書き込み自体は失敗しない  
+        > In the event the underlying WAL disk is full, Loki will not fail incoming writes, but neither will it log them to the WAL. In this case, the persistence guarantees across process restarts will not hold.  
+
+      → https://grafana.com/docs/loki/latest/operations/storage/wal/#disclaimer--wal-nuances
   - __promtail__
     - `promtail_sent_entries_total` (counter)  
       → promtailがingesterに送ったログ数
