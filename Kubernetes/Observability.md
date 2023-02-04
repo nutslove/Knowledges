@@ -1,0 +1,4 @@
+- **`kube_pod_container_status_last_terminated_reason`**
+  - PodがTerminatedされた時にCountされる。`reason`ラベルに`OOMKilled`など、Terminatedされた理由が入る。
+- **`kube_pod_container_status_restarts_total`**
+  - PodがRestartされた時にCountされる。
