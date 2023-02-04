@@ -1230,6 +1230,7 @@ fmt.Println(*&x) → 41が表示される
 - Channels are the pipes that connect concurrent goroutines. You can send values into channels from one goroutine and receive those values into another goroutine.
 - ChannelsはGoroutine間でデータを共有する方法/仕組み
 - Dataを送受信できる空間
+  - ブロッキング付きのキューみたいなもの
 - Channelは値が入るまで待つ(後続処理を実行しない)ので、WaitGroupが不要
   ~~~go
   package main
@@ -1531,6 +1532,7 @@ fmt.Println(*&x) → 41が表示される
     ~~~
 
 ## select
+- selectはChannelでしか使えない。文法はswitchとほぼ一緒。
 - Select statements pull the value from whatever channel has a value ready to be pulled.
 - channelは通常値が入っていなければ受信をブロックするが、select文はブロックしないで処理する時に利用
 - selectを使うと複数のChannelからの受信を待てる
