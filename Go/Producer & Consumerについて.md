@@ -1,16 +1,15 @@
 - 1つのChannelを利用し、Producerが値をChannelに入れてConsumerがChannelから値を取り出して利用する構成
 ![](image/producer_consumer.jpg)
-- ConsumerはGoroutineでなくても良い
 - ProducerだけではChannelに1つ目の値が入った後にChannelがブロッキングされ、Consumerがいないので処理が進まない (2つ目の値がChannelに入らない)
   - Producerがすべての値をChannelに入れてからConsumerが取り出すのでははく、以下のような流れ  
     *Producerが1つ目の値を入れる → Consumerが1つ目の値を取り出す → Producerが2つ目の値を入れる → Consumerが2つ目の値を取り出す → ・・・*
 - Goroutineの中で`for range <Channel>`でChannelから値を取り出す場合、Channelからすべての値を取り出した後もChannelに値が入るのは待つため、`close(<Channel>)`で明示的にChannelを閉じる必要がある
   - Goroutineの中ではないところ(ex. func main()内)で`for range <Channel>`でとる場合は、Channelの中の値をすべて取り出した後さらに取り出そうとするとエラーになる
 - `sync.WaitGroup`と組み合わせて実装する場合、Consumer側でConsumer処理がうまくいかなかった場合でも`wg.Done()`をするようにInner関数を使って`defer wg.Done()`にする
-  - 以下のSample Codeの`func consumer`のところを参照
+  - 以下のSample Code(1)の`func consumer`のところを参照
   - `defer`は関数内で最後に必ず実行されるものなのでInner関数じゃないとできない
   - [promtail](https://github.com/grafana/loki/blob/80ea621ff3c7be677502d404c1bb89d1435b20ed/clients/pkg/promtail/client/multi.go)のソースコードからも確認できる
-- Sample Code (ConsumerがGoroutineの場合)
+- Sample Code(1)
   ~~~go
   package main
 
@@ -54,7 +53,7 @@
   }
   ~~~
 
-- Sample Code (ConsumerがGoroutineでない場合)
+- Sample Code(2)
   ~~~go
   package main
 
