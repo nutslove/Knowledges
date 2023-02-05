@@ -2,9 +2,9 @@
   - https://grafana.com/docs/loki/latest/api/#push-log-entries-to-loki
   > The default behavior is for the POST body to be a snappy-compressed protobuf message. Alternatively, if the Content-Type header is set to application/json, a JSON post body can be sent in the following format.
 - JSONフォーマットでS3上のALB/CloudFrontログをLokiに送るLmabdaの例  
-  ※`retries=None`にすることでResponseを受け取るまでリトライし続ける。  
+  - `retries=None`にすることでResponseを受け取るまでリトライし続ける。  
     → https://urllib3.readthedocs.io/en/stable/reference/urllib3.connectionpool.html#urllib3.HTTPConnectionPool  
-    合わせてLmabdaのタイムアウトもMAXの15分にすることで15分間リトライし続ける。 
+  - 合わせてLmabdaのタイムアウトもMAXの15分にすることで15分間リトライし続ける。 
   ~~~python
   import json
   import urllib.parse
