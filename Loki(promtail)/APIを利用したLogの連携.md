@@ -1,0 +1,103 @@
+- Distributorが公開している`/loki/api/v1/push`にPOSTを投げることでPromtailを経由せず直接ログをLokiに送ることもできる
+  - https://grafana.com/docs/loki/latest/api/#push-log-entries-to-loki
+  > The default behavior is for the POST body to be a snappy-compressed protobuf message. Alternatively, if the Content-Type header is set to application/json, a JSON post body can be sent in the following format.
+- JSONフォーマットでS3上のALB/CloudFrontログをLokiに送るLmabdaの例  
+  ※`retries=None`にすることでResponseを受け取るまでリトライし続ける。  
+    → https://urllib3.readthedocs.io/en/stable/reference/urllib3.connectionpool.html#urllib3.HTTPConnectionPool  
+    合わせてLmabdaのタイムアウトもMAXの15分にすることで15分間リトライし続ける。 
+  ~~~python
+  import json
+  import urllib.parse
+  import os
+  import ast
+  import boto3
+  import time
+  import gzip
+  import re
+  import urllib3
+    
+  http = urllib3.PoolManager()
+  s3 = boto3.client('s3')
+    
+  def lambda_handler(event, context):
+    
+      unixtime = str(time.time_ns())
+      loki_url = os.environ['WRITE_ADDRESS']
+      alb_log_s3 = os.environ['ALB_LOG_S3']
+      cloudfront_log_s3 = os.environ['CLOUDFRONT_LOG_S3']
+    
+      print("event:", event)
+    
+      ## event sourceによって大文字・小文字が異なる
+      if "eventSource" in event['Records'][0]:
+          event_source = event['Records'][0]['eventSource']
+      elif "EventSource" in event['Records'][0]:
+          event_source = event['Records'][0]['EventSource']
+    
+      if "s3" in event_source:
+          s3_bucket = event['Records'][0]['s3']['bucket']['name']
+          key = urllib.parse.unquote_plus(event['Records'][0]['s3']['object']['key'], encoding='utf-8')
+    
+      if "sns" in event_source:
+          body = event['Records'][0]['Sns']['Message']
+          body_dict=ast.literal_eval(body)
+        
+          s3_bucket = body_dict['Records'][0]['s3']['bucket']['name']
+          key = urllib.parse.unquote_plus(body_dict['Records'][0]['s3']['object']['key'], encoding='utf-8')
+    
+      object_file = re.split('/',key)[-1]
+      download_dir = "/tmp/" + object_file
+        
+      try:
+          response = s3.download_file(s3_bucket, key, download_dir)
+      except Exception as e:
+          print(e)
+          print('Error getting object {} from bucket {}. Make sure they exist and your bucket is in the same region as this function.'.format(key, s3_bucket))
+          raise e
+    
+      with gzip.open(download_dir, "r", "utf_8") as f:
+          for logline in f:
+              url = loki_url
+              logline = logline.decode()
+              if alb_log_s3 in key or alb_log_s3 in s3_bucket:
+                  source = "alb"
+                  line = re.split(' ',logline)
+                  status_code = line[8]
+              elif cloudfront_log_s3 in key or cloudfront_log_s3 in s3_bucket:
+                  source = "cloudfront"
+                  if "#Version: 1.0" in logline or "#Fields: date time x-edge-location" in logline:
+                      continue
+                  line = re.split(r'\t',logline)
+                  status_code = line[8]
+              else:
+                  source = "Unknown"
+                  status_code = "Unknown"
+   
+              header = {
+                  'Content-type': 'application/json',
+                  'X-Scope-OrgID': '<テナントID>'
+              }
+    
+              payload = {
+                  "streams": [
+                      {
+                          "stream": {
+                              "source": source,
+                              "status_code": status_code
+                          },
+                          "values": [ [ unixtime , logline ] ]
+                      }
+                  ]
+              }
+    
+              data = json.dumps(payload)
+              r = http.request(
+                      'POST',
+                      url,
+                      body=data,
+                      headers=header,
+                      retries=None
+                  )              
+   
+              print("%s object[%s]'s http status code: %d" %(source, object_file, r.status))
+  ~~~

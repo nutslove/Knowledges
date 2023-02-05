@@ -35,6 +35,8 @@
     - `loki_request_duration_seconds_count` (counter)  
       → Number of received HTTP requests.  
       → `status_code`5xx系のやつを注視
+      - `auth_enabled: true`を設定したMulti-tenantモードのLokiにTenant ID(X-Scope-OrgID)が設定されてないデータが連携されると`status_code=401`がカウントされる。また、Client側では以下のような401エラーが出る。
+        `server returned HTTP status 401 Unauthorized (401): no org id: errorString null`
     - `loki_discarded_samples_total` (counter)  
       → rejected samples by reason  
       → distributorのRateLimitやvalidation checkで引っかかって破棄されたログ数  
