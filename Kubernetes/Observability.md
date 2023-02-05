@@ -1,4 +1,9 @@
 - **`kube_pod_container_status_last_terminated_reason`**
   - PodがTerminatedされた時にCountされる。`reason`ラベルに`OOMKilled`など、Terminatedされた理由が入る。
-- **`kube_pod_container_status_restarts_total`**
+- **`kube_pod_container_status_restarts_total`** (counter)
   - PodがRestartされた時にCountされる。
+- **`container_cpu_cfs_throttled_seconds_total`** (counter)
+  - CPU Limitを設定している場合、PodのCPU使用率がLimitを超えてthrottleされた時間
+  - 参考URL
+    - https://www.metricfire.com/blog/top-10-cadvisor-metrics-for-prometheus/#containerfsiotimesecondstotal
+    - https://medium.com/orangesys/a-deep-dive-into-kubernetes-metrics-part-3-7333fae67403
