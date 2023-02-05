@@ -109,7 +109,7 @@
 - Lmabdaの環境変数で設定できるもの
   | 環境変数 | 値 | 必須/任意 |
   | ---- | ---- | ---- |
-  | WRITE_ADDRESS | http://<Loki Distributor IP>:3100/loki/api/v1/push | 必須 |
+  | WRITE_ADDRESS | http://＜Loki Distributor IP＞:3100/loki/api/v1/push | 必須 |
   | TENANT_ID | テナントID | 任意 (Multi-tenant modeの場合は必須) |
   | EXTRA_LABELS | 追加するラベル(name1,value1,name2,value2,・・・) | 任意 |
 - defaultではminBackoff＝0.1秒、maxBackoff＝30秒で10回リトライされるけど、promtail.goの以下の部分の値を修正すればリトライ回数やリトライ間隔も調整できる
