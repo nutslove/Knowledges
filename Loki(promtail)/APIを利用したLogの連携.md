@@ -101,6 +101,11 @@
    
               print("%s object[%s]'s http status code: %d" %(source, object_file, r.status))
 ~~~
+- 実際のログ
+  - 15分間送信できずLmabdaがタイムアウトで終了したパターン
+    ![](image/timeout.jpg)
+  - リトライで救われたパターン
+    ![](image/saved_by_retry.jpg)
 
 ## Lmabda-Promtail
 - LambdaでCloudWatch LogsをLokiに送るためのもので、Lokiが正式にサポートしている
