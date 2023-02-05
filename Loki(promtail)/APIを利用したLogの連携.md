@@ -116,14 +116,14 @@
   - https://github.com/grafana/loki/blob/main/tools/lambda-promtail/lambda-promtail/promtail.go
     ~~~go
     const (
-	    timeout    = 5 * time.Second
-    	minBackoff = 100 * time.Millisecond
-	    maxBackoff = 30 * time.Second
-    	maxRetries = 10
+        timeout    = 5 * time.Second
+        minBackoff = 100 * time.Millisecond
+        maxBackoff = 30 * time.Second
+        maxRetries = 10
 
-	    reservedLabelTenantID = "__tenant_id__"
+        reservedLabelTenantID = "__tenant_id__"
 
-	    userAgent = "lambda-promtail"
+        userAgent = "lambda-promtail"
     )
     ~~~
   - backoffについては以下ソースコードを参照
