@@ -1,11 +1,11 @@
 - Distributorが公開している`/loki/api/v1/push`にPOSTを投げることでPromtailを経由せず直接ログをLokiに送ることもできる
   - https://grafana.com/docs/loki/latest/api/#push-log-entries-to-loki
   > The default behavior is for the POST body to be a snappy-compressed protobuf message. Alternatively, if the Content-Type header is set to application/json, a JSON post body can be sent in the following format.
-- JSONフォーマットでS3上のALB/CloudFrontログをLokiに送るLmabdaの例  
-  - `retries=None`にすることでResponseを受け取るまでリトライし続ける。  
-    → https://urllib3.readthedocs.io/en/stable/reference/urllib3.connectionpool.html#urllib3.HTTPConnectionPool  
-  - 合わせてLmabdaのタイムアウトもMAXの15分にすることで15分間リトライし続ける。 
-  ~~~python
+## JSONフォーマットでS3上のALB/CloudFrontログをLokiに送るLmabdaの例  
+- `retries=None`にすることでResponseを受け取るまでリトライし続ける。  
+  → https://urllib3.readthedocs.io/en/stable/reference/urllib3.connectionpool.html#urllib3.HTTPConnectionPool  
+- 合わせてLmabdaのタイムアウトもMAXの15分にすることで15分間リトライし続ける。 
+~~~python
   import json
   import urllib.parse
   import os
@@ -100,4 +100,31 @@
                   )              
    
               print("%s object[%s]'s http status code: %d" %(source, object_file, r.status))
-  ~~~
+~~~
+
+## Lmabda-Promtail
+- LambdaでCloudWatch LogsをLokiに送るためのもので、Lokiが正式にサポートしている
+  - https://github.com/grafana/loki/tree/main/tools/lambda-promtail
+- TerraformやCloudFormationを使う方法が書いてあるが、一番簡単なのはLokiリポジトリをgit cloneして、`loki/tools/lambda-promtail/`ディレクトリに移動し、Makefileに書いてある通り`GOOS=linux CGO_ENABLED=0 go build -o ./main lambda-promtail/*.go`でビルド → `zip function.zip main`でzip化した後にLambdaにZipごとに上げればOK
+- Lmabdaの環境変数で設定できるもの
+  | 環境変数 | 値 | 必須/任意 |
+  | ---- | ---- | ---- |
+  | WRITE_ADDRESS | http://<Loki Distributor IP>:3100/loki/api/v1/push | 必須 |
+  | TENANT_ID | テナントID | 任意 (Multi-tenant modeでは必須) |
+  | EXTRA_LABELS | 追加するラベル(name1,value1,name2,value2,・・・) | 任意 |
+- defaultではminBackoff＝0.1秒、maxBackoff＝30秒で10回リトライされるけど、promtail.goの以下の部分の値を修正すればリトライ回数やリトライ間隔も調整できる
+  - https://github.com/grafana/loki/blob/main/tools/lambda-promtail/lambda-promtail/promtail.go
+    ~~~go
+    const (
+	    timeout    = 5 * time.Second
+    	minBackoff = 100 * time.Millisecond
+	    maxBackoff = 30 * time.Second
+    	maxRetries = 10
+
+	    reservedLabelTenantID = "__tenant_id__"
+
+	    userAgent = "lambda-promtail"
+    )
+    ~~~
+  - backoffについては以下ソースコードを参照
+    - https://github.com/grafana/dskit/blob/main/backoff/backoff.go
