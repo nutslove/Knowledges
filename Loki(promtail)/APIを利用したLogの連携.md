@@ -107,7 +107,7 @@
   - リトライで救われたパターン
     ![](image/saved_by_retry.jpg)
 
-## Lmabda-Promtail
+## Lambda-Promtail
 - LambdaでCloudWatch LogsをLokiに送るためのもので、Lokiが正式にサポートしている
   - https://github.com/grafana/loki/tree/main/tools/lambda-promtail
 - TerraformやCloudFormationを使う方法が書いてあるが、一番簡単なのはLokiリポジトリをgit cloneして、`loki/tools/lambda-promtail/`ディレクトリに移動し、Makefileに書いてある通り`GOOS=linux CGO_ENABLED=0 go build -o ./main lambda-promtail/*.go`でビルド → `zip function.zip main`でzip化した後にLambdaにZipを上げればOK
