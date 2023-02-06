@@ -1,3 +1,5 @@
+- **https://grafana.com/docs/loki/latest/operations/troubleshooting/**
+
 ## LokiのRateLimitによるpromtailからのError
 - 事象
   - promtailのlogに以下のようなErrorが出る
