@@ -55,7 +55,7 @@
     [^2]:対称暗号化方式 ⇒ 共通鍵暗号方式  
     非対称暗号化方式 ⇒ 公開鍵暗号方式
     - TLS handshakeはTCP handshakeでTCP接続が開かれた後に行われる
-    ![TLS handshake](https://github.com/nutslove/Knowledges/blob/main/SSL(TLS)/image/TLS-handshake.jpg)
+    ![TLS handshake](image/TLS-handshake.jpg)
 
 #### ディジタル証明書の種類
 - 証明書は持ち主をどこまで証明するかによって3つに分類される
