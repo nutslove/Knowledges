@@ -1375,9 +1375,40 @@ fmt.Println(*&x) → 41が表示される
 
 ## Channels
 - Channels are the pipes that connect concurrent goroutines. You can send values into channels from one goroutine and receive those values into another goroutine.
-- ChannelsはGoroutine間でデータを共有する方法/仕組み
-- Dataを送受信できる空間
+- ChannelsはGoroutine間でデータを共有(送受信)する方法/仕組み
+- Dataを送受信できる空間(Pipe)
   - ブロッキング付きのキューみたいなもの
+- Channelは使った後に必ず`close(<channel名>)`で閉じなければならない  
+  → closeしないとResource Leakが発生する恐れがある
+  > Once you're done with a channel, you must close it !
+- Channelにはchannelから受け取ることができるoptionalな2つ目のparameter(`boolean`typeで通常受け取る変数名は`ok`とする)がある
+  - **https://stackoverflow.com/questions/10437015/does-a-channel-return-two-values**
+    > The boolean variable ok returned by a [receive operator](https://go.dev/ref/spec#Receive_operator) indicates whether the received value was sent on the channel (true) or is a zero value returned because the channel is closed and empty (false).
+    > 
+    > The for loop terminates when some other part of the Go program closes the fromServer or the fromUser channel. In that case one of the case statements will set ok to true. So if the user closes the connection or the remote server closes the connection, the program will terminate.
+    - what does empty mean?
+      > If a channel is closed but it is still containing some items it is possible to receive from it and ok is true. But it is impossible to write to a closed channel (this is a definition of "closed channel" in fact). When a channel had been closed by producer goroutine and drained by consumer than ok is false. Empty and closed, just like it said.
+    ~~~go
+    for self.isRunning {
+
+      select {
+      case serverData, ok = <-fromServer:   // What's the meaning of the second value(ok)?
+          if ok {
+              self.onServer(serverData)
+          } else {
+              self.isRunning = false
+          }
+
+      case userInput, ok = <-fromUser:
+          if ok {
+              self.onUser(userInput)
+          } else {
+              self.isRunning = false
+          }
+      }
+    }
+    ~~~
+  - https://go.dev/ref/spec#Receive_operator
 - Channelは値が入るまで待つ(後続処理を実行しない)ので、WaitGroupが不要
   ~~~go
   package main
@@ -1442,6 +1473,7 @@ fmt.Println(*&x) → 41が表示される
 - ChannelもType
 - **Channelは値を入れた後に遮断(Blocking)される**
   - なので**goroutine**で**channelに値を入れるのとchannelから値を取り出すのを並行で**実施するようにコードを書く必要がある
+  - unbuffered Channelに値を入れた後、取り出さずにまた値を入れようとすると`fatal error: all goroutines are asleep - deadlock!`エラーが発生する
   - または**buffer**を使ってchannelに値が残れるようにする
     - 定義したbufferの数より多くの数の値をchannelに入れようとするとエラーになる  
       → 定義した数の分がbufferに入ってきたらchannelは遮断される
