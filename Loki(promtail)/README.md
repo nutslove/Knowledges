@@ -1,0 +1,4 @@
+- Lokiについて勉強したこと/気づいたことをまとめたページです
+- **情報交換しましょう！**
+- Lokiについての社内勉強会で使用した資料
+  - https://speakerdeck.com/nutslove/grafana-lokideshi-meruroguguan-li
