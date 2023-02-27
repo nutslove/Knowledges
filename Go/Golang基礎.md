@@ -1746,8 +1746,26 @@ fmt.Println(*&x) → 41が表示される
           }
       }
   }
+- 1つのChannelに対して複数のcaseで待ち受ける時、ランダムでcaseが選ばれる
+  ~~~go
+	for {
+		select {
+		// because we have multiple cases listening to
+		// the same channels, random ones are selected
+		case s1 := <-channel1:
+			fmt.Println("Case one:", s1)
+		case s2 := <-channel1:
+			fmt.Println("Case two:", s2)
+		case s3 := <-channel2:
+			fmt.Println("Case three:", s3)
+		case s4 := <-channel2:
+			fmt.Println("Case four:", s4)
+			// default:
+			// avoiding deadlock
+		}
+	}
   ~~~
-- `for`と組合せて使うことで
+- `for`と組合せて使うことで(明示的に終了させるまでは)プログラムが終了せず、Channelに値が入ることを待つことができる
 - 参考URL
   - https://www.spinute.org/go-by-example/select.html
   - https://go-tour-jp.appspot.com/concurrency/6
