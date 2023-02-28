@@ -1,0 +1,2 @@
+- MIXIのデータベース研修基礎編
+  - https://speakerdeck.com/mixi_engineers/2022-database-training
