@@ -73,8 +73,13 @@ Having said that, you could have this option in your loki config under:
     - **AWS EKSの場合、PODがVPCのIPを持っているためPODのIPでブラウザからアクセスできる**
 
 ## High CardinalityによるChunk/Stream数急増によるDistributorからのStream Limitエラー
-- High Cardinalityの値をLabelに設定したらIngesterメモリ内のChunk/Streamが急増し、DistributorからStream Limitエラー(`loki_discarded_samples_total`メトリクス)が出た
+- 事象
+  - High Cardinalityの値をLabelに設定したらIngesterメモリ内のChunk/Streamが急増し、DistributorからStream Limitエラー(`loki_discarded_samples_total`メトリクス)が出た
 ![](image/stream_limit.jpg)
+- 原因
+  - カーディナリティの高い値をLabelに設定したため、大量にChunk/Streamが生成され、Stream Limitを超過した
+- 対処
+  - カーディナリティの高い値をLabelから外した
 
 ## Python等から直接Lokiのエンドポイント(/loki/api/v1/push)にAPIでlogをpushした際に出るDistributorからのError
 - 事象
