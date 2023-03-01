@@ -72,6 +72,10 @@ Having said that, you could have this option in your loki config under:
   - HelmからLokiをデプロイした場合、クラスター外からIngesterへ接続できないため`kubectl expose pod <Ingester POD名> --type=NodePort --name=<Service名>`でNodePortのServiceを作成して接続すること
     - **AWS EKSの場合、PODがVPCのIPを持っているためPODのIPでブラウザからアクセスできる**
 
+## High CardinalityによるChunk/Stream数急増によるDistributorからのStream Limitエラー
+- High Cardinalityの値をLabelに設定したらIngesterメモリ内のChunk/Streamが急増し、DistributorからStream Limitエラー(`loki_discarded_samples_total`メトリクス)が出た
+![](image/stream_limit.jpg)
+
 ## Python等から直接Lokiのエンドポイント(/loki/api/v1/push)にAPIでlogをpushした際に出るDistributorからのError
 - 事象
   - Distributorから以下のようなErrorが出る
