@@ -75,7 +75,7 @@ Having said that, you could have this option in your loki config under:
 ## High CardinalityによるChunk/Stream数急増によるDistributorからのStream Limitエラー
 - 事象
   - High Cardinalityの値をLabelに設定したらIngesterメモリ内のChunk/Streamが急増し、DistributorからStream Limitエラー(`loki_discarded_samples_total`メトリクス)が出た
-![](image/stream_limit.jpg | width=100)
+<img src="image/stream_limit.jpg" width="800" height="250" />
 - 原因
   - カーディナリティの高い値をLabelに設定したため、大量にChunk/Streamが生成され、Stream Limitを超過した
 - 対処
