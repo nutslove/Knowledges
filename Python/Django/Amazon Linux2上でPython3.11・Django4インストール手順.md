@@ -1,5 +1,5 @@
 - Python3.11/Django4.1のインストール
-  - 参考URL：https://tech.fragment.co.jp/infrastructure/server/amazon-linux-2%E3%81%ABpython3%E3%82%92%E3%82%A4%E3%83%B3%E3%82%B9%E3%83%88%E3%83%BC%E3%83%AB/
+  - 参考URL：[Amazon Linux 2にPython3.10をインストール](https://tech.fragment.co.jp/infrastructure/server/amazon-linux-2%E3%81%ABpython3%E3%82%92%E3%82%A4%E3%83%B3%E3%82%B9%E3%83%88%E3%83%BC%E3%83%AB/)
   ~~~
   yum remove -y openssl openssl-devel
   yum install -y openssl11 openssl11-devel
