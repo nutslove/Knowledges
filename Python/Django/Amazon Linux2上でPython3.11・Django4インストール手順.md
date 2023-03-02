@@ -56,5 +56,6 @@
         }
     }
     ~~~
+  - `ALLOWED_HOSTS`の部分を`[]`→`["*"]`に修正する
   - Djangoが実行できることを確認する
     `python3 manage.py runserver 0.0.0.0:8080`
