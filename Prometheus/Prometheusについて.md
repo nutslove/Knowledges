@@ -8,16 +8,28 @@
 #### `rate`と`increase`functionについて
 - **rate**
   > rate(v range-vector) calculates the per-second average rate of increase of the time series in the range vector.  
-  - Rangeの間の増加値の1秒ごとの平均値
+  - Time Rangeの間の増加値の1秒ごとの平均値
 - **increase**
-  > increase(v range-vector) calculates the increase in the time series in the range vector.
-  - Rangeの間の増加値
+  - https://prometheus.io/docs/prometheus/latest/querying/functions/#increase
+    > increase(v range-vector) calculates the increase in the time series in the range vector.
+  - Time Rangeの間の増加値。例えば`increase(http_requests_total)[5m]`はHTTPリクエストの５分間の増加値。
+  - **increaseは推定値を返すため、実際の増加値が整数でも結果値は整数ではない時がある。**
+    > The increase is extrapolated to cover the full time range as specified in the range vector selector, so that it is possible to get a non-integer result even if a counter increases only by integer increments.
+    - 例えば10秒間で3が増加したメトリクスがあるとして、`increase(メトリクス[15s])`にした場合、  
+      結果値は3ではなく、rangeの15秒を見て10秒間で3だっらから5秒間は1.5増加すると推定し、4.5になる
 - 2つともCounterタイプのmetricsに対して使う
 - 例えばAというCounterタイプのmetricsが1m(60s)間30増えたとする
   - `rate(A[60s])` → 0.5
   - `increase(A[60s])` → 30
 
   ※ここでいうvectorは1次元リストのこと
+
+#### `offset`について
+- 過去時間のデータポイントを取得することができる
+- `<PromQL> offset <遡る時間単位>`
+  - 例）現在のGETメソッドリクエストの合計と**1時間前**のGETメソッドリクエストの合計の差分
+    `sum(http_requests_total{method="GET"}) - sum(http_requests_total{method="GET"} offset 1h)`
+- https://prometheus.io/docs/prometheus/latest/querying/basics/#offset-modifier
 
 #### `label_replace`によるリラベル
 - Prometheus側の設定`relabel_configs`による永続的なリラベルではなく、PromQL`label_replace`で一時的(そのクエリーに限る)にリラベルするとこができる  
