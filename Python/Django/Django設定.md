@@ -17,3 +17,5 @@
 
 ## `urls.py`
 - URLの追加
+
+## `views.py`
