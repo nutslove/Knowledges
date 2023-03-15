@@ -23,7 +23,7 @@
   - 例えばCPU Threadが2つあるCPU Coreは同時に2つの命令を実行できる
 - Software(Program) Thread
   - 上で書いた通り、1つのProgramで同時に実行できる独立して実行される実行単位(Flow)
-  - 上記の同時とはCPU Thread数によって、**並列処理(parallelism)**または**並行処理(concurrency)**になる
+  - 上記の同時とはCPU Thread数によって、**並列処理(parallelism)** または **並行処理(concurrency)** になる
     - 例えばCPU Threadが2つあって、Programの中のThreadが3つある場合、  
       2つのProgramの中のThreadは並列に実行されるけど、残り1つはContext Switchingで入れ替えされるので  
       全体の観点で見るとこのProgramは並行処理と言える
