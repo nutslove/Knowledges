@@ -1,3 +1,33 @@
+## Grafana本体の設定
+- 基本的な設定ファイルは`/etc/grafana/grafana.ini`
+- `/etc/grafana/grafana.ini`に設定できるのはすべて環境変数で設定できる
+  - フォーマット
+    ~~~
+    GF_<SectionName>_<KeyName>
+    ~~~
+  - 例
+    - `/etc/grafana/grafana.ini`
+      ~~~
+      # default section
+      instance_name = ${HOSTNAME}
+
+      [security]
+      admin_user = admin
+
+      [auth.google]
+      client_secret = 0ldS3cretKey
+
+      [plugin.grafana-image-renderer]
+      rendering_ignore_https_errors = true
+      ~~~
+    - 環境変数
+      ~~~
+      export GF_DEFAULT_INSTANCE_NAME=my-instance
+      export GF_SECURITY_ADMIN_USER=owner
+      export GF_AUTH_GOOGLE_CLIENT_SECRET=newS3cretKey
+      export GF_PLUGIN_GRAFANA_IMAGE_RENDERER_RENDERING_IGNORE_HTTPS_ERRORS=true
+      ~~~
+
 ## DashBoard / Panel設定
 #### ■ Tooltipについて  
 - グラフにマウスをかざした時に表示する対象についての設定  
