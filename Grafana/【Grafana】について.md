@@ -76,6 +76,13 @@ therefore each alert will go into its own group. It is different from the defaul
   - https://prometheus.io/docs/alerting/latest/clients/
   - https://prometheus.io/docs/alerting/latest/notifications/
 
+#### ■ Alertのメッセージ文の中にクエリーのValueを埋め込む方法
+- `Summary and annotaions`部分の本文にクエリーのValue(e.g. CPU使用率)を埋め込むことができる
+- `Classic condition`では使えない
+  - `Threshold`や`Math`でアラートを設定すること
+- 設定例
+  - `DX Ping mean success rate is {{ $values.B.Value }}%`
+
 #### ■ GrafanaのAlert発行単位について
 - 参考URL
   - https://grafana.com/docs/grafana/latest/alerting/fundamentals/alert-rules/alert-instances/
