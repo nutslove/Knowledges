@@ -1,7 +1,13 @@
-- AWS Managed Microsoft ADのクォーター
-  - https://docs.aws.amazon.com/ja_jp/directoryservice/latest/admin-guide/ms_ad_limits.html
 - __ハイブリッド環境向けに複数リージョンを跨ったAWS Managed Microsoft ADの設計__
   - [AWSブログ](https://aws.amazon.com/jp/blogs/news/multi-region-aws-managed-microsoft-ad-for-hybrid-environments-jp/)
+
+## Best practices for AWS Managed Microsoft AD
+- 使用の前に必ず目を通しておくこと！
+- https://docs.aws.amazon.com/directoryservice/latest/admin-guide/ms_ad_best_practices.html
+
+## AWS Managed Microsoft ADのクォーター
+- https://docs.aws.amazon.com/ja_jp/directoryservice/latest/admin-guide/ms_ad_limits.html
+- https://docs.aws.amazon.com/directoryservice/latest/admin-guide/ms_ad_limits.html
 
 ## AWS Managed Microsoft ADの制約
 - 参考URL
@@ -25,6 +31,13 @@
   - `Admins`と`AWS Delegated Server Administrators`グループのメンバーがその権限をもっているが、2つのグループは権限が強すぎるのでこれを利用者側に使わせるのは望ましくない
   - [AWSドキュメント](https://docs.aws.amazon.com/directoryservice/latest/admin-guide/directory_join_privileges.html)の手順通りにドメイン参加用のユーザを作成する
 
+## RODC(Read Only Domain Controllers)
+- AWS Managed Microsoft AD自体はRODCをサポートしない
+  - AWS Managed Microsoft ADからデプロイされるDCはwritable domain controllersになる
+- ただ、自前でRODCを作成することはできて、特に制約事項もない
+- https://docs.aws.amazon.com/whitepapers/latest/active-directory-domain-services/other-considerations.html
+
+
 ## AWS Managed Microsoft ADの設定
 ##### Password Policy
 - ADのPassword Policyを管理する方法は以下2つ
@@ -41,3 +54,7 @@
 - `Admin@<ドメイン>`ユーザにもデフォルトのPassword Policyが適用されるため、  
   Adminユーザを使って自動化をする場合などは無期限のPassword Policyを作成してAdminユーザを適用する
   - ドメイン参加用ユーザにも適用！
+
+## その他
+- AWS Managed ADを作成すると自動でSecurity Groupが作成され、ADのENI(Elastic Network Interfaces)にアタッチされる
+  - https://docs.aws.amazon.com/directoryservice/latest/admin-guide/ms_ad_best_practices.html
