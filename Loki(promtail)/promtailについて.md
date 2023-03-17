@@ -12,3 +12,54 @@
 - 参考URL
   - https://grafana.com/docs/loki/latest/clients/promtail/configuration/#clients
   - https://grafana.com/docs/loki/latest/clients/promtail/troubleshooting/#loki-is-unavailable
+
+## Pipeline
+- データの前処理
+  - 特定データをDropしたり、ラベルを付与/除外したり、ログに対するメトリクスを生成したりすることができる
+- 複数のStageがある
+  - https://grafana.com/docs/loki/latest/clients/promtail/stages/
+
+### Stages
+##### **metrics**
+- ログに対するメトリクスをPrometheus形式で生成し、Promtailから開示する
+- 例
+  - **以下のように`metrics`ステージの前で`labels`ステージでMetricsにLabelを付与して、最後に`labeldrop`でLabelをdropさせるとMetricsにだけLabelが付与されて、LogにはLabelが付与されない**
+  ~~~yaml
+  server:
+    http_listen_port: 9080
+    grpc_listen_port: 0
+
+  positions:
+    filename: /tmp/promtail-sos-metrics-positions.yaml
+
+  clients:
+    - url: http://loki:3100/loki/api/v1/push
+          tenant_id: sos
+          backoff_config:
+            max_retries: 25
+          external_labels:
+            env: stg
+
+    scrape_configs:
+    - job_name: s3_logs
+      loki_push_api:
+        server:
+          http_listen_port: 3500
+          grpc_listen_port: 3600
+      pipeline_stages:
+      - match:
+          selector: '{source="cloudfront"} |~"\t/www/sos/index.html\t"'
+          stages:
+          - regex:
+              expression: "^.+\t.+\t.+\t.+\t.+\t.+\t.+\t.+\t.+\t(?P<http_referer>.+)\t.+\t.+\t.+\t.+\t.+\t.+\t.+\t.+\t.+\t.+\t.+\t.+\t.+\t.+\t.+\t.+\t.+\t.+\t.+\t.+\t.+\t.+\t.+"
+          - labels:
+              http_referer:
+          - metrics:
+              cloudfront_lines_total:
+                type: Counter
+                source: http_referer
+                config:
+                  action: inc
+          - labeldrop:
+              - http_referer
+  ~~~
