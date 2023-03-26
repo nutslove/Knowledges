@@ -13,11 +13,24 @@
 > TCP/IP sockets are used to build client-server applications, where the client establishes a connection to the server and sends requests, and the server responds to these requests. The communication between the client and server happens through the socket, and data is exchanged in the form of packets.
 >
 > Sockets can be used for many different types of communication, including file transfer, email, web traffic, and others. They are a fundamental building block for many Internet applications and services.
-- https://ikcoo.tistory.com/119
-- https://helloworld-88.tistory.com/215
+- TCP/IP socketも**file**
+  - Linux(Unix)ではすべてをfileとして見なす
+- 参考URL
+  - https://ikcoo.tistory.com/119
+  - https://helloworld-88.tistory.com/215
+  - https://kwonzales.tistory.com/36
+    - `socket`でsocketを生成
+    - `bind`はIPアドレスとPort番号を設定する(割り当てる)ことを指す
+    - `listen`はclientからrequestを受け付けられるようにsocketを待機させること
 
 ## UNIX domain socket
-
+> A Unix domain socket (also known as a Unix socket) is a type of inter-process communication (IPC) mechanism used in Unix-like operating systems. It allows processes running on the same system to communicate with each other through a **socket file in the file system**, rather than through a network interface.
+>
+> Unix domain sockets are faster and more secure than network sockets because they avoid the overhead of network protocol processing and data copying between kernel and user space. They also have the advantage of being able to communicate between processes that do not have network connectivity or privileges to access the network.
+>
+> To use a Unix domain socket, a server process creates a **socket file** in a designated directory with a unique name and binds it to a socket address. The client process then connects to the server by specifying the socket address and sending data through the socket. The server receives the data and responds to the client through the same socket.
+>
+> Unix domain sockets are widely used in various applications such as databases, web servers, and audio servers. They are also used by some programming languages, such as Python and Ruby, to implement IPC mechanisms.
 
 ## 4 Way Handshake
 - https://beenii.tistory.com/127
