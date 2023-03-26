@@ -5,7 +5,7 @@
   - **https://www.itmedia.co.jp/enterprise/articles/1609/21/news001.html**
 
 ## DockerのNetwork
-- 全体像
+- 全体像  
   ![](image/docker_network2.jpg)
   https://www.itmedia.co.jp/enterprise/articles/1609/21/news001.html
 - DockerはNetwork driversを使ってコンテナ間やコンテナ↔Dockerホスト外部のNetwork通信を実現する
