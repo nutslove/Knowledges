@@ -22,6 +22,9 @@
 ### Stages
 ##### **metrics**
 - ログに対するメトリクスをPrometheus形式で生成し、Promtailから開示する
+- `source`で対象のLabelを絞り込まず、すべてのログLine追加に対してMetricを発生させる場合は`config.match_all`を`true`に設定する
+- defaultでは5分間Updateされなかったmetricは削除される
+  - `max_idle_duration`で変更できる
 - 例
   - **以下のように`metrics`ステージの前で`labels`ステージでMetricsにLabelを付与して、最後に`labeldrop`でLabelをdropさせるとMetricsにだけLabelが付与されて、LogにはLabelが付与されない**
   ~~~yaml
@@ -57,9 +60,20 @@
           - metrics:
               cloudfront_lines_total:
                 type: Counter
+                max_idle_duration: 24h
                 source: http_referer
                 config:
                   action: inc
           - labeldrop:
               - http_referer
+      - match:
+          selector: '{source="cloudfront"} |~"\t/www/selfplus/assets/images/img_login01.svg|\t/www/selfplus/assets/images/common/logo-povo.svg"'
+          stages:
+          - metrics:
+              cloudfront_selfplus_login:
+                type: Counter
+                max_idle_duration: 24h
+                config:
+                  match_all: true
+                  action: inc
   ~~~
