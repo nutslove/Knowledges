@@ -66,11 +66,14 @@
 - Grafana関連ページ
   - https://grafana.com/docs/grafana/latest/panels-visualizations/visualizations/time-series/#stack-series
 
-#### `$__interval`、`$__rate_interval`について
+#### `$__interval`、`$__rate_interval`、`$__range`について
 - `$__interval`
   > Grafana automatically calculates an interval that can be used to group by time in queries.
 - `$__rate_interval`
   > We recommend using \$__rate_interval in the rate and increase functions instead of \$__interval or a fixed interval value. Because $__rate_interval is always at least four times the value of the Scrape interval, it avoid problems specific to Prometheus.
+- `$__range`
+  - DashboardのTimeRangeの時間範囲が適用される
+  - 例えばDashboardのTimeRangeを"Last 30 minutes"にしてる場合、`[$__range]`は`[30m]`になる
 - 参考URL
   - https://grafana.com/docs/grafana/latest/dashboards/variables/add-template-variables/#global-variables
   - https://grafana.com/docs/grafana/latest/datasources/prometheus/template-variables/#use-__rate_interval
