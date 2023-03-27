@@ -29,20 +29,65 @@
       ~~~
 
 ## DashBoard / Panel設定
-#### ■ Tooltipについて  
+### ■ Variablesについて
+- Grafanaダッシュボードの中の値(Query、Min interval、Panelタイトルなどなど)をダッシュボードで選択/記入した値に動的に変更できる仕組み
+- 事前にダッシュボードの「Settings」の「Variables」で定義しておく必要がある
+  - variablesにはいくつかのTypeがあり、Variablesの値に動的にPrometheusなどのクエリーの結果を使ったり(`Query`type)、Variablesの値を静的に設定したり(`Custom`type)することができる
+- 参考URL
+  - https://grafana.com/docs/grafana/latest/dashboards/variables/
+  - https://grafana.com/docs/grafana/latest/dashboards/variables/add-template-variables/
+  - https://grafana.com/docs/grafana/latest/dashboards/variables/inspect-variable/
+  - https://grafana.com/docs/grafana/latest/dashboards/variables/variable-syntax/
+
+### ■ Tooltipについて  
 - グラフにマウスをかざした時に表示する対象についての設定  
-![Tooltip](https://github.com/nutslove/Knowledges/blob/main/Grafana/image/Tooltip.jpg)
+![Tooltip](image/Tooltip.jpg)
   - Single  
     → 1つだけ表示
-    ![Tooltip_Single](https://github.com/nutslove/Knowledges/blob/main/Grafana/image/Tooltip_Single.jpg)
+    ![Tooltip_Single](image/Tooltip_Single.jpg)
   - All  
     → すべて表示
-    ![Tooltip_All](https://github.com/nutslove/Knowledges/blob/main/Grafana/image/Tooltip_All.jpg)
+    ![Tooltip_All](image/Tooltip_All.jpg)
   - Hidden  
     → 表示しない
-    ![Tooltip_Hidden](https://github.com/nutslove/Knowledges/blob/main/Grafana/image/Tooltip_Hidden.jpg)
+    ![Tooltip_Hidden](image/Tooltip_Hidden.jpg)
 
-### Graph(old) Panel
+### ■ Graph stylesのStack series
+- Bar/グラフ/Pointsで各値を重複して見せるか、重ねて見せるかの設定
+  - Off  
+    → 小さい値は大きい値のBar/グラフ中に表示される  
+    ![OFF](image/stack_series_off.jpg)
+  - Normal  
+    → 各値が別の値の上に(から)表示される  
+    ![Normal](image/stack_series_normal.jpg)
+  - 100%  
+    → 全体を100%にして各値の割合で表示される  
+    ![100per](image/stack_series_100per.jpg)
+- Grafana関連ページ
+  - https://grafana.com/docs/grafana/latest/panels-visualizations/visualizations/time-series/#stack-series
+
+#### `$__interval`、`$__rate_interval`について
+- `$__interval`
+  > Grafana automatically calculates an interval that can be used to group by time in queries.
+- `$__rate_interval`
+  > We recommend using \$__rate_interval in the rate and increase functions instead of \$__interval or a fixed interval value. Because $__rate_interval is always at least four times the value of the Scrape interval, it avoid problems specific to Prometheus.
+- 参考URL
+  - https://grafana.com/docs/grafana/latest/dashboards/variables/add-template-variables/#global-variables
+  - https://grafana.com/docs/grafana/latest/datasources/prometheus/template-variables/#use-__rate_interval
+
+### ■ Min intervalについて
+- データの集計間隔(rollup)
+- 例えばMin intervalを1hに設定したらデータは12h、13h、14h、・・・と1時間間隔で表示される
+![min_interval_1h](image/min_interval_1h.jpg)
+![min_interval_2h](image/min_interval_2h.jpg)
+
+### ■ Relative timeについて
+- PanelごとのTimeRange（Panelごとに設定できる）
+- Relative timeが設定されているPanelはDashboardのTimeRangeに影響されなくなる
+![relative_time1](image/Relative_time1.jpg)
+![relative_time2](image/Relative_time2.jpg)
+
+### ■ Graph(old) Panel
 - Grafana9.0からGraph(old)がPanelから選択できないようになった
   - 既存のGraph(old)Panelはそのまま使い続けられる
 - ただ一旦Timeseries Panelを作成後、jsonからtypeをtimeseries → graphに変更することでGraph(old) Panelを作成できる
@@ -59,7 +104,7 @@
   >Note: Grafana also has a special label named ... that you can use to group all alerts by all labels (effectively disabling grouping), 
 therefore each alert will go into its own group. It is different from the default of group_by: null where all alerts go into a single group.  
 - 複数のNotification policiesが存在する場合、各Policy側で`Group by`設定を`...`に上書きすること  
-  ![Notification_policies](https://github.com/nutslove/Knowledges/blob/main/Grafana/image/NotificationPolicies.jpg)
+  ![Notification_policies](image/NotificationPolicies.jpg)
 
 #### ■ GrafanaのAlertに関するコンポーネントについて
 - 参考URL
@@ -90,7 +135,7 @@ therefore each alert will go into its own group. It is different from the defaul
 - つまり、1つのAlert Ruleから複数のアラートが発行される（上記URL参照）
 - 1つのAlert Ruleから発行される複数のアラートは1回の処理で連携される。  
   例えば、Webhookに連携する場合、以下添付のように1つのAlert Ruleから同時に発行される62個のAlertは1回のWebhook(POST)で連携される  
-![Alert](https://github.com/nutslove/Knowledges/blob/main/Grafana/image/Grafana_MultipleAlerts.jpg)
+![Alert](image/Grafana_MultipleAlerts.jpg)
 
 #### ■ CloudWatch LogsのAlert設定
 - CloudWatch Logsに対してアラートを設定するためにはCloudwatch Logs Insightsを使ってnumericデータが返ってくるようにクエリーを投げる必要がある
@@ -116,7 +161,7 @@ therefore each alert will go into its own group. It is different from the defaul
     | stats count(*) by bin(1m)
     ```
 - `fields`で指定できる項目はマネコンのCloudwatch Logs Insightsから確認できる
-![CloudWatch_Logs_Insights_fields](https://github.com/nutslove/Knowledges/blob/main/Grafana/image/CloudWatch_Logs_Insights_fields.jpg)
+![CloudWatch_Logs_Insights_fields](image/CloudWatch_Logs_Insights_fields.jpg)
 - 参考URL
   - https://grafana.com/docs/grafana/latest/datasources/aws-cloudwatch/
   - https://docs.aws.amazon.com/ja_jp/AmazonCloudWatch/latest/logs/CWL_QuerySyntax.html
