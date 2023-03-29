@@ -1,3 +1,4 @@
+- k8s eventsはデフォルトでは１時間後に消える
 - k8s eventsはtextなのでPrometheusでは監視できない
 - grafana agentを使ってLokiに連携できるみたい
   - https://grafana.com/blog/2023/01/23/how-to-use-kubernetes-events-for-effective-alerting-and-monitoring/

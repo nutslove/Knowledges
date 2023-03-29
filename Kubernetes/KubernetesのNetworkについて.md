@@ -29,7 +29,8 @@
 - 代表的なCNI PluginにはAWSのVPC CNIやCilium、Flannelなどがある
 
 ### 同一Node上のPod間の通信
-- Bridge
+- Bridge方式とNode上ルートテーブルを使ってL3ルーティング方式がある
+  - BridgeはDockerのBridgeと同様
 
 ### 異なるNode上のPod間の通信
 - 3つのTypeが存在する
@@ -50,4 +51,9 @@
   - iptablesプロキシモード
   - IPVSプロキシモード
 #### ■ kube-proxy
-- `Service`リソースを監視し、NodePortなど外部通信のためのTypeが作成されたら(iptablesプロキシモードの場合)、iptablesのIPマスカレードのルールを作成する。
+- `Service`リソースを監視し、`NodePort`など外部通信のためのTypeが作成されたら(iptablesプロキシモードの場合)、iptablesのIPマスカレードのルールを作成する。
+- `ClusterIP`の場合もkube-proxyによるiptablesのルールは作成される
+  ![kube-proxy1](image/kube-proxy1.jpg)
+  ![kube-proxy2](image/kube-proxy2.jpg)
+  https://speakerdeck.com/hhiroshell/kubernetes-network-fundamentals-69d5c596-4b7d-43c0-aac8-8b0e5a633fc2?slide=39
+  https://speakerdeck.com/hhiroshell/kubernetes-network-fundamentals-69d5c596-4b7d-43c0-aac8-8b0e5a633fc2?slide=40
