@@ -12,6 +12,9 @@
 
 ### CNI (Container Network Interface)
 - Podが通信できる状態にするためのInterface
+- Add-onでPodとして作成される
+  - EKSでは`aws-node`という名前でDaemonSetのPodとして作成される
+  - https://aws.github.io/aws-eks-best-practices/networking/vpc-cni/
 - CNI PluginがPod作成時に(Kubeletにより)実行され、以下の処理を実施する
   - PodのネットワークにNICの割当
   - PodのNICへIPアドレスの割り当て
@@ -29,8 +32,8 @@
 - 代表的なCNI PluginにはAWSのVPC CNIやCilium、Flannelなどがある
 
 ### 同一Node上のPod間の通信
-- Bridge方式とNode上ルートテーブルを使ってL3ルーティング方式がある
-  - BridgeはDockerのBridgeと同様
+- Bridge方式とNode上ルートテーブルを使ったL3ルーティング方式がある
+  - Bridge方式はDockerのBridgeと同様
 
 ### 異なるNode上のPod間の通信
 - 3つのTypeが存在する
