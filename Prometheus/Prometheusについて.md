@@ -17,6 +17,9 @@
     > The increase is extrapolated to cover the full time range as specified in the range vector selector, so that it is possible to get a non-integer result even if a counter increases only by integer increments.
     - 例えば10秒間で3が増加したメトリクスがあるとして、`increase(メトリクス[15s])`にした場合、  
       結果値は3ではなく、rangeの15秒を見て10秒間で3だっらから5秒間は1.5増加すると推定し、4.5になる
+  - **新しく作成されたメトリクスに対してはincreaseは動作しない**
+    - 0 → 1に対してはできるけど、無 → 1のメトリクスはincreaseが適用されない
+    - https://stackoverflow.com/questions/67985867/why-is-increase-showing-only-zero-values-when-i-can-see-the-metric-value-incre
 - 2つともCounterタイプのmetricsに対して使う
 - 例えばAというCounterタイプのmetricsが1m(60s)間30増えたとする
   - `rate(A[60s])` → 0.5
