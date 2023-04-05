@@ -1,0 +1,12 @@
+- Java Auto InstrumentationはPrometheus Exporterを通じてExemplarsを生成してくれる
+  - **現状ExemplarsはHistogramsのメトリクス`http_server_duration_bucket`,`http_client_duration_bucket`にだけ生成される**
+    > Currently the OTel Prometheus exporter only supports exemplars in histograms.
+    - https://github.com/open-telemetry/opentelemetry-java-instrumentation/discussions/7564
+- ADOT Java Auto Instrumentation AgentもExemplarsを生成してくれるけど、TraceIDがW3C形式なのでX-Rayで検索する時にTraceIDを書き換える必要がある
+  - ADOT Java Instrumentationページ
+    - https://github.com/aws-observability/aws-otel-java-instrumentation
+- 参考URL
+  - https://github.com/open-telemetry/opentelemetry-java-instrumentation/issues/4616
+  - https://github.com/open-telemetry/opentelemetry-java-instrumentation/discussions/4655
+  - https://github.com/open-telemetry/opentelemetry-java-instrumentation/discussions/7564
+  - https://github.com/open-telemetry/opentelemetry-java/issues/5141
