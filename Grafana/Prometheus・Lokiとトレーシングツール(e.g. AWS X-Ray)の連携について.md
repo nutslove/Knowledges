@@ -1,6 +1,6 @@
-- PrometheusとLokiのDataSource設定でそれぞれ「Exemplars」と「Derived fields」のところでTraceIDをキーとしてトレーシングツールとの連携ができる
+PrometheusとLokiのDataSource設定でそれぞれ「Exemplars」と「Derived fields」のところでTraceIDをキーとしてトレーシングツールとの連携ができる
 
-### Prometheus
+## Prometheus
 - Prometheusデータソースの`Exemplars`セッションで設定
 - Tempoなど、TraceIDなどをそのまま変換せずに検索できる場合は`Intenal link`で設定
   ![Prometheus_exemplar1](image/Prometheus_Exemplars_setting1.jpg)
@@ -14,7 +14,7 @@
   ![Prometheus_exemplar2](image/Prometheus_Exemplars_setting2.jpg)
   - 設定の`URL Label`名がリンク先名として表示される
 
-### Loki
+## Loki
 - Lokiデータソースの`Derived fields`セッションで設定
 - `Regex`の方でログ内のTraceIDを拾えるように設定
   - 以下例の場合、X-Rayは`AWS-XRAY-TRACE-ID:<TraceID>`のフォーマットで、  
