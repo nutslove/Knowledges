@@ -1,4 +1,0 @@
-- Login機能実装
-  - https://bio-info.tistory.com/171
-- あるページへのアクセスにログインを強制する方法
-  - https://tsukasa-blog.com/programming/django-loginrequiredmiddleware/
