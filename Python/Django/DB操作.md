@@ -8,12 +8,20 @@
 - `python3 manage.py migrate <アプリ名>`を実行
   - e.g. `python3 manage.py migrate privilege`
 
+## views.pyでModelで定義したテーブルデータを操作する方法
+- views.pyにて`from .models import <Model名>[, <Model名>, <Model名>,・・・]`でModelをimport
+  - 例えば、作成したModelが「System」,「Dbuserpassword」,「Userprivilegestate」３つの場合、`from .models import System, Dbuserpassword, Userprivilegestate`
+- **https://office54.net/python/django/orm-database-operate**
+- https://qiita.com/NOIZE/items/a50afe3af644a55d37e7
+
 
 ### DjangoのModelとDBデータ型のマッピング
 - https://qiita.com/okoppe8/items/13ad7b7d52fd6a3fd3fc
 
 ### Modelで`primary_key=True`を指定しない場合、Djangoが自動的に`id`というPrimary Keyを作成する
 - https://docs.djangoproject.com/en/4.2/topics/db/models/#automatic-primary-key-fields
+- `SELECT nextval('<テーブル名>_id_seq');`で次に振られるid番号を確認できる
+  - `privilege_userprivilegestate`というテーブルで次のidを取得する場合、`SELECT nextval('privilege_userprivilegestate_id_seq');`
 - 以下のように`primary_key=True`のないModelで作成した時、作成されるDBテーブル例
   - Django側(models.py)
     ~~~python
@@ -52,3 +60,15 @@
 ### Djangoには復号主キー機能はないらしい
 - https://zenn.dev/shimakaze_soft/scraps/22dcea1acd133a
 - その代わりに、複合ユニーク制約の機能を使う
+
+## Modelから作成されたTableを削除した場合、再migrationする方法
+1. `django_migrations`テーブルからアプリ名のレコードを削除
+   - 削除したいアプリのidが19の場合
+     - `delete from django_migrations where id = 19;`
+2. Modelから作成したテーブルを`DROP TABLE <テーブル名>;`ですべて削除する
+3. `<アプリ名>/migrations`フォルダをフォルダごと削除する
+4. `python manage.py makemigrations <アプリ名>`を実行
+5. `python manage.py migrate <アプリ名>`を実行
+ 
+- 参考URL
+  - https://stackoverflow.com/questions/33259477/how-to-recreate-a-deleted-table-with-django-migrations
