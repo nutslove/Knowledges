@@ -35,6 +35,9 @@
   > By default, Django stores sessions in your database (using the model django.contrib.sessions.models.Session). Though this is convenient, in some setups it’s faster to store session data elsewhere, so Django can be configured to store session data on your filesystem or in your cache.
 - Session IDは`request.session.session_key`に入る
   - https://ssungkang.tistory.com/entry/Django%EB%A1%9C%EA%B7%B8%EC%9D%B8-%EC%9C%A0%EC%A7%80%ED%95%98%EA%B8%B0-%EC%BF%A0%ED%82%A4%EC%99%80-%EC%84%B8%EC%85%98
+- セッション情報は`django_session`テーブルに保存される
+  - `session_key`, `session_data`, `expire_date`３つのカラムで構成されている
+  ![](../image/django_session.jpg)
 
 ### defaultではセッションは２週間の有効期限を持つ
 - `request.session.set_expiry(<セッション有効期間(秒数)>)`で変更できる
