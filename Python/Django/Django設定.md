@@ -53,3 +53,11 @@ https://docs.djangoproject.com/en/4.1/ref/settings/#databases
     ~~~
 
 ## `views.py`
+#### 関数で定義する方法と、Classで定義する方法がある
+##### ■ 関数で定義する方法
+- Format
+  ~~~
+  def <関数名>(request):
+    <処理>
+  ~~~
+- `views.py`の`<関数名>`は`urls.py`の`path('<ULRパス>',views.<関数名>)`と一致させる必要がある
