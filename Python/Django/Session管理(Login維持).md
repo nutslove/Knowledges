@@ -66,5 +66,17 @@
     - 例2: `user_id = request.session.get('user_id', '')`
 
 - セッション設定
-  - __setitem__(key, value)¶
+  - __setitem__(key, value)
     - 例: `request.session['fav_color'] = 'blue'`
+
+- セッション削除
+  - __delitem__(key)
+    - 例: `del request.session['fav_color'] `
+    - 与えられた key がセッション内にない場合には、KeyError 例外を起こす
+    - **現在ブラウザのセッションだけ切断される**
+  - すべてのセッションクリアは`request.session.clear()`
+
+- DBにセッションを保存する場合、期限がすぎたセッションもDB上に残り続けるので定期的に期限切れのセッションを削除した方が良い
+  - `python manage.py clearsessions`コマンドを打てば自動的に期限切れのセッションを削除してくれる
+  - 参考URL
+    - https://qiita.com/elephant_dev/items/44f2922f613b461869a1
