@@ -3,7 +3,7 @@
 
 - 以下の場合、`func`はdecoratorを呼び出している関数`after_login`を指す
   - 同じ色にしているものは同じもので、合わせる必要がある
-  - まず`inner`関数が実行される
+  - まず`inner`関数が実行される  
     ![decorator](image/decorator.jpg)
 
 
