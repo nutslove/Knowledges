@@ -96,6 +96,14 @@
 - ただ一旦Timeseries Panelを作成後、jsonからtypeをtimeseries → graphに変更することでGraph(old) Panelを作成できる
   - https://stackoverflow.com/questions/73353757/grafana-get-graph-old-back 
 
+### ■ No Dataを0に変える方法
+- Grafanaの機能でNo Valueを他の値に変える
+  ![NoData1](image/NoData_To_0.jpg)
+- (Prometheus)クエリーの最後に`or vector(0)`をつけてNo Dataの時は0を表示させる
+  - e.g. `http_requests_total{method="GET", code="400"} or vector(0)`
+- 参考URL
+  - https://community.grafana.com/t/how-to-get-no-data-to-0-when-there-is-no-data-value/64845/6
+
 ## Alert設定
 #### ■ AlertのGroupingについて
 - 参考URL
