@@ -1,0 +1,2 @@
+- AWSのEC2に対してPingで正常性確認を行っている場合、テストのために一時的にSecurity GroupからICMPを削除する時、Blackbox Exporterも再起動する必要がある。じゃないとセッションが生きててPingが通り続ける。
+  - 逆のパターン(拒否→許可)の場合はBlackbox Exporter再起動不要
