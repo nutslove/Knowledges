@@ -66,3 +66,20 @@
 - PVとPVCの`accessModes`が異なるとPVCがPending状態になる
 - PVCの`resources.requests.storage`の容量をPVの`capacity.storage`の容量より小さくしても、PVの`capacity.storage`の容量をCAPACITYとして持つ
 - PVCがPodにより使われている場合、PVCを削除してもTeminating状態のままで削除されない
+
+## PVがTerminating状態から変わらない場合の確認方法および対策
+- まず`kubectl describe pv <your-pv-name>`でPVの詳細情報を確認する
+- 対象PVが使われている場合(関連づけられたPVCがある場合)、そのPVCを削除する必要がある
+  - `kubectl delete pvc <your-pvc-name> -n <your-namespace>`
+- それでもPVがTerminatingから変わらない場合はPVのfinalizersを手動で削除することができる
+  - finalizersを削除すると、Kubernetesはリソースのクリーンアッププロセスをバイパスする
+  - `kubectl patch pv <your-pv-name> -p '{"metadata":{"finalizers":null}}'`
+#### Finalizersとは
+- 以下Chat-GPTからの回答
+  > Finalizers in Kubernetes are keys with a value in the metadata.finalizers map of an object, used to manage resources. Kubernetes applies finalizers as part of its garbage collection and resource management system.
+  >
+  > A Kubernetes Persistent Volume (PV) uses finalizers to allow the system to clean up and delete the volume properly. When you try to delete a PV, Kubernetes marks the object to be deleted but does not immediately delete it. Instead, it keeps the object and waits for the system to clean up any associated resources.
+  >
+  > The finalizer used for PVs is typically kubernetes.io/pv-protection. This finalizer prevents accidental deletion of PVs that are still being used by a Persistent Volume Claim (PVC). When a PV is no longer in use, the finalizer is removed, and the PV is then deleted.
+  >
+  > Removing finalizers manually should be done with caution, as it can cause resources to be deleted without properly cleaning up associated resources, which could potentially leave orphaned resources behind. It is typically recommended to troubleshoot and fix the underlying issue causing the PV to remain in the Terminating state, rather than manually removing the finalizer.
