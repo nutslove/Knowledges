@@ -22,3 +22,7 @@
   greet(greeting="Hello",name="Alice")
   # 出力: Hello, Alice!
   ~~~
+
+### `index()`メソッドで、ある要素がListの中で何番目にあるか確認する方法
+- 以下のリストがあるとしたら`index = fruits.index("apple")`(→0が返ってくる)のように`<List名>.index("<要素名>")`で確認できる
+  - `fruits = ["apple", "banana", "cherry"]`
