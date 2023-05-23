@@ -77,3 +77,8 @@
                   match_all: true
                   action: inc
   ~~~
+
+## journal
+- defaultではjournalは有効になっておらず、ソースコードをダウンロードし、journalを有効にした状態でビルドする必要がある
+- https://github.com/grafana/loki
+- https://grafana.com/docs/loki/latest/clients/promtail/configuration/#journal
