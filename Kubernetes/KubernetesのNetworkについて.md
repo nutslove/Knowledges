@@ -3,6 +3,7 @@
   - https://speakerdeck.com/hhiroshell/kubernetes-network-fundamentals-69d5c596-4b7d-43c0-aac8-8b0e5a633fc2
   - https://zenn.dev/taisho6339/books/fc6facfb640d242dc7ec
   - https://github.com/containernetworking/cni/blob/main/SPEC.md
+  - https://blog.devops.dev/networking-in-kubernetes-55dcf794b9cd
 
 ### 概要
 - すべてのPodはそれぞれ異なるIPアドレスが割り当てられる
