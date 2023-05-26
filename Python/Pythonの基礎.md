@@ -35,3 +35,6 @@ index = fruits.rindex("apple")
 print(index) --> 2が出力
 ~~~
 - 要素がリストにない場合、-1 が返される
+
+### `if <変数名>`の意味
+- 変数が定義されている and not None/emptyの時True
