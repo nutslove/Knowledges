@@ -2,6 +2,8 @@
 - SDKを使うためにtenancy OCIDやuser credentials情報などを設定しておく必要がある
   - opensslで鍵を作成して公開鍵をOCIにアップロードして、APIを実行するサーバに秘密鍵を配置する必要がある
 - 構成ファイル`~/.oci/config`にtenancyやregionなどを設定した上で`ClientWithConfigurationProvider(common.DefaultConfigProvider())`で読み込む
+  - Windowsの場合、`C:\Users\<ユーザ名>\.oci`フォルダを作成し、その下に`config`ファイルと`oci_api_key.pem`と`oci_api_key_public.pem`を置く必要がある。  
+    また、`config`ファイルの`key_file`の書き方は`key_file=C:\Users\<ユーザ名>\.oci\oci_api_key.pem`となる
 - 例  
   - `monitoring.NewMonitoring`の部分はリソースによって異なる。  
     例えばComputeの場合は`core.NewComputeClientWithConfigurationProvider`になる
