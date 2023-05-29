@@ -11,6 +11,7 @@
 ## views.pyでModelで定義したテーブルデータを操作する方法
 - views.pyにて`from .models import <Model名>[, <Model名>, <Model名>,・・・]`でModelをimport
   - 例えば、作成したModelが「System」,「Dbuserpassword」,「Userprivilegestate」３つの場合、`from .models import System, Dbuserpassword, Userprivilegestate`
+- `<Model名>.objects.get(<カラム名>=<検索値>)`
 - **https://office54.net/python/django/orm-database-operate**
 - https://qiita.com/NOIZE/items/a50afe3af644a55d37e7
 
