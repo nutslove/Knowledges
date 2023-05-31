@@ -15,7 +15,7 @@
   - https://grafana.com/docs/tempo/latest/metrics-generator/span_metrics/
   - https://github.com/grafana/tempo/blob/main/docs/sources/tempo/metrics-generator/span_metrics.md
 
-- span_metricsで取得されるメトリクス
+- span_metricsで取得されるメトリクス  
   ![](img/Metrics.jpg)
 
 - **TempoでAttributesとして表示される項目をすべてメトリクスに変換することができる**
