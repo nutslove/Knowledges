@@ -64,7 +64,7 @@
       ~~~
 - 原因
   - `metrics_generator.registry`がemptyだとその配下の項目(e.g. `collection_interval`)の設定値がdefault値になるのではなく、全部`0`が設定されるとのこと
-  ![](img/registry_trouble.jpg)
+    ![](img/registry_trouble.jpg)
 - 対処
   - `registry` blockを削除するか、以下のように明示的に`registry`配下の項目を設定する
     ~~~yaml
