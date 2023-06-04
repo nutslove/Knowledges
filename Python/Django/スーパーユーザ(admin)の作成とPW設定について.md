@@ -1,0 +1,3 @@
+- Djangoには`/admin`のAdminページがある
+- adminユーザは以下で作成できる（PWは対話的に入力）
+  - `python manage.py createsuperuser`
