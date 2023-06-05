@@ -9,8 +9,7 @@
 >``` 
 > This command is responsible for creating new migrations based on the changes you have made to your Django models. 
 > When you run it, Django checks all your models and compares them to the previous state of your models stored in migration files.
-> If Django detects any changes, it will create new migration files, 
-> each of which is timestamped and contains the details of the changes.
+> If Django detects any changes, it will create new migration files, each of which is timestamped and contains the details of the changes.
 >
 > Each migration file is like a version control system for your database schema.
 > makemigrations does not apply these changes to the database,
