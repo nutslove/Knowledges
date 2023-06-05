@@ -43,7 +43,7 @@
   ~~~
 - `views.py`にて`from django.contrib.auth import authenticate, login`し、`authenticate()`関数で認証する
 - 認証に成功したら以下例の`user`にADユーザ名が入って、失敗したら`None`が入る
-  - 認証に成功したら(認証バックエンドで認証情報が有効と判断されれば)[User](https://docs.djangoproject.com/ja/4.2/ref/contrib/auth/#django.contrib.auth.models.User)Objectが返される
+  - 認証に成功したら(認証バックエンドで認証情報が有効と判断されれば)[User](https://docs.djangoproject.com/ja/4.2/ref/contrib/auth/#django.contrib.auth.models.User)オブジェクトが返される
   - https://docs.djangoproject.com/ja/4.2/topics/auth/default/#authenticating-users
 - 認証に成功したユーザをログインさせるには`login()`関数を利用
   - https://docs.djangoproject.com/ja/4.2/topics/auth/default/#how-to-log-a-user-in
