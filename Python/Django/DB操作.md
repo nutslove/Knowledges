@@ -28,7 +28,7 @@
 > This will unapply all migrations and leave your database schema in its initial state.
 >```
 >
-> In summary, you use makemigrations to create migrations for your changes, and migrate to apply those changes to your database. This two-step process gives you the opportunity to review the SQL that Django generates for your model changes before applying it to your database.
+> In summary, you use **`makemigrations`** to **create migrations for your changes**, and **`migrate`** to **apply those changes to your database**. This two-step process gives you the opportunity to review the SQL that Django generates for your model changes before applying it to your database.
 
 ## models.pyを修正した後にDBに反映する方法
 - Djangoをコンテナで動かしてる場合はDjangoコンテナに入る
