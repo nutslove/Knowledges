@@ -7,7 +7,7 @@
   - https://techexpert.tips/django/django-ldap-authentication-active-directory/
 - **ADはログインIDとして`sAMAccountName`を使用する**
 
-#### `django-auth-ldap`インストール後の設定
+## `django-auth-ldap`インストール後の設定
 - `settings.py`にて以下を追加
   ~~~python
               ・
@@ -41,9 +41,12 @@
               ・
               ・
   ~~~
-- `views.py`にて`from django.contrib.auth import authenticate, login`し、`authenticate`でログイン
+- `views.py`にて`from django.contrib.auth import authenticate, login`し、`authenticate()`関数で認証する
 - 認証に成功したら以下例の`user`にADユーザ名が入って、失敗したら`None`が入る
-  - 設定例
+  - https://docs.djangoproject.com/ja/4.2/topics/auth/default/#authenticating-users
+- 認証に成功したユーザをログインさせるには`login()`関数を利用
+  - https://docs.djangoproject.com/ja/4.2/topics/auth/default/#how-to-log-a-user-in
+- 設定例
   ~~~python
   from django.contrib.auth import authenticate, login
 
@@ -67,7 +70,7 @@
       return render(request, 'privilege/login.html', params)
   ~~~
 
-#### `pip3 install django-auth-ldap`で`ModuleNotFoundError: No module named '_ctypes'`エラーが出る場合と対処
+## `pip3 install django-auth-ldap`で`ModuleNotFoundError: No module named '_ctypes'`エラーが出る場合と対処
 - インストールしたpython(e.g. /usr/local/bin/python3.11)とpip(e.g. /usr/local/bin/pip3.11)を削除する
 - `yum -y install libffi-devel`でlibffi-develをインストールする
 - 以下手順でPythonを再度インストールする
