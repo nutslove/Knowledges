@@ -55,14 +55,14 @@
       user_pw = request.POST['PASSWORD']
       user = authenticate(request, username=user_id, password=user_pw)
       print(user)
-      if user is not None:
+      if user is not None: ## 認証成功時
           login(request, user)
 
           params = {
                   'ID':user_id,
                   'PW':user_pw,
           }
-      else:
+      else: ## 認証失敗時
           params = {
                   'ID':'Invalid ID',
                   'PW':'Invalid PW',
