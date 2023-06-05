@@ -1,12 +1,33 @@
 - https://inuplace.tistory.com/602
 - https://losskatsu.github.io/it-infra/django-inspectdb/#1-db-%ED%85%8C%EC%9D%B4%EB%B8%94-%EC%9E%A5%EA%B3%A0%EB%A1%9C-%EB%B6%88%EB%9F%AC%EC%98%A4%EA%B8%B0
 
+## `python manage.py makemigrations`と`python manage.py migrate`は何をするもの？
+- 以下Chat-GPT回答
+> python manage.py makemigrations and python manage.py migrate are Django commands used for handling database schema changes. They are a part of Django's database migration system. Let's take a closer look at both commands.
+> 
+> 1. **`python manage.py makemigrations`:**
+> 
+> This command is responsible for creating new migrations based on the changes you have made to your Django models. When you run it, Django checks all your models and compares them to the previous state of your models stored in migration files. If Django detects any changes, it will create new migration files, each of which is timestamped and contains the details of the changes.
+>
+> Each migration file is like a version control system for your database schema. makemigrations does not apply these changes to the database, but it generates the SQL commands needed to apply or unapply these changes.
+>
+> 2. **`python manage.py migrate`:**
+>
+> This command is responsible for applying and unapplying migrations. When you run it, Django will execute the SQL commands in the migration files to apply the changes to your database schema. This can include operations like creating new tables, adding fields to existing tables, or deleting fields.
+>
+> If you provide migrate with a migration name, it will apply all migrations up to and including that migration. If you don't provide a migration name, migrate will apply all unapplied migrations.
+>
+> If you want to unapply all migrations, you can run python manage.py migrate zero. This will unapply all migrations and leave your database schema in its initial state.
+>
+> In summary, you use makemigrations to create migrations for your changes, and migrate to apply those changes to your database. This two-step process gives you the opportunity to review the SQL that Django generates for your model changes before applying it to your database.
+
 ## models.pyを修正した後にDBに反映する方法
 - Djangoをコンテナで動かしてる場合はDjangoコンテナに入る
-- `python3 manage.py makemigrations <アプリ名>`を実行
-  - e.g. `python3 manage.py makemigrations privilege`
-- `python3 manage.py migrate <アプリ名>`を実行
-  - e.g. `python3 manage.py migrate privilege`
+- `python manage.py makemigrations <アプリ名>`を実行
+  - e.g. `python manage.py makemigrations privilege`
+- `python manage.py migrate <アプリ名>`を実行
+  - e.g. `python manage.py migrate privilege`
+- DockerfileのCMDに`python manage.py makemigrations && python manage.py migrate`を含めて最初起動時にDBと同期をとるようにする
 
 ## views.pyでModelで定義したテーブルデータを操作する方法
 - views.pyにて`from .models import <Model名>[, <Model名>, <Model名>,・・・]`でModelをimport
