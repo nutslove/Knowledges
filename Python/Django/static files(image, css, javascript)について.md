@@ -14,6 +14,7 @@
      - https://whitenoise.readthedocs.io/en/stable/django.html
   2. static filesをS3など外部リポジトリに置き、そこから取得するようにする
   3. NginxなどWebサーバを使って、Webサーバの方に配置する
+
 #### WhiteNoiseを使って設定する方法
 - `pip install whitenoise`でwhitenoiseをインストール
 - `settings.py`に`STATIC_ROOT = BASE_DIR / "staticfiles"`を追加
