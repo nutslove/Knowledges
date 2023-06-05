@@ -33,6 +33,13 @@
 - 色んなサイトに`STATICFILES_DIRS`設定が書いてあったが、自分の場合うは要らなかった。
 - 最初に設定した後やicoを変えた場合は、ブラウザの履歴(キャッシュ)を削除する必要がある
 - `WHITENOISE_ROOT`に設定したディレクトリ配下と`<アプリ名>/static/`配下両方に`favicon.ico`を配置しないと正常に動作しなかった
+- `WHITENOISE_ROOT`はnon-versioned static filesのための格納場所(?)
+  - defaultでは`WHITENOISE_ROOT`の中のファイルのcacheは`DEBUG`が`False`の場合、60秒しか保持されないみたい。
+  - `WHITENOISE_MAX_AGE`で保持期間を長くすることができる
+  - 参考URL
+    - https://adamj.eu/tech/2022/01/18/how-to-add-a-favicon-to-your-django-site/
+    - https://whitenoise.readthedocs.io/en/latest/django.html#WHITENOISE_ROOT
+    - https://whitenoise.readthedocs.io/en/latest/django.html#WHITENOISE_MAX_AGE
 - 参考URL
   - https://whitenoise.readthedocs.io/en/latest/django.html
   - https://stackoverflow.com/questions/65927187/how-to-server-favicon-ico-with-django-and-whitenoise
