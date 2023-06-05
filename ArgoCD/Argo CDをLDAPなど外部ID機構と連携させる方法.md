@@ -13,6 +13,7 @@
 
 ## LdapグループとArgoCDのRBACを紐づける方法
 - `argocd-rbac-cm`のConfigMapを修正する必要がある
+- ポリシーを記述した`policy.csv`を`argocd-rbac-cm`のConfigMapの中に配置する
 - `argocd-rbac-cm`の設定例  
   → `AWS Delegated Administrators`というADグループに所属しているADユーザはArgoCDのadmin権限を使えて、その他のADユーザは参照権限が付与される設定例
   ~~~yaml
@@ -35,3 +36,15 @@
 - 参考URL
   - https://medium.com/yapi-kredi-teknoloji/argo-cd-ldap-authentication-and-rbac-configuration-7c1b7b0cb7a1
   - https://argo-cd.readthedocs.io/en/stable/operator-manual/rbac/
+
+## ArgoCDのRBACの項目について
+- ArgoCDのRBACのPolicyの記述方法には2種類があるみたい
+- 第1フィールドが`p`はPolicyで、どのroleがどのProjectとApplicationにどのようなActionができるかを定義する。  
+  `g`はLDAPグループやGithubのOrgなど外部IDプロバイダーのGroupとArgoCDのRoleを関連付ける。
+- `p`の設定
+  1. All resources except application-specific permissions (see next bullet):
+      - `p, <role/user/group>, <resource>, <action>, <object>`
+  2. Applications, applicationsets, logs, and exec (which belong to an AppProject):
+      - `p, <role/user/group>, <resource>, <action>, <appproject>/<object>`
+- 参考URL
+  - https://argo-cd.readthedocs.io/en/stable/operator-manual/rbac/#rbac-permission-structure
