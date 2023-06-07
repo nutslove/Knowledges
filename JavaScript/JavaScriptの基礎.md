@@ -27,3 +27,28 @@
 > element.textContent = '内容が変更されました！';
 >~~~
 > このコードを実行すると、元々「これはテストです。」と表示されていた部分が「内容が変更されました！」に変わります。これは、**document.getElementById**が`<p id="example"\>`要素を取得し、その`textContent`プロパティを変更したためです。
+
+### `document.getElementById(<ID名>).innerText`と`document.getElementById(<ID名>).innerHTML`について
+- 以下Chat-GPTからの回答
+> JavaScriptにおいて、`document.getElementById(<ID名>).innerHTML`と`document.getElementById(<ID名>).innerText`は特定のHTML要素の内容を取得または設定するために使用されます。これら二つのプロパティの主な違いは、HTMLタグをどのように扱うかです。
+> 
+> - `innerHTML`：これは要素のHTML内容を表します。つまり、要素内のHTMLマークアップ（タグなど）も含めた内容を取得または設定します。たとえば、要素の内容が`<b>bold</b>`である場合、`innerHTML`は`<b>bold</b>`を返します。
+> 
+> - `innerText`：これは要素の「見える」テキスト内容を表します。つまり、HTMLマークアップは無視され、人間がブラウザ上で見るテキストだけが取得または設定されます。上記の例で言えば、`innerText`は`bold`を返します。
+> 
+> 以下に具体的な例を示します。まず、次のHTML要素があるとします。
+>
+>```html
+><p id="example">これは<b>テスト</b>です。</p>
+>```
+>
+>次に、この要素の内容を`innerHTML`と`innerText`で取得し、その結果をコンソールに表示するJavaScriptコードを見てみましょう。
+>
+>```javascript
+>var element = document.getElementById('example');
+>
+>console.log(element.innerHTML);  // "これは<b>テスト</b>です。"
+>console.log(element.innerText);  // "これはテストです。"
+>```
+>
+>このように、`innerHTML`はHTMLマークアップを含んだ内容を返し、`innerText`は見えるテキスト内容だけを返します。
