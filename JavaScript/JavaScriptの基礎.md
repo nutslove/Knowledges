@@ -28,7 +28,7 @@
 >~~~
 > このコードを実行すると、元々「これはテストです。」と表示されていた部分が「内容が変更されました！」に変わります。これは、**document.getElementById**が`<p id="example"\>`要素を取得し、その`textContent`プロパティを変更したためです。
 
-### `document.getElementById(<ID名>).innerText`と`document.getElementById(<ID名>).innerHTML`について
+## `document.getElementById(<ID名>).innerText`と`document.getElementById(<ID名>).innerHTML`について
 - 以下Chat-GPTからの回答
 > JavaScriptにおいて、`document.getElementById(<ID名>).innerHTML`と`document.getElementById(<ID名>).innerText`は特定のHTML要素の内容を取得または設定するために使用されます。これら二つのプロパティの主な違いは、HTMLタグをどのように扱うかです。
 > 
@@ -52,3 +52,52 @@
 >```
 >
 >このように、`innerHTML`はHTMLマークアップを含んだ内容を返し、`innerText`は見えるテキスト内容だけを返します。
+
+## `window`と各メソッドについて
+- 以下Chat-GPTからの回答
+> JavaScriptにおける「window」は、ブラウザウィンドウそのものを表すグローバルオブジェクトであり、ウェブページのすべての要素（DOM要素、JavaScript関数、変数など）はこのオブジェクトの一部として存在します。つまり、`window`はウェブページ全体のコンテクストを提供し、そのページで利用可能な機能や情報へのアクセスを提供します。
+>
+> 次に、各メソッドとプロパティについて説明します。
+>
+> 1. `window.onload`：`window.onload`はイベントハンドラで、ページの全てのコンテンツ（画像やスクリプトファイルなど）が完全に読み込まれてから実行されます。以下にその使用例を示します：
+>
+>    ```javascript
+>    window.onload = function() {
+>      alert("全てのコンテンツが読み込まれました！");
+>    };
+>    ```
+>
+> 2. `window.location.href`：`window.location.href`は現在のページのURLを取得または設定するプロパティです。以下にその使用例を示します：
+>
+>    ```javascript
+>    console.log(window.location.href);  // 現在のページのURLを表示
+>
+>    window.location.href = 'https://www.example.com';  // ページをwww.example.comにリダイレクト
+>    ```
+>
+> 3. `window.navigator.msSaveBlob`：この関数はMicrosoft Internet Explorer及びEdgeの特定のバージョンで提供され、BlobまたはFileオブジェクトをローカルファイルとして保存するために使用されます。GPT-4の知識のカットオフ（2021年9月）時点では、このメソッドは非標準であり、非推奨となっています。
+>
+> 4. `window.URL.createObjectURL`：この関数はBlobオブジェクトを引数にとり、そのオブジェクトを参照するためのURLを作成します。このURLは、たとえば、ダウンロード可能なファイルのリンクや、画像やビデオのソースとして使用できます。以下にその使用例を示します：
+>
+>    ```javascript
+>    var blob = new Blob(["Hello, world!"], { type: 'text/plain' });
+>    var url = window.URL.createObjectURL(blob);
+>
+>    console.log(url);  // "blob:https://example.com/d41d8cd98f00b204e9800998ecf8427e"
+>    ```
+>
+> 5. `window.addEventListener`：`window.addEventListener`は指定したイベントが発生したときに実行される関数（イベントハンドラ）を登録するメソッドです。以下にその使用例を示します：
+>
+>    ```javascript
+>    window.addEventListener('resize', function() {
+>      console.log('ウィンドウがリサイズされました！');
+>    });
+>    ```
+> 上記のコードは、ウィンドウがリサイズされるたびにメッセージをコンソールに表示します。
+
+## 配列と辞書について
+### 配列
+- 存在しないindexを参照してもエラーにはならず`undefined`が返ってくる
+
+### 辞書
+- 存在しないkeyを参照してもエラーにはならず`undefined`が返ってくる

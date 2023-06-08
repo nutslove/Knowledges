@@ -1,0 +1,2 @@
+- https://blogs.manageengine.jp/about_activedirectory/
+- https://blogs.manageengine.jp/needs_of_ad/
