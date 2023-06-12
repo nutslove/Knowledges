@@ -178,6 +178,16 @@ therefore each alert will go into its own group. It is different from the defaul
   - https://docs.aws.amazon.com/ja_jp/AmazonCloudWatch/latest/logs/CWL_QuerySyntax.html
   - https://qiita.com/suuu/items/8387df88f134348f22c7 
 
+#### ■ AlertのEvaluation(評価)で時々`fetching of query results exceeded max number of attempts`エラーが出る件
+- GrafanaのAlertで時々以下のようなエラーが出た
+  ~~~
+  Failed to evaluate queries and expressions: [plugin.downstreamError] failed to query data:
+  fetching of query results exceeded max number of attempts
+  ~~~
+- `[unified_alerting]`ブロックで`evaluation_timeout`(default: `30s`)と`max_attempts`(default: `3`)で評価時のTimeoutと評価を何回まで試すかを設定できる
+  - **これで再発しないか確認しあとでUpdateする**
+  - https://grafana.com/docs/grafana/latest/setup-grafana/configure-grafana/#unified_alerting
+
 ## Plugin
 #### ■ X-Ray
 - 参考URL
