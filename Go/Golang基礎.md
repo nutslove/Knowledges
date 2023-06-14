@@ -227,7 +227,7 @@
       var bytes []byte
       bytes = append(bytes, 64)
       ~~~
-      ※byteは`uint8`型の別名。uint8型は8bit、つまり1バイト分の表現が可能で、データを1バイトごとに分割して扱う。[参照ページ](https://qiita.com/s_zaq/items/a6d1df0d1bf79f5bcc2a)
+      ※byteは`uint8`型の別名。uint8型は8bit、つまり1バイト分(0~255)の表現が可能で、データを1バイトごとに分割して扱う。[参照ページ](https://qiita.com/s_zaq/items/a6d1df0d1bf79f5bcc2a)
 - ArrayとSliceの違いについて  
   - https://qiita.com/seihmd/items/d9bc98a4f4f606ecaef7
   - https://qiita.com/tchnkmr/items/10071a53a8bce87b62a3

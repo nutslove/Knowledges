@@ -1,0 +1,2 @@
+- 各VerのCHANGELOGはGithubではなく、以下のページから確認すること（Githubより詳細情報が載っている）
+  - https://docs.victoriametrics.com/CHANGELOG.html
