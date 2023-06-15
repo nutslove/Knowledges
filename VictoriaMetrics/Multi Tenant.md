@@ -1,0 +1,8 @@
+- VictoriaMetricsはMulti Tenantをサポートする
+- `account_id`と`project_id`でテナントを分ける
+  - `project_id`は任意。`project_id`を設定しない場合`project_id`に`0`が設定される。
+- 現在VictoriMetrics内に存在する`account_id`と`project_id`は以下のAPIで確認できる
+  - `curl http://<vmselectのIP>:8481/admin/tenants`
+    - `{"status:":"success","data":["<account_id>:<project_id>"["<account_id>:<project_id>",・・・]]}`の形で出力される
+- 参考URL
+  - https://docs.victoriametrics.com/Cluster-VictoriaMetrics.html#multitenancy
