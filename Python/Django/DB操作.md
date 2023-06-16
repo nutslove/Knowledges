@@ -41,9 +41,27 @@
 ## views.pyでModelで定義したテーブルデータを操作する方法
 - views.pyにて`from .models import <Model名>[, <Model名>, <Model名>,・・・]`でModelをimport
   - 例えば、作成したModelが「System」,「Dbuserpassword」,「Userprivilegestate」３つの場合、`from .models import System, Dbuserpassword, Userprivilegestate`
+### DBデータ取得
+- `get`と`filter`２種類がある
+- 2つの違いについてChat-GPTからの回答
+  > Djangoのモデルで使用される get と filter メソッドは、データベースからデータを取得するためのものですが、動作が若干異なります。
+  >
+  > ##### get メソッド：
+  > - getは一つのレコードだけを返すメソッドです。つまり、getは一意の結果を期待します。
+  > - 一意な結果が存在しない場合、つまり該当するレコードが存在しないか、複数のレコードが存在する場合、getはエラーを発生します。具体的には、該当するレコードがない場合はDoesNotExistエラー、複数のレコードが該当する場合はMultipleObjectsReturnedエラーを返します。
+  > ##### filter メソッド：
+  > - filterは一つ以上のレコードを返すことができるメソッドで、結果が複数でもエラーにはなりません。複数のオブジェクトが該当する場合、それらすべてを含むクエリセットが返されます。
+  > - filterは該当するレコードがない場合でもエラーを発生させず、単に空のクエリセットを返します。
+  >  
+  > 例えば、特定のユーザーを名前で検索する場合、その名前がユニーク（一意）であることが分かっているなら get メソッドを使用するのが良いでしょう。しかし、特定の条件を満たすすべてのユーザー（例えば、特定の都市に住んでいる全てのユーザー）を取得したい場合には、 filter メソッドを使用するのが良いです。
+#### `get`
 - `<Model名>.objects.get(<カラム名>=<検索値>)`
+- 条件にマッチするレコードが複数(例えば2レコード)ある場合、以下のようなエラーが返ってくる
+  - `get() returned more than one Userprivilegestate -- it returned 2!`
 - **https://office54.net/python/django/orm-database-operate**
 - https://qiita.com/NOIZE/items/a50afe3af644a55d37e7
+#### `filter`
+- `<Model名>.objects.filter(<カラム名>=<検索値>)`
 
 
 ### DjangoのModelとDBデータ型のマッピング
@@ -93,6 +111,7 @@
 - その代わりに、複合ユニーク制約の機能を使う
 
 ## Modelから作成されたTableを削除した場合、再migrationする方法
+#### 正攻法
 1. `django_migrations`テーブルからアプリ名のレコードを削除
    - 削除したいアプリのidが19の場合
      - `delete from django_migrations where id = 19;`
@@ -103,3 +122,14 @@
  
 - 参考URL
   - https://stackoverflow.com/questions/33259477/how-to-recreate-a-deleted-table-with-django-migrations
+
+#### Modelに定義されているTableをすべて手動で削除してから再度migrationする方法
+1. Modelに定義されているDB上のTableを手動ですべて削除する
+2. `python manage.py makemigrations <アプリ名>`
+3. `python manage.py migrate <アプリ名> zero --fake`
+4. `python manage.py migrate <アプリ名>`
+- 上記のオプション`python manage.py migrate <アプリ名> zero`コマンドと`--fake`オプションについて
+  - `python manage.py migrate <アプリ名> zero`コマンド
+    > 指定されたアプリケーションの全てのマイグレーションをロールバック（つまり、Undo）します。zeroは、適用するべきマイグレーションの数を0にする、という意味です。そのため、このコマンドを実行すると、そのアプリケーションのデータベーススキーマは、まったくマイグレーションが適用されていない状態に戻ります。
+  - `--fake`
+    > Djangoに対して、指定されたマイグレーションをデータベースに適用することなく、そのマイグレーションが適用されたと記録するよう指示します。つまり、Djangoはそのマイグレーションが適用されたという記録を保持しますが、実際のデータベーススキーマは変更されません。
