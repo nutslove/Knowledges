@@ -63,11 +63,24 @@
 #### `filter`
 - `<Model名>.objects.filter(<カラム名>=<検索値>)`
 
+### 比較演算子
+- Format
+  - `<対象DBカラム名>__gt=<比較対象>`、`<対象DBカラム名>__gte=<比較対象>`、`<対象DBカラム名>__lt=<比較対象>`、`<対象DBカラム名>__lte=<比較対象>`
+- 例
+  ~~~python
+  combination_id_obj = Dbuserpassword.objects.get(system_id=system,dbuser=db_user)
+  datetime_now_jst = timezone.localtime(timezone.now(), timezone=timezone.get_default_timezone())
+  
+  user_privilege_state_obj = Userprivilegestate.objects.filter(userid=user_id,combinationid_id=combination_id_obj.combinationid,starttimestamp__lte=datetime_now_jst,endtimestamp__gte=datetime_now_jst)
+  user_privilege_state_obj_count = len(user_privilege_state_obj)
+  ~~~
+- https://docs.djangoproject.com/ja/4.2/topics/db/queries/
 
-### DjangoのModelとDBデータ型のマッピング
+
+## DjangoのModelとDBデータ型のマッピング
 - https://qiita.com/okoppe8/items/13ad7b7d52fd6a3fd3fc
 
-### Modelで`primary_key=True`を指定しない場合、Djangoが自動的に`id`というPrimary Keyを作成する
+## Modelで`primary_key=True`を指定しない場合、Djangoが自動的に`id`というPrimary Keyを作成する
 - https://docs.djangoproject.com/en/4.2/topics/db/models/#automatic-primary-key-fields
 - `SELECT nextval('<テーブル名>_id_seq');`で次に振られるid番号を確認できる
   - `privilege_userprivilegestate`というテーブルで次のidを取得する場合、`SELECT nextval('privilege_userprivilegestate_id_seq');`
@@ -106,7 +119,7 @@
         "privilege_userprivil_combinationid_id_d9d618ef_fk_privilege" FOREIGN KEY (combinationid_id) REFERENCES privilege_dbuserpassword(combinationid) DEFERRABLE INITIALLY DEFERRED
     ~~~
 
-### Djangoには復号主キー機能はないらしい
+## Djangoには復号主キー機能はないらしい
 - https://zenn.dev/shimakaze_soft/scraps/22dcea1acd133a
 - その代わりに、複合ユニーク制約の機能を使う
 
