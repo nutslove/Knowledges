@@ -1,0 +1,2 @@
+- 2023/06時点ではexemplarをサポートしてないように見えるけど、近々サポートされそう
+  - https://github.com/VictoriaMetrics/VictoriaMetrics/issues/1169
