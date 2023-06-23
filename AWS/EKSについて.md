@@ -1,0 +1,2 @@
+- Terraformで指定するAMIリリースバージョンは以下のサイトから確認できる
+  - https://github.com/awslabs/amazon-eks-ami/blob/master/CHANGELOG.md
