@@ -1,0 +1,5 @@
+- DjangoのLOGGING設定は`settings.py`に`LOGGING`ブロックを追加して設定する
+  - defaultでは`LOGGING`ブロックはない
+  - consoleでログが標準出力に出力される
+- 関連URL
+  - https://docs.djangoproject.com/ja/4.2/topics/logging/
