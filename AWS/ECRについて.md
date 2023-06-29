@@ -20,3 +20,9 @@
   - https://docs.aws.amazon.com/ja_jp/AmazonECR/latest/userguide/replication.html#replication-considerations
 - 参考URL
   - https://docs.aws.amazon.com/ja_jp/AmazonECR/latest/userguide/replication.html
+
+- VPC EndPoint経由でECRからimageをpullするためには以下3つのVPC EndPointが必要
+  1. `com.amazonaws.<region>.ecr.dkr`
+  2. `com.amazonaws.<region>.ecr.api`
+  3. **Gatewayタイプ**の`com.amazonaws.<region>.s3`
+  - https://docs.aws.amazon.com/ja_jp/AmazonECR/latest/userguide/vpc-endpoints.html
