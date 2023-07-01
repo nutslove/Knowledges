@@ -1,0 +1,1 @@
+![postgre_dir](image/postgresql_directory.jpg)
