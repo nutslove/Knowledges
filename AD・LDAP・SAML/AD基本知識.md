@@ -10,7 +10,7 @@
 
 ## LinuxサーバでのAD認証の流れ
 > 1. **DNS SRV レコードの問い合わせ**
-> Linux サーバーが Active Directory への参加を試みる際には、まず Active Directory Domain Controllers (AD DC) を見つけるために DNS SRV レコードを問い合わせます。これは、"_ldap._tcp.dc._msdcs.ドメイン名" という形式の SRV レコードに対する問い合わせを行い、対応する AD DC のアドレスを得る操作です。
+> Linux サーバーが Active Directory への参加を試みる際には、まず Active Directory Domain Controllers (AD DC) を見つけるために DNS SRV レコードを問い合わせます。これは、**"_ldap._tcp.dc._msdcs.ドメイン名"** という形式の SRV レコードに対する問い合わせを行い、対応する AD DC のアドレスを得る操作です。
 >
 > 2. **LDAP 接続**
 > 次に、Linux サーバーは得られた AD DC のアドレスに対して LDAP (Lightweight Directory Access Protocol) 経由で接続を試みます。これにより、AD DC との通信が確立されます。
@@ -38,6 +38,6 @@
 > 
 > したがって、"_ldap._tcp.dc._msdcs.ドメイン名"はActive Directoryの環境では特に重要で、Active Directoryのドメインコントローラーを特定し、接続情報を提供する役割を持っています。一方、"_ldap._tcp.ドメイン名"はより一般的なLDAPサービスの位置を指定するために使用されます。
 
-- 実際のSRVレコードの例
+- 実際のSRVレコードの例  
   ![](image/SRV_RECORD1.jpg)
   ![](image/SRV_RECORD2.jpg)
