@@ -43,7 +43,6 @@
 - ADのPassword Policyを管理する方法は以下2つ
   1. Group Policy Object(GPO)
      - Default Domain Policyのこと
-     - 
   2. Password Setting Object(PSO)
 - 5つの用意されているPassword Policyのいずれも適用しなかった場合、デフォルトのPassword Policy`Group Policy Object(GPO)`が適用される
   - [参考URL(AWS)](https://docs.aws.amazon.com/ja_jp/directoryservice/latest/admin-guide/assignpasswordpolicies.html)
@@ -54,6 +53,18 @@
 - `Admin@<ドメイン>`ユーザにもデフォルトのPassword Policyが適用されるため、  
   Adminユーザを使って自動化をする場合などは無期限のPassword Policyを作成してAdminユーザを適用する
   - ドメイン参加用ユーザにも適用！
+
+## AD(ドメインコントローラー)のEventログ確認方法
+- https://docs.aws.amazon.com/ja_jp/directoryservice/latest/admin-guide/ms_ad_troubleshooting_dns.html
+1. AD管理用WindowsサーバにてStartメニューから「**Administrative Tools**」→ 「**Event Viewer**」を開く
+2. 「**Action**」タブ →「**Connect to Another Computer...**」クリック
+3. 「**Another computer**」を選択し、ADドメインを入力しOK押下
+4. 「**Applications and Services Logs**」→「**Microsoft**」→「**Windows**」→「**DNS-Server**」→「**Audit**」押下
+
+## ADのDNS確認方法
+1. AD管理用WindowsサーバにてStartメニューから「**Administrative Tools**」→ 「**DNS**」を開く
+2. 「**The following computer**」を選択し、ADドメインを入力しOK押下
+3. ドメイン名下の「**Forward Lookup Zones**」配下を確認
 
 ## その他
 - AWS Managed ADを作成すると自動でSecurity Groupが作成され、ADのENI(Elastic Network Interfaces)にアタッチされる
