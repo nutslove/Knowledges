@@ -56,13 +56,13 @@
 
 ## AD(ドメインコントローラー)のEventログ確認方法
 - https://docs.aws.amazon.com/ja_jp/directoryservice/latest/admin-guide/ms_ad_troubleshooting_dns.html
-1. AD管理用WindowsサーバにてStartメニューから「**Administrative Tools**」→ 「**Event Viewer**」を開く
+1.  AD管理用WindowsサーバにてStartメニューから「**Administrative Tools**」→ 「**Event Viewer**」を開く
 2. 「**Action**」タブ →「**Connect to Another Computer...**」クリック
 3. 「**Another computer**」を選択し、ADドメインを入力しOK押下
 4. 「**Applications and Services Logs**」→「**Microsoft**」→「**Windows**」→「**DNS-Server**」→「**Audit**」押下
 
 ## ADのDNS確認方法
-1. AD管理用WindowsサーバにてStartメニューから「**Administrative Tools**」→ 「**DNS**」を開く
+1.  AD管理用WindowsサーバにてStartメニューから「**Administrative Tools**」→ 「**DNS**」を開く
 2. 「**The following computer**」を選択し、ADドメインを入力しOK押下
 3. ドメイン名下の「**Forward Lookup Zones**」配下を確認
 
