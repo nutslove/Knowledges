@@ -2,7 +2,7 @@
   - https://tech-mmmm.blogspot.com/2022/02/rhel-8sssdactive-directory.html
   - https://access.redhat.com/documentation/ja-jp/red_hat_enterprise_linux/8/html-single/integrating_rhel_systems_directly_with_windows_active_directory/index
 
-### ■ SSSDの設定
+## ■ SSSDの設定
 - RHEL8では`realm`コマンドでドメイン参加後`/etc/sssd/sssd.conf`の`[domain/<ドメイン名>]`ブロックの下に以下を追加する必要がある
   - `ad_gpo_access_control=permissive`
 - 上記の設定がないと以下それぞれのログから下記のようなエラーが出る
@@ -40,3 +40,30 @@
   > - `permissive`
   >   - GPOベースのアクセス制御は有効化されますが、評価が失敗してもユーザーのアクセスは許可されます。失敗はログに記録されます。
 
+### ■ `/etc/sssd/sssd.conf`内の`ad_site`オプションについて
+- ADのDC(Domain Controller)が複数のsiteに分かれている場合、  
+  `/etc/sssd/sssd.conf`内の`ad_site`オプションでどのsiteのDCを使うかを指定することができる
+- `ad_site`に指定する文字列はDCのDNSの`dc._msdcs.ドメイン名`ディレクトリ内の`_sites`ディレクトリ下のフォルダ名
+  ![](image/AD_SITES.jpg)
+- sssd.confのサンプル
+  ~~~
+  [sssd]
+  services = nss, pam
+  config_file_version = 2
+  domains = YOUR_DOMAIN
+
+  [domain/YOUR_DOMAIN]
+  ad_domain = YOUR_DOMAIN.com
+  krb5_realm = YOUR_DOMAIN.COM
+  realmd_tags = manages-system joined-with-samba
+  cache_credentials = True
+  id_provider = ad
+  krb5_store_password_if_offline = True
+  default_shell = /bin/bash
+  ldap_id_mapping = True
+  use_fully_qualified_names = False
+  fallback_homedir = /home/%u@%d
+  access_provider = ad
+  ad_site = YOUR_AD_SITE ---→ ここ！
+  ~~~
+  - https://access.redhat.com/documentation/ja-jp/red_hat_enterprise_linux/7/html/windows_integration_guide/restricting-ipa-or-sssd-to-selected-ad-servers-or-sites
