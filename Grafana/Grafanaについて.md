@@ -27,6 +27,12 @@
       export GF_AUTH_GOOGLE_CLIENT_SECRET=newS3cretKey
       export GF_PLUGIN_GRAFANA_IMAGE_RENDERER_RENDERING_IGNORE_HTTPS_ERRORS=true
       ~~~
+- デフォルトではViewer権限ユーザはExploreを操作できない(表示されない)が、  
+  `users`セクションの`viewers_can_edit`を`true`(defaultはfalse)にすれば
+  - https://grafana.com/docs/grafana/latest/setup-grafana/configure-grafana/#viewers_can_edit
+- `server`セクションの`serve_from_sub_path`を`true`したら`root_url`に指定したURLのsubpathでGrafanaにアクセスすることもできる
+  - 例えば`root_url`を`http://<GrafanaのIP>/unk`にしたら`<GrafanaのIP>/unk`でアクセスできるようになる
+  - https://grafana.com/docs/grafana/latest/setup-grafana/configure-grafana/#serve_from_sub_path
 
 ## DashBoard / Panel設定
 ### ■ Variablesについて
