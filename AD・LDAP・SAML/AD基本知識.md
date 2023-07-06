@@ -41,3 +41,6 @@
 - 実際のSRVレコードの例  
   ![](image/SRV_RECORD1.jpg)
   ![](image/SRV_RECORD2.jpg)
+- `nslookup`コマンドで`-type=srv`オプションを付けることでSRVレコードの情報を確認できる
+  - `nslookup -type=srv _ldap._tcp.dc._msdcs.ドメイン名`
+  - `nslookup -type=srv _sites.dc._msdcs.ドメイン名`
