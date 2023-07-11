@@ -14,6 +14,9 @@
   - **Linuxカーネルのbridgeネットワークを使用するための機能**
   - デフォルトで`bridge`という名前の`bridge` driverが作成されていて、デフォルトではこれが使われる
     ![](image/docker_network.jpg)
+- `bridge`のIPレンジはdefaultでは「172.17.0.0/16」で作成される。変更することも可能。
+- OSのルートテーブルに`bridge`用のルーティングも追加される
+  ![](image/docker_bridge_route_table.jpg)
 - KubernetesのNetworkで使用される`overlay` networkを使うこともできる
 - コンテナには所属するbridgeのIPレンジからIPアドレスが払い出される
 - コンテナ間通信はNATされず、bridge経由で行われる
