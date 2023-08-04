@@ -87,7 +87,7 @@
 ##### SID(Security Identifier/セキュリティ識別子)とは
 - Windowsのユーザーアカウントやユーザーグループに与えられる、固有の識別番号。
 - Windowsではユーザーアカウントやグループなどは、管理ツールに表示される「名前」ではなく、「SID（Security Identifier。セキュリティ識別子）」と呼ばれる一意のID番号列を使用して管理されている。
-- `objectSid`という属性から確認可
+- `objectSid`という属性から確認可  
   ![sid](image/sid.jpg)
 - 参考URL
   - https://atmarkit.itmedia.co.jp/ait/articles/0306/28/news004.html
