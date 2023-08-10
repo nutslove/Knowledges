@@ -1,0 +1,4 @@
+- 基本、RHELのナレッジベースページ参照にはRed Hatサブスクリプションが必要
+- だが、AWSでEC2で提供されているRHELイメージでRHELを起動してssm-agentをインストール後、Systems ManagerのFleet Managerの「RedHatのKnowledgebaseへアクセスする」からアクセスすると参照できる
+- 参考URL
+  - https://cloud5.jp/saitou-rhel-knowredgebase/
