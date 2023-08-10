@@ -69,7 +69,7 @@
   ~~~
   - https://access.redhat.com/documentation/ja-jp/red_hat_enterprise_linux/7/html/windows_integration_guide/restricting-ipa-or-sssd-to-selected-ad-servers-or-sites
 
-### ■ADドメインユーザのLinux上のUID/GIDについて
+### ■ ADドメインユーザのLinux上のUID/GIDについて
 - Linux上でADドメインユーザに採番されるUID/GIDはSIDをもとに採番される
 - sssdの設定(`/etc/sssd/sssd.conf`)でuidとgidの範囲を指定することもできる
   - `[domain/<ドメイン名>]`ブロックに`min_id`と`max_id`を設定
