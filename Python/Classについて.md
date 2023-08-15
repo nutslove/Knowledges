@@ -37,7 +37,7 @@
   ~~~
   - 例
     ~~~python
-    class Animal(): ------→ 親Class
+    class Animal: ------→ 親Class
       def __init__(self):
         self.num_eyes = 2
 
@@ -57,7 +57,7 @@
     ~~~
 - 親ClassのMethodを拡張する方法
   ~~~python
-  class Animal():
+  class Animal:
     def __init__(self):
 
     def breathe(self):
