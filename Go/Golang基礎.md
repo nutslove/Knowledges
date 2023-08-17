@@ -262,7 +262,10 @@
 ## Map
 - Format
   1. `var 変数 map[<Key型>]<Value型>`
-  2. `変数 := map[<Key型>]<Value型> { Key1: Value1, Key2: Value2, ・・・, }`  
+  2. `変数 := make(map[<Key型>]<Value型>)`  
+     - 空のMapが作成される
+     - 初期化(定義と同時に値を代入)する場合は 3. の方法がもう少し性能が良いらしい
+  3. `変数 := map[<Key型>]<Value型> { Key1: Value1, Key2: Value2, ・・・, }`  
     → 最後の要素の後にも`,`が必要
       ~~~go
       m := map[string]int {
@@ -303,6 +306,7 @@
     fmt.Println("Key: ", k, "Value: ", v)
   }
   ~~~
+  - **Mapのループで取り出される要素の順番はランダムなので要注意！(意図的に設計されたそう)**
 
 ## 定数（const）
 - 作成した後に値の変更ができない
