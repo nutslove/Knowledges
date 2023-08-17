@@ -307,6 +307,23 @@
   }
   ~~~
   - **Mapのループで取り出される要素の順番はランダムなので要注意！(意図的に設計されたそう)**
+- Mapにnilを代入することもできて、**nilのMapにデータを代入しようとするとプログラムがCrashする。**  
+  **nilのMapにデータを入れる前に新しいMapを代入してからデータを入れること！**
+  - NG
+    ~~~go
+    aMap := map[string]int{}
+    aMap = nil
+    aMap["key1"] = 1 --→ "panic: assignment to entry in nil map"エラーが出てプログラムがCrashする
+    ~~~
+  - OK
+    ~~~go
+    aMap := map[string]int{}
+    aMap = nil
+    if aMap == nil {
+      aMap = map[string]int{}
+    }
+    aMap["key"] = 10 --→ 上でmapを代入したので正常にMapにデータを入れることができる
+    ~~~
 
 ## 定数（const）
 - 作成した後に値の変更ができない
