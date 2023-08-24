@@ -17,7 +17,33 @@
 - 例
   ~~~t
   import {
-    to = aws_ec2_transit_gateway.example
-    id = "tgw-12345678"
+    to = aws_ec2_transit_gateway.example --> <リソースカテゴリ名>.<リソース名>
+    id = "tgw-12345678" --> リソース識別子
   }
   ~~~
+- moduleの中のリソースをimportする例
+  - moduleをincludeする側
+    ~~~t
+    import {
+      to = module.tgw.aws_ec2_transit_gateway.my_transit_gateway --> module.<module名>.<リソースカテゴリ名>.<リソース名>
+      id = "tgw-12345678" --> リソース識別子
+    }
+
+    module "tgw" {
+      source             = "../../modules/AWS/tgw"
+      my_tgw_description = "for VPC Peering, Site to Site VPN, Direct Connect"
+      my_tgw_tag_name    = "My_TGW"
+    }
+    ~~~
+  - module側
+    ~~~t
+    resource "aws_ec2_transit_gateway" "my_transit_gateway" {
+      description = var.my_tgw_description
+      tag = {
+        Name      = var.my_tgw_tag_name
+      }
+    }
+
+    variable "my_tgw_tag_name" {}
+    variable "my_tgw_description" {}
+    ~~~

@@ -1,0 +1,3 @@
+- 書式
+  - `terraform state rm <リソースカテゴリ名>.<リソース名>`
+  - `terraform state rm module.<module名>.<リソースカテゴリ名>.<リソース名>`
