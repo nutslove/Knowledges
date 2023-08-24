@@ -12,3 +12,12 @@
   - https://developer.hashicorp.com/terraform/cli/commands/import
   - https://tech.layerx.co.jp/entry/improve-iac-development-with-terraform-import
   - https://qiita.com/masato930/items/f5707be8077dba995978
+
+#### Terraform v1.5からはTFファイルの中で`import`blockを使ってimportできるようになった
+- 例
+  ~~~t
+  import {
+    to = aws_ec2_transit_gateway.example
+    id = "tgw-12345678"
+  }
+  ~~~
