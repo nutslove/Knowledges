@@ -482,7 +482,7 @@
 - 他の言語のClassのような感じで、1つのstructに対して (下のp1とp2のように) 何回でも変数宣言できる
 - Format
   ~~~go
-  type <type名> struct {
+  type <Struct名> struct {
     <field1名> <型>
     <field2名> <型>
           ・
@@ -644,7 +644,9 @@
   ~~~
 
 ## Interfaces
-- InterfaceはMethod(s)を持つ(Methodのラッピング？)
+- InterfaceはMethodの集合であり、Typeである
+- Interfaceは具現しなければいけないMethodの集合を表した抽象Type
+- あるData TypeがInterfaceを満たすためには、そのInterfaceが求めるすべえてのMethodを具現しなければいけない
 - Interfaceを通じて動作を定義できる
   - 下記例の`GetArea() int`や`speak()`
 - InterfaceのTypeはInterfaceに指定したMethodを持つStructのTypeになれる（Interfaceは値が1つ以上のTypeになり得るようにする）
@@ -897,6 +899,29 @@ fmt.Println(*p)  → メモリアドレス(p)に格納されている値 100 が
 fmt.Println(*p)  → メモリアドレス(p)に格納されている値 300 が表示される
 x := 41
 fmt.Println(*&x) → 41が表示される
+~~~
+~~~go
+package main
+
+import (
+	"fmt"
+)
+
+type ar2x2 [2][2]int
+
+func (a *ar2x2) Test() { ---> Structをpointerとして受け取る
+	a[0] = [2]int{5, 6} 
+	a[1] = [2]int{7, 8} --> この２行でメモリ上の値を直接書き換えているので、returnする必要がない
+}
+
+func main() {
+
+	fmt.Println(ar2x2{}) ---------> zero値の"[[0 0] [0 0]]"が出力される
+	a2 := ar2x2{{1, 2}, {3, 4}}
+	fmt.Println("a2: ", a2) ------> 上で代入した"[1 2][3 4]"が出力
+	a2.Test()
+	fmt.Println("a2: ", a2) ------> Test methodで代入した"[5 6][7 8]"が出力
+}
 ~~~
 - **ポインタの利用シーン**
   1. big chunk of dataを受け渡ししたい場合
@@ -1849,7 +1874,10 @@ fmt.Println(*&x) → 41が表示される
       }
       ~~~
 
-
+## `new()` Keyword
+- データTypeによって適切なメモリ空間を割り当て、Zero Valueにする
+- 割り当てられたメモリのPointerを返す
+- ChannelとMap以外のすべてのデータTypeに使える
 
 ## make
 
