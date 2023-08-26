@@ -1,4 +1,4 @@
-- Simple scalable deployment modeは途中から追加されたけど、現在商用環境で使う上で推奨されているModeである
+- Simple scalable deployment modeは途中から追加されたものだけど、現在は推奨されているModeらしい
   - https://grafana.com/blog/2022/12/19/the-only-helm-chart-you-need-for-grafana-loki-is-here/  
     ![](image/simple%20scalable%20mode.jpg)
 
