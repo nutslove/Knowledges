@@ -646,7 +646,7 @@
 ## Interfaces
 - InterfaceはMethodの集合であり、Typeである
 - Interfaceは具現しなければいけないMethodの集合を表した抽象Type
-- あるData TypeがInterfaceを満たすためには、そのInterfaceが求めるすべえてのMethodを具現しなければいけない
+- あるData TypeがInterfaceを満たすためには、そのInterfaceが求めるすべてのMethodを具現しなければいけない
 - Interfaceを通じて動作を定義できる
   - 下記例の`GetArea() int`や`speak()`
 - InterfaceのTypeはInterfaceに指定したMethodを持つStructのTypeになれる（Interfaceは値が1つ以上のTypeになり得るようにする）
