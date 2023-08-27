@@ -1578,9 +1578,9 @@ func main() {
   - または**buffer**を使ってchannelに値が残れるようにする
     - 定義したbufferの数より多くの数の値をchannelに入れようとするとエラーになる  
       → 定義した数の分がbufferに入ってきたらchannelは遮断される
-- `make(chan int)`でChannelを作成する  
-  → intを入れるchannel
-  - buffer channelを作る場合は`make(chan int, <buffer数>)`
+- `make(chan <Channelに入るデータの型>)`でChannelを作成する  
+  e.g. `make(chan int)` → int型データを入れるchannel
+  - buffer channelを作る場合は`make(chan <Channelに入るデータの型>, <buffer数>)`
 - OK例（goroutineでchannelへの格納とchannelからの取り出しを同時にする例）
   ~~~go
   func main() {
