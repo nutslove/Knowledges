@@ -14,4 +14,5 @@
   現在は`Backend`も追加されている（`Read`から分離）
 - `Backend`の実体は`Ruler`と`Administrative Process`らしい  
   ![](image/Loki_Backend.jpg)
+  - 多分Index Gatewayも含まれてる？
 - https://www.youtube.com/watch?v=OLebNPLIJMI&t=2045s
