@@ -1581,6 +1581,7 @@ func main() {
 - `make(chan <Channelに入るデータの型>)`でChannelを作成する  
   e.g. `make(chan int)` → int型データを入れるchannel
   - buffer channelを作る場合は`make(chan <Channelに入るデータの型>, <buffer数>)`
+- **unbuffered Channelは１つのgoroutineの中では使えないけど、buffered Channelは１つのgoroutineの中で使える**
 - OK例（goroutineでchannelへの格納とchannelからの取り出しを同時にする例）
   ~~~go
   func main() {
