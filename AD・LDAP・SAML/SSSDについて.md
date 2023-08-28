@@ -91,3 +91,13 @@
   ![sid](image/sid.jpg)
 - 参考URL
   - https://atmarkit.itmedia.co.jp/ait/articles/0306/28/news004.html
+
+### ■ AD側のAttributes `uidNumber`と`gidNumber`とサーバ上のuid/gidをmappingする方法
+- AD側にて対象ユーザの`uidNumber`と`gidNumber`にuidとgidになる数字を設定
+  - gidはサーバ側に予めgidの紐づいているGroupが作成されている必要がある
+- Linux側は`/etc/sssd/sssd.conf`の`[domain]`ブロックに`ldap_id_mapping = false`設定を追加し、`systemctl restart sssd`でsssdを再起動
+- 他にもAD側の`unixHomeDirectory`や`loginShell`などのAttributesも設定して、Linux側と連動できるけど、**`uidNumber`と`gidNumber`の２つはAD側で最低限設定が必要**  
+  → `uidNumber`と`gidNumber`が設定されてないとLinuxでログインできない
+- 参考URL
+  - https://access.redhat.com/documentation/ja-jp/red_hat_enterprise_linux/7/html/windows_integration_guide/sssd-integration-intro#sssd-id-mapping-concept
+  - https://access.redhat.com/documentation/ja-jp/red_hat_enterprise_linux/7/html/windows_integration_guide/sssd-posix
