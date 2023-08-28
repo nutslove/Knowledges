@@ -88,6 +88,11 @@
   List ERROR_USRLIST = ERROR_USERLIST.split(",")
   ~~~
 
+### 文字列(`String`)を数字型(`Int`もしくは`Long`)に変換する方法
+- `<String>.toInteger()`や`Integer.parseInt(<String>)`などがあるけど、Jenkinsではscriptsecurityに引っかかったりして使えなかった。
+- **`<String> as Integer` or `<String> as Long`** は使える
+- デカい数字の場合は`Int`の代わりに`Long`を使うこと
+
 ### Parametersについて
 - https://www.jenkins.io/doc/book/pipeline/syntax/#available-parameters
 - JenkinsのGUIにてPipelineのParameterを手動で追加しなくても、  
@@ -150,3 +155,5 @@
   2. `command || exit 0` or `command || true`
 - 参考URL
   - https://stackoverflow.com/questions/14392349/dont-fail-jenkins-build-if-execute-shell-fails
+
+### postセクションも各stageごとに定義できる
