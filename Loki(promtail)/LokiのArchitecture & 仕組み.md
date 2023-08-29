@@ -120,8 +120,3 @@
   - https://grafana.com/docs/loki/latest/operations/storage/boltdb-shipper/#operational-details
   - https://grafana.com/docs/loki/latest/configuration/#ingester
   - https://grafana.com/blog/2021/02/16/the-essential-config-settings-you-should-use-so-you-wont-drop-logs-in-loki/
-
-## HelmによるMicroServices Modeのデプロイ
-- githubリポジトリ
-  - https://github.com/grafana/helm-charts/tree/main/charts/loki-distributed
-- Volumesは`/var/loki`にマウントされるので、各設定上のdirectoryは`/var/loki`配下(e. g. `/var/loki/index`, `/var/loki/cache`)に設定すること
