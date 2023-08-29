@@ -87,3 +87,13 @@ Having said that, you could have this option in your loki config under:
     > "level=warn ts=2023-01-05T11:50:24.072282964Z caller=logging.go:86 traceID=2a11931ed1f9897a orgID=fake msg="POST /loki/api/v1/push (500) 2.01997ms Response: \\\"context canceled\\\\n\\\" ws: false; Accept-Encoding: identity; Connection: close; Content-Length: 1045; Content-Type: application/json; User-Agent: python-urllib3/1.26.9; "\n"
 - 原因
   - ???
+
+## Index GatewayがReady(1/1)にならず、約5分間隔でrestartを繰り返す
+- 事象
+  - Index Gatewayが再起動された時、Podが`Ready 0/1`の状態(`Ready 1/1`にならず)でrestartを繰り返す
+- 原因
+  - MicroService modeのHelmチャートでは共通の`livenessProbe.initialDelaySeconds`として300(s)が設定されており、Index Gatewayが300秒以内にすべてIndexをPVからLoadすることができなかったため
+    - Index GatewayはIndexをすべてLoadする前にStartしない(Readyにならない)
+- 対処
+  - Helmチャートの`loki.livenessProbe.initialDelaySeconds`の数値を600などに上げる
+    - HelmチャートでindexGateway個別のlivenessProbeは変数化されておらず、loki共通の`livenessProbe.initialDelaySeconds`を上げる必要がある
