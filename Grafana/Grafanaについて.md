@@ -154,6 +154,23 @@ therefore each alert will go into its own group. It is different from the defaul
   例えば、Webhookに連携する場合、以下添付のように1つのAlert Ruleから同時に発行される62個のAlertは1回のWebhook(POST)で連携される  
 ![Alert](image/Grafana_MultipleAlerts.jpg)
 
+#### ■Notification policiesについて
+- どのnested policyにもmatchしなかったら大元のDefault policyが適用される
+- defaultでは1つのnested policyにmatchすると次のnested policyは評価されないけど、`Continue matching subsequent sibling nodes`のenableにすればすべてのnested policyが評価される
+- `Mute Timings`タブでアラートをmuteする時間帯を設定し、特定のnested policyと紐づけることができる
+##### `Continue matching subsequent sibling nodes`について
+> If the Continue matching subsequent sibling nodes option is enabled for a nested policy, then evaluation continues even after one or more matches. A parent policy’s configuration settings and contact point information govern the behavior of an alert that does not match any of the nested policies. A default policy governs any alert that does not match a nested policy.
+> 
+> You can configure Grafana-managed notification policies as well as notification policies for an external Alertmanager data source.
+- `Continue matching subsequent sibling nodes`をenableにすると1つのアラートに対して複数の通知を受け取ることができる
+  > enable Continue matching subsequent sibling nodes to continue matching sibling policies even after the alert matched the current policy. When this option is enabled, you can get more than one notification for one alert.
+- nested policyの順番で想定とは違う動きをすることもあり得るので注意！
+  - 例えば、`Mute Timings`と紐づいているnested policyがあるとして、そのnested policyが下の方にあると上のpolicyで評価されて発砲されてしまい、muteが効かない
+  - そういう場合は、既存のnested policyにmuteの為のラベル追加と`Mute Timings`の紐づけを行う
+- 参考URL
+  - https://grafana.com/docs/grafana/latest/alerting/alerting-rules/create-notification-policy/
+  - https://grafana.com/docs/grafana/latest/alerting/fundamentals/notification-policies/
+
 #### ■ CloudWatch LogsのAlert設定
 - CloudWatch Logsに対してアラートを設定するためにはCloudwatch Logs Insightsを使ってnumericデータが返ってくるようにクエリーを投げる必要がある
   > Alerting require queries that return numeric data, which CloudWatch Logs support. For example through the use of the stats command, alerts are supported.
