@@ -34,6 +34,13 @@
     `sum(http_requests_total{method="GET"}) - sum(http_requests_total{method="GET"} offset 1h)`
 - https://prometheus.io/docs/prometheus/latest/querying/basics/#offset-modifier
 
+## `unless`について
+- PromQLでは同じLabelを複数使うことはできない
+- 例えば、nameラベルにある値が必ず設定されてるけど、`_`が入っているものは除外したい場合、以下のような書き方はできない
+  - `time() - container_last_seen{pod!~".+",name=~".+",name!~".*_.*"}`
+- そこで`unless`を使えば同じLabelに対して特定のデータを除外することができる
+  - `(time() - container_last_seen{pod!~".+",name=~".+"} unless {name=~".*_.*"})`
+
 #### `label_replace`によるリラベル
 - Prometheus側の設定`relabel_configs`による永続的なリラベルではなく、PromQL`label_replace`で一時的(そのクエリーに限る)にリラベルするとこができる  
   https://stackoverflow.com/questions/71794543/promql-join-on-different-label-names  
