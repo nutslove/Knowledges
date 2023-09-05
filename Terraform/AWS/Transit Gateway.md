@@ -1,0 +1,2 @@
+- AWS Resource Access Manager (AWS RAM)を使ってTransit GatewayにアタッチされているCross AccountのVPCの承諾には`aws_ec2_transit_gateway`の代わりに`aws_ec2_transit_gateway_vpc_attachment_accepter`を使う？
+  - https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/ec2_transit_gateway_vpc_attachment_accepter
