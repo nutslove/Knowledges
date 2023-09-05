@@ -1696,7 +1696,7 @@ func main() {
     }
     ~~~
 
-  #### Channelの`range`によるLoopと`close`について
+  #### Channelの`for`&`range`によるLoopと`close`について
   - Goroutineの中で1つのChannelに複数の値を入れる場合、Channelから受け取る処理も複数行う必要がある。  
     例えば以下のような例では`fmt.Println(x)`で最初にChannelに入れた値"1"しか出力されない
     ~~~go
@@ -1771,7 +1771,7 @@ func main() {
         }
     }
     ~~~
-  - 上記ではfor文がChannelから最後(5番目)の値を取り出した後、Channelに値が残ってなくても続けて値を取り出そうとして、(すべての値を出力した後に)以下のようなエラーが出る
+  - 上記では`goroutine1`関数は5までchannelに値を入れた後完了するが、main関数内のfor文はChannelから最後(5番目)の値を取り出した後もChannelがcloseされてないため、channelに新しい値が入ってくることを待っている。しかし、`goroutine1`関数は終了しており、新しい値が入ってくることはないため、main関数内のfor文は永遠に待ち続ける。これはDeadlockの状態と言えるので以下のように`all goroutines are asleep - deadlock!`エラーが出る  
     ~~~
     1
     3
@@ -1811,10 +1811,13 @@ func main() {
         }
     }
     ~~~
+  - 以下Chat-GPTからの回答
+    > for文は、channelから値が利用可能になるまで待機します。この期間、forループはブロックされ、新しい値がchannelに送信されるまで進行しません。
+    > channelがcloseされると、forループは終了します。closeされたchannelからの読み取りは常に可能で、それ以降の読み取りではゼロ値（型に応じたゼロ値）が返されます。
 
 ## select
-- selectはChannelでしか使えない。文法はswitchとほぼ一緒。
-- Select statements pull the value from whatever channel has a value ready to be pulled.
+- selectはChannelでしか使えない。文法は`switch`とほぼ一緒。
+- *Select statements pull the value from whatever channel has a value ready to be pulled.*
 - channelは通常値が入っていなければ受信をブロックするが、select文はブロックしないで処理する時に利用
 - selectを使うと複数のChannelからの受信を待てる
 - 例（"received one","received two"）
