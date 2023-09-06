@@ -1870,6 +1870,66 @@ func main() {
 		}
 	}
   ~~~
+- `select`文内の`case`ブロックの中に`return`がある(実行される)と、対象`case`ブロックが指定したchannelから値を受信or送信した後に関数全体が終了する。    
+  - 以下の例の場合、１か２が出力された後に *"This line will not executed."* は出力されずmain関数が終了する  
+    ※**goroutineの実行順序とselectが複数のchannelのうちどこから使うかはランダム(Go runtimeによって決まる)**  
+    ~~~go
+    package main
+
+    import "fmt"
+
+    func main() {
+    	ch1 := make(chan int)
+    	ch2 := make(chan int)
+
+    	go func() {
+    		ch1 <- 1
+    	}()
+
+    	go func() {
+    		ch2 <- 2
+    	}()
+
+    	select {
+    	case i := <-ch1:
+    		fmt.Println(i)
+    		return
+    	case i := <-ch2:
+    		fmt.Println(i)
+    		return
+    	}
+
+    	fmt.Println("This line will not be executed.")
+    }
+    ~~~
+- `case`ブロックに`return`がないと`select`はchannelからの送信/受信を待ち続けるが、`time.After()`を使えば特定時間後`select`を終了させることができる。  
+  以下の例では *"Timeout"* だけ出力されてプログラムが終了する。
+  ~~~go
+  package main
+
+  import (
+  	"fmt"
+  	"time"
+  )
+
+  func main() {
+  	c := make(chan int)
+  	
+  	go func() {
+  		time.Sleep(2 * time.Second)
+  		c <- 42
+  	}()
+  	
+  	select {
+  	case val := <-c:
+  		fmt.Println("Received:", val)
+  		return
+  	case <-time.After(1 * time.Second):
+  		fmt.Println("Timeout")
+  		return
+  	}
+  }
+  ~~~
 - `for`と組合せて使うことで(明示的に終了させるまでは)プログラムが終了せず、Channelに値が入ることを待つことができる
 - 参考URL
   - https://www.spinute.org/go-by-example/select.html
