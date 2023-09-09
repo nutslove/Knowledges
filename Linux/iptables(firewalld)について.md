@@ -9,8 +9,8 @@
   | `target` (種類) | 説明 | Chain | 確認コマンド例 | 確認コマンド出力例 |
   | --- | --- | --- | --- | --- |
   | SNAT | SourceIPを変換 | POSTROUTING |  | |
-  | DNAT | DestinationIPを変換 | PREROUTING | `iptables -t nat -L DOCKER -v -n` | Chain DOCKER (2 references)<br> pkts bytes target     prot opt in     out     source               destination<br>    0     0 RETURN     all  --  docker0 *       0.0.0.0/0            0.0.0.0/0<br> 149K 7574K DNAT       tcp  --  !docker0 *       0.0.0.0/0            0.0.0.0/0            tcp dpt:80 to:172.17.0.3:8000<br>  142  7392 DNAT       tcp  --  !docker0 *       0.0.0.0/0            0.0.0.0/0            tcp dpt:8080 to:172.17.0.4:80 |
-  | MASQUERADE | SourceIPを**動的**に変換 | POSTROUTING | |
+  | DNAT | DestinationIPを変換 | PREROUTING | `iptables -t nat -L DOCKER -vn` | Chain DOCKER (2 references)<br> pkts bytes target     prot opt in     out     source               destination<br>    0     0 RETURN     all  --  docker0 *       0.0.0.0/0            0.0.0.0/0<br> 149K 7574K DNAT       tcp  --  !docker0 *       0.0.0.0/0            0.0.0.0/0            tcp dpt:80 to:172.17.0.3:8000<br>  142  7392 DNAT       tcp  --  !docker0 *       0.0.0.0/0            0.0.0.0/0            tcp dpt:8080 to:172.17.0.4:80 |
+  | MASQUERADE | SourceIPを**動的**に変換 | POSTROUTING | `iptables -t nat -L POSTROUTING -nv` | Chain POSTROUTING (policy ACCEPT 720K packets, 54M bytes)<br> pkts bytes target     prot opt in     out     source               destination<br>  22M 1537M MASQUERADE  all  --  *      !docker0  172.17.0.0/16        0.0.0.0/0<br><br>**→outが`!docker`となってて、つまりbridge以外の外部NW向けの通信をSNATするということ** |
   - `iptables`コマンドオプション
     - `-L [<chain名>]`：chain名を指定した場合はそのchainの設定されたルール(ルールセット)が表示される。chain名を指定してない場合はすべてのchainのルールセットが表示される
     - `-t <table名>`：指定したtableの情報のみ表示する
