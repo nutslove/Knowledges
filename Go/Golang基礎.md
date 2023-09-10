@@ -1482,6 +1482,7 @@ func main() {
 - Channelは使った後に必ず`close(<channel名>)`で閉じなければならない  
   → closeしないとResource Leakが発生する恐れがある
   > Once you're done with a channel, you must close it !
+- **閉じたChannelから値を取り出すと、そのChannelの型のZero値が取得される**
 - Channelにはchannelから受け取ることができるoptionalな2つ目のparameter(`boolean`typeで通常受け取る変数名は`ok`とする)がある
   - **https://stackoverflow.com/questions/10437015/does-a-channel-return-two-values**
     > The boolean variable ok returned by a [receive operator](https://go.dev/ref/spec#Receive_operator) indicates whether the received value was sent on the channel (true) or is a zero value returned because the channel is closed and empty (false).
