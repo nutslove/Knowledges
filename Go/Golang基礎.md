@@ -1574,8 +1574,9 @@ func main() {
   ~~~
 - ChannelもType
 - **Channelは値を入れた後に遮断(Blocking)される**
+  - **BlockingされたChannelに値を入れようとするとpanicを起こす**
   - なので**goroutine**で**channelに値を入れるのとchannelから値を取り出すのを並行で**実施するようにコードを書く必要がある
-  - unbuffered Channelに値を入れた後、取り出さずにまた値を入れようとすると`fatal error: all goroutines are asleep - deadlock!`エラーが発生する
+  - **unbuffered Channelに値を入れた後、取り出さずにまた値を入れようとすると`fatal error: all goroutines are asleep - deadlock!`エラーが発生する**
   - または**buffer**を使ってchannelに値が残れるようにする
     - 定義したbufferの数より多くの数の値をchannelに入れようとするとエラーになる  
       → 定義した数の分がbufferに入ってきたらchannelは遮断される
