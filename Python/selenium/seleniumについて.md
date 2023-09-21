@@ -24,3 +24,6 @@
     driver = webdriver.Edge(service=Service('D:/work/test/edgedriver_win32/msedgedriver.exe'), options=options)
     driver.get("https://test.s3.ap-northeast-1.amazonaws.com/form.html?ABORT_MAIL=false")
     ~~~
+- 最初に`driver.get(<URL>)`で操作対象ページを開く
+- 操作が終わったら`driver.quit()`で閉じる
+- ページのリロードは`driver.refresh()`で行う
