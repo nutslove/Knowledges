@@ -989,6 +989,7 @@ func main() {
   - 例えばcpuコアが1つしかないコンピューターではGoroutineを使っても、並列(parallel)ではなく、並行(concurrent)処理になる
 - 関数の前に`go`をつけるとGoroutineになる
   - 例：`go foo()`
+- 1つのgoroutineは1つのスレッドとして動作する。そして、GoランタイムはこれらのgoroutineをOSスレッドにマッピングする（これにより、goroutineは非常に軽量となっている）。1つのgoroutine内で、関数やメソッドはシーケンシャルに（つまり1つずつ順番に）実行される。
 - (Goroutineが複数ある場合)**GoRoutine処理は順番が保証されない**(毎回順番が異なる)。  
   **処理の順番はGo Schedulerによって決まる。**  
   例えば以下の例では"alpha"→"beta"→"delta"→"gamma"→・・・順ではなく、実行のたびに異なるRandom順で出力される
@@ -1040,6 +1041,184 @@ func main() {
 	  // printSomething again, since wg is already at 0
 	  wg.Add(1)
 	  printSomething("This is the second thing to be printed!", &wg)
+  }
+  ~~~
+- 複数のGoroutineが実行されている場合、あるGoroutineを抜ける(終了する)には`return`を使えば良い  
+  ※`pizzeria`関数の中の`return`
+  ~~~go
+  package main
+
+  import (
+  	"fmt"
+  	"math/rand"
+  	"time"
+
+  	"github.com/fatih/color"
+  )
+
+  const NumberOfPizzas = 10
+
+  var pizzasMade, pizzasFailed, total int
+
+  // Producer is a type for structs that holds two channels: one for pizzas, with all
+  // information for a given pizza order including whether it was made
+  // successfully, and another to handle end of processing (when we quit the channel)
+  type Producer struct {
+  	data chan PizzaOrder
+  	quit chan chan error
+  }
+
+  // PizzaOrder is a type for structs that describes a given pizza order. It has the order
+  // number, a message indicating what happened to the order, and a boolean
+  // indicating if the order was successfully completed.
+  type PizzaOrder struct {
+  	pizzaNumber int
+  	message     string
+  	success     bool
+  }
+
+  // Close is simply a method of closing the channel when we are done with it (i.e.
+  // something is pushed to the quit channel)
+  func (p *Producer) Close() error {
+  	ch := make(chan error)
+  	p.quit <- ch
+  	return <-ch
+  }
+
+  // makePizza attempts to make a pizza. We generate a random number from 1-12,
+  // and put in two cases where we can't make the pizza in time. Otherwise,
+  // we make the pizza without issue. To make things interesting, each pizza
+  // will take a different length of time to produce (some pizzas are harder than others).
+  func makePizza(pizzaNumber int) *PizzaOrder {
+  	pizzaNumber++
+  	if pizzaNumber <= NumberOfPizzas {
+  		delay := rand.Intn(5) + 1
+  		fmt.Printf("Received order #%d!\n", pizzaNumber)
+
+  		rnd := rand.Intn(12) + 1
+  		msg := ""
+  		success := false
+
+  		if rnd < 5 {
+  			pizzasFailed++
+  		} else {
+  			pizzasMade++
+  		}
+  		total++
+
+  		fmt.Printf("Making pizza #%d. It will take %d seconds....\n", pizzaNumber, delay)
+  		// delay for a bit
+  		time.Sleep(time.Duration(delay) * time.Second)
+
+  		if rnd <=2 {
+  			msg = fmt.Sprintf("*** We ran out of ingredients for pizza #%d!", pizzaNumber)
+  		} else if rnd <= 4 {
+  			msg = fmt.Sprintf("*** The cook quit while making pizza #%d!", pizzaNumber)
+  		} else {
+  			success = true
+  			msg = fmt.Sprintf("Pizza order #%d is ready!", pizzaNumber)
+  		}
+
+  		p := PizzaOrder{
+  			pizzaNumber: pizzaNumber,
+  			message: msg,
+  			success: success,
+  		}
+
+  		return &p
+
+  	}
+
+  	return &PizzaOrder{
+  		pizzaNumber: pizzaNumber,
+  	}
+  }
+
+  // pizzeria is a goroutine that runs in the background and
+  // calls makePizza to try to make one order each time it iterates through
+  // the for loop. It executes until it receives something on the quit
+  // channel. The quit channel does not receive anything until the consumer
+  // sends it (when the number of orders is greater than or equal to the
+  // constant NumberOfPizzas).
+  func pizzeria(pizzaMaker *Producer) {
+  	// keep track of which pizza we are making
+  	var i = 0
+
+  	// this loop will continue to execute, trying to make pizzas,
+  	// until the quit channel receives something.
+  	for {
+  		currentPizza := makePizza(i)
+  		if currentPizza != nil {
+  			i = currentPizza.pizzaNumber
+  			select {
+  			// we tried to make a pizza (we send something to the data channel -- a chan PizzaOrder)
+  			case pizzaMaker.data <- *currentPizza:
+
+  			// we want to quit, so send pizzMaker.quit to the quitChan (a chan error)
+  			case quitChan := <-pizzaMaker.quit:
+  				// close channels
+  				close(pizzaMaker.data)
+  				close(quitChan)
+  				return
+  			}
+  		}
+  	}
+  }
+
+  func main() {
+  	// seed the random number generator
+  	rand.Seed(time.Now().UnixNano())
+
+  	// print out a message
+  	color.Cyan("The Pizzeria is open for business!")
+  	color.Cyan("----------------------------------")
+
+  	// create a producer
+  	pizzaJob := &Producer{
+  		data: make(chan PizzaOrder),
+  		quit: make(chan chan error),
+  	}
+
+  	// run the producer in the background
+  	go pizzeria(pizzaJob)
+
+  	// create and run consumer
+  	for i := range pizzaJob.data {
+  		if i.pizzaNumber <= NumberOfPizzas {
+  			if i.success {
+  				color.Green(i.message)
+  				color.Green("Order #%d is out for delivery!", i.pizzaNumber)
+  			} else {
+  				color.Red(i.message)
+  				color.Red("The customer is really mad!")
+  			}
+  		} else {
+  			color.Cyan("Done making pizzas...")
+  			err := pizzaJob.Close()
+  			if err != nil {
+  				color.Red("*** Error closing channel!", err)
+  			}
+  		}
+  	}
+
+  	// print out the ending message
+  	color.Cyan("-----------------")
+  	color.Cyan("Done for the day.")
+
+  	color.Cyan("We made %d pizzas, but failed to make %d, with %d attempts in total.", pizzasMade, pizzasFailed, total)
+
+  	switch {
+  	case pizzasFailed > 9:
+  		color.Red("It was an awful day...")
+  	case pizzasFailed >= 6:
+  		color.Red("It was not a very good day...")
+  	case pizzasFailed >= 4:
+  		color.Yellow("It was an okay day....")
+  	case pizzasFailed >= 2:
+  		color.Yellow("It was a pretty good day!")
+  	default:
+  		color.Green("It was a great day!")
+  	}
   }
   ~~~
 
@@ -1581,7 +1760,7 @@ func main() {
   - または**buffer**を使ってchannelに値が残れるようにする
     - 定義したbufferの数より多くの数の値をchannelに入れようとするとエラーになる  
       → 定義した数の分がbufferに入ってきたらchannelは遮断される
-- `make(chan <Channelに入るデータの型>)`でChannelを作成する  
+- `make(chan <Channelに入るデータの型>)`でChannelを初期化(作成)する  
   e.g. `make(chan int)` → int型データを入れるchannel
   - buffer channelを作る場合は`make(chan <Channelに入るデータの型>, <buffer数>)`
 - **unbuffered Channelは１つのgoroutineの中では使えないけど、buffered Channelは１つのgoroutineの中で使える**
@@ -1615,7 +1794,11 @@ func main() {
   ~~~
 
 - NG例  
-  → `all goroutines are asleep - deadlock!`とエラーになる
+  → `all goroutines are asleep - deadlock!`とエラーになる  
+    - 以下Chat-GPTからの回答
+      > Goのチャネルはデフォルトで同期的（unbuffered）です。つまり、あるゴルーチンがチャネルにデータを送信すると、そのデータが別のゴルーチンによって受信されるまで送信ゴルーチンはブロックされます。同様に、ゴルーチンがチャネルからデータを受信しようとすると、別のゴルーチンがデータを送信するまで受信ゴルーチンはブロックされます。
+      > 
+      > このコードの問題は、c <- 42によってデータを送信しようとするゴルーチンがありますが、その時点でデータを受信しようとする別のゴルーチンがないため、送信ゴルーチンが永遠にブロックされる点にあります。
   ~~~go
   func main() {
 	  c := make(chan int)
@@ -1817,6 +2000,19 @@ func main() {
   - 以下Chat-GPTからの回答
     > for文は、channelから値が利用可能になるまで待機します。この期間、forループはブロックされ、新しい値がchannelに送信されるまで進行しません。
     > channelがcloseされると、forループは終了します。closeされたchannelからの読み取りは常に可能で、それ以降の読み取りではゼロ値（型に応じたゼロ値）が返されます。
+
+  #### `chan error`について
+  - `error`型のzero値は`nil`  
+    なのでcloseされた`error`型のchannelから値を取り出そうとすると`nil`が返ってくる  
+    ~~~go
+    func main() {
+    	ch := make(chan error)
+    	close(ch)
+
+    	val, ok := <-ch
+    	fmt.Println(val, ok) // 出力: <nil> false
+    }
+    ~~~
 
 ## select
 - selectはChannelでしか使えない。文法は`switch`とほぼ一緒。
