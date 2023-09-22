@@ -34,6 +34,22 @@
   - 例えば`root_url`を`http://<GrafanaのIP>/unk`にしたら`<GrafanaのIP>/unk`でアクセスできるようになる
   - https://grafana.com/docs/grafana/latest/setup-grafana/configure-grafana/#serve_from_sub_path
 
+## Grafana built-in variables
+- https://grafana.com/docs/grafana/latest/dashboards/variables/add-template-variables/#global-variables
+#### `$__interval`
+- DashboardのTimeRangeとpanelのグラフの横幅に合わせて自動的に最適なintervalを設定してくれる
+  - > The $__interval is calculated using the time range and the width of the graph (the number of pixels).
+
+#### `$__rate_interval`
+- DataSourceがPrometheusの時のみ使える変数
+- rate関数のintervalをTimeRangeとpanelのグラフの横幅に合わせて自動的に設定してくれる
+
+#### `$__range`
+- DataSourceがPrometheusとLokiの時のみ使える変数
+- 現在のDashboardのRange(恐らくTime Range?)
+  - > It is calculated by `to - from`
+
+
 ## DashBoard / Panel設定
 ### ■ Variablesについて
 - Grafanaダッシュボードの中の値(Query、Min interval、Panelタイトルなどなど)をダッシュボードで選択/記入した値に動的に変更できる仕組み
