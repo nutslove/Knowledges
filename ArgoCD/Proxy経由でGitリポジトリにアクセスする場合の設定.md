@@ -1,0 +1,2 @@
+- https://github.com/argoproj/argo-cd/issues/4333
+- 自分の環境には`argocd-server`と`argocd-dex-server`、`argocd-redis-ha-haproxy`、`argocd-repo-server`に環境変数として`HTTP_PROXY`,`HTTPS_PROXY`,`NO_PROXY`を追加した
