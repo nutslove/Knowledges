@@ -79,6 +79,14 @@
   ~~~
 
 ## journal
-- defaultではjournalは有効になっておらず、ソースコードをダウンロードし、journalを有効にした状態でビルドする必要がある
+- defaultではjournalは無効になっていて、ソースコードをダウンロードし、journalを有効にした状態でビルドする必要がある
+  ~~~
+  yum install systemd-devel  ## RHEL/CentOS/Amazon Linux
+  git clone https://github.com/grafana/loki.git
+  cd loki
+  go build --tags=promtail_journal_enabled ./clients/cmd/promtail
+  ~~~
+- https://grafana.com/docs/loki/latest/send-data/promtail/scraping/#journal-scraping-linux-only
+- https://grafana.com/docs/loki/latest/setup/upgrade/#the-go-build-tag-promtail_journal_enabled-was-introduced
 - https://github.com/grafana/loki
 - https://grafana.com/docs/loki/latest/clients/promtail/configuration/#journal
