@@ -982,6 +982,71 @@ func main() {
   1. big chunk of dataを受け渡ししたい場合
   2. 特定のメモリアドレスにある値を変更したい場合
 
+#### Method(メソッド)のReceiverがPointer型の場合
+- **Methodを呼び出す時`&`を付けなくても、また、Method内でReceiverの値を参照/更新する時`*`を付けなくてもGoコンパイラが自動的に変換してくれる**
+  - Methodの呼び出す例  
+    例えば、以下のような構造体とメソッドがあるとします。
+    ```go
+    type MyStruct struct {
+        Field int
+    }
+
+    func (s *MyStruct) SetField(value int) {
+        s.Field = value
+    }
+    ```
+    このメソッドを呼び出すには、以下のどちらの方法でも動作します。
+    ```go
+    s := MyStruct{}
+    s.SetField(5) // 自動的に &s に変換されます。
+
+    p := &MyStruct{}
+    p.SetField(5) // すでにポインタなので変換は不要です。
+    ```
+    上記の `s.SetField(5)` では、`s` は値ですが、Goは自動的にポインタ `&s` に変換して、`SetField` メソッドを呼び出します。この機能により、ポインタを明示的に使用することなく、メソッドを簡単に呼び出すことができます。
+  - Method内でReceiverの値を参照/更新する例  
+    Goでは、Pointer Receiverを使用してMethodを定義すると、そのMethod内ではReceiverの実際の値に自動的にアクセスすることができます。したがって、Method内でReceiverのフィールドにアクセスする際には、特に`*`を付ける必要はありません。
+
+    例えば、以下のコードの中:
+    ```go
+    func (shop *BarberShop) addBarber(barber string) {
+        shop.NumberOfBarbers++
+        // ...
+        if len(shop.ClientsChan) == 0 {
+            // ...
+        }
+    }
+    ```
+    ここで`shop`は`*BarberShop`型（`BarberShop`のポインタ）ですが、`shop.NumberOfBarbers`や`shop.ClientsChan`のように、直接そのフィールドにアクセスしています。この場合、Goは自動的にポインタをデリファレンス（参照している実際の値にアクセス）します。
+
+    実際、以下の二つのコードスニペットは同等です：
+    ```go
+    func (shop *BarberShop) addBarber(barber string) {
+        shop.NumberOfBarbers++
+        // ...
+    }
+    ```
+    と
+    ```go
+    func (shop *BarberShop) addBarber(barber string) {
+        (*shop).NumberOfBarbers++
+        // ...
+    }
+    ```
+    しかし、通常は前者の方法が使用されます、なぜならそれはより簡潔で読みやすいからです。
+- **これはMethod(メソッド)にのみ適用される話で、普通の関数では以下のように`&`を付けて関数を呼び出して値を連携し、`*`を付けてメモリアドレス内の値を変える必要がある**
+  ```go
+  func increment(x *int) {
+      *x = *x + 1 // ポインタxの指す値にアクセスして、1を加える。
+  }
+
+  func main() {
+      a := 5
+      increment(&a)
+      fmt.Println(a) // 出力: 6
+  }
+  ```
+
 ## Goroutine
 - GoroutineはGoで実行できる一番小さい単位
   - main関数も1つのGoroutine
