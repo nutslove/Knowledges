@@ -2051,7 +2051,8 @@ func main() {
           }
       }
   }
-- 1つのChannelに対して複数のcaseで待ち受ける時、ランダムでcaseが選ばれる
+- **1つのChannelに対して複数のcaseで待ち受ける時、ランダムでcaseが選ばれる**  
+  例えば、以下例の場合、`channel1`に値を送信したら`case s1`か`case s2`のどっちかがランダムに選ばれる
   ~~~go
 	for {
 		select {
