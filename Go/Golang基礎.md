@@ -2080,6 +2080,18 @@ func main() {
     }
     ~~~
 
+  #### `time.After()`を使ったtimeout設定
+  - `time.After(d)`は指定した期間`d`が経過すると、現在の時刻を送信する新しいchannelを返す。
+  - `select`と組み合わせて使うことで複数のchannel操作を同時に待機する際に便利  
+    ~~~go
+    select {
+    case <-time.After(1 * time.Second):
+        fmt.Println("Timed out")
+    case msg := <-ch:
+        fmt.Println("Received message:", msg)
+    }
+    ~~~
+
 ## select
 - selectはChannelでしか使えない。文法は`switch`とほぼ一緒。
 - *Select statements pull the value from whatever channel has a value ready to be pulled.*
