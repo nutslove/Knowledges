@@ -1,4 +1,4 @@
-- GatewayタイプはAWSサービスにアクセスするためのInternet Gatewayのようなもので、Interfaceタイプとは異なりVPC内IPを消費しない。
+- **Gatewayタイプ**はAWSサービスにアクセスするためのInternet Gatewayのようなもので、**Interfaceタイプ**とは異なりVPC内IPを消費しない。
 
 ## VPC Endpoint Policy
 - VPC Endpointごとにポリシーを適用できて、該当Endpointでアクセスできるリソースを制限できたりする

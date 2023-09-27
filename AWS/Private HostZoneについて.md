@@ -1,2 +1,0 @@
-- https://docs.aws.amazon.com/ja_jp/Route53/latest/DeveloperGuide/hosted-zone-private-considerations.html
-- https://docs.aws.amazon.com/ja_jp/vpc/latest/userguide/vpc-dns.html
