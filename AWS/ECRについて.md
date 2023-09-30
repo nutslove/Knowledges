@@ -17,7 +17,8 @@
     ~~~
     - https://docs.aws.amazon.com/ja_jp/AmazonECR/latest/userguide/registry-permissions-examples.html
 > **Warning**
-> **レプリケーションされるのはレプリケーションの設定後にリポジトリにプッシュされたイメージのみ。レプリケーション設定前のイメージはレプリケーションされないので注意！**
+> **レプリケーションされるのはレプリケーションの設定後にリポジトリにプッシュされたイメージのみ。**  
+> **レプリケーション設定前のイメージはレプリケーションされないので注意！**
   - https://docs.aws.amazon.com/ja_jp/AmazonECR/latest/userguide/replication.html#replication-considerations
 - 参考URL
   - https://docs.aws.amazon.com/ja_jp/AmazonECR/latest/userguide/replication.html
