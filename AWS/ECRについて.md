@@ -19,7 +19,8 @@
 > **Warning**
 > **レプリケーションされるのはレプリケーションの設定後にリポジトリにプッシュされたイメージのみ。**  
 > **レプリケーション設定前のイメージはレプリケーションされないので注意！**
-  - https://docs.aws.amazon.com/ja_jp/AmazonECR/latest/userguide/replication.html#replication-considerations
+> - https://docs.aws.amazon.com/ja_jp/AmazonECR/latest/userguide/replication.html#replication-considerations
+
 - VPC EndPoint経由でECRからimageをpullするためには以下3つのVPC EndPointが必要
   1. `com.amazonaws.<region>.ecr.dkr`
   2. `com.amazonaws.<region>.ecr.api`
