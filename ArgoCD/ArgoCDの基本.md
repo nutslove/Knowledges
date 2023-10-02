@@ -63,7 +63,7 @@
   ~~~  
   > In the above example, the prometheus chart will use the value file from git.example.gom/org/value-files.git. \$values resolves to the root of the value-files repository. The $values variable may only be specified at the beginning of the value file path.
 
-### values fileを設けず、直接
+### values fileを設けず、直接`Application`の中でvalueを定義することもできる
 - https://argo-cd.readthedocs.io/en/stable/user-guide/helm/#values
 - 設定例(1)
   ~~~yaml
