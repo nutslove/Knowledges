@@ -13,3 +13,5 @@
 - ChartのバージョンとChartバージョンに紐づくソフトフェアのバージョンの一覧を表示
   - `helm search repo <Chart名> --versions`
     - e.g. `helm search repo grafana/loki-distributed --versions`
+- Chartバージョンアップ
+  - `helm repo update`
