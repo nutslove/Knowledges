@@ -20,26 +20,6 @@
 - https://argo-cd.readthedocs.io/en/stable/user-guide/helm/
 - argocdバージョン2.6前までは、values fileは必ずHelm chartと同じgit repositoryに存在している必要があったが、2.6からは別のrepository上のvalues fileも扱えるようになった。  
   > Before v2.6 of Argo CD, Values files must be in the same git repository as the Helm chart. The files can be in a different location in which case it can be accessed using a relative path relative to the root directory of the Helm chart. As of v2.6, values files can be sourced from a separate repository than the Helm chart by taking advantage of multiple sources for Applications.
-- **Helm ChartとValues fileが別々のGit Repositoryにある場合の設定方法**
-  - https://argo-cd.readthedocs.io/en/stable/user-guide/multiple_sources/#helm-value-files-from-external-git-repository
-  - これで3rd partyのHelm Chart(e.g. Loki Helm chart)と自組織Git Repository上のvalues fileを組み合わせることができる
-  - 設定例
-    ~~~yaml
-    apiVersion: argoproj.io/v1alpha1
-    kind: Application
-    spec:
-      sources:
-      - repoURL: 'https://prometheus-community.github.io/helm-charts'
-        chart: prometheus
-        targetRevision: 15.7.1 ★--->helmの場合はChartバージョン
-        helm:
-          valueFiles:
-          - $values/charts/prometheus/values.yaml ★---> 「$values」には下のGit Repositoryのrootが入る
-      - repoURL: 'https://git.example.com/org/value-files.git'
-        targetRevision: dev ★---> gitの場合はgit repositoryのブランチ
-        ref: values
-    ~~~  
-    > In the above example, the prometheus chart will use the value file from git.example.gom/org/value-files.git. \$values resolves to the root of the value-files repository. The $values variable may only be specified at the beginning of the value file path.
 - HelmチャートのApplication設定例
   ~~~yaml
   apiVersion: argoproj.io/v1alpha1
@@ -62,5 +42,68 @@
       namespace: kubeseal
   ~~~
 
-### その他
+### **Helm ChartとValues fileが別々のGit Repositoryにある場合の設定方法**
+- https://argo-cd.readthedocs.io/en/stable/user-guide/multiple_sources/#helm-value-files-from-external-git-repository
+- これで3rd partyのHelm Chart(e.g. Loki Helm chart)と自組織Git Repository上のvalues fileを組み合わせることができる
+- 設定例
+  ~~~yaml
+  apiVersion: argoproj.io/v1alpha1
+  kind: Application
+  spec:
+    sources:
+    - repoURL: 'https://prometheus-community.github.io/helm-charts'
+      chart: prometheus
+      targetRevision: 15.7.1 ★--->helmの場合はChartバージョン
+      helm:
+        valueFiles:
+        - $values/charts/prometheus/values.yaml ★---> 「$values」には下のGit Repositoryのrootが入る
+    - repoURL: 'https://git.example.com/org/value-files.git'
+      targetRevision: dev ★---> gitの場合はgit repositoryのブランチ
+      ref: values
+  ~~~  
+  > In the above example, the prometheus chart will use the value file from git.example.gom/org/value-files.git. \$values resolves to the root of the value-files repository. The $values variable may only be specified at the beginning of the value file path.
+
+### values fileを設けず、直接
+- https://argo-cd.readthedocs.io/en/stable/user-guide/helm/#values
+- 設定例(1)
+  ~~~yaml
+  source:
+    helm:
+      valuesObject:
+        ingress:
+          enabled: true
+          path: /
+          hosts:
+            - mydomain.example.com
+          annotations:
+            kubernetes.io/ingress.class: nginx
+            kubernetes.io/tls-acme: "true"
+          labels: {}
+          tls:
+            - secretName: mydomain-tls
+              hosts:
+                - mydomain.example.com
+  ~~~
+- 設定例(2)
+  ~~~yaml
+  source:
+    helm:
+      values: |
+        ingress:
+          enabled: true
+          path: /
+          hosts:
+            - mydomain.example.com
+          annotations:
+            kubernetes.io/ingress.class: nginx
+            kubernetes.io/tls-acme: "true"
+          labels: {}
+          tls:
+            - secretName: mydomain-tls
+              hosts:
+                - mydomain.example.com
+  ~~~
+
+
+## その他
 - `targetRevision: HEAD`はデフォルトのブランチ(masterまたはmain)を意味する
