@@ -1,0 +1,11 @@
+- `vmstorage`, `vmselect`, `vminsert`それぞれについてprofileを取得することができる
+  - https://docs.victoriametrics.com/Cluster-VictoriaMetrics.html#profiling
+- ブラウザからprofileを確認するためにはgolangと「graphviz」というパッケージをインストールする必要がある
+  - Amazon Linux2の場合
+    - `yum install graphviz graphviz-gd`
+- ブラウザでmemoryのprofileを確認する方法（vmselectの場合）
+  - `go tool pprof -http"<コマンド実行するサーバIP>:<profile開示するポート>" http://<vmselectのIP>:8481/debug/pprof/heap`
+  - 上記実行中の状態でブラウザから「<コマンド実行するサーバIP>:<profile開示するポート>」にアクセスする
+  - 以下のように1回ファイルとして出して読み込むことも可能
+    - `curl http://<vmselectのIP>:8481/debug/pprof/heap > mem.pprof`
+    - `go tool pprof -http"<コマンド実行するサーバIP>:<profile開示するポート>" mem.pprof`
