@@ -1,4 +1,26 @@
-### `count` vs `for_each` vs `for`
+## `locals` vs `variable`
+- 基本的に`locals`の使用が推奨されているっぽい。
+- 参考URL
+  - https://febc-yamamoto.hatenablog.jp/entry/2018/01/30/185416
+### `locals`（Local Values）
+- https://developer.hashicorp.com/terraform/language/values/locals
+- module内でのみ使える変数
+- 以下のように`locals`の中で関数が使える（`variable`はできない）  
+  ~~~tf
+  locals {
+    load_balancer_count = var.use_load_balancer == "" ? 1 : 0
+    switch_count        = local.load_balancer_count
+  }
+  ~~~
+### `variable`（Input Variables）
+- https://developer.hashicorp.com/terraform/language/values/variables
+- 以下の方法で値の上書きができる
+  - コマンドラインで`-var`オプションや`-ver-file`オプションで指定
+  - `terraform.tfvars`ファイルで指定
+  - 環境変数(`TF_VAR_xxx`など)で指定
+  - `variable`の定義時にデフォルト値を明示
+
+## `count` vs `for_each` vs `for`
 - Terraformでloop処理のために用意されているものは`count`,`for_each`,`for`がある
 - loop処理だけではなく、**環境ごとに差分を吸収するためにも使う**
 - `count`と`for_each`は *Meta-Arguments* であり、`for`は *Expression* である
@@ -7,8 +29,9 @@
   - https://tellme.tokyo/post/2022/06/12/terraform-count-for-each/
   - https://zenn.dev/wim/articles/terraform_loop
   - https://developer.hashicorp.com/terraform/language/meta-arguments/for_each
+  - **https://zenn.dev/kasa/articles/8fe998e04cb916**
 
-## `count`
+### `count`
 - `count`はリソースを配列(リスト)として作成する
 - 配列内のリソースは`[count.index]`で参照
 - 例
@@ -33,12 +56,23 @@
 - 参考URL
   - https://developer.hashicorp.com/terraform/language/meta-arguments/count
 
-## `for_each`
+### `for_each`
 - `for_each`はリソースをmapとして作成する
+- **リスト(List)**にしたい場合は`toset`を使う必要がある
+  ~~~tf
+  resource "aws_iam_user" "the-accounts" {
+    for_each = toset( ["Todd", "James", "Alice", "Dottie"] )
+    name     = each.key
+  }
+  ~~~
+- **map**の場合
+  ~~~tf
+
+  ~~~
 - 参考URL
   - https://developer.hashicorp.com/terraform/language/meta-arguments/for_each
 
-## `for`
+### `for`
 - 参考URL
   - https://developer.hashicorp.com/terraform/language/expressions/for
 
