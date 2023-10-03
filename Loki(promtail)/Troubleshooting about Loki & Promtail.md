@@ -97,3 +97,51 @@ Having said that, you could have this option in your loki config under:
 - 対処
   - Helmチャートの`loki.livenessProbe.initialDelaySeconds`の数値を600などに上げる
     - HelmチャートでindexGateway個別のlivenessProbeは変数化されておらず、loki共通の`livenessProbe.initialDelaySeconds`を上げる必要がある
+
+## Lokiのバージョンを2.8系から2.9系にupgradeしたらcompactorがcompactionに失敗する
+- 事象
+  - Lokiのバージョンを2.8系から2.9系に上げたらcompactorから以下のエラーが出て、compactionできなくなった  
+    - `msg="failed to run compaction" err="index store client not found for aws"`
+- 原因
+  - v2.9からcompactorがmulti-storeをsupportするようになった影響
+    - https://github.com/grafana/loki/issues/10554
+- 対処
+  - `schema_config`下の`object_store`を`compactor.shared_store`に合わせて`s3`に変更
+    - 変更前  
+      ~~~yaml
+      schema_config:
+        configs:
+          - from: 2023-01-20
+            store: boltdb-shipper
+            object_store: aws
+            schema: v12
+            index:
+              prefix: loki_index_
+              period: 24h
+          - from: 2023-08-30
+            store: tsdb
+            object_store: aws
+            schema: v12
+            index:
+              prefix: loki_tsdb_index_
+              period: 24h
+      ~~~
+    - 変更後  
+      ~~~yaml
+      schema_config:
+        configs:
+          - from: 2023-01-20
+            store: boltdb-shipper
+            object_store: s3 ----> ここ！
+            schema: v12
+            index:
+              prefix: loki_index_
+              period: 24h
+          - from: 2023-08-30
+            store: tsdb
+            object_store: s3 ----> ここ！
+            schema: v12
+            index:
+              prefix: loki_tsdb_index_
+              period: 24h
+      ~~~
