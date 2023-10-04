@@ -73,6 +73,48 @@
   - https://developer.hashicorp.com/terraform/language/meta-arguments/for_each
 
 ### `for`
+- 例  
+  ~~~tf
+  variable "TEST_NLB_target_groups" = {
+    [
+      {
+        name      = "Aurora",
+        targets   = [
+          {target = "100.100.100.1"},
+          {target = "100.100.100.2"}
+        ],
+        port      = 5432
+      },
+      {
+        name      = "OEM",
+        targets   = [
+          {target = "100.100.100.5"}
+        ],
+        port      = 7802
+      }
+    ]
+  }
+
+  locals {
+    TEST_NLB_target_group_config = flatten([
+      for i, group in var.TEST_NLB_target_groups : [
+        for target in group.targets : {
+          group_index = i
+          target      = target
+          port        = group.port
+        }
+      ]
+    ])
+  }
+
+  resource "aws_lb_target_group_attachment" "TEST_NLB_TG" {
+    count                      = length(local.TEST_NLB_target_group_config)
+    target_group_arn           = aws_lb_target_group.TEST_NLB[local.TEST_NLB_target_group_config[count.index].group_index].arn
+    port                       = local.TEST_NLB_target_group_config[count.index].port
+    target_id                  = local.TEST_NLB_target_group_config[count.index].target.target
+    availability_zone          = "all"
+  }
+  ~~~
 - 参考URL
   - https://developer.hashicorp.com/terraform/language/expressions/for
 
@@ -114,3 +156,5 @@
     subnet_id     = var.environment == "prd" ? "subnet-12345678" : "subnet-87654321"
   }
   ~~~
+
+#### `flatten`
