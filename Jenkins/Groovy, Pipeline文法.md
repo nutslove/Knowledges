@@ -1,6 +1,55 @@
 ### 基本的なPipelineの書き方
 - https://www.jenkins.io/doc/book/pipeline/syntax/
 
+### `currentBuild.result`について
+##### 以下Chat-GPTからの回答
+JenkinsのPipelineで`currentBuild.result`を使用することで、現在実行中のビルドの結果ステータスを取得または設定することができます。以下のコードスニペットを見てみましょう。
+
+```groovy
+currentBuild.result = "FAILED"
+```
+
+このコードが意味するところは、現在実行中のビルド（`currentBuild`）の結果ステータス（`result`）を"FAILED"に設定する、ということです。
+
+Jenkinsのビルドは、成功（"SUCCESS"）、失敗（"FAILED"）、中断（"ABORTED"）など、いくつかの異なる結果ステータスを持つことができます。これらのステータスは、ビルドが正常に完了したのか、エラーで終了したのか、ユーザーによって中断されたのかを示します。
+
+`currentBuild.result = "FAILED"` を使用してビルドの結果を "FAILED" に設定すると、以下の効果があります：
+
+- **ビルドのステータス(ステージ)が失敗としてマークされ、JenkinsのUIに赤い色（または任意の色）で表示されます。**
+- `currentBuild.result` が他のステップやステージで評価される際、それに応じて条件分岐やエラーハンドリングを実施することができます。
+- 通常、ビルドの結果が "FAILED" に設定されると、**後続のステップやステージが実行されなくなり、ビルドが終了します**（ただし、Pipelineの設計によります）。
+
+以下は、`currentBuild.result` を使用した基本的なPipelineの例です：
+
+```groovy
+pipeline {
+    agent any
+
+    stages {
+        stage('Example') {
+            steps {
+                script {
+                    try {
+                        // ここにメインのビルドロジックを書く
+                        // ...
+                    } catch (Exception e) {
+                        echo "Error: ${e.message}"
+                        currentBuild.result = "FAILED"
+                    }
+                }
+            }
+        }
+    }
+    post {
+        failure {
+            echo "The build failed!"
+        }
+    }
+}
+```
+
+この例では、`try`/`catch`ブロックを使用してエラーをキャッチし、エラーが発生した場合に`currentBuild.result`を"FAILED"に設定しています。また、`post`セクションの`failure`条件は、ビルドが失敗した場合（`currentBuild.result`が"FAILED"に設定された場合）に実行されるアクションを定義しています。
+
 ### List
 - 参考URL
   - https://koji-k.github.io/groovy-tutorial/collection/list.html
