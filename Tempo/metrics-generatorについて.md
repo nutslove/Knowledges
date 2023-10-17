@@ -32,11 +32,17 @@
           dimensions:
             - "db.statement"
     ~~~
+##### *resource*または*span attributes*で生成するメトリクスの対象を絞ることができる
+- v2.2から`filter_policies`が追加された
+  - https://grafana.com/docs/tempo/latest/metrics-generator/span_metrics/#filtering
 
-- **exemplarsは自動で追加される**
-  - https://grafana.com/docs/tempo/latest/metrics-generator/span_metrics/#generate-metrics-from-spans
+**検証では正しく動作しなかった。要確認！**
+
+##### **exemplarsは自動で追加される**
+- https://grafana.com/docs/tempo/latest/metrics-generator/span_metrics/#generate-metrics-from-spans
     > Last but not least, span metrics lower the entry barrier for using exemplars. An exemplar is a specific trace representative of measurement taken in a given time interval. Since traces and metrics co-exist in the metrics-generator, exemplars can be automatically added, providing additional value to these metrics.
 
+#### その他
 - monolithic modeではSpan metricsにringは不要
   ![](img/span_metrics_ring.jpg)
 
