@@ -147,5 +147,10 @@
 
 ### Pipelineの中でShared Libraryが使うgit branchを切り替える(上書きする)方法
 - `script`セクションに`library identifier: "<Shared Library名>@<branch名>"`でブランチを切り替えられる
+- パラメータから受け付けてGit Branchを切り替えることも可能
+- **`@Library("<SharedLibrary名>") _`** は削除orコメントアウトすること
   - `script`セクションどこでも定義できるらしい
 ![](images/library.jpg)
+
+### Job(Pipeline)で使うコードのGit BranchもJobのパラメータから取得(設定)できる
+![](images/job_git_branch.jpg)
