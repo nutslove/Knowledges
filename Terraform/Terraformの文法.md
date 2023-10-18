@@ -58,7 +58,7 @@
 
 ### `for_each`
 - `for_each`はリソースをmapとして作成する
-- **リスト(List)**にしたい場合は`toset`を使う必要がある
+- **リスト(List)** にしたい場合は`toset`を使う必要がある
   ~~~tf
   resource "aws_iam_user" "the-accounts" {
     for_each = toset( ["Todd", "James", "Alice", "Dottie"] )
@@ -67,13 +67,47 @@
   ~~~
 - **map**の場合
   ~~~tf
+  resource "aws_route53_zone" "my_zone" {
+    name = "example.com."
+  }
 
+  variable "dns_records" {
+    description = "Map of DNS records to create"
+    default = {
+      "www" = {
+        type    = "A"
+        ttl     = 300
+        records = ["123.123.123.123"] # 仮のIPアドレス
+      },
+      "api" = {
+        type    = "CNAME"
+        ttl     = 300
+        records = ["api.example.com"]
+      }
+      # 必要に応じて他のレコードを追加
+    }
+  }
+
+  resource "aws_route53_record" "my_records" {
+    for_each = var.dns_records
+
+    zone_id = aws_route53_zone.my_zone.zone_id
+    name    = "${each.key}.example.com."
+    type    = each.value.type
+    ttl     = each.value.ttl
+    records = each.value.records
+  }
+
+  output "dns_record_names" {
+    description = "The names of the DNS records"
+    value       = [for r in aws_route53_record.my_records : r.name]
+  }
   ~~~
 - 参考URL
   - https://developer.hashicorp.com/terraform/language/meta-arguments/for_each
 
 ### `for`
-- 例  
+- 例(1)  
   ~~~tf
   variable "TEST_NLB_target_groups" = {
     [
@@ -115,6 +149,36 @@
     availability_zone          = "all"
   }
   ~~~
+- 例(2) `for`文であるmapから新たなmapを作成  
+  **`name`がkey、`=>`右側がvalueになる**
+  ~~~tf
+  locals {
+    # サンプルのマップ: 人の名前とその年齢
+    people = {
+      "john" = 28
+      "jane" = 34
+      "mike" = 25
+    }
+
+    # 既存のマップから新しいマップを生成し、何らかの変換を適用
+    people_with_greetings = {
+      for name, age in local.people:
+      name => "Hello, my name is ${name} and I am ${age} years old."
+    }
+  }
+
+  output "people_with_greetings" {
+    value = local.people_with_greetings
+  }
+  ~~~
+  - 上のoutputの出力は以下  
+    ~~~tf
+    people_with_greetings = {
+      "jane" = "Hello, my name is jane and I am 34 years old."
+      "john" = "Hello, my name is john and I am 28 years old."
+      "mike" = "Hello, my name is mike and I am 25 years old."
+    }
+    ~~~
 - 参考URL
   - https://developer.hashicorp.com/terraform/language/expressions/for
 
