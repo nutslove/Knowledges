@@ -144,3 +144,8 @@
   ~~~
 - 参考URL
   - https://www.jenkins.io/blog/2020/10/21/a-sustainable-pattern-with-shared-library/
+
+### Pipelineの中でShared Libraryが使うgit branchを切り替える(上書きする)方法
+- `script`セクションに`library identifier: "<Shared Library名>@<branch名>"`でブランチを切り替えられる
+  - `script`セクションどこでも定義できるらしい
+![](images/library.jpg)
