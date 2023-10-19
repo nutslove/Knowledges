@@ -17,4 +17,4 @@
 - `WaitTimeSeconds`は１回のポーリングのtimeout秒数。**キュー内に利用可能なメッセージがある場合は待たずに受信する**  
   - https://docs.aws.amazon.com/ja_jp/AWSSimpleQueueService/latest/APIReference/API_ReceiveMessage.html#SQS-ReceiveMessage-request-WaitTimeSeconds
     > The duration (in seconds) for which the call waits for a message to arrive in the queue before returning. If a message is available, the call returns sooner than WaitTimeSeconds. If no messages are available and the wait time expires, the call returns successfully with an empty list of messages.
-  - **キュー内にメッセージがある場合でも一定間隔でポーリングしたい場合は`WaitTimeSeconds`を0にしてLong Pollingを無効にして、アプリのロジックで`ReceiveMessage`を呼び出す間隔を調整する必要がある**
+  - **キュー内にメッセージがある場合でも一定間隔でポーリングしたい場合は、アプリのロジックで`ReceiveMessage`を呼び出す間隔を調整する必要がある**
