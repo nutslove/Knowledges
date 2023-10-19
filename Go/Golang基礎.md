@@ -1287,6 +1287,90 @@ func main() {
   }
   ~~~
 
+### 実行する最大Goroutine数の制御
+- `semaphore`パッケージを使って実行可能な最大Goroutine数を制御できる
+- `golang.org/x/sync/semaphore`をimportして使う
+- https://github.com/golang/sync/blob/master/semaphore/semaphore.go
+- https://github.com/golang/sync/tree/master
+- サンプルコード
+  ~~~go
+  package main
+
+  import (
+  	"context"
+  	"fmt"
+  	"sync"
+  	"time"
+
+  	"github.com/aws/aws-sdk-go/aws"
+  	"github.com/aws/aws-sdk-go/aws/session"
+  	"github.com/aws/aws-sdk-go/service/sqs"
+  	"golang.org/x/sync/semaphore"
+  )
+
+  const (
+  	QueueURL                = "YOUR_SQS_QUEUE_URL"
+  	MaxConcurrentGoroutines = 5 // 同時に実行されるgoroutineの最大数
+  )
+
+  func main() {
+  	sess := session.Must(session.NewSession(&aws.Config{
+  		Region: aws.String("YOUR_AWS_REGION"), // 例: us-west-1
+  	}))
+
+  	svc := sqs.New(sess)
+
+  	sem := semaphore.NewWeighted(MaxConcurrentGoroutines) // セマフォを初期化
+  	ctx := context.TODO()                                // 通常、キャンセルやタイムアウトが必要な場合には適切なコンテキストを使用します
+
+  	for {
+  		resp, err := svc.ReceiveMessage(&sqs.ReceiveMessageInput{
+  			QueueUrl:            aws.String(QueueURL),
+  			MaxNumberOfMessages: aws.Int64(10),
+  			WaitTimeSeconds:     aws.Int64(20),
+  		})
+  		if err != nil {
+  			fmt.Println("Error:", err)
+  			time.Sleep(1 * time.Second) // エラー時の短いスリープ
+  			continue
+  		}
+
+  		var wg sync.WaitGroup
+
+  		for _, message := range resp.Messages {
+  			wg.Add(1)
+
+  			// セマフォを利用してgoroutineの数を制限
+  			if err := sem.Acquire(ctx, 1); err != nil {
+  				wg.Done()
+  				fmt.Println("Failed to acquire semaphore:", err)
+  				continue
+  			}
+
+  			go func(msg *sqs.Message) {
+  				defer wg.Done()
+  				defer sem.Release(1) // goroutineが完了したらリリース
+
+  				// メッセージの処理
+  				fmt.Println("Processing message:", *msg.Body)
+
+  				// メッセージの削除
+  				_, err := svc.DeleteMessage(&sqs.DeleteMessageInput{
+  					QueueUrl:      aws.String(QueueURL),
+  					ReceiptHandle: msg.ReceiptHandle,
+  				})
+  				if err != nil {
+  					fmt.Println("Error deleting message:", err)
+  				}
+
+  			}(message)
+  		}
+
+  		wg.Wait()
+  	}
+  }
+  ~~~
+
 ## WaitGroup
 - Goroutineで実行した処理はデフォルトでは待ってもらえず、main関数が終了すればGoroutine処理が終わってなくてもプログラムは終了してしまう
 - ProcessがkillされるとすべてのGoroutineもcancelされる
