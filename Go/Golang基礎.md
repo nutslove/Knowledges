@@ -1376,6 +1376,7 @@ func main() {
 - ProcessがkillされるとすべてのGoroutineもcancelされる
   - Goroutineのleakを防ぐため（Goroutineはmemoryなどリソースを消費する）
 - Goroutine処理が終わるまで待ってもらうためのものが`WaitGroup`
+- **`sync.WaitGroup.Wait()`は他のすべてのGoroutineが完了するまで待つ**
 - 例えば以下のコードではfooは出力されず、barだけ出力されて終了する
     ~~~go
     package main
@@ -1691,6 +1692,76 @@ func main() {
     }
     ~~~
 
+#### ■ WaitGroup使用上注意点
+- **`sync.WaitGroup.Wait()`は他のすべてのGoroutineが完了するまで待つので、`sync.WaitGroup.Wait()`は独自のGoroutineで定義しないといけない。**  
+  例えば以下のコードで`wg.Wait()`をgoroutineにしないと`wg.Wait()`は自身が実行されているmain goroutineの終了も待つことになるので、いつまで経っても`wg.Wait()`以降が実行されない。
+  ```go
+  package main
+
+  import (
+  	"fmt"
+  	"math/rand"
+  	"strconv"
+  	"sync"
+  	"time"
+
+  	"github.com/aws/aws-sdk-go/aws"
+  	"github.com/aws/aws-sdk-go/aws/session"
+  	"github.com/aws/aws-sdk-go/service/sqs"
+  )
+
+  const (
+  	QueueURL = "https://sqs.ap-northeast-1.amazonaws.com/1234567890/test.fifo"
+  )
+
+  func sendmsg(i int, c chan int, svc *sqs.SQS, wg *sync.WaitGroup) {
+  	rand.Seed(time.Now().UnixNano())
+
+  	n := rand.Intn(1000000000000)
+
+  	MessageDedupId := strconv.Itoa(n)
+  	messageBody := "Hello, SQS from Go! " + strconv.Itoa(i)
+
+  	sendMsgInput := &sqs.SendMessageInput{
+  		MessageBody: aws.String(messageBody),
+  		QueueUrl:    aws.String(QueueURL),
+  		MessageGroupId: aws.String("SQS_TEST"),
+  		MessageDeduplicationId: aws.String(MessageDedupId),
+  	}
+  	_, err := svc.SendMessage(sendMsgInput)
+  	if err != nil {
+  		fmt.Println("Error:", err)
+  		return
+  	}
+  	c <- i
+  	wg.Done()
+  }
+
+  func main() {
+  	c := make(chan int)
+
+  	sess := session.Must(session.NewSession(&aws.Config{
+  		Region: aws.String("ap-northeast-1"),
+  	}))
+  	svc := sqs.New(sess)
+
+  	var wg sync.WaitGroup
+
+  	for i := 1; i <= 10; i++ {
+  		wg.Add(1)
+  		go sendmsg(i, c, svc, &wg)
+  	}
+
+  	go func() {
+  		wg.Wait()
+  		close(c)
+  	}()
+
+  	for i := range c {
+  		fmt.Println("Message sent: ", i)
+  	}
+  }
+  ```
 
 ## Mutex
 - Mutual Exclusion(排他制御)の略
@@ -2150,6 +2221,7 @@ func main() {
   - 以下Chat-GPTからの回答
     > for文は、channelから値が利用可能になるまで待機します。この期間、forループはブロックされ、新しい値がchannelに送信されるまで進行しません。
     > channelがcloseされると、forループは終了します。closeされたchannelからの読み取りは常に可能で、それ以降の読み取りではゼロ値（型に応じたゼロ値）が返されます。
+  - **for文はchannelから値が利用可能になるまで待ち続けるため、channelをcloseしない場合、forより下にあるコードは実行されない**
 
   #### `chan error`について
   - `error`型のzero値は`nil`  
