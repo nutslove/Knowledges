@@ -1,0 +1,4 @@
+- https://docs.victoriametrics.com/Single-server-VictoriaMetrics.html#cache-removal
+- https://docs.victoriametrics.com/Single-server-VictoriaMetrics.html#cache-tuning
+  - `vm_cache_size_bytes`メトリクスは実際のキャッシュサイズで、`type`ラベルでキャッシュの種類を確認できる
+    - `promql/rollupResult`タイプはvmselectが`query_range`クエリーのために使うキャッシュ
