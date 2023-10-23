@@ -8,3 +8,15 @@
   - labelを減らす
   - vminsert実行時のフラグ`-maxLabelsPerTimeseries`をデフォルトの30から増やす  
     https://docs.victoriametrics.com/Cluster-VictoriaMetrics.html
+
+## `vmselect`のメモリ高騰
+- 事象
+  - Cluster modeのバージョンを1.63.0から1.87.6に上げてからvmselectのメモリ使用量が上がり続ける事象が発生  
+  ![](image/vmselect_memory_issue.jpg)
+- 原因
+  - vmselectが`query_range`クエリーのために使うcacheが上り続けていた  
+    ![](image/vmselect_memory_issue_cause.jpg)
+  - ただ、なぜバージョンアップで初めて発生したかは不明（VictoriaMetricsの開発者にも確認）
+- 対策
+  - 実際のキャッシュサイズを表す`vm_cache_size_bytes`メトリクスの`type`が`promql/rollupResult`であることを確認
+  - vmselectを`-search.disableCache`フラグ付きで実行
