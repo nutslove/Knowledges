@@ -11,8 +11,9 @@
 ## `501 too many outstanding requests`エラーについて
 - requestsが裁かれておらず、queuesが溜まっているのため、発生するエラー  
   ![](image/too_many_request.jpg)  
-- **`cortex_query_scheduler_queue_length`メトリクスで各テナントごとのquery状況が分かる**  
+- **`cortex_query_scheduler_queue_length`メトリクス(Gague)で各テナントごとのquery状況が分かる**  
   → 多分query-schedulerを別途デプロイしている必要がある 
+- **https://grafana.com/docs/loki/latest/operations/shuffle-sharding/**
 
 ## queryの分割
 - Lokiは**時間**と**Shards**でqueryを分割する
