@@ -18,3 +18,4 @@
 
 ## その他
 - `<OpenTelemetry_CollectorのIP>:8888/metrics`でOtel-Collector自体のメトリクスを確認できる
+  - **Backendに連携されない時は上記のOtel-Collectorのメトリクスを見ること！各データタイプごとの送信成功/失敗件数が公開されている**
