@@ -6,7 +6,7 @@
   - 実際の定義は上記ファイルからincludeされる`/etc/unified-monitoring-agent/conf.d/fluentd_config/fluentd.conf`ファイル
   - **Loggingの`エージェント構成`の設定で反映されるものであり、Configファイルの手動変更は(検証結果)反映されないっぽい**
 - **`エージェント構成`で指定するファイル名に正規表現は使えないっぽい**
-  - 例えば`/var/log/*`はできるけど`/var/log/*.log`はできなさそう
+  - 例えば`/var/log/*`はできるけど`/var/log/*.log`はできなさそう（**要確認！**）
 - Oracle Linuxの場合は`Oracle Cloudエージェント`タブの`カスタム・ログのモニタリング`を有効化するだけで使える
 
 ## ログに対してアラートを設定する方法
@@ -31,6 +31,7 @@
 - https://oracle-japan.github.io/ocitutorials/management/monitoring_prometheus/
 - 複数のExporterの収集の設定もできる！
   - https://qiita.com/NICAREGI/items/f7070cb398ccac84bf2a
+- SELinuxを無効にする必要がある
 - Management Agentプロセスは`systemctl status oracle-cloud-agent`で確認できる
   - うまく設定が反映されない時は`systemctl restart oracle-cloud-agent`でプロセスを再起動してみること
 - debugは`/var/lib/oracle-cloud-agent/plugins/oci-managementagent/polaris/agent_inst/log/mgmt_agent.log`ログから可能(`PrometheusEmitter`で検索)
