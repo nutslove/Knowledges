@@ -18,6 +18,3 @@
 - Building Metric Queries
   - https://docs.oracle.com/en-us/iaas/Content/Monitoring/Tasks/buildingqueries.htm#CreateQuery
 
-- __MQL(Monitoring Query Language)__
-  - OCI Monitoring Metrics用のクエリー言語
-  - https://docs.oracle.com/ja-jp/iaas/Content/Monitoring/Reference/mql.htm
