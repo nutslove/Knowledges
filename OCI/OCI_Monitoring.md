@@ -1,13 +1,16 @@
 ## サーバ上のログをLoggingに連携する方法
-- まず`動的グループ`を～～～
-- `エージェント構成`～～～
+- まず`動的グループ`を作成して適用するVMの範囲を決める必要がある
+- `エージェント構成`から収集するログの設定(fluentdの設定)ができる
 - ログの保存期間はdefaultで30日で180日まで延長できる
 - Fluentdのconfigファイルは`/etc/unified-monitoring-agent/unified-monitoring-agent.conf`
   - 実際の定義は上記ファイルからincludeされる`/etc/unified-monitoring-agent/conf.d/fluentd_config/fluentd.conf`ファイル
   - **Loggingの`エージェント構成`の設定で反映されるものであり、Configファイルの手動変更は(検証結果)反映されないっぽい**
+- プロセス自体は`systemctl status unified-monitoring-agent`で確認可能
 - **`エージェント構成`で指定するファイル名に正規表現は使えないっぽい**
   - 例えば`/var/log/*`はできるけど`/var/log/*.log`はできなさそう（**要確認！**）
 - Oracle Linuxの場合は`Oracle Cloudエージェント`タブの`カスタム・ログのモニタリング`を有効化するだけで使える
+- 参考URL
+  - https://qiita.com/k_kane/items/9725e6c4c838c2c762c9
 
 ## ログに対してアラートを設定する方法
 - ログに対するアラートは`Connector Hub`で`Monitoring`にメトリクスとして連携して`Monitoring`で、そのメトリクスに対してアラートを設定する必要がある
