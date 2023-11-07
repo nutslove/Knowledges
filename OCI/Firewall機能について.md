@@ -1,7 +1,7 @@
 - Security ListというのとNetwork Security Groupという２つがある
 
 
-## Network Security Group
+## Network Security Group（NSG）
 - AWSでいうとSecurity Groupのようなものでインスタンス(VNIC)などのリソースにアタッチする
 - `Destination Port`が受け付けるポートで、許可するポートを指定する
   - `Source Port`は基本Allにする
