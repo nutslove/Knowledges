@@ -12,7 +12,7 @@
   ~~~
   aws sts assume-role --role-arn "arn:aws:iam::<EKSクラスターがあるAWSアカウントID>:role/<EKSクラスター所有者Role>" --role-session-name EKS-session
   ~~~
-  **※「arn:aws:iam::<EKSクラスターがあるAWSアカウントID>:role/<EKSクラスター所有者Role>」はTerraformでST環境のEKSを作成する時に使用したIAMロール**
+  **※`arn:aws:iam::<EKSクラスターがあるAWSアカウントID>:role/<EKSクラスター所有者Role>`はTerraformでST環境のEKSを作成する時に使用したIAMロール**
 - 表示される「**AccessKeyId**」と「**SecretAccessKey**」と「**SessionToken**」の値を以下の環境変数として設定する  
 ※これでkube-apiserverへの認証が通るようになる
   ~~~
