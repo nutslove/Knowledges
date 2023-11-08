@@ -1,0 +1,13 @@
+- New RelicエージェントとOpenTelemetryの比較
+  - https://docs.newrelic.com/jp/docs/more-integrations/open-source-telemetry-integrations/opentelemetry/opentelemetry-comparison/
+- OpenTelemetry Collector(otlp)を使ってNew Relicにデータを送る方法
+  - https://docs.newrelic.com/jp/docs/more-integrations/open-source-telemetry-integrations/opentelemetry/collector/opentelemetry-collector-basic/
+  - https://docs.newrelic.com/jp/docs/more-integrations/open-source-telemetry-integrations/opentelemetry/collector/opentelemetry-collector-infra-hosts/
+- New Relicのotlpのエンドポイント
+  - https://docs.newrelic.com/jp/docs/more-integrations/open-source-telemetry-integrations/opentelemetry/get-started/opentelemetry-set-up-your-app/#review-settings
+- New RelicでのOpentelemetryのトラシュー
+  - https://docs.newrelic.com/jp/docs/more-integrations/open-source-telemetry-integrations/opentelemetry/opentelemetry-troubleshooting/
+- New RelicでのOpentelemetry
+  - https://docs.newrelic.com/jp/docs/more-integrations/open-source-telemetry-integrations/opentelemetry/opentelemetry-introduction/#choice
+- Opentelemetryを使ったJavaアプリの実装チュートリアル
+  - https://docs.newrelic.com/jp/docs/more-integrations/open-source-telemetry-integrations/opentelemetry/get-started/opentelemetry-tutorial-java/
