@@ -34,6 +34,7 @@
 - https://oracle-japan.github.io/ocitutorials/management/monitoring_prometheus/
 - 複数のExporterの収集の設定もできる！
   - https://qiita.com/NICAREGI/items/f7070cb398ccac84bf2a
+  - `/var/lib/oracle-cloud-agent/plugins/oci-managementagent/polaris/agent_inst/discovery/PrometheusEmitter/*.properties`ファイルをexporterの分設定すればOK
 - SELinuxを無効にする必要がある
 - Management Agentプロセスは`systemctl status oracle-cloud-agent`で確認できる
   - うまく設定が反映されない時は`systemctl restart oracle-cloud-agent`でプロセスを再起動してみること
@@ -43,6 +44,9 @@
   allow service loganalytics to read loganalytics-features-family in tenancy
   allow dynamic-group ＜動的グループ名＞ to use metrics in tenancy / compartment <Management Agentが属してるコンパートメント名>
   ~~~
+- defaultでは5分間隔でExporterのメトリクスをMonitoringに連携する
+  - `scheduleMins`で1分間隔まで短くできる (設定例：`scheduleMins=1`)
+  - https://docs.oracle.com/en-us/iaas/management-agents/doc/configure-management-agent-collect-metrics-using-prometheus-node-exporter.html
 
 ## その他
 - **`検索`で表示できるのはログ件数は500件がMax**
