@@ -1762,6 +1762,94 @@ func main() {
   	}
   }
   ```
+- **上記で言ったように`sync.WaitGroup.Wait()`は他のすべてのGoroutineが完了するまで待つので、main関数から派生されるgoroutineの中でさらにgoroutineを生成する場合、main関数から派生されたgoroutineがある関数では`sync.WaitGroup.Wait()`を定義してはいけない**
+  ~~~go
+  func main() {
+  	// DB接続
+  	DB, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+  	if err != nil {
+  		fmt.Println("failed to connect database")
+  		panic(err)
+  	}
+
+  	db_users := []string{"dbuser1", "dbuser2", "dbuser4", "dbuser5", "dbuser7"}
+  	wg.Add(2)
+  	go DbuserExistCheck(DB, db_users...)
+
+  	iam_users := []string{"iamuser1", "iamuser2", "iamuser3", "iamuser4", "iamuser5"}
+  	go AwsIamUserExistCheck(iam_users...)
+  	wg.Wait() // wait until all goroutines are finished (including goroutines that are not created in this function)
+
+  	fmt.Println("no_exist_db_user:", no_exist_db_user)
+  	fmt.Println("no_exist_iam_user:", no_exist_iam_user)
+  }
+
+  func DbuserExistCheck(db *gorm.DB, db_user ...string) {
+  	defer wg.Done()
+
+  	// セッションを利用するために、DBに接続する
+  	sqldb, err := db.DB()
+  	if err != nil {
+  		fmt.Println("failed to connect DB")
+  		panic(err)
+  	}
+  	// DBに対する処理が終わったら、DB接続を解除する
+  	defer sqldb.Close()
+
+  	for _, v := range db_user {
+  		db.Where("dbuser = ?", v).Find(&Dbuserpassword{}).Count(&no_db_user_count)
+  		if no_db_user_count == 0 {
+  			no_exist_db_user = append(no_exist_db_user, v)
+  			fmt.Printf("%v is not exist\n", v)
+  		} else {
+  			continue
+  		}
+  	}
+  }
+
+  func AwsIamUserExistCheck(iam_user ...string) {
+  	defer wg.Done()
+
+  	cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion("ap-northeast-1"))
+
+  	if err != nil {
+  		fmt.Println("failed to load config")
+  		panic(err)
+  	}
+
+  	svc := iam.NewFromConfig(cfg)
+
+  	// IAMユーザの存在チェック
+  	wg.Add(len(iam_user))
+  	for _, v := range iam_user {
+  		go func(v string) {
+  			defer wg.Done()
+
+  			input := &iam.GetUserInput{
+  				UserName: aws.String(v),
+  			}
+
+  			_, err := svc.GetUser(context.TODO(), input)
+  			if err != nil {
+  				var nsk *types.NoSuchEntityException
+  				if errors.As(err, &nsk) {
+  					fmt.Println("NoSuchEntityException")
+  					mu.Lock()
+  					no_exist_iam_user = append(no_exist_iam_user, v)
+  					mu.Unlock()
+  				}
+  				var apiErr smithy.APIError
+  				if errors.As(err, &apiErr) {
+  					fmt.Println("StatusCode:", apiErr.ErrorCode(), ", Msg:", apiErr.ErrorMessage())
+  				}
+  			}
+  		}(v)
+  	}
+  	// wg.Wait()
+  	// wg.Wait()はすべてのgoroutineが完了するまで待つため、ここにwg.Wait()があるとmain関数内のgoroutineが完了するまで待つことになり、
+  	// main関数内のwg.Wait()とここにあるwg.Wait()の2つのwg.Wait()がお互いを待ち合うことになり、デッドロックが発生する。
+  }
+  ~~~
 
 ## Mutex
 - Mutual Exclusion(排他制御)の略
