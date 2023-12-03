@@ -1,4 +1,14 @@
 - https://pkg.go.dev/testing
   > Package testing provides support for automated testing of Go packages.
-- テストしたいgoファイル名に**_test.go**をつける
+- テストしたいgoファイル名に **_test.go** をつける
   - ex) `main.go`の場合`main_test.go`
+- main関数はテストされない
+- テスト関数はテストする関数の前に`Test`(もしくは`Test_`)を付ける
+  - 例えば`main.go`内の`SomeCheck`関数をテストする場合、`main_test.go`ファイル内に`Test_SomeCheck`関数を作成する
+- テスト関数は１つの`*testing.T`引数のみを受け付けて何も返さない
+- テストコードは`go test`コマンドで実行
+  - コマンドを実行したディレクトリ内のすべての`*_test.go`ファイルを検索し、その中に定義されているすべてのテストを実行する
+  - `go test -run <実行したいテスト関数名>`コマンドで特定のテスト関数のみを実行することもできる
+    - 例えば`Test_MyFunction`というテスト関数のみをテストしたい場合は`go test -run Test_MyFunction`を実行
+  - `go test ./<対象Package名>`で特定のパッケージのみをテストすることもできる
+  - `-v`オプション(`go test -v`)でテストの詳細なログを確認できる
