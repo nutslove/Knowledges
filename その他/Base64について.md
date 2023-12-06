@@ -5,5 +5,5 @@
     よって _**CH**_ をBase64でエンコーディングすると _**Q0g=**_ になる
 - ASCII Table
 ![ASCII](image/ASCII.jpg)
-- Base64 Table
+- Base64 Table  
 ![Base64](image/Base64.jpg)
