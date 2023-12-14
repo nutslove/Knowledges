@@ -23,6 +23,18 @@
 - コンテナ↔Dockerホスト外部の通信ではDockerホストのiptablesで(コンテナIPからDockerホストのIPへ)NATされる
   - `iptables -L -t nat`でNAT(IPマスカレード)の設定を確認できる
 
+#### bridgeのIPレンジを変える方法
+- `/etc/docker/daemon.json`を開く（ない場合は作成）
+- 以下のように変えるIPレンジのGatewayのIPを記載する
+  - **Networkアドレスではないことに注意！`192.168.1.0/24`のようなNetworkアドレスではエラーになる**
+  ~~~json
+  {
+    "bip": "192.168.1.5/24"
+  }
+  ~~~
+- `systemctl restart docker`でdockerを再起動する
+- `docker network inspect bridge`でIPレンジが変わっていることを確認
+
 #### Linux Bridge
 > A Linux bridge is a kernel module that behaves like a network switch, forwarding packets between interfaces that are connected to it. It's usually used for forwarding packets on routers, on gateways, or between VMs and network namespaces on a host.
 >
