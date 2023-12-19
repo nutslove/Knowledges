@@ -19,7 +19,7 @@
   - 記述しない場合はproto2バージョンが使用される
   - proto2とproto3は互換性がないので注意
 
-#### message
+### message
 - データ構造を定義するための基本的な単位
 - 一連のフィールドを持ち、それぞれのフィールドは特定の型（基本型や他のmessage型）を持つ
 - Messageはバイナリ形式にシリアライズされ、簡単にデータ転送や保存ができる。  
@@ -52,15 +52,150 @@
     repeated PhoneNumber phones = 4;
   }
   ~~~
-- **`enum`**
-  - 列挙型
-    - 列挙した値のいずれかであることを要求する型
-    - 特定のフィールドで許可される値の範囲を制限
-    - 固定された一連の定数値を含む特別なデータ型
-  - 型の定義は不要
-  - すべて大文字で定義
-  - messageとは異なり、数字はタグ番号ではなく、実際の値(定数)
-  - 名前で識別される
-  - **必ず最初にデフォルト値の`0`を定義する必要がある**
-    - `0`以外の`1`などの特定の値をスキップすることは可能
-    - `0`は慣例的に`UNKNOWN`にすることが多い
+- messageをネストさせることもできる
+  - 例
+    ~~~
+    message Person {
+      string name = 1;
+      int32 id = 2;
+
+      message Address {
+        string street = 1;
+        string city = 2;
+        string state = 3;
+        string country = 4;
+      }
+
+      Address address = 3;
+    }
+    ~~~
+  - ネストされたメッセージは、他のメッセージからアクセスする場合は、完全な修飾名（上記の例では`Person.Address`）を使用
+
+##### ■ **`enum`**
+- 列挙型
+  - 列挙した値のいずれかであることを要求する型
+  - 特定のフィールドで許可される値の範囲を制限
+  - 固定された一連の定数値を含む特別なデータ型
+- 型の定義は不要
+- すべて大文字で定義
+- messageとは異なり、数字はタグ番号ではなく、実際の値(定数)
+- 名前で識別される
+- **必ず最初にデフォルト値の`0`を定義する必要がある**
+  - `0`以外の`1`などの特定の値をスキップすることは可能
+  - `0`は慣例的に`UNKNOWN`にすることが多い
+##### ■ **`repeated`フィールド**
+- 配列やリストのような動作をするフィールド
+- 文法
+  - `repeated <型> <フィールド名> = <タグ番号>;`
+- `repeated`フィールドは、同じ型の要素を複数持つ
+- 要素の数は動的であり、メッセージが使用される際に任意の数の要素を含めることができる
+- プログラミング言語によっては、`repeated`フィールドは配列やリストとして表現され、その要素にはインデックスでアクセスできる
+- 例
+  ~~~
+  message Person {
+    repeated string phone_numbers = 1;
+  }
+  ~~~
+- **`repeated`フィールドの注意点**
+  - repeatedフィールドの要素は、シリアライズされたメッセージ内で定義された順序で格納される
+  - 要素が0個(空のリスト)の場合、repeatedフィールドはシリアライズされたメッセージに含まれない
+  - repeatedフィールドの各要素は、同じタグ番号を使用してエンコードされる
+##### ■ `map`フィールド
+- keyとvalueを持つフィールド
+- 文法
+  - `map<<keyの型>, <valueの型>> <フィールド名> = <タグ番号>;`
+- keyで使える型は`string`, `int32`, `bool`
+- `map`フィールド内のエントリの順序は保証されない
+- 同じkeyを持つエントリは1つだけ存在できる  
+  もし同じkeyで複数の値が設定された場合、最後に設定された値が保持される
+- 例
+  ~~~
+  message Person {
+    map<string, string> phones = 1;
+  }
+  ~~~
+
+##### ■ `oneof`ブロック
+- `oneof`ブロック内の各フィールドは排他的であり、複数のフィールドの中から一つのフィールドだけ値を持つことができる
+- 例えば、以下の例では`name`フィールドが値を持つと、残りの`id`と`is_active`フィールドは値を持つことができない
+  ~~~
+  message SampleMessage {
+    oneof test_oneof {
+      string name = 1;
+      int32 id = 2;
+      bool is_active = 3;
+    }
+  }
+  ~~~
+- 使用されていないフィールドにはメモリが割り当てられず。メモリ使用量を節約できる
+- １つの`oneof`ブロック内に異なる型のデータを定義できるため、より柔軟なデータ構造を定義できる
+
+##### 各型のデフォルト値
+- `string`
+  - 空の文字列
+- `bytes`
+  - 空のbyte
+- `bool`
+  - `false`
+- 整数型/浮動小数点数
+  - 0
+- 列挙型(`enum`)
+  - タグ番号0の値
+- `repeated`
+  - 空のリスト
+
+### `import`と`package`
+#### ■ `import`
+- `import`ステートメントを使用して、他の`.proto`ファイルの中に定義されているmessageを使うことができる
+- 例
+  - importされる側
+    ~~~
+    // address.proto
+    message Address {
+      string street = 1;
+      string city = 2;
+      string state = 3;
+      string country = 4;
+    }
+    ~~~
+  - importする側
+    ~~~
+    // person.proto
+    import "address.proto";
+
+    message Person {
+      string name = 1;
+      int32 id = 2;
+      Address address = 3;
+    }
+    ~~~
+- `import`ステートメントでは、importするファイルの相対パスまたは絶対パスを指定
+
+#### ■ `package`
+- `package`ステートメントを使っている場合、importする側はimport元のmessageを使う時に`<import元package名>.<message名>`で指定する必要がある
+- 例
+  - importされる側
+    ~~~
+    // address.proto
+    package address
+
+    message Address {
+      string street = 1;
+      string city = 2;
+      string state = 3;
+      string country = 4;
+    }
+    ~~~
+  - importする側
+    ~~~
+    // person.proto
+    package person
+
+    import "address.proto";
+
+    message Person {
+      string name = 1;
+      int32 id = 2;
+      address.Address address = 3; --> ここ
+    }
+    ~~~
