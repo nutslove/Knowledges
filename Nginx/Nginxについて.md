@@ -80,3 +80,63 @@
 - __locationでURLパス単位のdeny等の設定時の注意点__
   - ブラウザでアクセス時に見えるURLパスと実際内部で処理されるURLが異なる場合がある。そういう場合はブラウザから見えるURLパスで`location`を設定しても想定通りに制御されない。
   - ブラウザの開発者ツールの`Network`タブにて内部で処理されるURLパスやjavascript等を確認してそれを基に`location`を設定すれば想定通りに動く場合があるので要確認
+
+##### `server`ブロック
+- 以下のように1つのconfファイル内に複数の`server`ブロックの指定ができる
+  ~~~
+  server {
+    listen    800;
+   
+    location / {
+      allow all;
+      proxy_set_header Host $http_host;
+      proxy_pass  http://OPS-GRAFANA-NLB-asasdasd.elb.ap-northeast-1.amazonaws.com;
+    }
+  }
+   
+  server {
+    listen    8082;
+   
+    location / {
+      allow all;
+      proxy_set_header Host $http_host;
+      proxy_pass  http://CHAT-GRAFANA-NLB-adfqwegre.elb.ap-northeast-1.amazonaws.com;
+    }
+  }
+   
+  server {
+    listen    8083;
+   
+    location / {
+      client_max_body_size 50m;
+      allow all;
+      proxy_set_header Host $http_host;
+      proxy_pass  http://HELP-NLB-asdwqtrgh.elb.ap-northeast-1.amazonaws.com;
+    }
+  }
+   
+  server {
+    listen    8084;
+   
+    location / {
+      allow all;
+      proxy_set_header Host $http_host;
+      proxy_pass  http://OMG-NLB-asdqwght.elb.ap-northeast-1.amazonaws.com;
+    }
+    location ~* /d/. {
+      deny all;
+    }
+    location ~* /explore {
+      deny all;
+    }
+    location ~* /dashboards/uid {
+      deny all;
+    }
+    location ~* /public/build/DashboardListPage.*\.js$ {
+      deny all;
+    }
+    location ~* /public/build/DashboardPage.*\.js$ {
+      deny all;
+    }
+  }
+  ~~~
