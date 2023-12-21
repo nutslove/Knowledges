@@ -204,11 +204,19 @@
 - `.proto`ファイルは、protobufコンパイラ`protoc`で特定のプログラミング言語用のソースコードにコンパイルする必要がある
   - protobufは多言語対応であり、`.proto`ファイルから、特定のプログラミング言語に適したソースコードを生成する必要がある
 - golangの場合
-  - `protoc --go_out=<outputディレクトリ> <inputとなるprotoファイル>`
+  - `protoc --go_out=<outputディレクトリ> <inputとなるprotoファイル> [<inputとなるprotoファイル2> <inputとなるprotoファイル3> ・・・]`
   - golangはプラグインで追加する必要がある
+  - コンパイルに成功したらgoファイル生成される
+  - messageで定義した内容はgoの`struct`に変換される
 - pythonの場合
   - `protoc --python_out=<outputディレクトリ> <inputとなるprotoファイル>`
 - inputファイルは`*.proto`のように複数指定することもできる
+- `.proto`ファイルの中にて`import`しているものは`protoc`実行時`-I`オプションで指定する必要がある
+  - `protoc -I<importする.protoファイルがある(絶対/相対)パス> --go_out=<outputディレクトリ> <inputとなるprotoファイル>`
+  - 複数の`-I`オプションを使用できる。または`:`区切り(e.g. `-I./test:./dev`)で複数のパスも記述できる
+  - `-I`オプションを省略した場合はカレントディレクトリ`-I.`が設定される
+- golangの場合、`.proto`ファイルに`option go_package = <パッケージ名>`オプションでGoのパッケージ名を指定する必要がある。  
+  これは、生成されたGoファイル内での`package`ステートメントに反映される。
 
 ## gRPC
 ### gRPC開発の流れ
