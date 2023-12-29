@@ -54,7 +54,7 @@
   history.add_user_message(user_input)
   history.add_ai_message(output_text)
   ~~~
-  - `DynamoDBChatMessageHistory`クラスのinstanceの`messages`には、ユーザInputは`HumanMessage(content='<入力内容>')`、AIからと回答は`AIMessage(content='<AIからの回答内容>'`で格納される
+  - `DynamoDBChatMessageHistory`クラスのinstanceの`messages`には、ユーザInputは`HumanMessage(content='<入力内容>')`、AIからと回答は`AIMessage(content='<AIからの回答内容>'`という形で格納される
 - サンプルコード  
   ~~~python
   from boto3.session import Session
