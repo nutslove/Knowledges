@@ -1,0 +1,7 @@
+- `strace`コマンドはsystem call(syscall)をトレース(debug)できるツール
+- あるコマンドでどのsyscallが行われるか観測するにはコマンドの前に`strace`を付けるだけ
+  - e.g. `strace ls /tmp`
+- 既存のプロセスのsyscallを観測するためには、まずそのプロセスのPIDを把握する必要がある。その後、以下のコマンドでトレースできる。
+  - `strace -p <PID>`
+- `-c`オプションを付けると、コマンド/プロセスで使われた実行する各system callの回数、エラーの発生回数、system callに費やされた合計時間、そして各syscallの平均時間などを集計して、コマンド/プロセスが終了した後にレポートとして表示される
+  - e.g. `strace -c -p <PID>`、`strace -c <コマンド>`
