@@ -22,3 +22,11 @@
 - DockerはdefaultでseccompをFilter Modeで有効化されている
   - defaultでDockerのseccompのprofileで無効化されているsyscall
     - https://docs.docker.com/engine/security/seccomp/
+
+## Capabilities
+- CapabilitiesはLinux Kernelの機能でrootユーザの権限を細分化してもの
+- https://dockerlabs.collabnix.com/advanced/security/capabilities/  
+  > The Linux kernel is able to break down the privileges of the root user into distinct units referred to as capabilities. For example, the CAP_CHOWN capability is what allows the root use to make arbitrary changes to file UIDs and GIDs. The CAP_DAC_OVERRIDE capability allows the root user to bypass kernel permission checks on file read, write and execute operations. Almost all of the special powers associated with the Linux root user are broken down into individual capabilities.
+- Dockerでデフォルトで有効化されているcapabilitiesがあって、明示的に追加/除外できる
+- seccompとcapabilitiesは別物
+- seccompで許可しているsyscallでもcapabilitiesで拒否しているものは操作できない（逆も同じ）
