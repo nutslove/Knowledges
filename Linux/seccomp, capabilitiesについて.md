@@ -15,7 +15,7 @@
 #### その他
 - 使用しているLinuxがseccompに対応しているかは以下のコマンドで確認可能
   - `grep -i seccomp /boot/config-$(uname -r)`
-- あるプロセスがどのseccompモードを使っているかは`/proc/<pid>/status`の`Seccomp`項目の値で確認できる
+- あるプロセスがどのseccompモードで動いているかは`/proc/<pid>/status`の`Seccomp`項目の値で確認できる
   - `0`: Disabled
   - `1`: Strict Mode
   - `2`: Filter Mode
