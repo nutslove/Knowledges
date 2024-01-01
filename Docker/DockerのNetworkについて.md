@@ -48,6 +48,29 @@
 - 参考URL
   - https://developers.redhat.com/articles/2022/04/06/introduction-linux-bridging-commands-and-features
 
+#### dockerdの通信
+- defaultではdockerdは`/var/run/docker.sock`を使ってUnix Socket通信 (IPC(Inter Process Communiaction): 同一ホスト上のProcess間の通信) を行う
+  - つまり、Dockerホスト外部からdockerとの通信(docker操作)はできない
+- ただ、docker実行時`--host`オプションを使うことでTCP通信でDockerホスト外部からもアクセスできるように設定できる
+  - e.g. `docker --host=tcp://<dockerホストIP>:2375`
+  - **デフォルトではauthenticationや暗号化がされないので使う際は要注意！**
+  - `2735`ポート
+    - 通信が暗号化されない
+  - `2736`ポート
+    - TLSを使って通信が暗号化される
+      - `--tls=true`、`--tlscert=<サーバ証明書>`、`--tlskey=<PrivateKey>`オプションが必要
+  - dockerdコマンドオプションではなく、`/etc/docker/daemon.json`で定義することも可能  
+    ~~~json
+    {
+      "hosts": ["tcp://<DockerホストIP>:2375(または2376)"],
+      "tls": true,
+      "tlscert": "<サーバ証明書>",
+      "tlskey": "<PrivateKey>"
+    }
+    ~~~
+  - Dockerホスト外部のDocker CLIを実行するホストでは`DOCKER_HOST`環境変数でDockerホストの指定が必要
+    - `export DOCKER_HOST="tcp://<DockerホストIP>:2375(または2376)"`
+
 #### NATとIPマスカレード(NAPT)の違い
 - **NAT** (Network Address Translation)
   - Private IPとGlobal IPを１対１に変換する
