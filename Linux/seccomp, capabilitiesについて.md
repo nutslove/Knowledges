@@ -1,4 +1,4 @@
-## seccomp（Secure Computing Mode）
+## Seccomp（Secure Computing Mode）
 - defaultでUser Space上のプログラムはすべてのsyscallを使える
 - seccompはLinux Kernelのセキュリティ機能の一つで、プロセスが実行できるsyscallを制限する
 - seccompを使用すると、アプリケーションは「WhiteList」に基づいて、許可されたsyscallのみを実行できる
@@ -22,6 +22,7 @@
 - DockerはdefaultでseccompをFilter Modeで有効化されている
   - defaultでDockerのseccompのprofileで無効化されているsyscall
     - https://docs.docker.com/engine/security/seccomp/
+    - https://matsuand.github.io/docs.docker.jp.onthefly/engine/security/seccomp/
 
 ## Capabilities
 - CapabilitiesはLinux Kernelの機能でrootユーザの権限を細分化してもの
