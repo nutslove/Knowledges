@@ -51,6 +51,7 @@
 #### dockerdの通信
 - defaultではdockerdは`/var/run/docker.sock`を使ってUnix Socket通信 (IPC(Inter Process Communiaction): 同一ホスト上のProcess間の通信) を行う
   - つまり、Dockerホスト外部からdockerとの通信(docker操作)はできない
+  - dockerコマンド(Docker CLI)は`/var/run/docker.sock`を通じてdockerdと通信を行う
 - ただ、docker実行時`--host`オプションを使うことでTCP通信でDockerホスト外部からもアクセスできるように設定できる
   - e.g. `docker --host=tcp://<dockerホストIP>:2375`
   - **デフォルトではauthenticationや暗号化がされないので使う際は要注意！**
