@@ -7,7 +7,7 @@
 - https://apparmor.net/
 - AppArmorには３つのmodeがある
   - **enforce**
-    - ruleを強制
+    - ruleを強制(ruleに違反したらpermit denyされる)
   - **complain**
     - 制約なし、ログに出力のみ
   - **unconfined**
