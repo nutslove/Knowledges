@@ -11,6 +11,7 @@
    - これはより柔軟なモードで、開発者はBPF（Berkeley Packet Filter）を使用して、プロセスによって実行されるシステムコールをカスタマイズできます。Filter Modeでは、プロセスは必要に応じてシステムコールのWhiteList/BlackListを定義でき、セキュリティと機能のバランスを取ることが可能です。
    - WhiteList方式とBlackList方式がある
    - syscallのWhiteListもしくはBlackListが定義されているファイルをprofileという
+     - profileを適用して許可/拒否するsyscallやdefault actionを反映する
 
 #### その他
 - 使用しているLinuxがseccompに対応しているかは以下のコマンドで確認可能
