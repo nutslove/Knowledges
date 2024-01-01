@@ -71,6 +71,8 @@
     ~~~
   - Dockerホスト外部のDocker CLIを実行するホストでは`DOCKER_HOST`環境変数でDockerホストの指定が必要
     - `export DOCKER_HOST="tcp://<DockerホストIP>:2375(または2376)"`
+  - client証明書を使ってclient認証を行うこともできる
+    - dockerdの証明書署名に使ったCAでclient証明書を署名する必要がある
 
 #### NATとIPマスカレード(NAPT)の違い
 - **NAT** (Network Address Translation)
