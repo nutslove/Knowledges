@@ -1,6 +1,8 @@
 ## gVisor
 - https://gvisor.dev/docs/
 - User Spaceで動くソフトフェアレベルのKernelで、コンテナ(化されたアプリ)からのsystem callをinterceptし、Linux Kernelにsystem callを流さず自分で処理してアプリにレスポンスを返す。
+- Linux KernelのSandBox環境を提供し、アプリケーションとOSの間に追加の保護層を作ることで、システムの安全性を高める
+- 基本コンテナとgVisorは１対１の関係 (コンテナごとに独立したgVisorを持つ)
 - gVisorは _**Sentry**_ と _**Gofer**_ の２つのコンポーネントで構成される
   ![](image/gVisor_1.jpg)
   - **Sentry**
