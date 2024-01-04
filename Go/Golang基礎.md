@@ -27,9 +27,72 @@
        - Goモジュールのパスを書いておくファイル
 
 ### パッケージ関連
-- 初期のGoでは`go get`でパッケージをビルド/インストールしていたが、  
-  現在は`go get`は`go.mod`の依存関係の調整にだけ使われる。  
-  現在は`go install`でパッケージのビルド/インストールを行う
+- Go v1.16までは`go get`は、パッケージをダウンロードした後に`go install`を実行してダウンロードしたパッケージのコンパイルまでしていた。
+  - コンパイルされたパッケージ(バイナリ)は`$GOBIN`または`$GOPATH/bin`または`$HOME/go/bin`配下に配置される
+- 現在(Go v1.17以降)は`go get`は`go.mod`の依存関係の調整にだけ使われて、パッケージのインストール(コンパイル＋`$GOBIN`または`$GOPATH/bin`への配置)には`go install`を使う
+  - v1.16まで`go get`１つになっていた依存関係の管理とバイナリのビルド(コンパイル)が明確に分離された
+  - `go get`でパッケージをダウンロードすると`go.mod`ファイルに依存関係が追加される  
+  > Get resolves its command-line arguments to packages at specific module versions,
+updates go.mod to require those versions, and downloads source code into the module cache.
+- **`go.sum`ファイル**
+  - プロジェクトの依存関係として使用される各パッケージの特定のバージョンに対するchecksum（ハッシュ値）が記録されていて、パッケージの内容が変更されていないことを確認するために使用され、依存関係の中で意図しない変更や悪意のある変更がないかを検証することができる
+  - `go mod`コマンド（特に`go mod tidy`や`go get`など）を使用する際に自動的に生成または更新される。このファイルは通常、ソースコード管理システム（例えばGit）にコミットされるべき。これにより、プロジェクトをクローンまたはダウンロードするすべての開発者が、同じ依存関係を使用してプロジェクトをビルドできるようになる。
+- すべてのパッケージの最新化は`go get -u`後、`go mod tidy`を実行
+  ~~~
+  # Update the all packages in the current directory.
+  go get -u
+  # prune `go.sum` and organize by removing the unncessary checksums
+  # add missing and remove unused modules
+  go mod tidy
+  ~~~
+- DockerコンテナでGolangを使用する際に、`go.mod`と`go.sum`ファイルを作成しておき、Dockerfileの中で`go mod download`で一括ダウンロードするのは一般的なアプローチ
+  - Dockerfile例  
+    ~~~
+    FROM golang:1.21-alpine
+
+    WORKDIR /app
+
+    COPY go.mod ./
+    COPY go.sum ./
+
+    ## Download all dependencies. Dependencies will be cached if the go.mod and go.sum files are not changed
+    RUN go mod download
+
+    COPY *.go ./
+    COPY ./templates ./templates
+    COPY ./static ./static
+
+    RUN go build -o /web_server
+
+    EXPOSE 8080
+
+    CMD [ "/web_server" ]
+    ~~~
+    - 以下Chat-GPTからの回答
+      > DockerコンテナでGo言語を使用する際に、`go.mod`と`go.sum`ファイルを作成しておき、Dockerfileの中で`go mod download`コマンドを実行するのは一般的なアプローチです。この方法にはいくつかの利点があります：
+      >
+      > 1. **依存関係の明確化**:
+      >     - `go.mod`はプロジェクトの依存関係を定義し、`go.sum`はそれらの依存関係の整合性を保証します。
+      >     - これにより、Dockerコンテナ内でアプリケーションが正しくビルドされることを保証できます。
+      >
+      > 2. **キャッシュの最適化**:
+      >     - `go mod download`をDockerfileで実行することで、依存関係をダウンロードし、それらをDockerのレイヤーとしてキャッシュします。
+      >     - これにより、依存関係に変更がない限り、再ビルド時にDockerはキャッシュされたレイヤーを再利用でき、ビルド時間が短縮されます。
+      >
+      > 3. **再現性の向上**:
+      >     - `go.mod`と`go.sum`ファイルを使用することで、どの環境でも同じバージョンの依存関係が使用されることが保証されます。
+      >     - これにより、異なる開発環境やCI/CDパイプラインでのビルドの一貫性と再現性が向上します。
+      > 
+      > 一般的なDockerfileでは、次のようなステップでGoアプリケーションがビルドされます：
+      >
+      > 1. Goのベースイメージを指定する。
+      > 2. ワークディレクトリを設定する。
+      > 3. `go.mod`と`go.sum`ファイルをコンテナにコピーする。
+      > 4. `go mod download`を実行して依存関係をプリフェッチし、キャッシュする。
+      > 5. 残りのソースコードをコンテナにコピーする。
+      > 6. `go build`コマンドを使用してアプリケーションをビルドする。
+      >
+      > これにより、Dockerコンテナ内でのGoアプリケーションのビルドが効率的かつ一貫性を持って行われます。
 
 ## その他Goについて色々
 - GoはClassがない（Goはオブジェクト指向言語ではない）
