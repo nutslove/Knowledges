@@ -28,6 +28,7 @@
       CMD [ "lambda_function.handler" ]
       ~~~
 - 以下のAWS CLIでLambda関数を作成する  
-  ~~~
-  aws lambda create-function --function-name <作成するLambda関数名> --package-type Image --code ImageUri=＜<AWSアカウントID>.dkr.ecr.<リージョン識別子>.amazonaws.com/<ECRリポジトリ名>:<image名>＞ --role <LambdaにアタッチするIAMロール> --region <AWSリージョン>
-  ~~~
+  - https://docs.aws.amazon.com/cli/latest/reference/lambda/create-function.html
+    ~~~
+    aws lambda create-function --function-name <作成するLambda関数名> --package-type Image --code ImageUri=＜<AWSアカウントID>.dkr.ecr.<リージョン識別子>.amazonaws.com/<ECRリポジトリ名>:<image名>＞ --role <LambdaにアタッチするIAMロール> --region <AWSリージョン>
+    ~~~
