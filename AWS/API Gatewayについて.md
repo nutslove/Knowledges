@@ -24,3 +24,18 @@
 2. Lambda側から紐づけ
    - API Gateway側でstageが作成されている必要がある
    - Lambda関数名のパスで、GET/POST/PUT/DELETEなど、すべてのMethodのResourceが自動的に作成される
+
+## API GatewayにWAF適用
+- https://docs.aws.amazon.com/ja_jp/apigateway/latest/developerguide/apigateway-control-access-aws-waf.html
+- まずWAFでACL/ruleを作成する必要がある
+
+#### 送信元IPアドレスで制御
+##### WAF側
+- 「IP set」を作成
+- 「Web ACLs」タブにて「Create web ACL」を押下
+  - 「Associated AWS resources」で「Add AWS resources」を押下
+  - 作成したAPI Gatewayを選択（REST APIのみ）
+  - 「Rules」で「Add rules」→「Add my own rules and rule groups」を押下
+  - 必要な項目を記入/選択し、Web ACLを作成
+##### API Gateway側
+- 「Stages」タブで該当Stageをクリックして「Stage details」の「Web ACL」にACLが関連付けされていることを確認する
