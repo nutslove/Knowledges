@@ -3,7 +3,7 @@
 - CSIが登場する以前は、Kubernetesのストレージ関連の実装はk8s自身のソースコードに直接書かれていたのでストレージ機能を実装するストレージベンダ等は、Kubernetesのソースコードへアップストリームする必要があったけど、CSIが登場してからはInterfaceに沿って実装すれば誰でもk8sのストレージを提供できるようになった
 - CSIに沿って実装された外部ストレージを使うためにはStorage ClassとCSI Driverをデプロイする必要がある
   - CSI Driverは通常コンテナイメージ(Pod)として提供される
-  ![CSI Driver](https://github.com/nutslove/Knowledges/blob/main/Kubernetes/image/CSIDriver.jpg)
+  ![CSI Driver](image/CSIDriver.jpg)
 - 参考URL
   - https://thinkit.co.jp/article/17635
   - https://access.redhat.com/documentation/ja-jp/openshift_container_platform/4.2/html/storage/persistent-storage-using-csi
