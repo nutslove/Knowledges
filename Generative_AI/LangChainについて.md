@@ -11,6 +11,22 @@
 ## Memory
 - デフォルトではChat-GPTなどのLLMはチャットの履歴を保持しない
 - チャットの履歴を保持させるためのLangChainの機能がMemory
+- **role**を持ち、ユーザからの入力なのかLLMからの回答なのかを記憶させる
+  - OpenAIの場合
+    - LLMへの指示内容のroleは **`system`**
+    - ユーザからの入力のroleは **`user`**
+    - LLMからの出力のroleは **`assistant`**
+    - e.g.
+      ~~~json
+      {
+        "messages": [
+          {"role": "system", "content": "You are a helpful assistant."},
+          {"role": "user", "content": "Hi! My name is Lee."},
+          {"role": "assistant", "content": "Hi Lee! How can I help you today?"},
+          {"role": "user", "content": "Do you remember my name?"}
+        ]
+      }
+      ~~~
 
 ### AWS DynamoDBをMemoryとして利用
 - 参考URL
