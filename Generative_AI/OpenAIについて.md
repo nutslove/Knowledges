@@ -3,7 +3,11 @@
   - LangChain Agentと似たような概念
 - 例えば、ユーザからの質問に対して、インターネットから最新のデータや専門的な情報を検索したり、Pythonを実行して統計的な分析やグラフの作成などを行うことができる
 - どの関数を使うかもOpenAIモデルが判断
-- 関数の実行はOpenAIではなく、プログラム
-  - OpenAIは必要な関数を判断してプログラムに指示を出す(呼び出す)だけ
+- **関数の実行はOpenAIではなく、ユーザが定義したプログラム**
+  - まず、ユーザ側でOpenAIが使用できる関数を定義しておく必要がある
+  - **OpenAIは入力データを分析して、使いたい(使う必要があると判断した)関数とその関数で必要なパラメータを返す**
+  - ユーザ側でOpenAIから帰ってきた関数名と必要なパラメータを使って関数を実行し、関数からの出力データと今までの会話履歴をまとめてOpenAIに投げて最終的な回答を得る
+  - **https://cookbook.openai.com/examples/how_to_call_functions_with_chat_models**
 - 参考URL
   - https://qiita.com/yu-Matsu/items/12b686fe4cab343f50b3
+  - https://platform.openai.com/docs/guides/function-calling
