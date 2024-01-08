@@ -1,4 +1,4 @@
-### HTML rendering
+## HTML rendering
 - https://gin-gonic.com/docs/examples/html-rendering/
 - goファイルがあるところに`templates`ディレクトリを作成し、その配下に`.tmpl`拡張子でHTMLテンプレートファイルを作成する
 - 例  
