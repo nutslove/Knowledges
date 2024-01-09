@@ -8,31 +8,31 @@
   ~~~go
   import (
     "github.com/gin-contrib/sessions"
-  	"github.com/gin-contrib/sessions/cookie"
-  	"github.com/gin-gonic/gin"
-  	csrf "github.com/utrack/gin-csrf"
+    "github.com/gin-contrib/sessions/cookie"
+    "github.com/gin-gonic/gin"
+    csrf "github.com/utrack/gin-csrf"
   )
 
   router = gin.Default()
-	// Cookieベースのセッションを設定
-	secretKey := os.Getenv("SESSION_SECRET_KEY") // Sessionの暗号化キーは固定の値を使用することで、アプリの再起動時にセッションが維持されるようにする
-	if secretKey == "" {
-		fmt.Println("SESSION_SECRET_KEY環境変数が設定されていません")
-		return
-	}
+  // Cookieベースのセッションを設定
+  secretKey := os.Getenv("SESSION_SECRET_KEY") // Sessionの暗号化キーは固定の値を使用することで、アプリの再起動時にセッションが維持されるようにする
+  if secretKey == "" {
+  fmt.Println("SESSION_SECRET_KEY環境変数が設定されていません")
+  return
+  }
 
-	store := cookie.NewStore([]byte(secretKey))
-	router.Use(sessions.Sessions("session", store)) // ブラウザのCookieにセッションIDを保存する
+  store := cookie.NewStore([]byte(secretKey))
+  router.Use(sessions.Sessions("session", store)) // ブラウザのCookieにセッションIDを保存する
 
-	// CSRFミドルウェアの設定
-	// HTML内の_csrfの値を取得して、リクエストトークンと比較を行い、一致しない場合ErrorFuncを実行する（https://github.com/utrack/gin-csrf/blob/master/csrf.go）
-	router.Use(csrf.Middleware(csrf.Options{
-		Secret: secretKey, // 上のCookieベースのセッションと同じ値を指定
-		ErrorFunc: func(c *gin.Context) {
-			c.String(400, "CSRF token mismatch")
-			c.Abort()
-		},
-	}))
+  // CSRFミドルウェアの設定
+  // HTML内の_csrfの値を取得して、リクエストトークンと比較を行い、一致しない場合ErrorFuncを実行する（https://github.com/utrack/gin-csrf/blob/master/csrf.go）
+  router.Use(csrf.Middleware(csrf.Options{
+  Secret: secretKey, // 上のCookieベースのセッションと同じ値を指定
+  ErrorFunc: func(c *gin.Context) {
+  	c.String(400, "CSRF token mismatch")
+  	c.Abort()
+  },
+  }))
   ~~~
 
 ## CSRF隠しフィールドトークンのメカニズム
