@@ -24,3 +24,107 @@
     	</h1>
     </html>
     ~~~
+
+## 使い方
+~~~go
+import (
+	github.com/gin-gonic/gin
+)
+
+func main() {
+	router = gin.Default()
+}
+~~~
+### `gin.Default()`
+- 大元 (https://github.com/gin-gonic/gin/blob/master/gin.go)
+	~~~go
+  // Default returns an Engine instance with the Logger and Recovery middleware already attached.
+  func Default() *Engine {
+  	debugPrintWARNINGDefault()
+  	engine := New()
+  	engine.Use(Logger(), Recovery())
+  	return engine
+  }
+	~~~
+  - `debugPrintWARNINGDefault()` (https://github.com/gin-gonic/gin/blob/master/debug.go#L68)
+  	~~~go
+    func debugPrintWARNINGDefault() {
+    	if v, e := getMinVer(runtime.Version()); e == nil && v < ginSupportMinGoVer {
+    		debugPrint(`[WARNING] Now Gin requires Go 1.18+.
+
+    `)
+    	}
+    	debugPrint(`[WARNING] Creating an Engine instance with the Logger and Recovery middleware already attached.
+
+    `)
+    }
+  	~~~
+  - `New()` (https://github.com/gin-gonic/gin/blob/master/gin.go#L183C1-L213C2)
+  	~~~go
+    func New() *Engine {
+    	debugPrintWARNINGNew()
+    	engine := &Engine{
+    		RouterGroup: RouterGroup{
+    			Handlers: nil,
+    			basePath: "/",
+    			root:     true,
+    		},
+    		FuncMap:                template.FuncMap{},
+    		RedirectTrailingSlash:  true,
+    		RedirectFixedPath:      false,
+    		HandleMethodNotAllowed: false,
+    		ForwardedByClientIP:    true,
+    		RemoteIPHeaders:        []string{"X-Forwarded-For", "X-Real-IP"},
+    		TrustedPlatform:        defaultPlatform,
+    		UseRawPath:             false,
+    		RemoveExtraSlash:       false,
+    		UnescapePathValues:     true,
+    		MaxMultipartMemory:     defaultMultipartMemory,
+    		trees:                  make(methodTrees, 0, 9),
+    		delims:                 render.Delims{Left: "{{", Right: "}}"},
+    		secureJSONPrefix:       "while(1);",
+    		trustedProxies:         []string{"0.0.0.0/0", "::/0"},
+    		trustedCIDRs:           defaultTrustedCIDRs,
+    	}
+    	engine.RouterGroup.engine = engine
+    	engine.pool.New = func() any {
+    		return engine.allocateContext(engine.maxParams)
+    	}
+    	return engine
+    }
+		~~~
+
+## `Use`メソッド
+Ginフレームワークにおける`Use`メソッドは、グローバルまたはルートレベルのミドルウェアを登録するために使用されます。ミドルウェアは、HTTPリクエストの処理中に特定の機能（ログ記録、認証、エラーハンドリングなど）を実行するための関数です。
+
+`Use`メソッドの動作は以下のステップで行われます：
+
+1. **ミドルウェアの登録：** `Use`メソッドを呼び出すことで、指定されたミドルウェアがGinエンジンに登録されます。
+
+2. **リクエストの処理：** HTTPリクエストがサーバーに到着すると、登録されたミドルウェアは順番に実行されます。各ミドルウェアは`gin.Context`オブジェクトを受け取り、必要に応じてリクエストデータの処理やレスポンスデータの変更を行います。
+
+3. **次のミドルウェアへの移行：** ミドルウェアは通常、`c.Next()`を呼び出して、次のミドルウェアまたは最終的なハンドラへの実行を続けます。`c.Abort()`を呼び出すと、チェーンの残りのミドルウェアの実行が停止されます。
+
+4. **レスポンスの送信：** 最終的なハンドラがレスポンスを生成し、クライアントに送信されます。この時点で、登録されたミドルウェアの`c.Next()`の後の部分が実行される場合があります（例えば、レスポンス後のログ記録など）。
+
+`Use`メソッドを使用することで、Ginアプリケーションは柔軟にミドルウェアを活用し、リクエストの前後でさまざまな処理を行うことができます。
+
+### `c.Next()`について
+- ミドルウェア内で現在のリクエストに対する処理を一時停止し、次のミドルウェアまたはルートハンドラに制御を移行するために使う
+- `c.Next()`の必要性
+	- **複数のミドルウェアがある場合**： 複数のミドルウェアを使用する場合、各ミドルウェア内で`c.Next()`を呼び出すことで、次のミドルウェアへの処理が移行します。`c.Next()`を呼ばない場合、チェーン内の後続のミドルウェアやルートハンドラは実行されません。
+	- **ミドルウェアが最後の場合**： チェーン内の最後のミドルウェアである場合、そのミドルウェア内で`c.Next()`を呼び出す必要はありません。なぜなら、それ以上実行するミドルウェアやハンドラがないためです。
+	- **外部ライブラリ/自作ミドルウェアの場合**： 外部ライブラリによって提供されるミドルウェアの場合、通常は`c.Next()`が内部的に適切に呼び出されていることが多いです。そのため、これを直接呼び出す場合に自分で`c.Next()`を追加する必要はありません。自作のミドルウェアの場合は`c.Next()`を適切な位置に配置することが重要。
+- チェーン内の最後のミドルウェアであっても、`c.Next()`を含めても問題はありません。実際、`c.Next()`を含めることは一般的な慣習であり、ミドルウェアの一貫性を保つために推奨されることも多いです。
+
+#### `c.Abort()`について
+- `c.Abort()`が呼ばれた場合は、それ以降の`c.Next()`は実行されず、チェーン内の後続のミドルウェアやリクエストハンドラは実行されない点に注意が必要です。
+
+## ミドルウェアについて
+- ミドルウェアはリクエストごとに順番に実行される
+  - 同じページでのリロード（F5を押すなど）や、異なるページに移動するなど、サーバーに送信される各HTTPリクエストに対して、登録されたミドルウェアが順番に実行される
+
+##### ミドルウェアの動作の概要
+- **リクエスト毎の実行：** ユーザーがブラウザでページをリロードしたり、新しいページに移動したりすると、新しいHTTPリクエストがサーバーに送信されます。サーバーがこのリクエストを受け取ると、設定されたミドルウェアが実行されます。
+- **処理の流れ：** ミドルウェアは、登録された順序に従って処理されます。各ミドルウェアはリクエストを受け取り、必要に応じてリクエストの内容を変更したり、レスポンスを生成したりすることができます。
+- **用途の多様性：** ミドルウェアは様々な目的で使用されます。例えば、認証チェック、ログ記録、リクエストのバリデーション、セキュリティヘッダーの追加、エラーハンドリングなどです。
