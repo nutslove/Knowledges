@@ -6,6 +6,14 @@
 - `github.com/utrack/gin-csrf`と`gin-contrib/sessions`パッケージを使用
 - 実装例
   ~~~go
+  import (
+    "github.com/gin-contrib/sessions"
+  	"github.com/gin-contrib/sessions/cookie"
+  	"github.com/gin-gonic/gin"
+  	csrf "github.com/utrack/gin-csrf"
+  )
+
+  router = gin.Default()
 	// Cookieベースのセッションを設定
 	secretKey := os.Getenv("SESSION_SECRET_KEY") // Sessionの暗号化キーは固定の値を使用することで、アプリの再起動時にセッションが維持されるようにする
 	if secretKey == "" {
