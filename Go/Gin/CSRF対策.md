@@ -27,11 +27,11 @@
   // CSRFミドルウェアの設定
   // HTML内の_csrfの値を取得して、リクエストトークンと比較を行い、一致しない場合ErrorFuncを実行する（https://github.com/utrack/gin-csrf/blob/master/csrf.go）
   router.Use(csrf.Middleware(csrf.Options{
-  Secret: secretKey, // 上のCookieベースのセッションと同じ値を指定
-  ErrorFunc: func(c *gin.Context) {
-  	c.String(400, "CSRF token mismatch")
-  	c.Abort()
-  },
+    Secret: secretKey, // 上のCookieベースのセッションと同じ値を指定
+    ErrorFunc: func(c *gin.Context) {
+    	c.String(400, "CSRF token mismatch")
+    	c.Abort()
+    },
   }))
   ~~~
 
