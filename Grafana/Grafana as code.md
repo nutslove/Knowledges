@@ -3,7 +3,7 @@
 - 参考URL
   - https://grafana.com/blog/2022/12/06/a-complete-guide-to-managing-grafana-as-code-tools-tips-and-tricks/
   - https://grafana.com/blog/2020/02/26/how-to-configure-grafana-as-code/
-## Grafana alerts as code
+## Terraform
 - **Terraformなどコードで作成したアラートはデフォルトでは手動では修正できない**
   - https://grafana.com/docs/grafana/latest/alerting/set-up/provision-alerting-resources/terraform-provisioning/
   - **ただ、`disable_provenance`項目を`true`にするとTerraformから作成したアラートも手動で修正できるようになる**
@@ -59,3 +59,24 @@
   　　　　　　　　　　　　　　・
   }
   ~~~
+
+#### Data Source
+- https://registry.terraform.io/providers/grafana/grafana/latest/docs/resources/data_source
+
+#### Dashboard
+- https://registry.terraform.io/providers/grafana/grafana/latest/docs/resources/dashboard
+- jsonファイルにダッシュボードの中身を定義しておいて、`config_json`に`file(<jsonファイル>)`でファイルを指定することもできる
+  - https://www.devopstricks.in/generate-grafana-dashboard-using-terraform/
+    ~~~terraform
+    resource "grafana_dashboard" "general" {
+       config_json = file("tf_dashboard.json") 
+    }
+    ~~~
+- **`config_json`には、既存のGrafanaダッシュボードの「Dashboard settings」(歯車マーク) →「JSON Model」の値をそのままコピーしてファイル(拡張子は`.json`)として保存して、それをそのまま`file`で指定すればできる**
+  - 「JSON Model」のデータの末尾の`title`と`uid`は既存のダッシュボードと被らないように修正が必要
+
+#### Contact Point
+- https://registry.terraform.io/providers/grafana/grafana/latest/docs/resources/contact_point
+
+#### Notification Policy
+- https://registry.terraform.io/providers/grafana/grafana/latest/docs/resources/notification_policy
