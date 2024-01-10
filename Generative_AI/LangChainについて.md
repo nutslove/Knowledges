@@ -1,3 +1,21 @@
+## LangChainのModules
+- https://python.langchain.com/docs/modules/
+1. **Model I/O**
+   - Prompts
+     - Prompt Templateなど
+   - LLMs
+   - Chat Models
+2. **Retrieval**
+   - Document loaders
+   - Text Splitter
+   - Text embedding models
+   - Vector Store
+   - Retrievers
+3. **Agents**
+4. **Chains**
+5. **Memory**
+6. **Callbacks**
+
 ## *LLMs* vs *Chat models*
 - https://python.langchain.com/docs/modules/model_io/#llms-vs-chat-models  
   > LLMs and chat models are subtly but importantly different. LLMs in LangChain refer to pure text completion models. The APIs they wrap take a string prompt as input and output a string completion. OpenAI's GPT-3 is implemented as an LLM. Chat models are often backed by LLMs but tuned specifically for having conversations. And, crucially, their provider APIs use a different interface than pure text completion models. Instead of a single string, they take a list of chat messages as input. Usually these messages are labeled with the speaker (usually one of "System", "AI", and "Human"). And they return an AI chat message as output. GPT-4 and Anthropic's Claude-2 are both implemented as chat models.
@@ -7,6 +25,9 @@
 - **Chat models**
   - 1回の回答で終わりではなく会話のためにtuningされたもの
   - inputとしてchat messageのリストを受け付ける
+
+## Model I/O
+- Interface with language models
 
 ## Memory
 - デフォルトではChat-GPTなどのLLMはチャットの履歴を保持しない
@@ -28,6 +49,20 @@
         ]
       }
       ~~~
+  - LangChainの場合（roleという明示的なKeyはない）
+    - LLMへの指示内容： **`SystemMessage`**
+    - ユーザからの入力： **`HumanMessage`**
+    - LLMからの出力： **`AIMessage`**
+    - e.g.
+      ~~~
+      messages = [
+        SystemMessage(content="You are a helpful assistant."),
+        HumanMessage(content="Hi! My name is Lee."),
+        AIMessage(content="Hi Lee! How can I help you today?"),
+        HumanMessage(content="Do you remember my name?")
+      ]
+      ~~~
+      - LangChainでLLMをOpenAIを使う場合は内部的には上のOpenAIの場合のフォーマットでやり取りされる
 
 ### AWS DynamoDBをMemoryとして利用
 - 参考URL
