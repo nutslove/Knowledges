@@ -59,3 +59,24 @@
   　　　　　　　　　　　　　　・
   }
   ~~~
+
+#### Data Source
+- https://registry.terraform.io/providers/grafana/grafana/latest/docs/resources/data_source
+
+#### Dashboard
+- https://registry.terraform.io/providers/grafana/grafana/latest/docs/resources/dashboard
+- jsonファイルにダッシュボードの中身を定義しておいて、`config_json`に`file(<jsonファイル>)`でファイルを指定することもできる
+  - https://www.devopstricks.in/generate-grafana-dashboard-using-terraform/
+    ~~~terraform
+    resource "grafana_dashboard" "general" {
+       config_json = file("tf_dashboard.json") 
+    }
+    ~~~
+- **`config_json`には、既存のGrafanaダッシュボードの「Dashboard settings」(歯車マーク) →「JSON Model」の値をそのままコピーしてファイル(拡張子は`.json`)として保存して、それをそのまま`file`で指定すればできる**
+  - 「JSON Model」のデータの末尾の`title`と`uid`は既存のダッシュボードと被らないように修正が必要
+
+#### Contact Point
+- https://registry.terraform.io/providers/grafana/grafana/latest/docs/resources/contact_point
+
+#### Notification Policy
+- https://registry.terraform.io/providers/grafana/grafana/latest/docs/resources/notification_policy
