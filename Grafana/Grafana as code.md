@@ -72,6 +72,14 @@
        config_json = file("tf_dashboard.json") 
     }
     ~~~
+  - またはJSONの中身をそのまま記載することもできる
+    ~~~terraform
+    resource "grafana_dashboard" "general" {
+       config_json = <<EOF
+    <JSONの中身をそのままコピペ>
+    EOF
+    }
+    ~~~
 - **`config_json`には、既存のGrafanaダッシュボードの「Dashboard settings」(歯車マーク) →「JSON Model」の値をそのままコピーしてファイル(拡張子は`.json`)として保存して、それをそのまま`file`で指定すればできる**
   - 「JSON Model」のデータの末尾の`title`と`uid`は既存のダッシュボードと被らないように修正が必要
 
