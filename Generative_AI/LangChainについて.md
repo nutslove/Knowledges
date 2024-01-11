@@ -63,6 +63,16 @@
       ]
       ~~~
       - LangChainでLLMをOpenAIを使う場合は内部的には上のOpenAIの場合のフォーマットでやり取りされる
+- Memoryにはいくつか種類があり、プロンプトのトークン数の制限などですべての会話履歴を含めることが難しい場合などに有用
+  - `ConversationBufferWindowMemory`
+    - 直近k個の会話だけをプロンプトに含める
+  - `ConversationSummaryMemory`
+    - LLMを使って会話履歴を要約する
+  - `ConversationSummaryBufferMemory`
+    - 直近の会話はそのままにして、古い会話だけ要約する
+  - `ConversationTokenBufferMemory`
+    - 指定したトークン数の会話だけプロンプトに含める
+  - すべての会話履歴を含めて問題ないときは`ConversationBufferMemory`でOK
 
 ### AWS DynamoDBをMemoryとして利用
 - 参考URL
