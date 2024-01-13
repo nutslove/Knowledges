@@ -26,26 +26,48 @@
     - https://matsuand.github.io/docs.docker.jp.onthefly/engine/security/seccomp/
 - Kubernetesではdefaultではseccompは無効化(disabled)されている
   - https://kubernetes.io/docs/tutorials/security/seccomp/
-  - マニフェストファイル(`spec.securityContext.seccompProfile`)でseccompの有効化することもできる  
-    ~~~yaml
-    apiVersion: v1
-    kind: Pod
-    metadata:
-      name: default-pod
-      labels:
-        app: default-pod
-    spec:
-      securityContext:
-        seccompProfile:
-          type: RuntimeDefault
-      containers:
-      - name: test-container
-        image: hashicorp/http-echo:1.0
-        args:
-        - "-text=just made some more syscalls!"
+  - マニフェストファイル(`spec.securityContext.seccompProfile`)でseccompの有効化することもできる
+    - コンテナRuntime(e.g. Docker)のseccomp設定を継承する(`type`を`RuntimeDefault`にする)  
+      ~~~yaml
+      apiVersion: v1
+      kind: Pod
+      metadata:
+        name: default-pod
+        labels:
+          app: default-pod
+      spec:
         securityContext:
-          allowPrivilegeEscalation: false
-    ~~~
+          seccompProfile:
+            type: RuntimeDefault
+        containers:
+        - name: test-container
+          image: hashicorp/http-echo:1.0
+          args:
+          - "-text=just made some more syscalls!"
+          securityContext:
+            allowPrivilegeEscalation: false
+      ~~~
+    - ノード上の(カスタム)profileファイルを指定するには`type`を`Localhost`にして、`localhostProfile`に **`/var/lib/kubelet/seccomp/`** からの相対パスを指定する(以下はprofileファイルが`/var/lib/kubelet/seccomp/profiles/audit.json`にあるとした場合)  
+      ~~~yaml
+      apiVersion: v1
+      kind: Pod
+      metadata:
+        name: default-pod
+        labels:
+          app: default-pod
+      spec:
+        securityContext:
+          seccompProfile:
+            type: Localhost
+            localhostProfile: profiles/audit.json
+        containers:
+        - name: test-container
+          image: hashicorp/http-echo:1.0
+          args:
+          - "-text=just made some more syscalls!"
+          securityContext:
+            allowPrivilegeEscalation: false
+      ~~~
 
 ## Capabilities
 - CapabilitiesはLinux Kernelの機能でrootユーザの権限を細分化してもの
