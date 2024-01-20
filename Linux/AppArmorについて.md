@@ -12,8 +12,9 @@
 - プログラム(Process)ごとにprofileを作成し、適用する（１プロセス＝１プロファイル）
   - デフォルトのAppArmor Profileディレクトリは`/etc/apparmor.d/`
   - `/etc/apparmor.d/disable/`ディレクトリ配下のprofileは適用されない
-- Profileファイルを適用(Kernelにロード)するには`apparmor_parser -q <Profileファイルフルパス>`コマンドを実行する
+- Profileファイルを適用(Kernelにロード)するには`apparmor_parser <Profileファイルフルパス>`コマンドを実行する
   - その後、下のようにPodマニフェストファイルの`annotations.container.apparmor.security.beta.kubernetes.io`でProfileを適用するPodを指定する
+  - profileの除外は`apparmor_parser -R <Profileファイルフルパス>`
 - AppArmorには３つのmodeがある
   - **enforce**
     - ruleを強制(ruleに違反したらpermit denyされる)
