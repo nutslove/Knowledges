@@ -1,0 +1,4 @@
+- Vector StoreへのEmbeddingのLLMとしてAWSのTitanだけではなく、Cohereのmultilingualも使えるようになった。
+  - 日本語のEmbeddingにはCohereがTitanやOpenAIのEmbeddingモデルより優れているという
+  - **ただ、Knowledge BaseでCohere(multilingual)でSyncするとエラーになる。。あと、分割の際のChunk当たりの最大Tokenが512と小さい(Token数を変えたりしてもSyncでエラーになった)**
+- Titanでも4096とか大きめのTokenにするとSyncでエラーになるものが出た。2048だとエラーにならなかった。**関係性を確認！**
