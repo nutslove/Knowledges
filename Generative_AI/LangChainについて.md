@@ -216,7 +216,7 @@
   - RAGで単発の会話は`RetrievalQA`クラスを、会話履歴を踏まえて回答させる場合は`ConversationalRetrievalChain`クラスを使う
 - `ConversationalRetrievalChain`クラスの`from_llm`メソッドでchainを定義して、`ConversationalRetrievalChain.from_llm.run`でVector Storeからの情報を含めてLLMに投げる
   - **`verbose=True`にするとLLMへの最終的なPromptを出力させることができる**
-  - **`chain_type="stuff"` (defaultが"stuff")の場合、Vector Storeから取得した複数のデータをすべて最終的なPromptに入れて**
+  - **`chain_type="stuff"` (defaultが"stuff")の場合、Vector Storeから取得した複数のデータをすべて最終的なPromptに入れてLLMに投げる**
 - **Vector StoreへのEmbedding(ベクトル化)に使うLLMとユーザからの質問をEmbedding(ベクトル化)に使うLLMは同じじゃないといけない？要確認！！**
 - 参考URL
   - **https://blog.serverworks.co.jp/langchain-bedrock-memo-1**
@@ -231,6 +231,7 @@
   print(f"len = {len(context_docs)}")
   for context_doc in context_docs:
       print(f"metadata = {context_doc.metadata}")
+      print("score = " + str(context_doc.metadata["score"]))
       print(f"page_content = {context_doc.page_content}") ## Vector Storeから取得したデータ
   ~~~
 
