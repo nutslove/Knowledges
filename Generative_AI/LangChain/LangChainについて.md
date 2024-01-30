@@ -211,29 +211,7 @@
   - https://qiita.com/tottu22/items/260f75de737c21664ec7
 
 ## Retrieval
-- RAGのためのモジュール
-- `ConversationalRetrievalChain`クラスを使う
-  - RAGで単発の会話は`RetrievalQA`クラスを、会話履歴を踏まえて回答させる場合は`ConversationalRetrievalChain`クラスを使う
-- `ConversationalRetrievalChain`クラスの`from_llm`メソッドでchainを定義して、`ConversationalRetrievalChain.from_llm.run`でVector Storeからの情報を含めてLLMに投げる
-  - **`verbose=True`にするとLLMへの最終的なPromptを出力させることができる**
-  - **`chain_type="stuff"` (defaultが"stuff")の場合、Vector Storeから取得した複数のデータをすべて最終的なPromptに入れてLLMに投げる**
-- **Vector StoreへのEmbedding(ベクトル化)に使うLLMとユーザからの質問をEmbedding(ベクトル化)に使うLLMは同じじゃないといけない？要確認！！**
-- 参考URL
-  - **https://blog.serverworks.co.jp/langchain-bedrock-memo-1**
-- **Knowledge BaseのOpenSearchでメタデータにscoreがあって、質問と取得したデータの類似度を表す**
-  - **Knowledge Baseだからメターデータが保存できるのか、OpenSearchだからできるのかは要確認！**
-- retrieverの **`get_relevant_documents`** でVector Storeから取得してデータの件数と取得したデータの中身、metadataなどを確認できる  
-  ~~~python
-  retriever = AmazonKnowledgeBasesRetriever(knowledge_base_id=knowledge_base_for_bedrock_id,retrieval_config=retrieval_config)
-
-  # retrieverで取得してきたデータを確認 (上のnumberOfResultsで指定した件数のデータが取得)
-  context_docs = retriever.get_relevant_documents(user_input)
-  print(f"len = {len(context_docs)}")
-  for context_doc in context_docs:
-      print(f"metadata = {context_doc.metadata}")
-      print("score = " + str(context_doc.metadata["score"]))
-      print(f"page_content = {context_doc.page_content}") ## Vector Storeから取得したデータ
-  ~~~
+- 別のファイルでまとめる（Retrievalについて.md）
 
 ## その他
 - レスポンスのパラメータで指定する`top_k`は言語モデルがテキスト(回答文)を生成する際に、各ステップで考慮するトークン(文字列)の候補数を指定する。具体的には、モデルが次のトークンを選ぶ際に、確率が最も高い上位 k 個のトークンの中から選択を行うようになる。なので、`temperature`を低く設定している場合は、`top_k`を大きく設定してもあまり意味がない
