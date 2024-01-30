@@ -1,0 +1,7 @@
+- 回答を行うLLMとは別で、**「ドキュメントのベクトル化」と「クエリー(質問)のベクトル化」のためのモデル**
+- 日本語では**埋め込みモデル**という
+- Embedding Modelの性能で *クエリー(質問)* と *Vector Store内のデータ* 間の類似度が正しく計算されず、あまり関係ないデータが検索/取得されたりして、回答の精度が落ちる恐れがある
+- 日本語の場合、Amazon TitanやOpenAIのtext-embeddingモデルより、Cohereのmultilingualモデルの方が性能が良いみたい
+  - MicrosoftのMultilingual-E5（OSS）というのも日本語での性能が良いみたい
+    - https://speakerdeck.com/nttcom/exploring-publicly-available-japanese-embedding-models?slide=25
+    - https://huggingface.co/intfloat/multilingual-e5-large
