@@ -56,6 +56,7 @@
      texts = text_splitter.split_documents(documents)
      ~~~
   2. 各種Loaderライブラリ(e.g. PyPDFLoader)の`load_and_split()`メソッドの引数にTextSplitterライブラリのパラメータを渡す方法
+     - https://api.python.langchain.com/en/latest/document_loaders/langchain_community.document_loaders.pdf.PyMuPDFLoader.html#
      ~~~python
      from langchain.vectorstores import OpenSearchVectorSearch
      import boto3
