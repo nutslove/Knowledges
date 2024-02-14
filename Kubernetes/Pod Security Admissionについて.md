@@ -1,0 +1,2 @@
+- https://kubernetes.io/docs/concepts/security/pod-security-admission/
+- `Pod Security Policy (PSP)`がv1.25から削除され、その代替として出たのが`Pod Security Admission`
