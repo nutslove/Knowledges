@@ -767,7 +767,7 @@ updates go.mod to require those versions, and downloads source code into the mod
 	  GetArea() int
   }
 
-  func DisplayArea(f Figure) {
+  func DisplayArea(f Figure) { ---> Figureのf変数(引数)にCircle structまたはSquare structの値が入る
 	  fmt.Printf("%T\n", f)
 	  fmt.Printf("面積は%vです\n", f.GetArea())
   }
@@ -780,7 +780,33 @@ updates go.mod to require those versions, and downloads source code into the mod
 	  DisplayArea(square) ------------→ 3*3で"面積は9です"と出力される
   }
   ~~~
-- 例２
+- 例２  
+  ~~~go
+  type Stringer interface {
+    String() string
+  }
+
+  type Student struct {
+    Name string
+    Age int
+  }
+
+  func (s Student) String() string {
+    return fmt.Sprintf("Hey! I am %d years old and my name is %s", s.Age, s.Name) // fmt.Sprintfはターミナルに出力せず、出力値を変数に保存したりする際に利用
+  }
+
+  func main() {
+    student := Student{
+      "Lee",
+      32
+    }
+    var stringer Stringer
+
+    stringer = student // 
+    fmt.Printf("%s\n", stringer.String())
+  }
+  ~~~
+- 例３
   ~~~go
   type person struct {
 	  first string
@@ -843,7 +869,7 @@ updates go.mod to require those versions, and downloads source code into the mod
 	bar(p1)
   }
   ~~~
-- 例３ ([sortパッケージ(interface)](https://pkg.go.dev/sort#Interface))
+- 例４ ([sortパッケージ(interface)](https://pkg.go.dev/sort#Interface))
   - `sort.Sort`でsortするためには上のURLのInterfaceで定義している`Len() int`、`Less(i, j int) bool`、`Swap(i, j int)` Methodを具現する必要がある
   ~~~go
   package main
