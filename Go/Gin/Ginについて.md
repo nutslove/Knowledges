@@ -36,14 +36,16 @@ func main() {
 }
 ~~~
 ### `gin.Default()`
+- default routerを初期化
+  - このrouterがHTTPリクエストを処理し、適切なHandler関数にルーティングする役割
 - 大元 (https://github.com/gin-gonic/gin/blob/master/gin.go)
 	~~~go
   // Default returns an Engine instance with the Logger and Recovery middleware already attached.
   func Default() *Engine {
-  	debugPrintWARNINGDefault()
-  	engine := New()
-  	engine.Use(Logger(), Recovery())
-  	return engine
+  		debugPrintWARNINGDefault()
+  		engine := New()
+  		engine.Use(Logger(), Recovery())
+  		return engine
   }
 	~~~
   - `debugPrintWARNINGDefault()` (https://github.com/gin-gonic/gin/blob/master/debug.go#L68)
@@ -93,6 +95,56 @@ func main() {
     	return engine
     }
 		~~~
+### `*gin.Context`
+- リクエスト情報の取得やレスポンス設定に使用される
+- `gin.Context`は、GinフレームワークでHTTPリクエストとレスポンスを処理する際に中心となる概念。`gin.Context`は、リクエストの詳細情報を保持し、レスポンスを生成するためのメソッドを提供するオブジェクト。このコンテキストを通じて、リクエストのパラメータやヘッダ、ボディなどのデータにアクセスしたり、レスポンスのステータスコードやヘッダ、ボディを設定することができる。
+- 以下のようなユースケースなどにも使える
+  - **コンテキスト変数**: アプリケーションの実行中にハンドラ間でデータを共有するために、コンテキストに変数を設定・取得する機能。
+  - **セッション管理**: ユーザーセッションの管理に関連するデータと機能。
+
+  #### `gin.Context`が保持するデータ
+  - `gin.Context`には、以下のようなリクエストに関連する多くの情報が含まれている：
+    - **パラメータ**: URLパスやクエリパラメータからの値を取得することができる。
+    - **ヘッダー**: HTTPリクエストヘッダーの値にアクセスすることが可能。
+    - **ボディ**: POSTやPUTリクエストのボディからデータを読み取ることができる。
+    - **クッキー**: HTTPクッキーの値にアクセスすることができる。
+
+  #### `gin.Context`の使い方
+  - `gin.Context`を使用することで、開発者はリクエストに対する応答を柔軟に制御することができる。以下に、その使い方の例をいくつか挙げる：
+    - **パラメータの取得**: URLパスやクエリからパラメータを取得することができる。
+      ```go
+      func(c *gin.Context) {
+          id := c.Param("id") // URLパスから:idに対応するパラメータを取得
+          query := c.Query("query") // クエリパラメータからqueryの値を取得
+      }
+      ```
+    - **レスポンスの送信**: ステータスコード、ヘッダ、ボディを含むHTTPレスポンスを送信することができる。
+      ```go
+      func(c *gin.Context) {
+          c.JSON(200, gin.H{"message": "hello world"}) // JSONレスポンスを送信
+      }
+      ```
+    - **リクエストボディの読み取り**: JSONやフォームデータなど、リクエストボディからのデータを解析する。
+      ```go
+      func(c *gin.Context) {
+          var jsonBody SomeStruct
+          if err := c.ShouldBindJSON(&jsonBody); err != nil {
+              c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+              return
+          }
+      }
+      ```
+    - **ミドルウェアとの連携**: ミドルウェア内で`gin.Context`を操作し、リクエストの前処理や後処理を行うことができる。
+      ```go
+      func MyMiddleware(c *gin.Context) {
+          // リクエストの前処理
+          c.Set("example", "12345") // コンテキストにデータを設定
+
+          c.Next() // 次のハンドラやミドルウェアを呼び出し
+
+          // リクエストの後処理
+      }
+      ```
 
 ## `Use`メソッド
 Ginフレームワークにおける`Use`メソッドは、グローバルまたはルートレベルのミドルウェアを登録するために使用されます。ミドルウェアは、HTTPリクエストの処理中に特定の機能（ログ記録、認証、エラーハンドリングなど）を実行するための関数です。
@@ -120,9 +172,12 @@ Ginフレームワークにおける`Use`メソッドは、グローバルまた
 #### `c.Abort()`について
 - `c.Abort()`が呼ばれた場合は、それ以降の`c.Next()`は実行されず、チェーン内の後続のミドルウェアやリクエストハンドラは実行されない点に注意が必要です。
 
-## ミドルウェアについて
+## ミドルウェア(middleware)について
 - ミドルウェアはリクエストごとに順番に実行される
   - 同じページでのリロード（F5を押すなど）や、異なるページに移動するなど、サーバーに送信される各HTTPリクエストに対して、登録されたミドルウェアが順番に実行される
+
+#### middlewareとHandlerの関係
+- https://zenn.dev/villa_ak99/articles/88998d20f512bc
 
 ##### ミドルウェアの動作の概要
 - **リクエスト毎の実行：** ユーザーがブラウザでページをリロードしたり、新しいページに移動したりすると、新しいHTTPリクエストがサーバーに送信されます。サーバーがこのリクエストを受け取ると、設定されたミドルウェアが実行されます。
