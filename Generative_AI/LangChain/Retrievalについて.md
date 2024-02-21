@@ -111,6 +111,7 @@
   )
   docs = loader.load_and_split(text_splitter=text_splitter)
 
+  ##「ベクトル化されたデータ」と「ドキュメントのメタデータ(e.g. ファイル名、pageなど)」がOpenSearchに格納される
   docsearch = OpenSearchVectorSearch.from_documents(
       docs,
       embeddings,
