@@ -87,3 +87,39 @@
        vector_field = "osha_vector"
      )
      ~~~
+
+## OpenSearchへの(ベクトル化した)ドキュメントデータの投入
+- `OpenSearchVectorSearch`クラスの`from_documents`を使用
+  - https://python.langchain.com/docs/integrations/vectorstores/opensearch
+- 例
+  ~~~python
+  from langchain_community.document_loaders import PyPDFLoader
+  from langchain_community.vectorstores import OpenSearchVectorSearch
+  from langchain.text_splitter import RecursiveCharacterTextSplitter
+  from langchain_community.embeddings import BedrockEmbeddings
+
+  embeddings = BedrockEmbeddings(
+      model_id = "cohere.embed-multilingual-v3"
+  )
+
+  loader = PyPDFLoader(<PDFファイルのパス>)
+  text_splitter = RecursiveCharacterTextSplitter(
+      chunk_size=int(chunk_size), ## １つのchunkサイズ
+      chunk_overlap=int(chunk_overlap), ## chunk間で重複させる範囲
+      length_function=len, ## 文字数で分割
+      is_separator_regex=False,
+  )
+  docs = loader.load_and_split(text_splitter=text_splitter)
+
+  docsearch = OpenSearchVectorSearch.from_documents(
+      docs,
+      embeddings,
+      opensearch_url="https://opensearch:9200",
+      index_name=index_name_for_load,
+      http_auth=("admin", "admin"),
+      use_ssl = False,
+      verify_certs = False,
+      ssl_assert_hostname = False,
+      ssl_show_warn = False,
+  )
+  ~~~
