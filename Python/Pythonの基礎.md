@@ -50,3 +50,19 @@ print(index) --> 2が出力
 > 逆に、これら以外の値はすべて「真（True）」と評価されます。
 >
 > したがって、**`if <変数名>:`のコードは変数が定義されていて、かつその値が「真」であるかどうかをチェック**します。**値が「偽」である場合、ifブロックは実行されません**。もし変数が定義されていない場合、PythonはNameErrorを投げます。
+
+### lambda関数(無名関数)
+- 例
+  ~~~python
+  loaders = {
+      "pdf": PyPDFLoader,
+      "txt": lambda path: TextLoader(path, autodetect_encoding=True),
+      "docx": Docx2txtLoader,
+  }
+
+  if file_type in loaders:
+      loader = loaders[file_type](tmp_location)
+  ~~~
+  - TextLoaderクラスのインスタンスを生成する際に、`autodetect_encoding=True`を自動的に引数として渡します。このlambda関数自体が、`TextLoader`を呼び出す際に必要なすべての引数を内包しており、外部から直接`autodetect_encoding`に関する指定をする必要はありません。  
+  `loader = loaders[file_type](tmp_location)`の行で、ファイルタイプに応じたローダーが呼び出される際には、そのローダーに対して`tmp_location`のみが引数として渡されます。しかし、"txt"のファイルタイプに対応するローダー（この場合はlambda関数）には、このlambda関数内で`TextLoader`のコンストラクタに`path`と`autodetect_encoding=True`の両方を渡すように定義されています。  
+  つまり、lambda関数を介して`TextLoader`を呼び出す際には、lambda関数が受け取った`tmp_location`（`path`として受け取る）を`TextLoader`の第一引数として、そしてlambda関数の定義により`autodetect_encoding=True`が自動的に第二引数として`TextLoader`に渡されます。
