@@ -48,86 +48,113 @@
       - https://python.langchain.com/docs/modules/data_connection/retrievers/parent_document_retriever
   - 元のドキュメントを保存しておくStoreとして使えるストレージ一覧
     - https://python.langchain.com/docs/integrations/stores/
-- **使い方**
-  - (1)元のドキュメントをFullで取得してLLMに渡す方法、(2)類似度検索に使うChunk(小さいChunk → `child_splitter`パラメータでサイズ指定)とLLMに渡すChunk(大きいサイズ → `parent_splitter`パラメータでサイズ指定)
-  - `parent_splitter`パラメータを省略した場合は(1)の元のドキュメントをすべてLLMに渡す
-  - **(ベクトル化する)Chunkと原本のフルドキュメントを保存する**  
-    ~~~python
-    from langchain.storage import LocalFileStore
-    from langchain.storage._lc_store import create_kv_docstore
-    from langchain.retrievers import ParentDocumentRetriever
-    from langchain.text_splitter import RecursiveCharacterTextSplitter
-    from langchain_community.document_loaders import PyPDFLoader
+#### ■ 使い方
+- (1)元のドキュメントをFullで取得してLLMに渡す方法、(2)類似度検索に使うChunk(小さいChunk → `child_splitter`パラメータでサイズ指定)とLLMに渡すChunk(大きいサイズ → `parent_splitter`パラメータでサイズ指定)
+- `parent_splitter`パラメータを省略した場合は(1)の元のドキュメントをすべてLLMに渡す
+- **(ベクトル化する)Chunkと原本のフルドキュメントを保存する**  
+  ~~~python
+  from langchain.storage import LocalFileStore
+  from langchain.storage._lc_store import create_kv_docstore
+  from langchain.retrievers import ParentDocumentRetriever
+  from langchain.text_splitter import RecursiveCharacterTextSplitter
+  from langchain_community.document_loaders import PyPDFLoader
 
-    files_location = "/opt/rag/documents" ## ドキュメントファイルが格納されるディレクトリ
-    fs = LocalFileStore(files_location)
-    store = create_kv_docstore(fs)
-    text_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=400,
-        chunk_overlap=0,
-    )
-    loaders = PyPDFLoader("/<some_dir>/some.pdf")
-    docs = loader.load()
+  files_location = "/opt/rag/documents" ## ドキュメントファイルが格納されるディレクトリ
+  fs = LocalFileStore(files_location)
+  store = create_kv_docstore(fs)
+  text_splitter = RecursiveCharacterTextSplitter(
+      chunk_size=400,
+      chunk_overlap=0,
+  )
 
-    embeddings = BedrockEmbeddings(
-        model_id = "cohere.embed-multilingual-v3"
-    )
+  parent_splitter = RecursiveCharacterTextSplitter(
+      chunk_size=4000,
+      chunk_overlap=200,
+  )
 
-    db = OpenSearchVectorSearch(
-        index_name="some_index",
-        embedding_function=embeddings,
-        opensearch_url="https://opensearch:9200",
-        http_auth=("admin", "admin"),
-        use_ssl = False,
-        verify_certs = False,
-        ssl_assert_hostname = False,
-        ssl_show_warn = False,
-    )
+  loaders = PyPDFLoader("/<some_dir>/some.pdf")
+  docs = loader.load()
 
-    retriever = ParentDocumentRetriever(
-        vectorstore=db,
-        docstore=store,  ## 元のドキュメントを保存する場所
-        child_splitter=text_splitter,
-    )
-    retriever.add_documents(docs, ids=None) ## Adds documents to the docstore and vectorstores.
-    ~~~
-    - **Vector Storeに同じParent Documentを持つSub Docはすべて同じ`doc_id`をmetadataとして持つ。  
-      また、`docstore`に指定したところに(上記の例だとローカルディスクの`/opt/rag/documents`)同じ`doc_id`のファイル名のファイル(フルドキュメント)が保存される**
-    - **この`doc_id`をキーとしてParent Documentを取得してくる**
-  - **類似度の高いChunkとそのChunkの原本(フル)ドキュメントを取得してLLMに投げる**  
-    ~~~python
-    retriever = ParentDocumentRetriever(
-        vectorstore=db,
-        docstore=store, ## 元のドキュメントの場所
-        child_splitter=text_splitter,
-        search_kwargs = {
-            "k": 3, ## docstoreからの(原本のドキュメント)最大取得件数
-        }
-    )
-    qa_chain = ConversationalRetrievalChain.from_llm(
-        retriever=retriever,
-        llm=llm,
-        memory=memory,
-        chain_type="stuff",
-        verbose=True ## LLMへの最終的なPromptを表示するかどうか
-    )
-    ~~~
-    - **`search_kwargs`の`k`を１にすると類似度の最も高いChunkが含まれている元の(フル)ドキュメントを１つだけ取得し、複数(2以上)を指定した場合は類似度の高い複数のChunkが含まれているそれぞれの複数の元の(フル)ドキュメントを取得する。(動作確認結果、kの個数分必ず取得するわけではなく、最大取得件数っぽい)**
+  embeddings = BedrockEmbeddings(
+      model_id = "cohere.embed-multilingual-v3"
+  )
 
-  ### ■ Parent Document Retriever時の注意点
-    - Document Loaderの`load()`メソッドでロードすること！`load_and_split()`メソッドでロードするとParent Documentも分割されてしまう！
-    - Document Store(`docstore`パラメータで指定)として使えるストレージは以下
-      - https://python.langchain.com/docs/integrations/stores/
-      - 現状永久的に保存できるものとしては`LocalFileStore`くらい(ローカルディスクに保存)
-        - `LocalFileStore`を使う時、`create_kv_docstore`でディレクトリを変換する必要がある  
-          ~~~python
-          from langchain.storage import LocalFileStore
-          from langchain.storage._lc_store import create_kv_docstore
-          
-          files_location = "/opt/rag/documents" ## ドキュメントファイルが格納されるディレクトリ
-          fs = LocalFileStore(files_location)
-          store = create_kv_docstore(fs)
-          ~~~
+  db = OpenSearchVectorSearch(
+      index_name="some_index",
+      embedding_function=embeddings,
+      opensearch_url="https://opensearch:9200",
+      http_auth=("admin", "admin"),
+      use_ssl = False,
+      verify_certs = False,
+      ssl_assert_hostname = False,
+      ssl_show_warn = False,
+  )
+
+  ## Promptに参照元ドキュメント全文を入れる方法（parent_splitterパラメータを省略）
+  retriever = ParentDocumentRetriever(
+      vectorstore=db,
+      docstore=store,  ## 元のドキュメントを保存する場所
+      child_splitter=text_splitter,
+  )
+
+  ## Promptに全文ではなく、parent_splitterで指定した大きいChunkを入れる方法（parent_splitterパラメータを指定）
+  retriever = ParentDocumentRetriever(
+      vectorstore=db,
+      docstore=store,  ## 元のドキュメントを保存する場所
+      child_splitter=text_splitter,
+      parent_splitter=parent_splitter,
+  )
+
+  retriever.add_documents(docs, ids=None) ## Adds documents to the docstore and vectorstores.
+  ~~~
+  - **Vector Storeに同じParent Documentを持つSub Docはすべて同じ`doc_id`をmetadataとして持つ。  
+    また、`docstore`に指定したところに(上記の例だとローカルディスクの`/opt/rag/documents`)同じ`doc_id`のファイル名のファイル(フルドキュメント)が保存される**
+  - **この`doc_id`をキーとしてParent Documentを取得してくる**
+- **類似度の高いChunkとそのChunkの原本(フル)ドキュメントを取得してLLMに投げる**  
+  ~~~python
+  ## Promptに参照元ドキュメント全文を入れる方法（parent_splitterパラメータを省略）
+  retriever = ParentDocumentRetriever(
+      vectorstore=db,
+      docstore=store, ## 元のドキュメントの場所
+      child_splitter=text_splitter,
+      search_kwargs = {
+          "k": 3, ## docstoreからの(原本のドキュメント)最大取得件数
+      }
+  )
+
+  ## Promptに全文ではなく、parent_splitterで指定した大きいChunkを入れる方法（parent_splitterパラメータを指定）
+  retriever = ParentDocumentRetriever(
+      vectorstore=db,
+      docstore=store,  ## 元のドキュメントを保存する場所
+      child_splitter=text_splitter,
+      parent_splitter=parent_splitter,
+  )
+
+  qa_chain = ConversationalRetrievalChain.from_llm(
+      retriever=retriever,
+      llm=llm,
+      memory=memory,
+      chain_type="stuff",
+      verbose=True ## LLMへの最終的なPromptを表示するかどうか
+  )
+  ~~~
+  - **`search_kwargs`の`k`を１にすると類似度の最も高いChunkが含まれている元の(フル)ドキュメントを１つだけ取得し、複数(2以上)を指定した場合は類似度の高い複数のChunkが含まれているそれぞれの複数の元の(フル)ドキュメントを取得する。(動作確認結果、kの個数分必ず取得するわけではなく、最大取得件数っぽい)**
+
+#### ■ Parent Document Retriever時の注意点
+- Document Loaderの`load()`メソッドでロードすること！`load_and_split()`メソッドでロードするとParent Documentも分割されてしまう！
+- Document Store(`docstore`パラメータで指定)として使えるストレージは以下
+  - https://python.langchain.com/docs/integrations/stores/
+  - 現状永久的に保存できるものとしては`LocalFileStore`くらい(ローカルディスクに保存)
+    - `LocalFileStore`を使う時、`create_kv_docstore`でディレクトリを変換する必要がある  
+      ~~~python
+      from langchain.storage import LocalFileStore
+      from langchain.storage._lc_store import create_kv_docstore
+      
+      files_location = "/opt/rag/documents" ## ドキュメントファイルが格納されるディレクトリ
+      fs = LocalFileStore(files_location)
+      store = create_kv_docstore(fs)
+      ~~~
+- **参照元ドキュメントの全文をPromptに入れると (特に参照元ドキュメントのサイズが大きいときは) Promptのサイズが大きくなりすぎて、応答までより時間がかかったり、Token数も多くなって利用料が上がったり、API側のスロットリングに引っ掛かる可能性があるため、parent_splitterを使って類似度検索で使うChunkとPromptに含めるChunkサイズを分ける方式の方が現実的な気がする。**
 
 ## 2. Multi-Query Retriever
 
