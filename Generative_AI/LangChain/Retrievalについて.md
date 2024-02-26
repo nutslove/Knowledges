@@ -81,12 +81,19 @@
      )
      pages = loader.load_and_split(text_splitter=text_splitter)
 
-
      vector.add_documents(
        documents = pages,
        vector_field = "osha_vector"
      )
      ~~~
+- **Parent Document Retrieverを使う時は、`load()`メソッドを使うこと！！`load_and_split()`メソッドでやるとParent Documentも分割されたものになってしまう**
+
+
+## `ConversationalRetrievalChain` Classの`from_llm` Methodについて
+- https://api.python.langchain.com/en/stable/chains/langchain.chains.conversational_retrieval.base.ConversationalRetrievalChain.html
+- `from_llm`メソッドは、`llm`パラメータに指定するLLMを利用して質問と回答を生成する
+  - 質問も会話履歴を踏まえてユーザからの質問を書き換えて、最終的にLLMに投げる
+  - `verbose`パラメータを`True`にしてログ(標準出力)から確認できる
 
 ## OpenSearchへの(ベクトル化した)ドキュメントデータの投入
 - `OpenSearchVectorSearch`クラスの`from_documents`を使用
