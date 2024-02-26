@@ -70,3 +70,24 @@ print(index) --> 2が出力
   - TextLoaderクラスのインスタンスを生成する際に、`autodetect_encoding=True`を自動的に引数として渡します。このlambda関数自体が、`TextLoader`を呼び出す際に必要なすべての引数を内包しており、外部から直接`autodetect_encoding`に関する指定をする必要はありません。  
   `loader = loaders[file_type](tmp_location)`の行で、ファイルタイプに応じたローダーが呼び出される際には、そのローダーに対して`tmp_location`のみが引数として渡されます。しかし、"txt"のファイルタイプに対応するローダー（この場合はlambda関数）には、このlambda関数内で`TextLoader`のコンストラクタに`path`と`autodetect_encoding=True`の両方を渡すように定義されています。  
   つまり、lambda関数を介して`TextLoader`を呼び出す際には、lambda関数が受け取った`tmp_location`（`path`として受け取る）を`TextLoader`の第一引数として、そしてlambda関数の定義により`autodetect_encoding=True`が自動的に第二引数として`TextLoader`に渡されます。
+
+### `None`とは
+- 他の言語の`null`や`nil`に該当するもの。  
+  Pythonにおける特殊な値で、"何もない"、"値が存在しない"を意味する。
+- NoneはPythonの組み込み定数であり、変数が何も参照していないことを示すために使用される。
+
+### 型ヒント
+- `:`の後ろにあるのはPython3.5以降で追加された型ヒント機能で、変数・関数の引数・戻り値の期待されるデータ型を指定するために使用される。
+- `|`（パイプ）演算子はPython3.10で導入され、型ヒントの文脈で使用されると「和」または「ユニオン」型 (つまり **"OR"** )を意味する。つまり、変数が指定された型のいずれか一つであることを示す。例えば、`int | None`は、変数がint型またはNoneのいずれかであることを意味する。
+- **型を強制する機能はない**
+  - 主にコードの可読性を高め、開発者が変数や関数の期待するデータ型を明示するために使用される
+- 例
+  ~~~python
+  from ragas.metrics.base import Metric
+  def evaluate_with_chain(
+    r_metrics: list[Metric] | None = None, ---> r_metricsには Metric型のリスト or None が入るという型ヒント
+    r_is_async: bool = False, ---> r_is_asyncにはbool型が入るという型ヒント
+    r_column_map: dict[str, str] | None = {}, ---> r_column_mapにはString型のKeyとString型のValueの辞書か、Noneが入るという型ヒント
+  ):
+    ・・・ある処理・・・
+  ~~~
