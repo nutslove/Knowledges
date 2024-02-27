@@ -53,7 +53,7 @@ print(index) --> 2が出力
 
 ### lambda関数(無名関数)
 - 文法
-  `lambda 引数: 返り値`
+  `lambda 引数: 戻り値`
   - 以下のように引数なしで実行することもできる  
     `lambda: random.rand()`
 - 例
@@ -77,6 +77,9 @@ print(index) --> 2が出力
 - NoneはPythonの組み込み定数であり、変数が何も参照していないことを示すために使用される。
 
 ### 型ヒント
+##### 変数の型ヒント
+- 書き方
+  - `<変数名>: <型> = <値>`
 - `:`の後ろにあるのはPython3.5以降で追加された型ヒント機能で、変数・関数の引数・戻り値の期待されるデータ型を指定するために使用される。
 - `|`（パイプ）演算子はPython3.10で導入され、型ヒントの文脈で使用されると「和」または「ユニオン」型 (つまり **"OR"** )を意味する。つまり、変数が指定された型のいずれか一つであることを示す。例えば、`int | None`は、変数がint型またはNoneのいずれかであることを意味する。
 - **型を強制する機能はない**
@@ -90,4 +93,46 @@ print(index) --> 2が出力
     r_column_map: dict[str, str] | None = {}, ---> r_column_mapにはString型のKeyとString型のValueの辞書か、Noneが入るという型ヒント
   ):
     ・・・ある処理・・・
+  ~~~
+##### 関数の型ヒント
+- 書き方
+  ~~~python
+  def <関数名>(引数名: 型, ・・・) -> <戻り値の型>:
+
+    ・・・ある処理・・・
+
+    return <戻り値>
+  ~~~
+##### クラスの型ヒント
+- 例(1)
+  ~~~python
+  class Curry:
+      beef: int
+      onion: int
+      potato: int
+      carrot: int
+      roux: int
+      rice: int
+
+      def __init__(self, beef: int, onion: int, potato: int, carrot: int, roux: int) -> None:
+          self.beef = beef
+          self.onion = onion
+          self.potato = potato
+          self.carrot = carrot
+          self.roux = roux
+
+  curry: Curry = Curry(beef=250, onion=400, potato=230, carrot=100, roux=115)
+  ~~~
+- 例(2)
+  ~~~python
+  class Person:
+      name: str
+      age: int
+
+      def __init__(self, name: str, age: int):
+          self.name = name
+          self.age = age
+
+      def greet(self) -> str:
+          return f"Hello, my name is {self.name} and I am {self.age} years old."
   ~~~
