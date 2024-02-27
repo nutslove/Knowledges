@@ -133,3 +133,38 @@
       }
     }
     ~~~
+  - keyword型の`metadata.source`の値を持ってOpenSearchからデータを削除する例  
+    ~~~python
+    from opensearchpy import OpenSearch ## https://python.langchain.com/docs/integrations/vectorstores/opensearch
+    
+    opensearch = OpenSearch(
+        ["https://opensearch:9200"],
+        # index_name="*", ## *を指定すると、全indexを対象とする。
+        index_name=<削除対象index>,
+        http_auth=("admin", "admin"),
+        use_ssl = False,
+        verify_certs = False,
+        ssl_assert_hostname = False,
+        ssl_show_warn = False,  
+    )
+    if opensearch.indices.exists(index=<削除対象index>):
+        try:
+            result = opensearch.delete_by_query( # https://opensearch-project.github.io/opensearch-py/api-ref/clients/opensearch_client.html#opensearchpy.OpenSearch.delete_by_query
+                index=<削除対象index>,
+                body={
+                    "query": {
+                        "term": {
+                            "metadata.source.keyword": <metadataとして保持されているドキュメント名>
+                        }
+                    }
+                }
+            )
+        except Exception as e:
+            print(f"remove_document_from_opensearchでエラーが発生しました: {e}")
+
+        print(f"OpenSearch上Object削除結果: {result}")
+        if result['deleted'] == 0: ## 削除されたデータがあった場合、1以上の値になる
+            return False
+        else:
+            return True
+    ~~~
