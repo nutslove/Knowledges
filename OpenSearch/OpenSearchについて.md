@@ -12,3 +12,8 @@
 
 ### API
 - https://opensearch.org/docs/latest/api-reference/search/
+
+### adminのパスワード
+- v2.11.1まではデフォルトのadminのパスワードとして`admin`で自動的に払い出されたけど、  
+  v2.12.0からは環境変数`OPENSEARCH_INITIAL_ADMIN_PASSWORD`にデフォルトのadminパスワードを設定する必要がある。（相当複雑なPWじゃないとweakとエラーとなる）
+  - https://opensearch.org/blog/replacing-default-admin-credentials/
