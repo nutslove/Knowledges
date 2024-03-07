@@ -3,6 +3,10 @@
 - Goの基本的なhttp client/server用ライブラリ
 
 ### ■ `Handler`とは
+- HTTP リクエストを処理するための関数または構造体のこと。`net/http`パッケージでは、`http.Handler`インターフェースを定義している。
+- `ServeHTTP`メソッドはHTTPリクエストを受け取り、適切な処理を行い、HTTPレスポンスを返す役割を持つ
+  - 第1引数`ResponseWriter`は、HTTP レスポンスを書き込むためのインターフェース
+  - 第2引数`*Request`は、受信した HTTP リクエストを表す構造体へのポインタ
 ~~~go
 type Handler interface {
 	ServeHTTP(ResponseWriter, *Request)
@@ -10,6 +14,50 @@ type Handler interface {
 ~~~
 > A Handler responds to an HTTP request.
 - https://pkg.go.dev/net/http#Handler
+
+### ■ `Handle`関数と`HandleFunc`関数について
+- `http.Handle`と`http.HandleFunc`はどちらもハンドラーを登録するための関数。  
+  ただ、それぞれ異なる方法でハンドラーを登録する。
+- `http.Handle`も`http.HandleFunc`も、第１引数にリクエストを待ち受けるURLパスを指定し、第２引数にリクエストの処理を指定するというのは基本的に同じ
+#### ▲`Handle`関数
+- `http.Handle`関数は、`http.Handler`インターフェースを実装した値を受け取る。
+- > Handle registers the handler for the given pattern in the DefaultServeMux. The documentation for ServeMux explains how patterns are matched.
+  → ここでいう**patternとはURLのこと(`/metrics`等)**
+
+- Format（Signature）
+  ~~~go
+  func Handle(pattern string, handler Handler)
+  ~~~
+  - 第1引数`pattern`は、ハンドラーを登録するパターン（URL パス）を指定
+  - 第2引数`handler`は、`http.Handler`インターフェースを実装した値を指定
+- 例
+  ~~~go
+  http.Handle("/metrics", promhttp.Handler())
+  ~~~
+  - `promhttp.Handler()`は戻り値が`http.Handler`  
+    ~~~go
+    func Handler() http.Handler {
+        return InstrumentMetricHandler(
+            prometheus.DefaultRegisterer, HandlerFor(prometheus.DefaultGatherer, HandlerOpts{}),
+        )
+    }
+    ~~~
+#### ▲`HandleFunc`関数
+- 通常の関数をハンドラーとして登録するために使用
+- Format（Signature）
+  ~~~go
+  func HandleFunc(pattern string, handler func(ResponseWriter, *Request))
+  ~~~
+  - 第1引数`pattern`は、ハンドラーを登録するパターン（URL パス）を指定
+  - 第2引数`handler`は、`func(ResponseWriter, *Request)`型の関数を指定
+- 例
+  ~~~go
+  func myHandler(w http.ResponseWriter, r *http.Request) {
+      // ハンドラーの処理を記述する
+  }
+
+  http.HandleFunc("/custom", myHandler)
+  ~~~
 
 ### ■ `ServeMux`とは
 ~~~go
@@ -40,17 +88,3 @@ ListenAndServe always returns a non-nil error.
 - 参考URL
   - https://pkg.go.dev/net/http#ListenAndServe
   - https://pkg.go.dev/net/http#pkg-overview
-
-### ■ `Handle`functionについて
->Handle registers the handler for the given pattern in the DefaultServeMux. The documentation for ServeMux explains how patterns are matched.
-
-→ ここでいうpatternとはURLのこと("/metrics"等)
-
-- Format
-  ~~~go
-  func Handle(pattern string, handler Handler)
-  ~~~
-- 例
-  ~~~go
-  http.Handle("/metrics", promhttp.Handler())
-  ~~~

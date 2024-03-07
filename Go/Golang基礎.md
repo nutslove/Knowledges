@@ -579,6 +579,14 @@ updates go.mod to require those versions, and downloads source code into the mod
           return total
         }
         ~~~
+#### Signature（シグネチャ）
+- 関数やメソッドの定義を指す用語。これには、**関数名**、**パラメータリスト（引数の型と名前）**、**戻り値の型**が含まれる。
+- 例えば以下の関数のSignatureは`func Add(a int, b int) int`  
+  ~~~go
+  func Add(a int, b int) int {
+      return a + b
+  }
+  ~~~
 
 ## Struct (構造体)
 - 色んな型をひとまとめにしたもの
