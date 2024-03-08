@@ -1,13 +1,73 @@
 - Prometheus Go client library
 https://pkg.go.dev/github.com/prometheus/client_golang
 
-### `promhttp.Handler()`
-- https://github.com/prometheus/client_golang/blob/main/prometheus/promhttp/http.go
-- Prometheusのメトリクスをエクスポートするための HTTP ハンドラーを提供する関数
-
 ### **`promhttp`Package**
   - *Sub-packages allow to expose the registered metrics via HTTP*
   - [promhttpドキュメント](https://pkg.go.dev/github.com/prometheus/client_golang@v1.14.0/prometheus/promhttp)
+
+#### `promhttp.Handler()`
+- https://github.com/prometheus/client_golang/blob/main/prometheus/promhttp/http.go
+- Prometheusのメトリクスをエクスポートするための HTTP ハンドラーを提供する関数
+
+### `promauto`と`prometheus`の違い
+#### `promauto`
+- メトリクスの自動登録を提供
+- 例えば`promauto.NewCounterVec`関数を使用すると、定義したメトリクスは自動的にPrometheusのデフォルトレジストリに登録される。
+  - `MustRegister`や`Register`でメトリクスをレジストリに登録する必要がなくなる
+- コード内で明示的にメトリクスを登録する必要がないため、便利で簡潔なコードを書くことができる。  
+  ただし、メトリクスの登録解除や、カスタムレジストリへの登録はできない。
+#### `prometheus`
+- `MustRegister`や`Register`メソッドを使って明示的にメトリクスをレジストリに登録する必要がある
+- 例  
+  ~~~go
+  var (
+      errorCounter = prometheus.NewCounterVec(
+          prometheus.CounterOpts{
+              Name: "error_count",
+              Help: "The total number of errors with reasons.",
+          },
+          []string{"reasons"},
+      )
+  )
+
+  func init() {
+      // メトリクスをデフォルトレジストリに登録
+      prometheus.MustRegister(errorCounter)
+  }
+  ~~~
+##### レジストリ(Registry)とは
+- メトリクスの集合を管理するための構造体(struct)  
+  ~~~go
+  // Registry registers Prometheus collectors, collects their metrics, and gathers
+  // them into MetricFamilies for exposition. It implements Registerer, Gatherer,
+  // and Collector. The zero value is not usable. Create instances with
+  // NewRegistry or NewPedanticRegistry.
+  //
+  // Registry implements Collector to allow it to be used for creating groups of
+  // metrics. See the Grouping example for how this can be done.
+  type Registry struct {
+  	mtx                   sync.RWMutex
+  	collectorsByID        map[uint64]Collector // ID is a hash of the descIDs.
+  	descIDs               map[uint64]struct{}
+  	dimHashesByName       map[string]uint64
+  	uncheckedCollectors   []Collector
+  	pedanticChecksEnabled bool
+  }
+  ~~~
+- Prometheusのクライアントライブラリを使用する際、メトリクスはレジストリに登録されている必要がありる。登録されたメトリクスは、Prometheusサーバーによって定期的に収集され、監視やアラートに使用される。
+- レジストリは、メトリクスの登録、登録解除、収集などの機能を提供
+  - メトリクスの登録解除は、特定のメトリクスを収集対象から外したい場合に使用。ただし、一般的には、メトリクスの登録解除を明示的に行う必要はない。
+- 以下２種類のレジストリが提供されている
+  1. **デフォルトレジストリ（Default Registry）**
+     - Prometheusクライアントライブラリには、グローバルなデフォルトレジストリが用意されている。
+     - `promauto`パッケージや`prometheus.MustRegister`関数を使用してメトリクスを登録する場合、デフォルトレジストリが使用される。
+     - デフォルトレジストリは、`prometheus.DefaultRegisterer`変数や`prometheus.DefaultGatherer`変数を通じてアクセスできる。
+     - ほとんどの場合、デフォルトレジストリで十分。
+  2. **カスタムレジストリ（Custom Registry）**
+     - 特別な要件がある場合、カスタムレジストリを作成して使用することができる。
+     - カスタムレジストリは、`prometheus.NewRegistry`関数を使用して作成する。
+     - カスタムレジストリを使用すると、メトリクスの名前空間を分離したり、特定のメトリクスセットを個別に管理したりすることができる。
+     - カスタムレジストリにメトリクスを登録するには、`prometheus.Register`関数や`prometheus.MustRegister`関数を使用する。
 
 ### **`MustRegister`関数**
 - Metrics have to be registered to be exposed by `MustRegister` func
