@@ -3,6 +3,7 @@
 - `Benchmark`の次には`_`や大文字が来れる
   - OK例: `Benchmark_someFunction`、`BenchmarkSomeFunction`
   - NG例: `BenchmarksomeFunction`
+- Benchmark関数は`*testing.B`引数を使う
 
 ## `testing`の基本
 - https://pkg.go.dev/testing
