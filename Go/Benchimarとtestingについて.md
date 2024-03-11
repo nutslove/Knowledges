@@ -1,3 +1,10 @@
+## Benchmarkの基本
+- Benchmark関数名は必ず`Benchmark`から始まる必要がある。
+- `Benchmark`の次には`_`や大文字が来れる
+  - OK例: `Benchmark_someFunction`、`BenchmarkSomeFunction`
+  - NG例: `BenchmarksomeFunction`
+
+## `testing`の基本
 - https://pkg.go.dev/testing
   > Package testing provides support for automated testing of Go packages.
 - テストしたいgoファイル名に **_test.go** をつける
