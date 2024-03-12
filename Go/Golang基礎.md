@@ -642,69 +642,99 @@ updates go.mod to require those versions, and downloads source code into the mod
       },
     }
     ~~~
-- __Embedded structs__
-  - 他の言語のClassの継承みたいな感じ
-  - 既存のstructの中のfieldを継承し、追加のfieldを追加して使う
-    - Format
-      ~~~go
-      type <Struct名> struct {
-        <継承するStruct名>
-        <追加field1名> <型>
-        <追加field2名> <型>
-                ・
-                ・
-      }
-      <変数> := <Struct名> {
-        <継承したStruct名>: <継承したStruct名> {
-            <継承したStruct名の中のfield1>: <値>,
-            <継承したStruct名の中のfield2>: <値>,
-                          ・
-                          ・
-        },
-        <追加field1名>: <値>,
-        <追加field2名>: <値>,
-                ・
-                ・
-      }
-      ~~~
-    - 例
-      ~~~go
-      type person struct {
-        name string
-        sex string
-        age int
-      }
-      type killer struct {
-        person
-        pay int
-        country string
-      }
-      agent := killer {
-        person: person {
-          name: "Anonymous",
-          sex: "Unknown",
-          age: 100,
-        },
-        pay: 500000,
-        country: "USA",
-      }
-      fmt.Println(agent.name, agent.sex, agent.age, agent.pay, agent.country)
-      -→ agent.person.nameのようにpersonを入れなくて良い 
-      ~~~
 
-- __Anonymous structs__
-  - `type <struct名>`でstructを宣言せず、1回限りの (1つの変数だけで使える) struct
+- field名を指定せずに値だけ代入することもできる。  
+  ただし、構造体の定義が変更された場合 (例えば、フィールドが追加された場合や順序が変更された場合)、意図しないバグを引き起こす可能性があるため、明確さと将来の変更への対応を考慮して、フィールド名を指定して値を代入することが一般的に推奨される。
+  ~~~go
+  type Person struct {
+      Name string
+      Age  int
+  }
+
+  func main() {
+      // フィールド名を省略して構造体に値を代入
+      p := Person{"Alice", 30}
+      fmt.Println(p)
+  }
+  ~~~
+- field名を指定して値を代入する時は、fieldの定義順序と異なる順序で値を設定しても問題ない
+  - 例  
     ~~~go
-    p1 := struct {
-        name string
-        sex string
-        age int
-    }{
-        name: "Joonki Lee",
-        sex: "male",
-        age: 35,
+    type Person struct {
+        Name string
+        Age  int
+    }
+
+    func main() {
+        // フィールド名を指定しているので、代入する順序は自由
+        p := Person{Age: 30, Name: "Alice"}
+        fmt.Println(p)
     }
     ~~~
+
+### __Embedded structs__
+- 他の言語のClassの継承みたいな感じ
+- 既存のstructの中のfieldを継承し、追加のfieldを追加して使う
+- Format
+  ~~~go
+  type <Struct名> struct {
+    <継承するStruct名>
+    <追加field1名> <型>
+    <追加field2名> <型>
+            ・
+            ・
+  }
+  <変数> := <Struct名> {
+    <継承したStruct名>: <継承したStruct名> {
+        <継承したStruct名の中のfield1>: <値>,
+        <継承したStruct名の中のfield2>: <値>,
+                      ・
+                      ・
+    },
+    <追加field1名>: <値>,
+    <追加field2名>: <値>,
+            ・
+            ・
+  }
+  ~~~
+- 例
+  ~~~go
+  type person struct {
+    name string
+    sex string
+    age int
+  }
+  type killer struct {
+    person
+    pay int
+    country string
+  }
+  agent := killer {
+    person: person {
+      name: "Anonymous",
+      sex: "Unknown",
+      age: 100,
+    },
+    pay: 500000,
+    country: "USA",
+  }
+  fmt.Println(agent.name, agent.sex, agent.age, agent.pay, agent.country)
+  -→ agent.person.nameのようにpersonを入れなくて良い 
+  ~~~
+
+### __Anonymous structs__
+- `type <struct名>`でstructを宣言せず、1回限りの (1つの変数だけで使える) struct
+  ~~~go
+  p1 := struct {
+      name string
+      sex string
+      age int
+  }{
+      name: "Joonki Lee",
+      sex: "male",
+      age: 35,
+  }
+  ~~~
 
 ## Methods
 - *a method is just a function with a receiver argument.*
