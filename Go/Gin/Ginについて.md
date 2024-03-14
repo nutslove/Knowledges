@@ -38,6 +38,7 @@ func main() {
 ### `gin.Default()`
 - default routerを初期化
   - このrouterがHTTPリクエストを処理し、適切なHandler関数にルーティングする役割
+  - Handlerについては「net-httpライブラリについて.md」ファイルを参照
 - 大元 (https://github.com/gin-gonic/gin/blob/master/gin.go)
 	~~~go
   // Default returns an Engine instance with the Logger and Recovery middleware already attached.
