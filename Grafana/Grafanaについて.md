@@ -170,7 +170,7 @@ therefore each alert will go into its own group. It is different from the defaul
   例えば、Webhookに連携する場合、以下添付のように1つのAlert Ruleから同時に発行される62個のAlertは1回のWebhook(POST)で連携される  
 ![Alert](image/Grafana_MultipleAlerts.jpg)
 
-#### ■Notification policiesについて
+#### ■ Notification policiesについて
 - どのnested policyにもmatchしなかったら大元のDefault policyが適用される
 - defaultでは1つのnested policyにmatchすると次のnested policyは評価されないけど、`Continue matching subsequent sibling nodes`のenableにすればすべてのnested policyが評価される
 - `Mute Timings`タブでアラートをmuteする時間帯を設定し、特定のnested policyと紐づけることができる
@@ -186,6 +186,11 @@ therefore each alert will go into its own group. It is different from the defaul
 - 参考URL
   - https://grafana.com/docs/grafana/latest/alerting/alerting-rules/create-notification-policy/
   - https://grafana.com/docs/grafana/latest/alerting/fundamentals/notification-policies/
+
+#### ■ AlertのCustom Labelsにメトリクスなどのラベルを変数として追加する方法
+- https://community.grafana.com/t/path-different-label-s-value-to-my-custom-label-at-custom-labels-section/77670
+- フォーマット
+  - `{{ index $labels "<対象ラベル名>" }}`
 
 #### ■ CloudWatch LogsのAlert設定
 - CloudWatch Logsに対してアラートを設定するためにはCloudwatch Logs Insightsを使ってnumericデータが返ってくるようにクエリーを投げる必要がある
