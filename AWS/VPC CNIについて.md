@@ -1,4 +1,5 @@
-- VPC CNIはUnderlay Networkを使用
+- `aws-node`というDaemonSet PodがVPC CNIプラグイン
+- VPC CNIは**Underlay Network**を使用
 ## VPC CNIの特徴
 - 各Podに対して、VPC内のセカンダリIPアドレスが直接割り当てられる。
 - PodはVPC内で他のリソースと直接通信できる。
