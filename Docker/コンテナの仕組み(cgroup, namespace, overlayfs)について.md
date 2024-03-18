@@ -14,6 +14,8 @@
   - 例
     - `ip netns exec <namespace名> arp -a`
     - `ip netns exec <namespace名> ip route`
+- **Network namespaceを経由する時、パケットのTTLは減少する**
+  - https://zenn.dev/takai404/articles/52e75a953efe9e
 
 ### PID namespace
 - Process(群)を隔離し、同じnamespaceに存在するProcess間だけお互いが見えて(疎通できて)、  
