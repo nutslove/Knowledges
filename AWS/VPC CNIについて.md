@@ -12,3 +12,7 @@
 #### 1つのENIに割り当てることができるセカンダリIPの数
 - ENIに割り当てることができるプライマリIPアドレスは1つだけだが、**追加のセカンダリIPアドレスは複数割り当てることが可能**。
 - 1つのENIに割り当て可能なセカンダリIPアドレス数は、ENIが属するインスタンスのタイプによって決まる(異なる)。
+
+## VPC CNIのGithub
+- **以下は必ず読むこと！**
+  - **https://github.com/aws/amazon-vpc-cni-k8s/blob/master/docs/cni-proposal.md**
