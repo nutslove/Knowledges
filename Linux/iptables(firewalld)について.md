@@ -2,6 +2,7 @@
   - なのでfirewalldを止めるとfirewalldによって設定されたすべてのiptablesルールもなくなる
 
 ## iptables
+- **https://christina04.hatenablog.com/entry/iptables-outline?utm_source=pocket_saves**
 #### NAT
 - iptablesはPacket filteringだけではなく、NATも行ってくれる。  
   DockerやKubernetes(default)もiptablesを使ってNATを行っている
