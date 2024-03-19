@@ -29,8 +29,13 @@
 
   ![CNI_plugin2](image/k8s_CNI_Plugin2.jpg)
   https://speakerdeck.com/hhiroshell/kubernetes-network-fundamentals-69d5c596-4b7d-43c0-aac8-8b0e5a633fc2?slide=34
-- PodごとにVNICを割り当てられるのはLinuxのNetwork namespaceのおかげ
+- Podごとにveth(VNIC)を割り当てられるのはLinuxのNetwork namespaceのおかげ
 - 代表的なCNI PluginにはAWSのVPC CNIやCilium、Flannelなどがある
+
+### vethについて
+- veth(Virtual Ethernet Device)はVNICのこと
+- vethは必ずペアで作成され、2つのnetwork namespace同士にそれぞれを片方ずつvethを配置することで、２つのnetwork間で通信することができるようになる。
+- ２つのNICをそれぞれ２つの異なる端末に取り付けて、LANケーブルでそれぞれの端子を接続して直接通信しているような感じ
 
 ### 同一Node上のPod間の通信
 - Bridge方式とNode上ルートテーブルを使ったL3ルーティング方式がある
