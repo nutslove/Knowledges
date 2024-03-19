@@ -61,10 +61,12 @@
 
 - `/proc`ディレクトリ
 
+### User namespace
+- ユーザーIDとグループIDを分離し、各namespaceで独自のユーザー/グループID階層を持つ
 
-## cgroup
+## Cgroups
 
 
 
 
-## overlayfs
+## OverlayFS
