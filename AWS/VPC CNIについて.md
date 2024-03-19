@@ -85,6 +85,7 @@
 - Pod間通信
   - https://github.com/aws/amazon-vpc-cni-k8s/blob/master/docs/cni-proposal.md#pod-to-pod-communication
   ![](./image/pod_to_pod_communication_1.jpg)
+    - **ワーカーノード側のvethとワーカーノード上のethは同じNetwork namespace(root namespace)上に存在するため、同じルーティングテーブルに戻づいてパケットの転送が行われる**
   - https://github.com/aws/amazon-vpc-cni-k8s/blob/master/docs/cni-proposal.md#life-of-a-pod-to-pod-ping-packet
   ![](./image/life_of_packet_pod_to_pod.jpg)
 - PodからExternalへの通信
