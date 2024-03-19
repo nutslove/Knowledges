@@ -1,5 +1,5 @@
 ## namespace
-- Linuxで使われるProcessやNetworkスタックを隔離するための技術
+- ProcessやNetworkスタックなど、リソースを隔離(分離)するためのLinuxの機能
 - namespaceにはいくつか種類がある
 
 ### Network namespace
