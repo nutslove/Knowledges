@@ -50,3 +50,7 @@
 
 #### OAuthとは
 - https://qiita.com/TakahikoKawasaki/items/e37caf50776e00e733be
+
+## Openshift API Server
+- OpenShiftはKubernetesから拡張されており、Kubernetesは持っていないAPIも備えている
+- OpenShiftはkube-apiserverとは別で、openshift-apiserverも持っていて、OpenShiftにしかないリソースに対するAPIはopenshift-apiserverに送られる
