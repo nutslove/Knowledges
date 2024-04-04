@@ -54,3 +54,15 @@
 ## Openshift API Server
 - OpenShiftはKubernetesから拡張されており、Kubernetesは持っていないAPIも備えている
 - OpenShiftはkube-apiserverとは別で、openshift-apiserverも持っていて、OpenShiftにしかないリソースに対するAPIはopenshift-apiserverに送られる
+
+## Route
+- OpenShift固有の概念で、外部トラフィックをOpenShiftクラスタ内のServiceにルーティングするためのResource
+- クラスタ外から特定のServiceにアクセスするための(インターネットからアクセス可能な)パブリックURLが提供される
+- 以下の特徴がある
+  - **パブリックDNS名の割り当て**
+    - Routeを作成すると、指定したサービスにアクセスするためのパブリックDNS名が割り当てられる
+  - **TLS/SSLサポート**
+  - **パスベースのルーティング**
+    - 特定のパスへのリクエストを特定のServiceにルーティングすることが可能。これにより、同じドメイン名を使用して複数のServiceにアクセスすることができる
+  - **ロードバランシング**
+    - 複数のPod間でトラフィックを分散させることができる
