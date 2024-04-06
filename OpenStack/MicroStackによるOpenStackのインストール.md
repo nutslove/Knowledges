@@ -10,3 +10,11 @@
   cp -p ~/.ssh/id_rsa.pub ~/.ssh/authorized_keys
   chmod 600 ~/.ssh/authorized_keys
   ```
+- 以下コマンドでOpenStackを払い出す
+  - `sunbeam cluster bootstrap`
+- 以下コマンドを実行し、上記URLの通り入力/選択する
+  - `sunbeam configure --openrc demo-openrc`
+  - demo-openrcファイルが生成されていることを確認
+    - horizonの認証情報などが記載されているファイル
+- 以下コマンドでhorizonのURLを確認し、上で確認した認証情報でログインする
+  - `sunbeam dashboard-url`
