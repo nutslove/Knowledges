@@ -3,6 +3,7 @@
 - **coredns**
   - クラスター内のDNSルックアップを提供するDNSサーバー。マスターノードで動作し、クラスター内のサービスディスカバリーに使用される。
   - `openshift-dns`namespace上に`dns-default-***`というPod名で動いている
+  - `openshift-dns`は、`openshift-dns-operator`namespace上の`dns-operator-***`というOperatorで管理されている
 - **node-resolver**
   - 各ワーカーノード上で動作し、そのノード上のPodからのDNSクエリをcorednsに転送します。
   - `openshift-dns`namespace上に`node-resolver-***`というPod名で動いている
