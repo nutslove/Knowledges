@@ -1,0 +1,14 @@
+- OpenShiftではOpenShift SDNで、OpenShiftクラスターのノードに渡るvirtual networkを作成する
+  - このvirtual networkをOverlay Networkと呼ぶ
+  - Open vSwitch Standardを使ってvirtual networkを作成する
+  - virtual networkはdefaultでは`10.128.0.0/24`で作成される
+  - 各ノードは異なるサブネットが払い出される。例えばノード１は`10.128.0.0/23`、ノード２は`10.128.2.0/23`
+- Open vSwitch
+  - distributed virtual switch
+  - hypervisorでVM間のinterconnectに使われる
+  - 以下の機能が含まれている
+    - VLAN tagging
+    - Trunking
+    - LACP
+    - Port Mirroring
+    - etc.
