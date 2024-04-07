@@ -1,0 +1,10 @@
+- https://access.redhat.com/documentation/en-us/openshift_container_platform/4.13/html/networking/dns-operator
+## OpenShift上のDNS関連コンポーネントの構成
+- **coredns**
+  - クラスター内のDNSルックアップを提供するDNSサーバー。マスターノードで動作し、クラスター内のサービスディスカバリーに使用される。
+  - `openshift-dns`namespace上に`dns-default-***`というPod名で動いている
+- **node-resolver**
+  - 各ワーカーノード上で動作し、そのノード上のPodからのDNSクエリをcorednsに転送します。
+  - `openshift-dns`namespace上に`node-resolver-***`というPod名で動いている
+- **sdn-ovs/openvswitchプラグイン**
+  - OpenShiftのSDNソリューションの一部で、PodとServiceに対するネットワーク接続を提供する。
