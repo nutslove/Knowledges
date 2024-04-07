@@ -66,3 +66,60 @@
     - 特定のパスへのリクエストを特定のServiceにルーティングすることが可能。これにより、同じドメイン名を使用して複数のServiceにアクセスすることができる
   - **ロードバランシング**
     - 複数のPod間でトラフィックを分散させることができる
+
+## ImageStream
+- OpenShift独自のAPIの１つで、コンテナイメージの参照を抽象化し、バージョン管理、自動化、アクセス制御、共有を容易にする機能
+- ImageStreamがコンテナイメージを持っているわけではなく、あくまでコンテナイメージレジストリへのポインタを持っている感じ
+#### ImageStreamの特徴
+1. **イメージの抽象化**
+   - ImageStreamは、実際のコンテナイメージを指す論理的なポインタのようなもの。これにより、実際のイメージが変更されても、Image Streamを参照しているDeploymentsやDeploymentConfigなどは変更する必要がない。
+2. **イメージのバージョン管理**
+   - ImageStreamを使用すると、1つのイメージに対して複数のバージョン(タグ)を管理できる。例えば、「latest」や「v1.0」などのタグを付けることができる。
+3. **イメージの自動ビルドとデプロイ**
+   - ImageStreamは、GitリポジトリやDockerfileの変更を検知し、自動的にビルドとデプロイを行うように設定できる。これにより、継続的インテグレーション・デリバリー(CI/CD)のプロセスを簡素化できる。
+4. **イメージのアクセス制御**
+   - ImageStreamを使用すると、プロジェクト内でのイメージのアクセス制御を行うことができる。例えば、特定のユーザーやグループにのみイメージの読み取りや書き込み権限を与えることができる。
+5. **クラスター内でのイメージ共有**
+   - ImageStreamを使用すると、クラスター内の他のプロジェクトからイメージを参照できる。これにより、イメージの共有と再利用が容易になる。
+#### ImageStreamの例
+```yaml
+apiVersion: image.openshift.io/v1
+kind: ImageStream
+metadata:
+  name: my-app --> ImageStreamの名前
+spec:
+  lookupPolicy:
+    local: false
+  tags: --> spec.tagsにImageStreamが追跡するタグを定義
+    - name: latest
+      from: --> 参照する実際のDockerイメージを指定
+        kind: DockerImage
+        name: docker.io/my-org/my-app:latest
+      importPolicy:
+        scheduled: true
+    - name: v1.0
+      from:
+        kind: DockerImage
+        name: docker.io/my-org/my-app:v1.0
+      importPolicy:
+        scheduled: true
+    - name: v2.0
+      from:
+        kind: DockerImage
+        name: docker.io/my-org/my-app:v2.0
+      importPolicy:
+        scheduled: true --> importPolicy.scheduledをtrueにすることで、定期的にDockerイメージの変更を確認し、ImageStreamを更新するようにしている
+```
+- 上記と以下の`Deployment`を組み合わせることで`my-app:latest`イメージの中身が変わったときに自動的にDeploymentのPodが作り直される
+  ```yaml
+  apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    name: my-app
+  spec:
+    template:
+      spec:
+        containers:
+          - name: my-app
+            image: my-app:latest --> ★直接コンテナイメージ(docker.io/my-org/my-app:latest)を指定するのではなく、ImageStreamの<metadata.name>:<spec.tags.name>を指定
+  ```
