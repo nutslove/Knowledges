@@ -62,6 +62,7 @@
   - このRouter(Pod)を管理するのが`openshift-ingress-operator`namespace上の`ingress-operator-***`というPodで、以下の役割を担う（[OpenShiftドキュメント](https://access.redhat.com/documentation/en-us/openshift_container_platform/4.15/html/networking/configuring-ingress)）
     - RouterのDeploymentを作成し、必要なレプリカ数を維持
     - Routerの設定を管理し、必要に応じて更新 (e.g. HAProxyの設定ファイルの生成と適用)
+    - etc.
 - クラスタ外から特定の`Service`にアクセスするための(インターネットからアクセス可能な)パブリックURLが提供される
 - 以下の特徴がある
   - **パブリックDNS名の割り当て**
