@@ -56,16 +56,48 @@
 - OpenShiftはkube-apiserverとは別で、openshift-apiserverも持っていて、OpenShiftにしかないリソースに対するAPIはopenshift-apiserverに送られる
 
 ## Route
-- OpenShift固有の概念で、外部トラフィックをOpenShiftクラスタ内のServiceにルーティングするためのResource
-- クラスタ外から特定のServiceにアクセスするための(インターネットからアクセス可能な)パブリックURLが提供される
+- OpenShift固有の概念で、外部トラフィックをOpenShiftクラスタ内の`Service`にルーティングするためのResource
+- クラスタ外から特定の`Service`にアクセスするための(インターネットからアクセス可能な)パブリックURLが提供される
 - 以下の特徴がある
   - **パブリックDNS名の割り当て**
     - Routeを作成すると、指定したサービスにアクセスするためのパブリックDNS名が割り当てられる
-  - **TLS/SSLサポート**
+  - **SSL/TLSサポート**
+    - RouteにSSL/TLS証明書を登録して、HTTPSにすることができる
+    - HTTP接続時、接続を許可したり、HTTPSHTTPSにリダイレクトしたりする設定もできる
   - **パスベースのルーティング**
     - 特定のパスへのリクエストを特定のServiceにルーティングすることが可能。これにより、同じドメイン名を使用して複数のServiceにアクセスすることができる
   - **ロードバランシング**
-    - 複数のPod間でトラフィックを分散させることができる
+    - 複数のServiceにトラフィックを分散(e.g. 40%はAサービス、60%はBサービス)させることができる
+    - 以下３つのタイプがある（[OpenShiftドキュメント](https://docs.openshift.com/container-platform/3.11/architecture/networking/routes.html#load-balancing)）
+      1. **`roundrobin`**
+         - Routeに関連付けられたエンドポイント（Pod）に対して、順番にリクエストを分散する
+         - 各リクエストは、直前のリクエストとは異なるエンドポイントに送信される
+      2. **`leastconn`**
+         - 最小接続数方式
+         - 現在アクティブな接続数が最も少ないエンドポイントにリクエストを送信する
+      3. **`source`**
+         - ソースIPアフィニティ方式
+         - 同じソースIPアドレスからのリクエストは、セッションが生きている間は常に同じエンドポイントに送信される
+- Routeマニフェストファイルの例
+  ```yaml
+  apiVersion: route.openshift.io/v1
+  kind: Route
+  metadata:
+    name: my-route
+  spec:
+    host: www.example.com
+    to:
+      kind: Service
+      name: my-service
+    port:
+      targetPort: 8080
+    wildcardPolicy: None
+    tls:
+      termination: edge
+      insecureEdgeTerminationPolicy: Redirect
+    weight: 100
+    haproxy.router.openshift.io/balance: roundrobin
+  ```
 
 ## ImageStream
 - OpenShift独自のAPIの１つで、コンテナイメージの参照を抽象化し、バージョン管理、自動化、アクセス制御、共有を容易にする機能
