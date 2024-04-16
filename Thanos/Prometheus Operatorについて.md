@@ -26,6 +26,84 @@
   - `AlertmanagerConfig`
     - declaratively specifies subsections of the Alertmanager configuration, allowing routing of alerts to custom receivers, and setting inhibit rules.
 
+### ServiceMonitor
+- https://github.com/prometheus-operator/prometheus-operator/blob/main/Documentation/api.md#monitoring.coreos.com/v1.ServiceMonitor
+- Prometheus Operatorは`ServiceMonitor`リソースを監視し、`selector`,`namespaceSelector`を満たす`Service`リソースの作成/更新/削除を検知し、設定に基づいてPrometheusのスクレイプ設定を自動的に更新する
+  - **`Service`に紐づいている`Endpoints`に対してPrometheusの`kubernetes_sd_config`の`endpoints`タイプのconfigを生成する**
+    - https://prometheus.io/docs/prometheus/latest/configuration/configuration/#endpoints
+- `ServiceMonitor`の例
+  ```yaml
+  ---
+  apiVersion: v1
+  kind: Service
+  metadata:
+    name: example-app
+    labels:
+      app: example-app
+  spec:
+    selector:
+      app: example-app
+    ports:
+    - name: web
+      port: 80
+      targetPort: 8080  
+  ---
+  apiVersion: monitoring.coreos.com/v1
+  kind: ServiceMonitor
+  metadata:
+    name: example-app
+    labels:
+      app: example-app
+  spec:
+    selector:
+      matchLabels:
+        app: example-app
+    endpoints:
+    - port: web
+      path: /metrics
+      interval: 30s
+    namespaceSelector:
+      matchNames:
+      - default
+  ```
+  - `spec.selector`
+    - Label selector to select the Kubernetes `Endpoints` objects to monitor.
+  - `spec.endpoints`
+    - `port`
+      - Name of the Service port which this endpoint refers to.
+      - `Service`リソースの対象の`spec.ports[].name`を指定
+    - `path`
+      - Metricsをスクレイピングするエンドポイントパスを指定（省略した場合は`/metrics`になる）
+    - `interval`
+      - Metricsのスクレイピング間隔（省略した場合は`30s`）
+  - `spec.namespaceSelector`
+    - 監視対象の`Service`が存在するnamespaceを指定
+
+### PodMonitor
+- https://github.com/prometheus-operator/prometheus-operator/blob/main/Documentation/api.md#monitoring.coreos.com/v1.PodMonitor
+- Prometheus Operatorは`PodMonitor`リソースを監視し、`selector`,`namespaceSelector`を満たす`Pod`リソースの作成/更新/削除を検知し、**Prometheusの`kubernetes_sd_config`の`pod`タイプのconfigを生成する**
+  - https://prometheus.io/docs/prometheus/latest/configuration/configuration/#pod
+- `PodMonitor`の例
+  ```yaml
+  apiVersion: monitoring.coreos.com/v1
+  kind: PodMonitor
+  metadata:
+    name: example-app
+    labels:
+      app: example-app
+  spec:
+    podMetricsEndpoints:
+    - port: metrics
+      path: /metrics
+      interval: 30s
+    selector: ------> Label selector to select the Kubernetes Pod objects.
+      matchLabels:
+        app: example-app
+    namespaceSelector:
+      matchNames:
+      - default
+  ```
+
 ## Thanosとの統合
 - https://prometheus-operator.dev/docs/operator/thanos/
 - Prometheus OperatorがサポートするThanosコンポーネントは`Thanos Ruler`と`Thanos Sidecar`の２つ。
