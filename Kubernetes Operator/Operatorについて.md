@@ -12,7 +12,7 @@
 ## Custom Operatorの開発
 - `Operator SDK`と`KubeBuilder`２つのフレームワークがある
 
-### Operator SDK
+## Operator SDK
 - Operator Frameworkのコンポーネント
 - Go/Ansible/Helm、３つの開発方法がある
   - https://sdk.operatorframework.io/docs/overview/#workflow
