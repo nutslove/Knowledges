@@ -9,6 +9,7 @@
 ## Cephのアーキテクチャ
 - https://docs.ceph.com/en/latest/architecture/
   ![](./image/ceph_architecture.jpg)
+  ![](./image/ceph_architecture2.jpg)
 
 ### RADOS（Reliable Autonomous Distributed Object Store）
 - The core storage layer in Ceph
@@ -44,6 +45,12 @@
     - クラスタの状態を監視し、管理する役割を担う
     - Cluster Mapの管理、状態変更の検知、クライアントへの認証を行う
     - 通常は奇数個（3、5、7など）で構成し、高可用性を確保
+    - MON is a daemon process(`ceph-mon`) that communicates with peer MONs, OSDs, and users, maintaing and distributing various information vital to cluster operations.
+    - 以下のデータを管理する
+      - maps of OSDs
+      - other MONs
+      - PGs
+      - CRUSH map（which describes where data should be placed and found）
     > A Ceph Monitor (ceph-mon) maintains maps of the cluster state, including the monitor map, manager map, the OSD map, the MDS map, and the CRUSH map. These maps are critical cluster state required for Ceph daemons to coordinate with each other. Monitors are also responsible for managing authentication between daemons and clients. At least three monitors are normally required for redundancy and high availability.
   - **`Ceph Manager（ceph-mgr）`**
     - クラスタの監視とレポート生成を行う
