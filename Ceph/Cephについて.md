@@ -40,6 +40,7 @@
   - **`OSD（Object Storage Daemon）`**
     - データの格納と複製を担当するデーモン
     - データの分散、レプリケーション、リカバリを自動的に処理
+    - Process(`ceph-osd`)とそれに紐づいてるStorageのセットで考えることもできる
     > An Object Storage Daemon (Ceph OSD, ceph-osd) stores data, handles data replication, recovery, rebalancing, and provides some monitoring information to Ceph Monitors and Managers by checking other Ceph OSD Daemons for a heartbeat. At least three Ceph OSDs are normally required for redundancy and high availability.
   - **`Ceph Monitor（MON）`**
     - クラスタの状態を監視し、管理する役割を担う
@@ -51,7 +52,7 @@
       - other MONs
       - PGs
       - CRUSH map（which describes where data should be placed and found）
-    > A Ceph Monitor (ceph-mon) maintains maps of the cluster state, including the monitor map, manager map, the OSD map, the MDS map, and the CRUSH map. These maps are critical cluster state required for Ceph daemons to coordinate with each other. Monitors are also responsible for managing authentication between daemons and clients. At least three monitors are normally required for redundancy and high availability.
+    > A Ceph Monitor (`ceph-mon`) maintains maps of the cluster state, including the monitor map, manager map, the OSD map, the MDS map, and the CRUSH map. These maps are critical cluster state required for Ceph daemons to coordinate with each other. Monitors are also responsible for managing authentication between daemons and clients. At least three monitors are normally required for redundancy and high availability.
   - **`Ceph Manager（ceph-mgr）`**
     - クラスタの監視とレポート生成を行う
     - ダッシュボード、REST API、CLIなどの管理インターフェースを提供
@@ -78,6 +79,19 @@
 > When OSDs are deployed, they are automatically added to the CRUSH map under a host bucket that is named for the node on which the OSDs run. This behavior, combined with the configured CRUSH failure domain, ensures that replicas or erasure-code shards are distributed across hosts and that the failure of a single host or other kinds of failures will not affect availability. For larger clusters, administrators must carefully consider their choice of failure domain. For example, distributing replicas across racks is typical for mid- to large-sized clusters.
 
 ### PG (placement group)
+- Objectを保存する論理的な単位
+- 主な役割/機能
+  - **データの分散**
+    - PGはオブジェクトを複数のOSDに分散して保存する。これによりデータの負荷分散と並列処理が可能になる。
+  - **レプリケーション**
+    - 各PGは複数のOSDにレプリケートされ、障害時のデータ可用性を確保する。レプリカの数はプールごとに設定できる。
+    - defaultではCephは３つの異なるOSDに各PGの複製を配置して管理する
+      - １つがPrimaryとして指定され、残りはsecondariesとなる。  
+        **すべてのClientがRead/WriteするのはPrimaryのOSD**
+  - **スケーラビリティ**
+    - PGの数を増やすことで、クラスタ全体のI/Oパフォーマンスとストレージ容量を向上できる。
+  - **障害からの復旧**
+    - OSDが故障した際、PGはデータの再同期とリバランスを行い、データの整合性を維持する。
 - https://access.redhat.com/documentation/en-us/red_hat_ceph_storage/5/html/storage_strategies_guide/placement_groups_pgs
   ![](./image/PG.jpg)
 - https://docs.ceph.com/en/reef/dev/placement-group/
