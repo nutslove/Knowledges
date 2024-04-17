@@ -19,7 +19,7 @@
 
 ### Librados
 - Ceph Storage Clusterと通信するためのライブラリ
-- RADOS Gateway、RBD、CephFSなどの上位レイヤーのサービスで使用される
+- RADOS Gateway、RBDなどの上位レイヤーのサービスで使用される
 - プログラミング言語でライブラリを使って直接RADOSと通信することもできる
 
 ### RADOS Gateway
