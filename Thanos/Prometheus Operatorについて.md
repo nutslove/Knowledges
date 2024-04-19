@@ -121,28 +121,67 @@
 
   ただ、`image`だけだとオブジェクトストレージのアップロードが行われず、同じ pod に存在する prometheus コンテナが収集したメトリクスを query API で取得する動作となる  
   なのでオブジェクトストレージに送信するようにするためには、以下のように`objectStorageConfig`セクションも追加する必要がある  
+
+#### ■ 手順(OpenShift環境)
+- 参考ページ
+  - https://prometheus-operator.dev/docs/operator/thanos/
+  - https://github.com/thanos-io/thanos/blob/main/docs/storage.md
+  - https://prometheus-operator.dev/docs/user-guides/getting-started/#deploying-prometheus
+- まず、`s3-config.yml`ファイルを作成する
   ```yaml
-  piVersion: monitoring.coreos.com/v1
-  kind: Prometheus
-  ...
-  spec:
-    ...
-    thanos:
-      image: quay.io/thanos/thanos:v0.32.4
-      objectStorageConfig:
-        key: minio.yml --> オブジェクトストレージに関するconfigファイル
-        name: minio-secret
-  ```  
-  ・`minio.yml`  
-  ```yaml
-  type: S3
+  type: s3
   config:
-    bucket: test1
-    endpoint: minio.centre.com:9000
-    access_key: admin
-    insecure: true
-    signature_version2: false
-    secret_key: [password]
-  prefix: ""
+    bucket: <S3バケット名>
+    endpoint: s3.ap-northeast-1.amazonaws.com
+    access_key: <アクセスキー>
+    secret_key: <シークレットキー>
   ```
-  **https://zenn.dev/zenogawa/articles/k8s_cluster_metrics**
+- `s3-config.yml`から`Secret`リソースを作成する
+  ```shell
+  oc create secret generic thanos-objstore-config --from-file=thanos.yaml=./s3-config.yml
+  ```
+
+- 上で作成した`Secret`を利用して`Prometheus`をデプロイする
+  ```yaml
+  apiVersion: monitoring.coreos.com/v1
+  kind: Prometheus
+  metadata:
+    name: prometheus
+  spec:
+    serviceAccountName: prometheus
+    serviceMonitorSelector: {}
+    podMonitorSelector: {}
+    resources:
+      requests:
+        memory: 400Mi
+    enableAdminAPI: false
+    thanos:
+      image: quay.io/thanos/thanos:v0.34.1
+      objectStorageConfig:
+        key: thanos.yaml
+        name: thanos-objstore-config
+  ```
+  - 以下のように`additionalArgs`に追加の設定をすることもできる
+    ```yaml
+    apiVersion: monitoring.coreos.com/v1
+    kind: Prometheus
+    metadata:
+      name: prometheus
+    spec:
+      thanos:
+        image: quay.io/thanos/thanos:v0.34.1
+        objectStorageConfig:
+          key: thanos.yaml
+          name: thanos-objstore-config
+        additionalArgs:
+          - "--tsdb.path=/prometheus"
+          - "--prometheus.url=http://localhost:9090"
+          - "--tsdb.min-block-duration=2h"
+          - "--tsdb.max-block-duration=2h"
+    ```
+- 以下コマンドでPrometheusの`Route`を作成する  
+  ※`Prometheus`リソースを作成すると`prometheus-operated`Serviceが作成されるのでそれを利用する
+  ```shell
+  oc expose svc prometheus-operated
+  ```
+
