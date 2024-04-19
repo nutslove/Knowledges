@@ -156,7 +156,7 @@
     resources:
       requests:
         memory: 400Mi
-    enableAdminAPI: false
+    enableAdminAPI: true
     thanos:
       image: quay.io/thanos/thanos:v0.34.1
       objectStorageConfig:
