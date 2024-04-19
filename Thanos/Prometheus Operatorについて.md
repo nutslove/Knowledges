@@ -150,6 +150,17 @@
   spec:
     replicas: 2
     retention: 1d
+    securityContext:
+      fsGroup: 2000
+      runAsNonRoot: true
+      runAsUser: 1000
+    storage:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: gp3-csi
+          resources:
+            requests:
+              storage: 10Gi
     serviceAccountName: prometheus
     serviceMonitorSelector: {}
     podMonitorSelector: {}
