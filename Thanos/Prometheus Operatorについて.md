@@ -148,6 +148,8 @@
   metadata:
     name: prometheus
   spec:
+    replicas: 2
+    retention: 1d
     serviceAccountName: prometheus
     serviceMonitorSelector: {}
     podMonitorSelector: {}
