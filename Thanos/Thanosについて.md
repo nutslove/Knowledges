@@ -1,6 +1,11 @@
 ## アーキテクチャ（Sidecar方式）
 ![](./image/Thanos_sidecar.jpg)
 
+## Multi Tenancy
+- https://thanos.io/tip/operating/multi-tenancy.md/
+- **Thanosは色んなところでPrometheusの`global.external_labels`を使ってPrometheusインスタンスを識別するため、Prometheus側の`global.external_labels`の設定は必須である**
+  - https://thanos.io/tip/thanos/quick-tutorial.md/#external-labels
+
 ## Sidecar
 - https://thanos.io/tip/components/sidecar.md/
 - PrometheusコンテナのSidecarコンテナとして起動され、定期的に (defaultでは2時間ごと) PrometheusのメトリクスをObject Storageに送信する
@@ -18,13 +23,32 @@
 
 ## Querier (Query)
 - https://thanos.io/tip/components/query.md/
+- HA構成のPrometheusで収集された重複メトリクスのdeduplication(重複排除)もQuerierが行う
+  - `--query.replica-label`フラグでdedupのためのラベルを指定  
+    ```shell
+    thanos query \
+        --http-address        0.0.0.0:19192 \
+        --endpoint            1.2.3.4:19090 \
+        --endpoint            1.2.3.5:19090 \
+        --query.replica-label replica          # Replica label for deduplication
+        --query.replica-label replicaX         # Supports multiple replica labels for deduplication
+    ```
+    - 複数の`--query.replica-label`がある場合、**OR条件**になる
+    - 複数の`--query.replica-label`が与えられた場合、Thanos Queryはこれらのラベルのうちどれか一つが一致するデータセットを同じソースからのものと見なし、それらの間でデータの重複を解消する
+  - **`global.external_labels`をもとにdedupを行うので、Prometheus側で`global.external_labels`が設定されている必要がある**
+  - https://thanos.io/tip/thanos/quick-tutorial.md/#deduplicating-data-from-prometheus-ha-pairs
 
 ## Compactor
 - https://thanos.io/tip/components/compact.md/
 - Down Sampling、Retention、Compactionを担当するコンポーネント
 - *Compaction*
-  - responsible for **compacting multiple blocks into one to reduce the number of blocks and compact index indices.**
+  - responsible for **compacting multiple blocks into one to reduce the number of blocks and compact index indices.** We can compact an index quite well in most cases, because series usually live longer than the duration of the smallest blocks (2 hours).
   - https://thanos.io/tip/components/compact.md/#compaction
+- **Compactorは1つのObject Storageごとに1つのみ動かす必要がある**
+  - https://thanos.io/tip/components/compact.md/#warning-only-one-instance-of-compactor-may-run-against-a-single-stream-of-blocks-in-a-single-object-storage
+- HA構成のPrometheusからのメトリクスをCompactor側でもdedupすることができる
+  - https://thanos.io/tip/components/compact.md/#vertical-compaction-use-cases
+  - でもリスクがあるらしく、あまり使わない方が良さそう？
 
 ## Store API
 - https://thanos.io/tip/thanos/integrations.md/#storeapi
