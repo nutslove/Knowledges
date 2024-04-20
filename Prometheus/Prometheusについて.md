@@ -1,6 +1,9 @@
 - Prometheusを本番環境で利用する際に直面する可能性のある問題について  
   https://labs.gree.jp/blog/2017/10/16614/
 
+## Architecture
+![alt text](./image/arch.png)
+
 ## Metric Typeについて
 - https://prometheus.io/docs/concepts/metric_types/
 
