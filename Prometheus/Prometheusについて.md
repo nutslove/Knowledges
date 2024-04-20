@@ -4,6 +4,55 @@
 ## Architecture
 ![alt text](./image/arch.png)
 
+## Prometheusのデータ保存について
+- 参考URL
+  - https://prometheus.io/docs/prometheus/latest/storage/
+  - https://ganeshvernekar.com/blog/prometheus-tsdb-the-head-block/
+- defaultでは２時間単位でBlockに(ディレクトリとして)グルーピングされる
+- ２時間ごとのディレクトリには以下が含まれる
+  - chunks subdirectory containing all the time series samples(データポイント) for that window of time
+    - The samples in the chunks directory are grouped together into one or more segment files of up to 512MB each by default. 
+  - a metadata file
+  - an index file (which indexes metric names and labels to time series in the chunks directory)
+  - tombstones
+    - When series are deleted via the API, deletion records are stored in separate tombstone files (instead of deleting the data immediately from the chunk segments).
+
+- A Prometheus server's data directory looks something like this
+  ```
+  ./data
+  ├── 01BKGTZQ1SYQJTR4PB43C8PD98 --> このディレクトリと中身が２時間単位で作成
+  │   ├── chunks
+  │   │   └── 000001
+  │   ├── tombstones
+  │   ├── index
+  │   └── meta.json
+  ├── 01BKGV7JC0RY8A6MACW02A2PJD --> このディレクトリと中身が２時間単位で作成
+  │   ├── chunks
+  │   │   └── 000001
+  │   ├── tombstones
+  │   ├── index
+  │   └── meta.json
+  ├── chunks_head
+  │   └── 000001
+  └── wal
+      ├── 000000002
+      └── checkpoint.00000001
+          └── 00000000
+  ```
+
+### WAL（write-ahead log）
+- The current block for incoming samples is kept in memory and is not fully persisted. It is secured against crashes by a write-ahead log (WAL) that can be replayed when the Prometheus server restarts. Write-ahead log files are stored in the `wal` directory in 128MB segments. These files contain raw data that has not yet been compacted; thus they are significantly larger than regular block files. Prometheus will retain a minimum of three write-ahead log files. High-traffic servers may retain more than three WAL files in order to keep at least two hours of raw data.
+- Prometheusがクラッシュして再起動される時、WALからデータを復旧(replay)する
+
+### メトリクスデータがTSDB(ローカルストレージ)に書き込まれるまでの流れ
+- PrometheusはスクレイピングしたメトリクスをWALに書き込み、メモリに保持する（defaultでは2時間）
+- 一定時間後(defaultでは2時間)、メモリにあるメトリクスデータをTSDB(ローカルストレージ)にflushする（※）
+- メモリ上のメトリクスデータを削除する
+- WAL上のメトリクスデータを削除する
+
+※メモリに保持するメトリクスデータの期間は`--storage.tsdb.min-block-duration`と`--storage.tsdb.max-block-duration`で変更できる  
+  → defaultでは両方とも`2h`に設定されている
+
 ## Metric Typeについて
 - https://prometheus.io/docs/concepts/metric_types/
 
