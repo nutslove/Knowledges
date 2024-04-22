@@ -43,6 +43,8 @@
 ### WAL（write-ahead log）
 - The current block for incoming samples is kept in memory and is not fully persisted. It is secured against crashes by a write-ahead log (WAL) that can be replayed when the Prometheus server restarts. Write-ahead log files are stored in the `wal` directory in 128MB segments. These files contain raw data that has not yet been compacted; thus they are significantly larger than regular block files. Prometheus will retain a minimum of three write-ahead log files. High-traffic servers may retain more than three WAL files in order to keep at least two hours of raw data.
 - Prometheusがクラッシュして再起動される時、WALからデータを復旧(replay)する
+- https://ganeshvernekar.com/blog/prometheus-tsdb-wal-and-checkpoint/  
+  > **WAL is only used to record the events and restore the in-memory state when starting up. It does not involve in any other way in read or write operations.**
 
 ### メトリクスデータがTSDB(ローカルストレージ)に書き込まれるまでの流れ
 - PrometheusはスクレイピングしたメトリクスをWALに書き込み、メモリに保持する（defaultでは2時間）

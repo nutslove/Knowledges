@@ -13,6 +13,13 @@
 >
 > During operation, Prometheus will continuously calculate the optimal number of shards to use based on the incoming sample rate, number of outstanding samples not sent, and time taken to send each sample.
 
+→ WALは定期的(2時間ごと)にTSDBにcompactionされる 
+
+- Prometheusのローカルストレージ(TSDB)とRemote Writeは別で管理されているらしい。  
+  Remote Write先が障害でデータ連携ができなくても、Prometheusの`--storage.tsdb.retention.time`で指定した期間分のデータはPrometheusに保持されてPrometheusから直接メトリクスを確認することもできる。  
+  ただ、Remote WriteはWALから連携されるので、WALが生きている間(2h)Remote Write先に連携されなかったらそのデータはTSDBにcompactionされて、Prometheus上にはあってもRemote Write先には連携されず長期保存はできなくなってしまう。
+  → **後で直接検証してみる！**
+
 ## Remote Write関連チューニング/設定
 - https://prometheus.io/docs/practices/remote_write/#parameters
 
