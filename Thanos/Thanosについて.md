@@ -20,9 +20,12 @@
 
 ## Store (Store Gateway)
 - https://thanos.io/tip/components/store.md/
+- Store GatewayとObject Storageは１対１の設定で、複数のObject Storageがある場合はObject Storageの数の分Store Gatewayが必要  
+  ![](./image/StoreGateway_1.jpg)
 
 ## Querier (Query)
 - https://thanos.io/tip/components/query.md/
+- Querier is fully **stateless** and horizontally scalable.
 - HA構成のPrometheusで収集された重複メトリクスのdeduplication(重複排除)もQuerierが行う
   - `--query.replica-label`フラグでdedupのためのラベルを指定  
     ```shell
@@ -38,9 +41,17 @@
   - **`global.external_labels`をもとにdedupを行うので、Prometheus側で`global.external_labels`が設定されている必要がある**
   - https://thanos.io/tip/thanos/quick-tutorial.md/#deduplicating-data-from-prometheus-ha-pairs
 
+## Query Frontend
+- https://thanos.io/tip/components/query-frontend.md/
+- Query Frontend is fully **stateless** and horizontally scalable.
+
 ## Compactor
 - https://thanos.io/tip/components/compact.md/
 - Down Sampling、Retention、Compactionを担当するコンポーネント
+- defaultではobject storage上のデータの保持期間はない(無期限保持)
+- データ削除は`--retention.resolution-raw`、`--retention.resolution-5m`、`--retention.resolution-1h`の３つのフラグで設定できる。この３つを設定しなかったり`0s`に設定するとデータは無期限保存される。  
+  > You can configure retention by using `--retention.resolution-raw` `--retention.resolution-5m` and `--retention.resolution-1h` flag. Not setting them or setting to 0s means no retention.
+- **Retention is applied right after Compaction and Downsampling loops. If those are failing, data will never be deleted.**
 - *Compaction*
   - responsible for **compacting multiple blocks into one to reduce the number of blocks and compact index indices.** We can compact an index quite well in most cases, because series usually live longer than the duration of the smallest blocks (2 hours).
   - https://thanos.io/tip/components/compact.md/#compaction
@@ -49,6 +60,7 @@
 - HA構成のPrometheusからのメトリクスをCompactor側でもdedupすることができる
   - https://thanos.io/tip/components/compact.md/#vertical-compaction-use-cases
   - でもリスクがあるらしく、あまり使わない方が良さそう？
+- defaultではCompactorはcronjobとして動かせるように処理が終わったらCompletedになってしまうため、継続的に実行させるためには`--wait`と`--wait-interval=5m`フラグを付ける必要がある
 
 ## Store API
 - https://thanos.io/tip/thanos/integrations.md/#storeapi
