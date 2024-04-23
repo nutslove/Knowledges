@@ -1,0 +1,83 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: thanos-receiver
+spec:
+  #replicas: 3
+  replicas: 1
+  selector:
+    matchLabels:
+      app: thanos-receiver
+  template:
+    metadata:
+      labels:
+        app: thanos-receiver
+    spec:
+      securityContext:
+        fsGroup: 1001
+      containers:
+      - name: thanos-receiver
+        image: quay.io/thanos/thanos:v0.34.1
+        args:
+        - receive
+        - --grpc-address=0.0.0.0:10901
+        - --http-address=0.0.0.0:10902
+        - --remote-write.address=0.0.0.0:19291
+        #- --receive.replication-factor=3
+        - --receive.replication-factor=1
+        - --receive.local-endpoint=127.0.0.1:10901
+        #- --receive.hashrings-file=/tmp/thanos/thanos-receive/hashrings.json
+        - --receive.tenant-header=THANOS-TENANT
+        - --receive.default-tenant-id=test1
+        - --tsdb.path=/tmp/thanos/receive
+        - --label=env="poc"
+        ports:
+        - name: grpc
+          containerPort: 10901
+        - name: http
+          containerPort: 10902
+        - name: remote-write
+          containerPort: 19291
+        volumeMounts:
+        - name: data
+          mountPath: /tmp/thanos/receive
+        - name: hashring-config
+          mountPath: /tmp/thanos/thanos-receive
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    spec:
+      accessModes:
+        - ReadWriteOnce
+      resources:
+        requests:
+          storage: 10Gi
+      storageClassName: gp3-csi
+  - metadata:
+      name: hashring-config
+    spec:
+      accessModes:
+        - ReadWriteOnce
+      resources:
+        requests:
+          storage: 1Gi
+      storageClassName: gp3-csi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: thanos-receiver
+spec:
+  clusterIP: None
+  selector:
+    app: thanos-receiver
+  ports:
+  - name: grpc
+    port: 10901
+    targetPort: 10901
+  - name: http
+    port: 10902
+    targetPort: 10902
+  - name: remote-write
+    port: 19291
+    targetPort: 19291

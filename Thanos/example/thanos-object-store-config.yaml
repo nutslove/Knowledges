@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: thanos-object-store-config
+data:
+  object-store.yaml: |
+    type: s3
+    config:
+      endpoint: <Object Storageのエンドポイント(e.g. s3.ap-northeast-1.amazonaws.com)>
+      bucket: <バケット名>
+      access_key: <アクセスキー>
+      secret_key: <シークレットキー>
+      secure: true ## Object Storageとの通信がhttpの場合はtrueにする(default: false)

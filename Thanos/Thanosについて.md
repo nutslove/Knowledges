@@ -22,6 +22,9 @@
 - https://thanos.io/tip/components/store.md/
 - Store GatewayとObject Storageは１対１の設定で、複数のObject Storageがある場合はObject Storageの数の分Store Gatewayが必要  
   ![](./image/StoreGateway_1.jpg)
+- StoreGatewayはローカルディスクをそこまで必要とせず、再起動などでデータが削除されても起動時間が増加するくらいでそこまで影響はない
+  > It acts primarily as an API gateway and therefore does not need significant amounts of local disk space. It joins a Thanos cluster on startup and advertises the data it can access. It keeps a small amount of information about all remote blocks on local disk and keeps it in sync with the bucket. This data is generally safe to delete across restarts at the cost of increased startup times.
+  > In general, an average of 6 MB of local disk space is required per TSDB block stored in the object storage bucket, but for high cardinality blocks with large label set it can even go up to 30MB and more. It is for the pre-computed index, which includes symbols and postings offsets as well as metadata JSON.
 
 ## Querier (Query)
 - https://thanos.io/tip/components/query.md/
@@ -40,6 +43,36 @@
     - 複数の`--query.replica-label`が与えられた場合、Thanos Queryはこれらのラベルのうちどれか一つが一致するデータセットを同じソースからのものと見なし、それらの間でデータの重複を解消する
   - **`global.external_labels`をもとにdedupを行うので、Prometheus側で`global.external_labels`が設定されている必要がある**
   - https://thanos.io/tip/thanos/quick-tutorial.md/#deduplicating-data-from-prometheus-ha-pairs
+- **以下公式サイトから抜粋**
+```
+## Deduplication 
+The query layer can deduplicate series that were collected from high-availability pairs of data sources such as Prometheus. 
+A fixed single or multiple replica labels must be chosen for the entire cluster and can then be passed to query nodes on startup.
+
+Two or more series that are only distinguished by the given replica label, will be merged into a single time series.
+This also hides gaps in collection of a single data source.
+
+## An example with a single replica labels: 
+Prometheus + sidecar “A”: cluster=1,env=2,replica=A
+Prometheus + sidecar “B”: cluster=1,env=2,replica=B
+Prometheus + sidecar “A” in different cluster: cluster=2,env=2,replica=A
+If we configure Querier like this:
+
+thanos query \
+    --http-address        "0.0.0.0:9090" \
+    --query.replica-label "replica" \
+    --endpoint            "<store-api>:<grpc-port>" \
+    --endpoint            "<store-api2>:<grpc-port>" \
+And we query for metric up{job="prometheus",env="2"} with this option we will get 2 results:
+
+up{job="prometheus",env="2",cluster="1"} 1
+up{job="prometheus",env="2",cluster="2"} 1
+WITHOUT this replica flag (deduplication turned off), we will get 3 results:
+
+up{job="prometheus",env="2",cluster="1",replica="A"} 1
+up{job="prometheus",env="2",cluster="1",replica="B"} 1
+up{job="prometheus",env="2",cluster="2",replica="A"} 1
+```
 
 ## Query Frontend
 - https://thanos.io/tip/components/query-frontend.md/

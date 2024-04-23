@@ -1,0 +1,56 @@
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: thanos-compact-data-pvc
+spec:
+  storageClassName: gp3-csi
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: thanos-compactor
+spec:
+  replicas: 1 ## compactorは(bucketごとに)必ず1つのみ動いている必要がある
+  selector:
+    matchLabels:
+      app: thanos-compactor
+  template:
+    metadata:
+      labels:
+        app: thanos-compactor
+    spec:
+      securityContext:
+        fsGroup: 1001
+      containers:
+      - name: thanos-compactor
+        image: quay.io/thanos/thanos:v0.34.1
+        args:
+        - compact
+        - --wait
+        - --wait-interval=5m
+        - --data-dir=/tmp/thanos/compact
+        - --objstore.config-file=/etc/thanos/object-store.yaml
+        - --retention.resolution-raw=90d
+        - --retention.resolution-5m=365d
+        - --retention.resolution-1h=395d
+        ports:
+        - name: http
+          containerPort: 10902
+        volumeMounts:
+        - name: thanos-compact-data
+          mountPath: /tmp/thanos/compact
+        - name: object-store-config
+          mountPath: /etc/thanos
+      volumes:
+      - name: thanos-compact-data
+        persistentVolumeClaim:
+          claimName: thanos-compact-data-pvc
+      - name: object-store-config
+        configMap:
+          name: thanos-object-store-config

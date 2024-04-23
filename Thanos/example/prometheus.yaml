@@ -1,0 +1,30 @@
+apiVersion: monitoring.coreos.com/v1
+kind: Prometheus
+metadata:
+  name: prometheus
+spec:
+  replicas: 2
+  retention: 1d
+  remoteWrite:
+  - url: "http://thanos-receiver:19291/api/v1/receive"
+    headers:
+      THANOS-TENANT: test1
+  securityContext:
+    fsGroup: 2000
+    runAsNonRoot: true
+    runAsUser: 1000
+  storage:
+    volumeClaimTemplate:
+      spec:
+        storageClassName: gp3-csi
+        resources:
+          requests:
+            storage: 10Gi
+  serviceAccountName: prometheus
+  serviceMonitorSelector: {}
+  podMonitorSelector: {}
+  externalLabels:
+    replica: test1
+  resources:
+    requests:
+      memory: 400Mi
