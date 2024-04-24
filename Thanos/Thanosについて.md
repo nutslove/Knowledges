@@ -18,6 +18,23 @@
 - Thanos Sidecarに強制的にObject StorageにflushするようなAPIはない
   - https://github.com/thanos-io/thanos/issues/1849
 
+## Receiver
+- https://thanos.io/v0.8/proposals/201812_thanos-remote-receive/
+
+### routing receiversとingesting receiversの分離
+- https://thanos.io/tip/proposals-accepted/202012-receive-split.md/
+- *routing receivers*はstatelessでデータの保存は行わず、hashingと*ingesting receivers*にforward/replicateするだけ
+  - **Receiverを`--receive.local-endpoint`フラグなし ＋ hashring関連設定(e.g. `--receive.hashrings`フラグ)ありで実行すると*routing receivers*になる**
+  - **Receiverを`--receive.local-endpoint`フラグあり ＋ hashring関連設定(e.g. `--receive.hashrings`フラグ)なしで実行すると*ingesting receivers*になる**
+
+### `--receive.replication-factor`について
+- https://thanos.io/v0.8/proposals/201812_thanos-remote-receive/
+- If any time-series in a write request received by a Thanos receiver is not successfully written to at least *(REPLICATION_FACTOR + 1)/2* nodes, the receiver responds with an error. For example, to attempt to store 3 copies of every time-series and ensure that every time-series is successfully written to at least 2 Thanos receivers in the target hashring, all receivers should be configured with the following flag: `--receive.replication-factor=3`
+- `--receive.replication-factor`の数にはデータを受け付けたReceiverも含まれている  
+   例えば`--receive.replication-factor=3`にした場合、データを受け付けたReceiverは自分以外の２つのReceiverにデータをレプリケーションする
+- `--receive.replication-factor`はrouting receiversとingesting receiversで同じ値を設定していいっぽい
+  ![](./image/replication_factor.jpg)
+
 ## Store (Store Gateway)
 - https://thanos.io/tip/components/store.md/
 - Store GatewayとObject Storageは１対１の設定で、複数のObject Storageがある場合はObject Storageの数の分Store Gatewayが必要  
@@ -94,6 +111,10 @@ up{job="prometheus",env="2",cluster="2",replica="A"} 1
   - https://thanos.io/tip/components/compact.md/#vertical-compaction-use-cases
   - でもリスクがあるらしく、あまり使わない方が良さそう？
 - defaultではCompactorはcronjobとして動かせるように処理が終わったらCompletedになってしまうため、継続的に実行させるためには`--wait`と`--wait-interval=5m`フラグを付ける必要がある
+
+### `--retention.resolution-raw`、`--retention.resolution-5m`、`--retention.resolution-1h`について
+- 3つのフラグの関係は2.の方
+![](./image/downsampled.jpg)
 
 ## Store API
 - https://thanos.io/tip/thanos/integrations.md/#storeapi

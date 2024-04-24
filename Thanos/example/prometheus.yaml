@@ -6,7 +6,7 @@ spec:
   replicas: 2
   retention: 1d
   remoteWrite:
-  - url: "http://thanos-receiver:19291/api/v1/receive"
+  - url: "http://thanos-routing-receiver.default.svc:19291/api/v1/receive"
     headers:
       THANOS-TENANT: test1
   securityContext:
