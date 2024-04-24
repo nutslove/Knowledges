@@ -19,6 +19,7 @@ spec:
         - query-frontend
         - --http-address=0.0.0.0:9090
         - --query-frontend.downstream-url=http://thanos-query.default.svc:9090
+        - --query-range.split-interval=24h # default split interval
         ports:
         - name: http
           containerPort: 9090
