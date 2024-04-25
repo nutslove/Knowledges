@@ -7,6 +7,7 @@ spec:
   selector:
     matchLabels:
       app: thanos-ingesting-receiver
+  serviceName: thanos-ingesting-receiver
   template:
     metadata:
       labels:
@@ -14,7 +15,6 @@ spec:
     spec:
       securityContext:
         fsGroup: 1001
-      serviceName: thanos-ingesting-receiver
       containers:
       - name: thanos-ingesting-receiver
         image: quay.io/thanos/thanos:v0.34.1
@@ -24,12 +24,14 @@ spec:
         - --http-address=0.0.0.0:10902
         - --remote-write.address=0.0.0.0:19291
         - --receive.replication-factor=3
+        - --receive.hashrings-file=/tmp/thanos/hashring/hashrings.json
         - --receive.local-endpoint=127.0.0.1:10901
         - --receive.tenant-header=THANOS-TENANT
         - --receive.default-tenant-id=test1
         - --tsdb.path=/tmp/thanos/receive
         - --label=env="poc"
         - --tsdb.retention=1d
+        - --objstore.config-file=/etc/thanos/object-store.yaml
         ports:
         - name: grpc
           containerPort: 10901
@@ -40,6 +42,17 @@ spec:
         volumeMounts:
         - name: data
           mountPath: /tmp/thanos/receive
+        - name: object-store-config
+          mountPath: /etc/thanos
+        - name: hashrings-config
+          mountPath: /tmp/thanos/hashring
+      volumes:
+      - name: object-store-config
+        configMap:
+          name: thanos-object-store-config
+      - name: hashrings-config
+        configMap:
+          name: receiver-hashrings
   volumeClaimTemplates:
   - metadata:
       name: data
@@ -86,7 +99,6 @@ spec:
     spec:
       securityContext:
         fsGroup: 1001
-      serviceName: thanos-ingesting-receiver
       containers:
       - name: thanos-routing-receiver
         image: quay.io/thanos/thanos:v0.34.1
@@ -99,7 +111,6 @@ spec:
         - --receive.hashrings-file=/tmp/thanos/hashring/hashrings.json
         - --receive.tenant-header=THANOS-TENANT
         - --receive.default-tenant-id=test1
-        - --tsdb.path=/tmp/thanos/receive
         - --label=env="poc"
         - --tsdb.retention=1d
         - --receive.hashrings-algorithm=ketama
@@ -144,6 +155,7 @@ data:
   hashrings.json: |
     [
         {
+            "hashring": "soft-tenants",
             "endpoints": [
                 "thanos-ingesting-receiver-0.thanos-ingesting-receiver.default.svc.cluster.local:10901",
                 "thanos-ingesting-receiver-1.thanos-ingesting-receiver.default.svc.cluster.local:10901",

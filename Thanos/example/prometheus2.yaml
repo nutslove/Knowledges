@@ -1,14 +1,14 @@
 apiVersion: monitoring.coreos.com/v1
 kind: Prometheus
 metadata:
-  name: prometheus
+  name: prometheus2
 spec:
   replicas: 2
   retention: 1d
   remoteWrite:
   - url: "http://thanos-routing-receiver.default.svc:19291/api/v1/receive"
     headers:
-      THANOS-TENANT: test1
+      THANOS-TENANT: test2
   securityContext:
     fsGroup: 2000
     runAsNonRoot: true
@@ -24,7 +24,7 @@ spec:
   serviceMonitorSelector: {}
   podMonitorSelector: {}
   externalLabels:
-    replica: test1
+    replica: test2
   resources:
     requests:
       memory: 400Mi
