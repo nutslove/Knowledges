@@ -23,6 +23,8 @@
 
 ### routing receiversとingesting receiversの分離
 - https://thanos.io/tip/proposals-accepted/202012-receive-split.md/
+  > This allows setting optional deployment model were only routing receivers are using hashring files and does the routing and replication. That allows ingesting receivers to not handle any routing or hashring, only receiving multi tenant writes.
+
 - *routing receivers*はstatelessでデータの保存は行わず、hashingと*ingesting receivers*にforward/replicateするだけ
   - **Receiverを`--receive.local-endpoint`フラグなし ＋ hashring関連設定(e.g. `--receive.hashrings`フラグ)ありで実行すると*routing receivers*になる**
   - **Receiverを`--receive.local-endpoint`フラグあり ＋ hashring関連設定(e.g. `--receive.hashrings`フラグ)なしで実行すると*ingesting receivers*になる**
