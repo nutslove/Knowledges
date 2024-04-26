@@ -27,13 +27,37 @@
   - **Receiverを`--receive.local-endpoint`フラグなし ＋ hashring関連設定(e.g. `--receive.hashrings`フラグ)ありで実行すると*routing receivers*になる**
   - **Receiverを`--receive.local-endpoint`フラグあり ＋ hashring関連設定(e.g. `--receive.hashrings`フラグ)なしで実行すると*ingesting receivers*になる**
 
+#### routing receiversとingesting receiversの分離時の設定に関する注意事項
+- **`--receive.hashrings-file`(もしくは`--receive.hashrings`)はrouting receiversにのみ設定！**
+  - `--receive.hashrings-file`と`--receive.local-endpoint`の両方のパラメータを指定するとrouting receivers兼ingesting receiversになる
+  - [関連するソースコード](https://github.com/nutslove/thanos/blob/main/cmd/thanos/receive.go#L985)  
+    ```go
+    func (rc *receiveConfig) determineMode() receive.ReceiverMode {
+    	// Has the user provided some kind of hashring configuration?
+    	hashringSpecified := rc.hashringsFileContent != "" || rc.hashringsFilePath != ""
+    	// Has the user specified the --receive.local-endpoint flag?
+    	localEndpointSpecified := rc.endpoint != ""
+
+    	switch {
+    	case hashringSpecified && localEndpointSpecified:
+    		return receive.RouterIngestor
+    	case hashringSpecified && !localEndpointSpecified:
+    		// Be careful - if the hashring contains an address that routes to itself and does not specify a local
+    		// endpoint - you've just created an infinite loop / fork bomb :)
+    		return receive.RouterOnly
+    	default:
+    		// hashring configuration has not been provided so we ingest all metrics locally.
+    		return receive.IngestorOnly
+    	}
+    }
+    ```
+- **`--receive.replication-factor`パラメータは routing-receiver にのみ指定！**
+
 ### `--receive.replication-factor`について
 - https://thanos.io/v0.8/proposals/201812_thanos-remote-receive/
 - If any time-series in a write request received by a Thanos receiver is not successfully written to at least *(REPLICATION_FACTOR + 1)/2* nodes, the receiver responds with an error. For example, to attempt to store 3 copies of every time-series and ensure that every time-series is successfully written to at least 2 Thanos receivers in the target hashring, all receivers should be configured with the following flag: `--receive.replication-factor=3`
 - `--receive.replication-factor`の数にはデータを受け付けたReceiverも含まれている  
    例えば`--receive.replication-factor=3`にした場合、データを受け付けたReceiverは自分以外の２つのReceiverにデータをレプリケーションする
-- `--receive.replication-factor`はrouting receiversとingesting receiversで同じ値を設定していいっぽい
-  ![](./image/replication_factor.jpg)
 
 ## Store (Store Gateway)
 - https://thanos.io/tip/components/store.md/
