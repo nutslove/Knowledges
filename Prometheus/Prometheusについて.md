@@ -39,6 +39,26 @@
       └── checkpoint.00000001
           └── 00000000
   ```
+  - `meta.json`の中身の一例  
+    ```json
+    {
+            "ulid": "01HWDEQPBGSJ2FH9J4TK94SWM8",
+            "minTime": 1714132803920,
+            "maxTime": 1714140000000,
+            "stats": {
+                    "numSamples": 8640,
+                    "numSeries": 36,
+                    "numChunks": 72
+            },
+            "compaction": {
+                    "level": 1,
+                    "sources": [
+                            "01HWDEQPBGSJ2FH9J4TK94SWM8"
+                    ]
+            },
+            "version": 1
+    }
+    ```
 
 ### WAL（write-ahead log）
 - The current block for incoming samples is kept in memory and is not fully persisted. It is secured against crashes by a write-ahead log (WAL) that can be replayed when the Prometheus server restarts. Write-ahead log files are stored in the `wal` directory in 128MB segments. These files contain raw data that has not yet been compacted; thus they are significantly larger than regular block files. Prometheus will retain a minimum of three write-ahead log files. High-traffic servers may retain more than three WAL files in order to keep at least two hours of raw data.
