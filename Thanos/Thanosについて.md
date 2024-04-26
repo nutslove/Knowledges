@@ -26,6 +26,37 @@
 - *routing receivers*はstatelessでデータの保存は行わず、hashingと*ingesting receivers*にforward/replicateするだけ
   - **Receiverを`--receive.local-endpoint`フラグなし ＋ hashring関連設定(e.g. `--receive.hashrings`フラグ)ありで実行すると*routing receivers*になる**
   - **Receiverを`--receive.local-endpoint`フラグあり ＋ hashring関連設定(e.g. `--receive.hashrings`フラグ)なしで実行すると*ingesting receivers*になる**
+- *ingesting receivers*にテナントごとにサブディレクトリが作成されて、その中にchunk, index, walなどが格納される  
+  ```shel
+  /tmp/thanos/receive $ ls -l
+  total 8
+  drwxrws---    9 thanos   thanos        4096 Apr 26 18:34 test1
+  drwxrwsr-x    8 thanos   thanos        4096 Apr 26 18:34 test2
+  /tmp/thanos/receive $
+  /tmp/thanos/receive $ ls -l test1/
+  total 44
+  drwxrwsr-x    3 thanos   thanos        4096 Apr 26 17:09 01HWDP4D73RT872F43CMXYZYCA
+  drwxrwsr-x    3 thanos   thanos        4096 Apr 26 17:26 01HWDQ3Y8FQNZNEJJ7WKSVA89R
+  drwxrwsr-x    3 thanos   thanos        4096 Apr 26 17:31 01HWDQCAMYD1E27285B2XZB7TR
+  drwxrwsr-x    2 thanos   thanos        4096 Apr 26 18:00 chunks_head
+  -rw-r--r--    1 thanos   thanos           0 Apr 26 17:31 lock
+  drwxrws---    2 root     thanos       16384 Apr 24 17:43 lost+found
+  drwxrws---    3 thanos   thanos        4096 Apr 26 17:09 thanos
+  -rw-r--r--    1 thanos   thanos         132 Apr 26 18:34 thanos.shipper.json
+  drwxrwsr-x    3 thanos   thanos        4096 Apr 26 17:31 wal
+  /tmp/thanos/receive $
+  /tmp/thanos/receive $ ls -l test2/
+  total 28
+  drwxrwsr-x    3 thanos   thanos        4096 Apr 26 17:09 01HWDP4D6XVYRWD1WR0MHZECVD
+  drwxrwsr-x    3 thanos   thanos        4096 Apr 26 17:26 01HWDQ3Y8FMW3WK44QFBKT8BEF
+  drwxrwsr-x    3 thanos   thanos        4096 Apr 26 17:31 01HWDQCAMYV3BXRC1P9AV7XS1S
+  drwxrwsr-x    2 thanos   thanos        4096 Apr 26 18:00 chunks_head
+  -rw-r--r--    1 thanos   thanos           0 Apr 26 17:31 lock
+  drwxrws---    3 thanos   thanos        4096 Apr 26 17:01 thanos
+  -rw-r--r--    1 thanos   thanos         132 Apr 26 18:34 thanos.shipper.json
+  drwxrwsr-x    3 thanos   thanos        4096 Apr 26 17:31 wal
+  /tmp/thanos/receive $
+  ```
 
 #### routing receiversとingesting receiversの分離時の設定に関する注意事項
 - **`--receive.hashrings-file`(もしくは`--receive.hashrings`)はrouting receiversにのみ設定！**
