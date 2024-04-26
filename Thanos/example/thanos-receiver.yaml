@@ -23,8 +23,6 @@ spec:
         - --grpc-address=0.0.0.0:10901
         - --http-address=0.0.0.0:10902
         - --remote-write.address=0.0.0.0:19291
-        - --receive.replication-factor=3
-        - --receive.hashrings-file=/tmp/thanos/hashring/hashrings.json
         - --receive.local-endpoint=127.0.0.1:10901
         - --receive.tenant-header=THANOS-TENANT
         - --receive.default-tenant-id=test1
@@ -44,15 +42,10 @@ spec:
           mountPath: /tmp/thanos/receive
         - name: object-store-config
           mountPath: /etc/thanos
-        - name: hashrings-config
-          mountPath: /tmp/thanos/hashring
       volumes:
       - name: object-store-config
         configMap:
           name: thanos-object-store-config
-      - name: hashrings-config
-        configMap:
-          name: receiver-hashrings
   volumeClaimTemplates:
   - metadata:
       name: data

@@ -3,7 +3,7 @@ kind: Deployment
 metadata:
   name: thanos-query
 spec:
-  replicas: 2
+  replicas: 4
   selector:
     matchLabels:
       app: thanos-query
@@ -19,7 +19,7 @@ spec:
         - query
         - --query.replica-label=replica
         - --endpoint=thanos-store.default.svc:10901
-        - --endpoint=thanos-receiver.default.svc:10901
+        - --endpoint=thanos-ingesting-receiver.default.svc:10901
         - --query.tenant-header="THANOS-TENANT"
         - --query.enforce-tenancy
         ports:
