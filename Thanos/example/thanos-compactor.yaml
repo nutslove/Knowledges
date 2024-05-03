@@ -36,9 +36,9 @@ spec:
         - --wait-interval=5m
         - --data-dir=/tmp/thanos/compact
         - --objstore.config-file=/etc/thanos/object-store.yaml
-        - --retention.resolution-raw=90d
-        - --retention.resolution-5m=365d
-        - --retention.resolution-1h=395d
+        - --retention.resolution-raw=2d
+        - --retention.resolution-5m=5d
+        - --retention.resolution-1h=30d
         ports:
         - name: http
           containerPort: 10902

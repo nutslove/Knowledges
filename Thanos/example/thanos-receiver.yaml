@@ -105,7 +105,7 @@ spec:
         - --receive.tenant-header=THANOS-TENANT
         - --receive.default-tenant-id=test1
         - --label=env="poc"
-        - --tsdb.retention=1d
+        - --tsdb.retention=7d
         - --receive.hashrings-algorithm=ketama
         ports:
         - name: grpc
