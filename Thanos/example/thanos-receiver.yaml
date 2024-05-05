@@ -1,0 +1,158 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: thanos-ingesting-receiver
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: thanos-ingesting-receiver
+  serviceName: thanos-ingesting-receiver
+  template:
+    metadata:
+      labels:
+        app: thanos-ingesting-receiver
+    spec:
+      securityContext:
+        fsGroup: 1001
+      containers:
+      - name: thanos-ingesting-receiver
+        image: quay.io/thanos/thanos:v0.34.1
+        args:
+        - receive
+        - --grpc-address=0.0.0.0:10901
+        - --http-address=0.0.0.0:10902
+        - --remote-write.address=0.0.0.0:19291
+        - --receive.local-endpoint=127.0.0.1:10901
+        - --receive.tenant-header=THANOS-TENANT
+        - --receive.default-tenant-id=test1
+        - --tsdb.path=/tmp/thanos/receive
+        - --label=env="poc"
+        - --tsdb.retention=1d
+        - --objstore.config-file=/etc/thanos/object-store.yaml
+        ports:
+        - name: grpc
+          containerPort: 10901
+        - name: http
+          containerPort: 10902
+        - name: remote-write
+          containerPort: 19291
+        volumeMounts:
+        - name: data
+          mountPath: /tmp/thanos/receive
+        - name: object-store-config
+          mountPath: /etc/thanos
+      volumes:
+      - name: object-store-config
+        configMap:
+          name: thanos-object-store-config
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    spec:
+      accessModes:
+        - ReadWriteOnce
+      resources:
+        requests:
+          storage: 10Gi
+      storageClassName: gp3-csi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: thanos-ingesting-receiver
+spec:
+  clusterIP: None
+  selector:
+    app: thanos-ingesting-receiver
+  ports:
+  - name: grpc
+    port: 10901
+    targetPort: 10901
+  - name: http
+    port: 10902
+    targetPort: 10902
+  - name: remote-write
+    port: 19291
+    targetPort: 19291
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: thanos-routing-receiver
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: thanos-routing-receiver
+  template:
+    metadata:
+      labels:
+        app: thanos-routing-receiver
+    spec:
+      securityContext:
+        fsGroup: 1001
+      containers:
+      - name: thanos-routing-receiver
+        image: quay.io/thanos/thanos:v0.34.1
+        args:
+        - receive
+        - --grpc-address=0.0.0.0:10901
+        - --http-address=0.0.0.0:10902
+        - --remote-write.address=0.0.0.0:19291
+        - --receive.replication-factor=3
+        - --receive.hashrings-file=/tmp/thanos/hashring/hashrings.json
+        - --receive.tenant-header=THANOS-TENANT
+        - --receive.default-tenant-id=test1
+        - --label=env="poc"
+        - --tsdb.retention=7d
+        - --receive.hashrings-algorithm=ketama
+        ports:
+        - name: grpc
+          containerPort: 10901
+        - name: http
+          containerPort: 10902
+        - name: remote-write
+          containerPort: 19291
+        volumeMounts:
+        - name: hashrings-config
+          mountPath: /tmp/thanos/hashring
+      volumes:
+      - name: hashrings-config
+        configMap:
+          name: receiver-hashrings
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: thanos-routing-receiver
+spec:
+  selector:
+    app: thanos-routing-receiver
+  ports:
+  - name: grpc
+    port: 10901
+    targetPort: 10901
+  - name: http
+    port: 10902
+    targetPort: 10902
+  - name: remote-write
+    port: 19291
+    targetPort: 19291
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: receiver-hashrings
+data:
+  hashrings.json: |
+    [
+        {
+            "hashring": "soft-tenants",
+            "endpoints": [
+                "thanos-ingesting-receiver-0.thanos-ingesting-receiver.default.svc.cluster.local:10901",
+                "thanos-ingesting-receiver-1.thanos-ingesting-receiver.default.svc.cluster.local:10901",
+                "thanos-ingesting-receiver-2.thanos-ingesting-receiver.default.svc.cluster.local:10901"
+            ]
+        }
+    ]

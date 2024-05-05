@@ -39,10 +39,33 @@
       └── checkpoint.00000001
           └── 00000000
   ```
+  - `meta.json`はデータの保存や監視の設定に関連するメタデータ
+    - `meta.json`の中身の一例  
+      ```json
+      {
+              "ulid": "01HWDEQPBGSJ2FH9J4TK94SWM8", --> 一意な識別子で、特定のTSDBブロックを識別
+              "minTime": 1714132803920, --> このブロックの保持データの開始時間
+              "maxTime": 1714140000000, --> このブロックの保持データの終了時間
+              "stats": {
+                      "numSamples": 8640, --> ブロック内のサンプル数
+                      "numSeries": 36,    --> ブロック内のシリーズ数
+                      "numChunks": 72     --> ぷ六区内のChunk数
+              },
+              "compaction": {
+                      "level": 1, --> 圧縮レベル
+                      "sources": [
+                              "01HWDEQPBGSJ2FH9J4TK94SWM8" --> 圧縮元のブロック(ディレクトリ)
+                      ]
+              },
+              "version": 1
+      }
+      ```
 
 ### WAL（write-ahead log）
 - The current block for incoming samples is kept in memory and is not fully persisted. It is secured against crashes by a write-ahead log (WAL) that can be replayed when the Prometheus server restarts. Write-ahead log files are stored in the `wal` directory in 128MB segments. These files contain raw data that has not yet been compacted; thus they are significantly larger than regular block files. Prometheus will retain a minimum of three write-ahead log files. High-traffic servers may retain more than three WAL files in order to keep at least two hours of raw data.
 - Prometheusがクラッシュして再起動される時、WALからデータを復旧(replay)する
+- https://ganeshvernekar.com/blog/prometheus-tsdb-wal-and-checkpoint/  
+  > **WAL is only used to record the events and restore the in-memory state when starting up. It does not involve in any other way in read or write operations.**
 
 ### メトリクスデータがTSDB(ローカルストレージ)に書き込まれるまでの流れ
 - PrometheusはスクレイピングしたメトリクスをWALに書き込み、メモリに保持する（defaultでは2時間）
