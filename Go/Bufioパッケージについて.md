@@ -1,4 +1,5 @@
 - > Package bufio implements buffered I/O. It wraps an io.Reader or io.Writer object, creating another object (Reader or Writer) that also implements the interface but provides buffering and some help for textual I/O.
+- Goの標準ライブラリの一部で、I/O操作を効率化するためのバッファリングを提供する
 - PackageのURL
   - https://pkg.go.dev/bufio
 
@@ -57,3 +58,12 @@
   ~~~
 - 参考URL
   - https://pkg.go.dev/bufio#Scanner.Text
+
+### `bufio.Writer`構造体(struct)と`Flush()`メソッド
+- `bufio.Writer`は内部バッファを持ち、`Write()`メソッドで受け取ったデータをバッファ(メモリ)に蓄積する。  
+  バッファが一杯になるか、`Flush()`メソッドが呼び出されると、バッファの内容が実際のライター（例えばファイル）に書き込まれる。
+- `Flush()`メソッドはバッファ内のデータを強制的に書き込み先に送り出す
+- `bufio.Writer`のバッファサイズはデフォルトで4096バイトだけど、`NewWriterSize`関数を使用することでカスタムサイズを指定できる。  
+  ```go
+  writer := bufio.NewWriterSize(f, 8192) // 8KBのバッファを持つWriter
+  ```
