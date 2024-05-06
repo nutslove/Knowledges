@@ -2625,8 +2625,31 @@ func main() {
 - 割り当てられたメモリのPointerを返す
 - ChannelとMap以外のすべてのデータTypeに使える
 
-## make
+## `make()`関数
+- 組み込みの関数であり、スライス（slice）、マップ（map）、チャネル（channel）を作成するために使用される
+- `make`関数を使用することで、これらのデータ構造を適切に初期化し、メモリを割り当てることができる。`make`を使用せずに宣言すると`nil`の値が割り当てられ、使用前に初期化する必要がある。  
+  また、`make`はこれらのデータ構造に特化した関数であり、他の型の変数を作成するためには使用できない。他の型の変数を作成する場合は、`var`による宣言や`:=`を使用した短い宣言などを使用する。
 
+#### スライス（slice）の作成
+```go
+slice := make([]int, length, capacity)
+```
+- `length`は初期長を指定
+- `capacity`は容量（オプション）を指定。省略した場合はlengthと同じ値になる。
+
+#### マップ（map）の作成
+```go
+m := make(map[keyType]valueType)
+```
+- `keyType`はマップのキーの型を指定
+- `valueType`はマップの値の型を指定
+
+#### チャネル（channel）の作成
+```go
+ch := make(chan elementType, bufferSize)
+```
+- `elementType`はチャネルを通して送受信される要素の型を指定
+- `bufferSize`はチャネルのバッファサイズ（オプション）を指定。省略するとバッファなしのチャネルが作成される。
 
 ## goto
 
