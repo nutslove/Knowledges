@@ -20,7 +20,7 @@ type Handler interface {
   ただ、それぞれ異なる方法でハンドラーを登録する。
 - `http.Handle`も`http.HandleFunc`も、第１引数にリクエストを待ち受けるURLパスを指定し、第２引数にリクエストの処理を指定するというのは基本的に同じ
 #### ▲`Handle`関数
-- `http.Handle`関数は、`http.Handler`インターフェースを実装した値を受け取る。
+- `http.Handle`関数は、`http.Handler`インターフェースを実装した型を受け取る。
 - > Handle registers the handler for the given pattern in the DefaultServeMux. The documentation for ServeMux explains how patterns are matched.
   → ここでいう**patternとはURLのこと(`/metrics`等)**
 
@@ -29,7 +29,7 @@ type Handler interface {
   func Handle(pattern string, handler Handler)
   ~~~
   - 第1引数`pattern`は、ハンドラーを登録するパターン（URL パス）を指定
-  - 第2引数`handler`は、`http.Handler`インターフェースを実装した値を指定
+  - 第2引数`handler`は、`http.Handler`インターフェースを実装した型を指定
 - 例
   ~~~go
   http.Handle("/metrics", promhttp.Handler())
