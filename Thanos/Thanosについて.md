@@ -1,5 +1,9 @@
-## アーキテクチャ（Sidecar方式）
-![](./image/Thanos_sidecar.jpg)
+## アーキテクチャ
+- Sidecar方式  
+  ![](./image/Thanos_sidecar.jpg)
+
+- Receiver方式  
+  ![](./image/arch_receive.jpg)
 
 ## Multi Tenancy
 - https://thanos.io/tip/operating/multi-tenancy.md/
