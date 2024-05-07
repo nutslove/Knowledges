@@ -96,6 +96,80 @@ func main() {
     	return engine
     }
 		~~~
+### `gin.New()`
+`gin.New()`は、Ginフレームワークの新しいインスタンスを作成するための関数です。この関数は、カスタマイズ可能な空のGinルーターを返します。
+
+`gin.New()`関数は以下のようにシグネチャを持ちます：
+
+```go
+func New() *Engine
+```
+
+この関数は、`*Engine`型のポインタを返します。`Engine`はGinフレームワークのメインのルーター構造体で、HTTPリクエストのルーティングやミドルウェアの管理などを行います。
+
+`gin.New()`で作成されたルーターには、デフォルトのミドルウェアは含まれていません。必要なミドルウェアを手動で追加する必要があります。一方、`gin.Default()`関数を使用すると、よく使われるミドルウェア（ロギング、パニックリカバリー）があらかじめ設定された`*Engine`インスタンスを取得できます。
+
+以下は、`gin.New()`を使用してカスタムルーターを作成し、ミドルウェアを追加する例です：
+
+```go
+package main
+
+import (
+    "github.com/gin-gonic/gin"
+)
+
+func main() {
+    // 新しいGinルーターを作成
+    router := gin.New()
+
+    // ミドルウェアを追加
+    router.Use(gin.Logger())
+    router.Use(gin.Recovery())
+
+    // ルートを定義
+    router.GET("/", func(c *gin.Context) {
+        c.JSON(200, gin.H{"message": "Hello, World!"})
+    })
+
+    // サーバーを起動
+    router.Run(":8080")
+}
+```
+
+この例では、`gin.New()`で新しいルーターを作成し、`router.Use()`を使用して`Logger`と`Recovery`ミドルウェアを追加しています。その後、ルートを定義し、サーバーを起動しています。
+
+`gin.New()`を使用することで、必要なミドルウェアを柔軟に選択し、アプリケーションの要件に合わせてルーターをカスタマイズすることができます。ただし、ほとんどの場合、`gin.Default()`で提供されるデフォルトのミドルウェアで十分であり、特別な理由がない限り`gin.Default()`を使用することが推奨されます。
+
+#### `Logger()`と`Recovery()`ミドルウェアについて
+`Logger()`と`Recovery()`は、Ginフレームワークがデフォルトで提供している組み込みのミドルウェアです。
+
+1. `Logger()`ミドルウェア：
+   - 受信したHTTPリクエストのログを出力します。
+   - リクエスト開始時間、レスポンスステータスコード、レイテンシ、クライアントIPアドレス、HTTPメソッド、パス、プロトコルバージョンなどの情報を含みます。
+   - デバッグやパフォーマンスの監視に役立ちます。
+
+2. `Recovery()`ミドルウェア：
+   - パニック（ランタイムエラー）からの復帰を処理します。
+   - アプリケーションがクラッシュすることを防ぎ、500 Internal Server Errorをクライアントに返します。
+   - パニックが発生した場合、エラーメッセージとスタックトレースをログに出力します。
+
+これらのミドルウェアは、`gin.Default()`関数を使用して作成されたルーターには自動的に含まれています。以下は、`gin.Default()`の定義です：
+
+```go
+func Default() *Engine {
+    debugPrintWARNINGDefault()
+    engine := New()
+    engine.Use(Logger(), Recovery())
+    return engine
+}
+```
+
+この関数は、新しい`*Engine`インスタンスを作成し、`Logger()`と`Recovery()`ミドルウェアを追加してから、そのインスタンスを返します。
+
+通常、これらのミドルウェアは、ほとんどのアプリケーションで必要とされるため、`gin.Default()`を使用することが推奨されています。ただし、特別な理由でこれらのミドルウェアを使用したくない場合は、`gin.New()`を使用して新しいルーターを作成し、必要なミドルウェアを手動で追加することもできます。
+
+以上のように、`Logger()`と`Recovery()`は、Ginフレームワークが提供する便利な組み込みミドルウェアであり、アプリケーションの開発をシンプルかつ安全にするために役立ちます。
+
 ### `*gin.Context`
 - リクエスト情報の取得やレスポンス設定に使用される
 - `gin.Context`は、GinフレームワークでHTTPリクエストとレスポンスを処理する際に中心となる概念。`gin.Context`は、リクエストの詳細情報を保持し、レスポンスを生成するためのメソッドを提供するオブジェクト。このコンテキストを通じて、リクエストのパラメータやヘッダ、ボディなどのデータにアクセスしたり、レスポンスのステータスコードやヘッダ、ボディを設定することができる。
@@ -184,3 +258,141 @@ Ginフレームワークにおける`Use`メソッドは、グローバルまた
 - **リクエスト毎の実行：** ユーザーがブラウザでページをリロードしたり、新しいページに移動したりすると、新しいHTTPリクエストがサーバーに送信されます。サーバーがこのリクエストを受け取ると、設定されたミドルウェアが実行されます。
 - **処理の流れ：** ミドルウェアは、登録された順序に従って処理されます。各ミドルウェアはリクエストを受け取り、必要に応じてリクエストの内容を変更したり、レスポンスを生成したりすることができます。
 - **用途の多様性：** ミドルウェアは様々な目的で使用されます。例えば、認証チェック、ログ記録、リクエストのバリデーション、セキュリティヘッダーの追加、エラーハンドリングなどです。
+
+## Directory構造
+- 決まったディレクトリ名/構造はないっぽい。下記は一例。
+```
+myproject/
+├── main.go
+├── go.mod
+├── go.sum
+├── controllers/
+│   └── ...
+├── models/
+│   └── ...
+├── middlewares/
+│   └── ...
+├── router/
+│   └── ...
+├── services/
+│   └── ...
+├── static/
+│   ├── css/
+│   ├── js/
+│   └── images/
+├── templates/
+│   └── ...
+└── config/
+    └── ...
+```
+- 各ディレクトリの役割
+  - `controllers/`: リクエストハンドラ（ルーティングロジック）を含むパッケージ
+  - `models/`: データベーススキーマやモデル構造体を定義するパッケージ
+  - `middlewares/`: 認証、ロギング、エラーハンドリングなどのミドルウェアを含むパッケージ
+  - `router/`: ルーティング設定を行うパッケージ
+  - `services/`: ビジネスロジックを実装するパッケージ
+  - `static/`: 静的ファイル（CSS、JavaScript、画像など）を格納するディレクトリ
+  - `templates/`: HTMLテンプレートファイルを格納するディレクトリ
+  - `config/`: 設定ファイル（データベース接続情報など）を格納するパッケージ
+- `main.go`の例  
+  ```go
+  package main
+
+  import (
+      "myproject/config"
+      "myproject/routes"
+      "myproject/middlewares"
+      "github.com/gin-gonic/gin"
+  )
+
+  func main() {
+      // 設定ファイルの読み込み
+      config.LoadConfig()
+
+      // Ginルーターの初期化
+      router := gin.Default()
+
+      // ミドルウェアの登録
+      router.Use(middlewares.Logger())
+      router.Use(middlewares.ErrorHandler())
+
+      // 静的ファイルの提供
+      router.Static("/static", "./static")
+
+      // HTMLテンプレートの設定
+      router.LoadHTMLGlob("templates/*")
+
+      // ルーティングの設定
+      routes.SetupRoutes(router)
+
+      // サーバーの起動
+      router.Run(":8080")
+  }
+  ```
+- `router/`ディレクトリ内のコード (e.g. `router/router.go`) の例  
+  ```go
+  package router
+
+  import (
+      "myproject/controllers"
+      "github.com/gin-gonic/gin"
+  )
+
+  func SetupRoutes(router *gin.Engine) {
+      // ルートグループの作成
+      v1 := router.Group("/api/v1")
+      {
+          // ユーザー関連のルート
+          users := v1.Group("/users")
+          {
+              users.POST("/", controllers.CreateUser)
+              users.GET("/", controllers.GetUsers)
+              users.GET("/:id", controllers.GetUser)
+              users.PUT("/:id", controllers.UpdateUser)
+              users.DELETE("/:id", controllers.DeleteUser)
+          }
+
+          // 記事関連のルート
+          articles := v1.Group("/articles")
+          {
+              articles.POST("/", controllers.CreateArticle)
+              articles.GET("/", controllers.GetArticles)
+              articles.GET("/:id", controllers.GetArticle)
+              articles.PUT("/:id", controllers.UpdateArticle)
+              articles.DELETE("/:id", controllers.DeleteArticle)
+          }
+      }
+
+      // インデックスページのルート
+      router.GET("/", controllers.Index)
+  }
+  ```
+#### `services/`ディレクトリと`controllers/`ディレクトリの違いについて
+- `controllers/`と`services/`は、アプリケーションの異なる層を表現している。それぞれの役割は以下の通り：
+
+1. `controllers/`（コントローラー層）：
+   - HTTPリクエストを受け取り、必要なデータを`services/`から取得する。
+   - 取得したデータを適切な形式（JSON、HTML）でレスポンスとして返す。
+   - リクエストのバリデーションやエラーハンドリングを行う。
+   - ビジネスロジックは含まず、主にリクエストとレスポンスの処理に専念。
+
+2. `services/`（サービス層）：
+   - ビジネスロジックを実装します。
+   - データベースやAPIなど、外部のリソースとのやり取りを行う。
+   - 複雑な処理を行い、データを加工して`controllers/`に返す。
+   - `controllers/`から受け取ったデータを処理し、結果を返す。
+   - サービス層は、アプリケーションの核となるビジネスルールを定義する。
+
+つまり、`controllers/`はHTTPリクエストとレスポンスを処理し、`services/`はビジネスロジックを実装する。
+
+例えば、ユーザー登録の処理を考えてみよう：
+
+1. `controllers/`では、リクエストからユーザーの情報を取得し、バリデーションを行う。
+2. バリデーションが成功した場合、`services/`の`CreateUser`関数を呼び出す。
+3. `services/`では、受け取ったユーザー情報をデータベースに保存する処理を実装する。
+4. 保存が成功した場合、`controllers/`に成功レスポンスを返す。
+5. `controllers/`では、受け取った結果をHTTPレスポンスとしてクライアントに返す。
+
+このように、`controllers/`と`services/`を分離することで、関心事を分離し、コードの可読性とメンテナンス性を向上させることができる。また、`services/`は`controllers/`だけでなく、他の部分からも呼び出すことができるため、コードの再利用性も高くなる。
+
+ただし、プロジェクトの規模や要件によっては、`controllers/`と`services/`を明確に分離しない場合もある。小規模なプロジェクトでは、`controllers/`にビジネスロジックを含めることもあるが、アプリケーションが成長するにつれて、徐々に`services/`を導入していくことが望ましい。
