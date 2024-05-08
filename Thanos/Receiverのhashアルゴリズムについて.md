@@ -1,0 +1,1 @@
+- `Hashmod`と`Ketama`アルゴリズムがある
