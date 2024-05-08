@@ -322,7 +322,16 @@
     }
     ```
 
+## Ruler
+- Alert/Recording Ruleのためのコンポネント
+- Recording Ruleによって新しく生成されたメトリクスは、Prometheusと同様にRulerのローカルディスク(HDD/SSD)に２時間間隔でTSDB blockで生成されて、Object Storageにアップロードされる
+  - RulerにもStore APIが実装されていて、まだObject StorageにアップロードされてないメトリクスについてQuerierからクエリーを受け付ける
+- 参考URL
+  - https://thanos.io/tip/components/rule.md/
 
 ## Store API
-- https://thanos.io/tip/thanos/integrations.md/#storeapi
-- https://thanos.io/tip/thanos/quick-tutorial.md/#store-api
+- Thanosコンポーネント間でメトリクスデータを取得するための標準化された/gRPCで実装されているAPIインターフェース
+> StoreAPI is a common proto interface for gRPC component that can connect to Querier in order to fetch the metric series. Natively Thanos implements Sidecar (local Prometheus data), Ruler and Store gateway. This solves fetching series from Prometheus or Prometheus TSDB format
+- 参考URL
+  - https://thanos.io/tip/thanos/integrations.md/#storeapi
+  - https://thanos.io/tip/thanos/quick-tutorial.md/#store-api
