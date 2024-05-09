@@ -26,7 +26,7 @@
   - `AlertmanagerConfig`
     - declaratively specifies subsections of the Alertmanager configuration, allowing routing of alerts to custom receivers, and setting inhibit rules.
 
-## Prometheus
+### Prometheus
 - `StatefulSet`としてPrometheus Podをデプロイする
 - デフォルトでStatefulSetのPod名(e.g. Prometheus-0)が`prometheus_replica`のExternal Labelとして設定される
   - `replicaExternalLabelName`を`""`にすることで`prometheus_replica` External Labelを付与しないようにすることができる
@@ -109,6 +109,22 @@
     namespaceSelector:
       matchNames:
       - default
+  ```
+
+### Probe
+- blackbox-exporterと連携して、blackbox-exporterの`/probe`エンドポイントからメトリクスを取得
+- `Probe`リソースは自動でBlackbox Exporterで必要な以下のrelabel設定を入れてくれる。  
+  逆に以下の設定を手動で入れると２重でrelabelが設定され、正常にrelabelされない。  
+  ```yaml
+         ・
+         ・
+  relabelingConfigs:
+  - sourceLabels: [__address__]
+    targetLabel: __param_target
+  - sourceLabels: [__param_target]
+    targetLabel: instance
+  - targetLabel: __address__
+    replacement: blackbox-exporter-clusterip.metrics.svc.cluster.local:9115
   ```
 
 ## Thanosとの統合
