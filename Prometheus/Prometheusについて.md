@@ -83,8 +83,16 @@
 ![](./image/prometheus_data_model.jpg)
 - 参考URL
   - https://www.youtube.com/watch?v=hSpBpVvgRxk
-### Siries
-
+### Series
+- sets of labels
+- labelが１つでも違ったら別のSeries
+![](./image/series.jpg)
+- 参考URL
+  - https://www.youtube.com/watch?v=hSpBpVvgRxk
+### SampleとTime Series
+![](./image/sample_and_timeseries.jpg)
+- 参考URL
+  - https://www.youtube.com/watch?v=ZGQIitaKoTM
 
 ## Metric Typeについて
 - https://prometheus.io/docs/concepts/metric_types/
