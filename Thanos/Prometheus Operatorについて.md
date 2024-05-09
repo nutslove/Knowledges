@@ -114,7 +114,7 @@
 ### Probe
 - blackbox-exporterと連携して、blackbox-exporterの`/probe`エンドポイントからメトリクスを取得
 - `Probe`リソースは自動でBlackbox Exporterで必要な以下のrelabel設定を入れてくれる。  
-  逆に以下の設定を手動で入れると２重でrelabelが設定され、正常にrelabelされない。  
+  逆に以下の設定を手動で入れると２重でrelabelが設定され、正常にrelabelされず、すべてのターゲットが表示されない。  
   ```yaml
          ・
          ・
