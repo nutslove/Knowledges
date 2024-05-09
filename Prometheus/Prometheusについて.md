@@ -49,7 +49,7 @@
               "stats": {
                       "numSamples": 8640, --> ブロック内のサンプル数
                       "numSeries": 36,    --> ブロック内のシリーズ数
-                      "numChunks": 72     --> ぷ六区内のChunk数
+                      "numChunks": 72     --> ブロック内のChunk数
               },
               "compaction": {
                       "level": 1, --> 圧縮レベル
@@ -75,6 +75,16 @@
 
 ※メモリに保持するメトリクスデータの期間は`--storage.tsdb.min-block-duration`と`--storage.tsdb.max-block-duration`で変更できる  
   → defaultでは両方とも`2h`に設定されている
+
+## PrometheusのDataについて
+### Prometheus Data Model
+- *Labels*、*Value*、*Timestamp*で構成されている
+  - メトリクス名も`__name__`ラベルに格納される
+![](./image/prometheus_data_model.jpg)
+- 参考URL
+  - https://www.youtube.com/watch?v=hSpBpVvgRxk
+### Siries
+
 
 ## Metric Typeについて
 - https://prometheus.io/docs/concepts/metric_types/
