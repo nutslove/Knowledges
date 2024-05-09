@@ -26,6 +26,13 @@
   - `AlertmanagerConfig`
     - declaratively specifies subsections of the Alertmanager configuration, allowing routing of alerts to custom receivers, and setting inhibit rules.
 
+## Prometheus
+- `StatefulSet`としてPrometheus Podをデプロイする
+- デフォルトでStatefulSetのPod名(e.g. Prometheus-0)が`prometheus_replica`のExternal Labelとして設定される
+  - `replicaExternalLabelName`を`""`にすることで`prometheus_replica` External Labelを付与しないようにすることができる
+    - https://github.com/prometheus-operator/prometheus-operator/blob/ca400fdc3edd0af0df896a338eca270e115b74d7/Documentation/api.md#prometheusspec
+  - **2つ以上のPrometheusをデプロイしている場合はThanos Query(Querier)の`--query.replica-label`フラグに`prometheus_replica`を指定してデータのdeduplicationを行う**
+
 ### ServiceMonitor
 - https://github.com/prometheus-operator/prometheus-operator/blob/main/Documentation/api.md#monitoring.coreos.com/v1.ServiceMonitor
 - Prometheus Operatorは`ServiceMonitor`リソースを監視し、`selector`,`namespaceSelector`を満たす`Service`リソースの作成/更新/削除を検知し、設定に基づいてPrometheusのスクレイプ設定を自動的に更新する
