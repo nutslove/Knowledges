@@ -24,24 +24,36 @@
   store := cookie.NewStore([]byte(secretKey))
   router.Use(sessions.Sessions("session", store)) // ブラウザのCookieにセッションIDを保存する
 
+  secretKey_for_csrf := "csrfSecretKey"
+
   // CSRFミドルウェアの設定
   // HTML内の_csrfの値を取得して、リクエストトークンと比較を行い、一致しない場合ErrorFuncを実行する（https://github.com/utrack/gin-csrf/blob/master/csrf.go）
   router.Use(csrf.Middleware(csrf.Options{
-    Secret: secretKey, // 上のCookieベースのセッションと同じ値を指定
+    Secret: secretKey_for_csrf, // CSRFトークンの生成に使用される秘密鍵
     ErrorFunc: func(c *gin.Context) {
     	c.String(400, "CSRF token mismatch")
     	c.Abort()
     },
   }))
+
+	router.GET("/", func(c *gin.Context) {
+		token := csrf.GetToken(c)
+		c.HTML(http.StatusOK, "index.tmpl", gin.H{
+			"head_title": "Golang-Gin",
+			"title":      "Main website",
+			"content":    "OpenTelemetry with Golang-Gin",
+			"csrfToken":  token,
+		})
+	})
   ~~~
 
-## CSRF隠しフィールドトークンのメカニズム
-1. **トークンの生成とセッションの紐付け:** セッションが開始される際（たとえばユーザーがログインページにアクセスした際）、サーバーは一意のCSRFトークンを生成し、ユーザーのセッションに保存します。このトークンは、ユーザーがフォームを通じてデータを送信する際にサーバーに送り返される必要があります。
+- CSRFトークンの生成に使用される秘密鍵(上記の場合`secretKey_for_csrf`)は固定値でも、saltで毎回生成されるトークンは異なる
 
-2. **フォームへのトークンの埋め込み:** サーバーは生成したCSRFトークンをフォームの隠しフィールドに埋め込みます。これにより、ユーザーがフォームを送信する際に、トークンも一緒に送信されます。
-
-3. **トークンの検証:** フォームがサーバーに送信された際、サーバーはフォームに含まれるCSRFトークンをセッションに保存されているトークンと照合します。トークンが一致しない場合、リクエストは拒否されます。
-
-4. **偽装サイトからの攻撃の防止:** もし攻撃者がユーザーを偽装して不正なPOSTリクエストを送ろうとしても、攻撃者のサイトではユーザーのセッション情報を知ることができません。したがって、正しいCSRFトークンをフォームに含めることができず、サーバーはこのリクエストを拒否します。
-
-このように、CSRFトークンはユーザーのセッションに固有のものであり、偽装サイトではこのトークンを知ることができないため、不正なリクエストを効果的に防ぐことができます。
+## CSRFトークンの生成と検証の流れ
+1. ユーザーがGETメソッドでフォームを表示するページにアクセスする。
+2. サーバー側では、**CSRFミドルウェアがリクエストごとに一意のCSRFトークンを生成する。**
+3. 生成されたCSRFトークンは、レスポンスのHTMLに隠しフィールド（例えば`<input type="hidden" name="_csrf" value="生成されたトークン">`）として埋め込まれて、クライアントに返される。
+4. ユーザーがフォームを送信すると、POSTメソッドでサーバーにリクエストが送信される。このとき、隠しフィールド(`name="_csrf"`)に埋め込まれたCSRFトークンも一緒にサーバーに送信される。
+5. サーバー側では、CSRFミドルウェアがPOSTリクエストを受信し、送信されたCSRFトークンを検証する。
+6. 送信されたCSRFトークンが、サーバーが発行したトークンと一致していれば、リクエストは有効とみなされ、処理が続行される。
+7. トークンが一致しない場合は、CSRFの可能性があるため、エラーハンドラが呼び出され、適切なエラーレスポンスが返される。

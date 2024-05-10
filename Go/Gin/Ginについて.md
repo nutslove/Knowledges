@@ -300,7 +300,7 @@ myproject/
 
   import (
       "myproject/config"
-      "myproject/routes"
+      "myproject/router"
       "myproject/middlewares"
       "github.com/gin-gonic/gin"
   )
