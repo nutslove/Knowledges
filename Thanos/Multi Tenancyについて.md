@@ -18,6 +18,10 @@
 
 
 ## 後で詳しく確認！
+- https://www.youtube.com/watch?v=E8L8fuRj66o&list=PLj6h78yzYM2M0QzJhgCdGVuEhx8OlXpvX&index=6  
+  ![](./image/query_distributed_mode_2.jpg)
+  ![](./image/query_distributed_mode_1.jpg)
+
 ![](./image/allow_old_sample.jpg)
 ![](./image/multi_tenancy_3.jpg)
 ![](./image/limit_1.jpg)
