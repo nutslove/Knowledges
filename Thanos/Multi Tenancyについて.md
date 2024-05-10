@@ -19,6 +19,7 @@
 
 ## 後で詳しく確認！
 - https://www.youtube.com/watch?v=E8L8fuRj66o&list=PLj6h78yzYM2M0QzJhgCdGVuEhx8OlXpvX&index=6  
+  **これがLayered Querier？？**
   ![](./image/query_distributed_mode_2.jpg)
   ![](./image/query_distributed_mode_1.jpg)
 
