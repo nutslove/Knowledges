@@ -28,12 +28,12 @@
   │   └── meta.json
   ├── 01BKGV7JC0RY8A6MACW02A2PJD --> このディレクトリと中身が２時間単位で作成
   │   ├── chunks
-  │   │   └── 000001
+  │   │   └── 000001 --> メトリクス名とラベルの組み合わせを表すシリーズ番号（series ID）
   │   ├── tombstones
   │   ├── index
   │   └── meta.json
   ├── chunks_head
-  │   └── 000001
+  │   └── 000001 --> メトリクス名とラベルの組み合わせを表すシリーズ番号（series ID）
   └── wal
       ├── 000000002
       └── checkpoint.00000001
@@ -61,8 +61,31 @@
       }
       ```
 
+### Chunk
+- a compressed set of samples
+
+### HEAD（HEAD Chunks）
+- メモリ上の最新の(現在受け付けている)データ
+- メモリ上のChunkサイズがfullになったら、ローカルディスクの`chunks_head`ディレクトリ内に移動させて、メモリ上に新しいChunkを作る
+- 一定間隔(defaultは2時間間隔)でメモリ上のChunkとローカルディスク(`chunks_head`ディレクトリ)上のChunkをまとめてblockを作成する。その後メモリ上のchunkとローカルディスク上のChunkを削除する
+  - これを *head compaction* という
+
+![](./image/head_1.jpg)
+![](./image/head_2.jpg)
+![](./image/head_3.jpg)
+![](./image/head_4.jpg)
+![](./image/head_5.jpg)
+![](./image/head_6.jpg)
+![](./image/head_7.jpg)
+![](./image/head_8.jpg)
+
+- 参考URL
+  - https://www.youtube.com/watch?v=LOZQFT8Dcq0&t
+  - https://www.youtube.com/watch?v=vc5LgoiP_CA
+  - https://ganeshvernekar.com/blog/prometheus-tsdb-the-head-block/
+ 
 ### WAL（write-ahead log）
-- The current block for incoming samples is kept in memory and is not fully persisted. It is secured against crashes by a write-ahead log (WAL) that can be replayed when the Prometheus server restarts. Write-ahead log files are stored in the `wal` directory in 128MB segments. These files contain raw data that has not yet been compacted; thus they are significantly larger than regular block files. Prometheus will retain a minimum of three write-ahead log files. High-traffic servers may retain more than three WAL files in order to keep at least two hours of raw data.
+- **The current block for incoming samples is kept in memory and is not fully persisted.** It is secured against crashes by a write-ahead log (WAL) that can be replayed when the Prometheus server restarts. Write-ahead log files are stored in the `wal` directory in 128MB segments. **These files contain raw data that has not yet been compacted**; thus they are significantly larger than regular block files. Prometheus will retain a minimum of three write-ahead log files. High-traffic servers may retain more than three WAL files in order to keep at least two hours of raw data.
 - Prometheusがクラッシュして再起動される時、WALからデータを復旧(replay)する
 - https://ganeshvernekar.com/blog/prometheus-tsdb-wal-and-checkpoint/  
   > **WAL is only used to record the events and restore the in-memory state when starting up. It does not involve in any other way in read or write operations.**
