@@ -24,6 +24,8 @@
 
 ## Receiver
 - https://thanos.io/v0.8/proposals/201812_thanos-remote-receive/
+- ReceiverもPrometheusと同様に２時間ごとにObject Storageにブロックをアップロードする
+  - https://medium.com/@appareddy.prabha/configuring-thanos-receiver-a-step-by-step-guide-for-long-term-storage-in-prometheus-3f2b487accab
 - Receiverの`--tsdb.retention`とPrometheusの`--tsdb.retention`フラグの意味合いが異なる。Prometheusではデータの保持期間を意味するけど、Thanosでは指定した期間中新しいデータがない場合、そのテナントがもう存在しないとdecommissionする？
   > A Receiver will automatically decommission a tenant once new samples have not been seen for longer than the `--tsdb.retention` period configured for the Receiver. The tenant decommission process includes flushing all in-memory samples for that tenant to disk, sending all unsent blocks to S3, and removing the tenant TSDB from the filesystem. If a tenant receives new samples after being decommissioned, a new TSDB will be created for the tenant.
   >
