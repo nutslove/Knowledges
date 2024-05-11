@@ -5,9 +5,9 @@
 - https://prometheus.io/docs/practices/remote_write/  
 > Each remote write destination starts a queue which reads from the write-ahead log (WAL), writes the samples into an in memory queue owned by a shard, which then sends a request to the configured endpoint. The flow of data looks like:
 >```
->      |-->  queue (shard_1)   --> remote endpoint
+>       |-->  queue (shard_1)   --> remote endpoint
 >WAL --|-->  queue (shard_...) --> remote endpoint
->      |-->  queue (shard_n)   --> remote endpoint
+>       |-->  queue (shard_n)   --> remote endpoint
 >```
 > When one shard backs up and fills its queue, Prometheus will block reading from the WAL into any shards. **Failures will be retried without loss of data unless the remote endpoint remains down for more than 2 hours. After 2 hours, the WAL will be compacted and data that has not been sent will be lost.**
 >

@@ -33,7 +33,7 @@
   level=error err="no external labels configured for receive, uniquely identifying external labels must be configured (ideally with `receive_` prefix); see https://thanos.io/tip/thanos/storage.md#external-labels for details.
   ```
 - ReceiverではPrometheusに設定されているexternal labelが、複数のPrometheusからのデータを区別するためにThanosが認識するexternal labelには反映されない。  
-  **Receiverに設定する`--label`フラグとReceiverに連携される`THANOS-TENANT`ヘッダーがThanosが認識するexternal labelとして設定される。**  
+  **①Receiverに設定する`--label`フラグ、②Receiverに連携される`THANOS-TENANT`ヘッダー、この２つのみがThanosが認識するexternal labelとして設定される。**  
   Store GatewayやCompactor内部で確認できる`meta.json`ファイルの`thanos.labels`フィールドでThanosが認識しているexternal labelsを確認できる。
 
 ### routing receiversとingesting receiversの分離
