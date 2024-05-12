@@ -22,6 +22,7 @@ spec:
         - --endpoint=thanos-ingesting-receiver.default.svc:10901
         - --query.tenant-header="THANOS-TENANT"
         - --query.enforce-tenancy
+        - --query.auto-downsampling
         ports:
         - name: http
           containerPort: 10902

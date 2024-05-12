@@ -248,8 +248,6 @@
   - https://thanos.io/tip/components/compact.md/#compaction-groups--block-streams
 
 ### `--retention.resolution-raw`、`--retention.resolution-5m`、`--retention.resolution-1h`について
-- 3つのフラグの関係は2.の方
-![](./image/downsampled.jpg)
 - 5mも1hもrawデータが必要らしい。つまり、1hダウンサンプリングに5mのデータが使われるのではなく、1hダウンサンプリングにもrawデータが使われるらしい。
   - https://www.youtube.com/watch?v=ywOriVffPZg
 
