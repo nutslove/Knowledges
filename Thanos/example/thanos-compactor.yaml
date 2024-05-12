@@ -37,8 +37,8 @@ spec:
         - --data-dir=/tmp/thanos/compact
         - --objstore.config-file=/etc/thanos/object-store.yaml
         - --retention.resolution-raw=2d
-        - --retention.resolution-5m=5d
-        - --retention.resolution-1h=30d
+        - --retention.resolution-5m=10d
+        - --retention.resolution-1h=90d
         ports:
         - name: http
           containerPort: 10902
@@ -54,3 +54,15 @@ spec:
       - name: object-store-config
         configMap:
           name: thanos-object-store-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: thanos-compactor
+spec:
+  selector:
+    app: thanos-compactor
+  ports:
+  - name: http
+    port: 10902
+    targetPort: http

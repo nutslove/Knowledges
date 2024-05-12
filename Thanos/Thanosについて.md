@@ -238,6 +238,8 @@
   - https://thanos.io/tip/components/compact.md/#vertical-compaction-use-cases
   - でもリスクがあるらしく、あまり使わない方が良さそう？
 - defaultではCompactorはcronjobとして動かせるように処理が終わったらCompletedになってしまうため、継続的に実行させるためには`--wait`と`--wait-interval=5m`フラグを付ける必要がある
+- CompactorのWeb UIを持っていて、`10902`ポート(http)からアクセス可能
+  - 各Blockに関する情報を確認できる
 
 ### compaction group
 - 同じPrometheusからのBlockを「*stream*」もしくは「*compaction group*」という。  
@@ -274,7 +276,7 @@
             "version": 1
     }
     ```
-  - Thanos Compactorの`meta.json`の例  
+  - Thanos Compactorの`meta.json`の例（ **https://thanos.io/tip/thanos/storage.md/#metadata-file-metajson** ）  
     ```json
     {
             "ulid": "01HWMAEN7VNZE2M5VEH0BB6GKC",
@@ -293,12 +295,12 @@
             },
             "version": 1,
             "thanos": { --> これの配下がthanosで追加されたメタデータ
-                    "labels": { --> 各ブロックに関連付けられたラベルセット。これにより、グローバルなクエリエンジンがブロックを適切に識別し、クエリを実行できるようになる。
+                    "labels": { --> External Labels for block
                             "env": "poc",
                             "tenant_id": "test1"
                     },
                     "downsample": { 
-                            "resolution": 0 --> ダウンサンプルされたデータの解像度。データが元の時間解像度からどれだけ減少されたかを示す。
+                            "resolution": 0 --> ダウンサンプルされたデータの解像度。0はダウンサンプリングされてないことを意味する。
                     },
                     "source": "receive", --> ブロックがどのThanosコンポーネントによって生成されたかを示す(sidecarから生成された場合はsidecarが入る)
                     "segment_files": [
