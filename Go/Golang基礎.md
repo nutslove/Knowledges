@@ -672,7 +672,7 @@ updates go.mod to require those versions, and downloads source code into the mod
     }
     ~~~
 
-### __Embedded structs__
+### Embedded structs
 - 他の言語のClassの継承みたいな感じ
 - 既存のstructの中のfieldを継承し、追加のfieldを追加して使う
 - Format
@@ -722,7 +722,7 @@ updates go.mod to require those versions, and downloads source code into the mod
   -→ agent.person.nameのようにpersonを入れなくて良い 
   ~~~
 
-### __Anonymous structs__
+### Anonymous structs
 - `type <struct名>`でstructを宣言せず、1回限りの (1つの変数だけで使える) struct
   ~~~go
   p1 := struct {
@@ -2651,15 +2651,6 @@ ch := make(chan elementType, bufferSize)
 - `elementType`はチャネルを通して送受信される要素の型を指定
 - `bufferSize`はチャネルのバッファサイズ（オプション）を指定。省略するとバッファなしのチャネルが作成される。
 
-## goto
-
-
-
-## 各型について
-- 
-
-## 演算子
-- 
 
 ## 各型のデフォルト値(Zero Value)
 - int  
@@ -2992,6 +2983,18 @@ if 条件式 {
 	  fmt.Println("bar")
   }
   ~~~
+
+## ブロックスコープ
+- ブロックスコープは、その中で宣言された変数がそのブロック内でのみ有効となるスコープを作成
+- そのブロック内でのみ使用する一時的な変数を作成したり、同じ名前の変数を別のスコープで再利用することが可能になる
+```go
+x := 10
+{
+    x := 20
+    fmt.Println(x)  // 20が出力される
+}
+fmt.Println(x)  // 10が出力される
+```
 
 ## 型変換
 #### 文字列と数値の型変換
