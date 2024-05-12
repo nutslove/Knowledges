@@ -425,4 +425,20 @@
       }
       ```
       - **stepとは、グラフ上の各データポイント間の時間間隔を指す。例えば、00:00から01:00までの1時間の範囲で取得していて、step=15sの場合はグラフ上の各データポイントが15秒間隔で表示されることを意味する。**
-      - `step`は`parseStep`メソッド(`step, apiErr := qapi.parseStep(r, qapi.defaultRangeQueryStep, int64(end.Sub(start)/time.Second))`)で求めている
+      - `step`は`parseStep`メソッド(`step, apiErr := qapi.parseStep(r, qapi.defaultRangeQueryStep, int64(end.Sub(start)/time.Second))`)で求めている  
+        ```go
+        func (qapi *QueryAPI) parseStep(r *http.Request, defaultRangeQueryStep time.Duration, rangeSeconds int64) (time.Duration, *api.ApiError) {
+        	// Overwrite the cli flag when provided as a query parameter.
+        	if val := r.FormValue(Step); val != "" {
+        		var err error
+        		defaultRangeQueryStep, err = parseDuration(val)
+        		if err != nil {
+        			return 0, &api.ApiError{Typ: api.ErrorBadData, Err: errors.Wrapf(err, "'%s' parameter", Step)}
+        		}
+        		return defaultRangeQueryStep, nil
+        	}
+        	// Default step is used this way to make it consistent with UI.
+        	d := time.Duration(math.Max(float64(rangeSeconds/250), float64(defaultRangeQueryStep/time.Second))) * time.Second
+        	return d, nil
+        }
+        ```
