@@ -204,4 +204,225 @@
     	}
     }
     ```
+- 実際にクエリーの処理が記述されているのは`pkg/api/query/v1.go`
+  - https://github.com/thanos-io/thanos/blob/main/pkg/api/query/v1.go
+  - 例えばquery_rangeに関する処理は`queryRange`メソッドに定義されている  
+    ```go
+    func (qapi *QueryAPI) queryRange(r *http.Request) (interface{}, []error, *api.ApiError, func()) {
+    	start, err := parseTime(r.FormValue("start"))
+    	if err != nil {
+    		return nil, nil, &api.ApiError{Typ: api.ErrorBadData, Err: err}, func() {}
+    	}
+    	end, err := parseTime(r.FormValue("end"))
+    	if err != nil {
+    		return nil, nil, &api.ApiError{Typ: api.ErrorBadData, Err: err}, func() {}
+    	}
+    	if end.Before(start) {
+    		err := errors.New("end timestamp must not be before start time")
+    		return nil, nil, &api.ApiError{Typ: api.ErrorBadData, Err: err}, func() {}
+    	}
+    	step, apiErr := qapi.parseStep(r, qapi.defaultRangeQueryStep, int64(end.Sub(start)/time.Second))
 
+    	if apiErr != nil {
+    		return nil, nil, apiErr, func() {}
+    	}
+
+    	if step <= 0 {
+    		err := errors.New("zero or negative query resolution step widths are not accepted. Try a positive integer")
+    		return nil, nil, &api.ApiError{Typ: api.ErrorBadData, Err: err}, func() {}
+    	}
+
+    	// For safety, limit the number of returned points per timeseries.
+    	// This is sufficient for 60s resolution for a week or 1h resolution for a year.
+    	if end.Sub(start)/step > 11000 {
+    		err := errors.New("exceeded maximum resolution of 11,000 points per timeseries. Try decreasing the query resolution (?step=XX)")
+    		return nil, nil, &api.ApiError{Typ: api.ErrorBadData, Err: err}, func() {}
+    	}
+
+    	ctx := r.Context()
+    	if to := r.FormValue("timeout"); to != "" {
+    		var cancel context.CancelFunc
+    		timeout, err := parseDuration(to)
+    		if err != nil {
+    			return nil, nil, &api.ApiError{Typ: api.ErrorBadData, Err: err}, func() {}
+    		}
+
+    		ctx, cancel = context.WithTimeout(ctx, timeout)
+    		defer cancel()
+    	}
+
+    	enableDedup, apiErr := qapi.parseEnableDedupParam(r)
+    	if apiErr != nil {
+    		return nil, nil, apiErr, func() {}
+    	}
+
+    	replicaLabels, apiErr := qapi.parseReplicaLabelsParam(r)
+    	if apiErr != nil {
+    		return nil, nil, apiErr, func() {}
+    	}
+
+    	storeDebugMatchers, apiErr := qapi.parseStoreDebugMatchersParam(r)
+    	if apiErr != nil {
+    		return nil, nil, apiErr, func() {}
+    	}
+
+    	// If no max_source_resolution is specified fit at least 5 samples between steps.
+    	maxSourceResolution, apiErr := qapi.parseDownsamplingParamMillis(r, step/5)
+    	if apiErr != nil {
+    		return nil, nil, apiErr, func() {}
+    	}
+
+    	enablePartialResponse, apiErr := qapi.parsePartialResponseParam(r, qapi.enableQueryPartialResponse)
+    	if apiErr != nil {
+    		return nil, nil, apiErr, func() {}
+    	}
+
+    	shardInfo, apiErr := qapi.parseShardInfo(r)
+    	if apiErr != nil {
+    		return nil, nil, apiErr, func() {}
+    	}
+
+    	engine, _, apiErr := qapi.parseEngineParam(r)
+    	if apiErr != nil {
+    		return nil, nil, apiErr, func() {}
+    	}
+
+    	lookbackDelta := qapi.lookbackDeltaCreate(maxSourceResolution)
+    	// Get custom lookback delta from request.
+    	lookbackDeltaFromReq, apiErr := qapi.parseLookbackDeltaParam(r)
+    	if apiErr != nil {
+    		return nil, nil, apiErr, func() {}
+    	}
+    	if lookbackDeltaFromReq > 0 {
+    		lookbackDelta = lookbackDeltaFromReq
+    	}
+
+    	queryStr, tenant, ctx, err := tenancy.RewritePromQL(ctx, r, qapi.tenantHeader, qapi.defaultTenant, qapi.tenantCertField, qapi.enforceTenancy, qapi.tenantLabel, r.FormValue("query"))
+    	if err != nil {
+    		return nil, nil, &api.ApiError{Typ: api.ErrorBadData, Err: err}, func() {}
+    	}
+
+    	// Record the query range requested.
+    	qapi.queryRangeHist.Observe(end.Sub(start).Seconds())
+
+    	// We are starting promQL tracing span here, because we have no control over promQL code.
+    	span, ctx := tracing.StartSpan(ctx, "promql_range_query")
+    	defer span.Finish()
+
+    	var seriesStats []storepb.SeriesStatsCounter
+    	qry, err := engine.NewRangeQuery(
+    		ctx,
+    		qapi.queryableCreate(
+    			enableDedup,
+    			replicaLabels,
+    			storeDebugMatchers,
+    			maxSourceResolution,
+    			enablePartialResponse,
+    			false,
+    			shardInfo,
+    			query.NewAggregateStatsReporter(&seriesStats),
+    		),
+    		promql.NewPrometheusQueryOpts(false, lookbackDelta),
+    		queryStr,
+    		start,
+    		end,
+    		step,
+    	)
+    	if err != nil {
+    		return nil, nil, &api.ApiError{Typ: api.ErrorBadData, Err: err}, func() {}
+    	}
+
+    	res := qry.Exec(ctx)
+
+    	analysis, err := qapi.parseQueryAnalyzeParam(r, qry)
+    	if err != nil {
+    		return nil, nil, apiErr, func() {}
+    	}
+
+    	tracing.DoInSpan(ctx, "query_gate_ismyturn", func(ctx context.Context) {
+    		err = qapi.gate.Start(ctx)
+    	})
+    	if err != nil {
+    		return nil, nil, &api.ApiError{Typ: api.ErrorExec, Err: err}, qry.Close
+    	}
+    	defer qapi.gate.Done()
+
+    	beforeRange := time.Now()
+    	if res.Err != nil {
+    		switch res.Err.(type) {
+    		case promql.ErrQueryCanceled:
+    			return nil, nil, &api.ApiError{Typ: api.ErrorCanceled, Err: res.Err}, qry.Close
+    		case promql.ErrQueryTimeout:
+    			return nil, nil, &api.ApiError{Typ: api.ErrorTimeout, Err: res.Err}, qry.Close
+    		}
+    		return nil, nil, &api.ApiError{Typ: api.ErrorExec, Err: res.Err}, qry.Close
+    	}
+    	aggregator := qapi.seriesStatsAggregatorFactory.NewAggregator(tenant)
+    	for i := range seriesStats {
+    		aggregator.Aggregate(seriesStats[i])
+    	}
+    	aggregator.Observe(time.Since(beforeRange).Seconds())
+
+    	// Optional stats field in response if parameter "stats" is not empty.
+    	var qs stats.QueryStats
+    	if r.FormValue(Stats) != "" {
+    		qs = stats.NewQueryStats(qry.Stats())
+    	}
+    	return &queryData{
+    		ResultType:    res.Value.Type(),
+    		Result:        res.Value,
+    		Stats:         qs,
+    		QueryAnalysis: analysis,
+    	}, res.Warnings.AsErrors(), nil, qry.Close
+    }
+    ```
+    - auto-downsamplingと関係するのは以下の部分  
+      ```go
+                            ・
+                            ・
+    	step, apiErr := qapi.parseStep(r, qapi.defaultRangeQueryStep, int64(end.Sub(start)/time.Second))
+
+    	if apiErr != nil {
+    		return nil, nil, apiErr, func() {}
+    	}
+
+    	if step <= 0 {
+    		err := errors.New("zero or negative query resolution step widths are not accepted. Try a positive integer")
+    		return nil, nil, &api.ApiError{Typ: api.ErrorBadData, Err: err}, func() {}
+    	}
+
+    	// If no max_source_resolution is specified fit at least 5 samples between steps.
+    	maxSourceResolution, apiErr := qapi.parseDownsamplingParamMillis(r, step/5)
+    	if apiErr != nil {
+    		return nil, nil, apiErr, func() {}
+    	}
+                            ・
+                            ・
+      ```
+    - `parseDownsamplingParamMillis`メソッドの中身  
+      `--query.auto-downsampling`フラグが指定されている or `max_source_resolution`パラメータの値が`auto`(`max_source_resolution=auto`)の場合は`maxSourceResolution`は`step/5`になり、`--query.auto-downsampling`フラグが指定されてない場合は`maxSourceResolution`は`0`(=rawデータ)になる  
+      ```go
+      func (qapi *QueryAPI) parseDownsamplingParamMillis(r *http.Request, defaultVal time.Duration) (maxResolutionMillis int64, _ *api.ApiError) {
+      	maxSourceResolution := 0 * time.Second
+
+      	val := r.FormValue(MaxSourceResolutionParam)
+      	if qapi.enableAutodownsampling || (val == "auto") {
+      		maxSourceResolution = defaultVal
+      	}
+      	if val != "" && val != "auto" {
+      		var err error
+      		maxSourceResolution, err = parseDuration(val)
+      		if err != nil {
+      			return 0, &api.ApiError{Typ: api.ErrorBadData, Err: errors.Wrapf(err, "'%s' parameter", MaxSourceResolutionParam)}
+      		}
+      	}
+
+      	if maxSourceResolution < 0 {
+      		return 0, &api.ApiError{Typ: api.ErrorBadData, Err: errors.Errorf("negative '%s' is not accepted. Try a positive integer", MaxSourceResolutionParam)}
+      	}
+
+      	return int64(maxSourceResolution / time.Millisecond), nil
+      }
+      ```
+      - **stepとは、グラフ上の各データポイント間の時間間隔を指す。例えば、00:00から01:00までの1時間の範囲で取得していて、step=15sの場合はグラフ上の各データポイントが15秒間隔で表示されることを意味する。**
+      - `step`は`parseStep`メソッド(`step, apiErr := qapi.parseStep(r, qapi.defaultRangeQueryStep, int64(end.Sub(start)/time.Second))`)で求めている

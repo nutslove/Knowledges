@@ -168,6 +168,8 @@
 - StoreGatewayはローカルディスクをそこまで必要とせず、再起動などでデータが削除されても起動時間が増加するくらいでそこまで影響はない
   > It acts primarily as an API gateway and therefore does not need significant amounts of local disk space. It joins a Thanos cluster on startup and advertises the data it can access. It keeps a small amount of information about all remote blocks on local disk and keeps it in sync with the bucket. This data is generally safe to delete across restarts at the cost of increased startup times.
   > In general, an average of 6 MB of local disk space is required per TSDB block stored in the object storage bucket, but for high cardinality blocks with large label set it can even go up to 30MB and more. It is for the pre-computed index, which includes symbols and postings offsets as well as metadata JSON.
+- Store (Store Gateway)もWeb UIを持っていて、`10902`ポート(http)からアクセス可能
+  - 各Blockに関する情報を確認できる
 
 ## Querier (Query)
 - https://thanos.io/tip/components/query.md/
@@ -300,7 +302,7 @@
                             "tenant_id": "test1"
                     },
                     "downsample": { 
-                            "resolution": 0 --> ダウンサンプルされたデータの解像度。0はダウンサンプリングされてないことを意味する。
+                            "resolution": 0 --> ダウンサンプルされたデータの解像度。0はダウンサンプリングされてないことを意味する。ダウンサンプリングされている場合は5mや1hの値が入る(らしい)
                     },
                     "source": "receive", --> ブロックがどのThanosコンポーネントによって生成されたかを示す(sidecarから生成された場合はsidecarが入る)
                     "segment_files": [
