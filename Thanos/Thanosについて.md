@@ -234,6 +234,11 @@
 - *Compaction*
   - responsible for **compacting multiple blocks into one to reduce the number of blocks and compact index indices.** We can compact an index quite well in most cases, because series usually live longer than the duration of the smallest blocks (2 hours).
   - https://thanos.io/tip/components/compact.md/#compaction
+  - defaultでは２週間分まで１つのBlockにまとめる
+    - https://thanos.io/tip/components/compact.md/#disk  
+      > In worst case scenario compactor has to have space adequate to 2 times 2 weeks (if your maximum compaction level is 2 weeks) worth of smaller blocks to perform compaction. First, to download all of those source blocks, second to build on disk output of 2 week block composed of those smaller ones.  
+
+      ![](./image/compaction_period.jpg)
 - **Compactorは1つのObject Storageごとに1つのみ動かす必要がある**
   - https://thanos.io/tip/components/compact.md/#warning-only-one-instance-of-compactor-may-run-against-a-single-stream-of-blocks-in-a-single-object-storage
 - HA構成のPrometheusからのメトリクスをCompactor側でもdedupすることができる
