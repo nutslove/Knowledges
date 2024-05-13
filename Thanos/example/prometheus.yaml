@@ -22,9 +22,9 @@ spec:
             storage: 10Gi
   serviceAccountName: prometheus
   serviceMonitorSelector: {}
+  serviceMonitorNamespaceSelector: {}
   podMonitorSelector: {}
-  externalLabels:
-    replica: test1
+  podMonitorNamespaceSelector: {}
   resources:
     requests:
       memory: 400Mi

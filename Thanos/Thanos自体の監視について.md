@@ -1,5 +1,0 @@
-- ThanosのGithubリポジトリにGrafana dashboardとAlert設定のサンプルがあるので参考にすること
-  - Dashboard(確認すべきメトリクス)
-    - https://github.com/thanos-io/thanos/blob/main/examples/dashboards/
-  - Alert
-    - https://github.com/thanos-io/thanos/tree/main/examples/alerts

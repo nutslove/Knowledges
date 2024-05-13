@@ -36,6 +36,8 @@ apiVersion: v1
 kind: Service
 metadata:
   name: thanos-store
+  labels:
+    app: thanos-store
 spec:
   selector:
     app: thanos-store

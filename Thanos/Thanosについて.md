@@ -326,6 +326,18 @@
     }
     ```
 
+### Compactor トラブルシューティング
+- 参考URL
+  - https://thanos.io/tip/operating/compactor-backlog.md/
+  - https://thanos.io/tip/operating/troubleshooting.md/#overlaps
+- **Compactorでhalt(halting)が発生するとcompactionとdownsampling処理がすべて止まってしまう**  
+  > If compactors halt, any compaction or downsample process stops so it is crucial to make sure no halt happens for compactor deployment.
+  > **`thanos_compact_halted`** metric will be set to 1 when halt happens. You can also find logs like below, telling that compactor is halting.
+  >
+  > `msg="critical error detected; halting" err="compaction failed...`
+  > There could be different reasons that caused the compactor to halt. A very common case is overlapping blocks. Please refer to our doc **https://thanos.io/tip/operating/troubleshooting.md/#overlaps** for more information.
+
+
 ## Ruler
 - Alert/Recording Ruleのためのコンポネント
 - Recording Ruleによって新しく生成されたメトリクスは、Prometheusと同様にRulerのローカルディスク(HDD/SSD)に２時間間隔でTSDB blockで生成されて、Object Storageにアップロードされる
