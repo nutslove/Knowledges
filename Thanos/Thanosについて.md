@@ -1,3 +1,26 @@
+<!-- TOC -->
+
+- [アーキテクチャ](#アーキテクチャ)
+- [Multi Tenancy](#multi-tenancy)
+- [Sidecar](#sidecar)
+- [Receiver](#receiver)
+  - [routing receiversとingesting receiversの分離](#routing-receiversとingesting-receiversの分離)
+    - [routing receiversとingesting receiversの分離時の設定に関する注意事項](#routing-receiversとingesting-receiversの分離時の設定に関する注意事項)
+  - [`--receive.replication-factor`について](#--receivereplication-factorについて)
+  - [hashringについて](#hashringについて)
+- [Store (Store Gateway)](#store-store-gateway)
+- [Querier (Query)](#querier-query)
+- [Query Frontend](#query-frontend)
+- [Compactor](#compactor)
+  - [compaction group](#compaction-group)
+  - [`--retention.resolution-raw`、`--retention.resolution-5m`、`--retention.resolution-1h`について](#--retentionresolution-raw--retentionresolution-5m--retentionresolution-1hについて)
+  - [Compactor内の`meta.json`について](#compactor内のmetajsonについて)
+  - [Compactor トラブルシューティング](#compactor-トラブルシューティング)
+- [Ruler](#ruler)
+- [Store API](#store-api)
+
+<!-- /TOC -->
+
 ## アーキテクチャ
 - Sidecar方式  
   ![](./image/Thanos_sidecar.jpg)
