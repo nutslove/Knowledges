@@ -16,9 +16,11 @@
   - [`--retention.resolution-raw`、`--retention.resolution-5m`、`--retention.resolution-1h`について](#--retentionresolution-raw--retentionresolution-5m--retentionresolution-1hについて)
   - [Compactor内の`meta.json`について](#compactor内のmetajsonについて)
   - [Compactor トラブルシューティング](#compactor-トラブルシューティング)
+    - [Overlaps](#overlaps)
 - [Ruler](#ruler)
 - [Store API](#store-api)
 
+<!-- /TOC -->
 <!-- /TOC -->
 
 ## アーキテクチャ
@@ -362,8 +364,60 @@
   > If compactors halt, any compaction or downsample process stops so it is crucial to make sure no halt happens for compactor deployment.
   > **`thanos_compact_halted`** metric will be set to 1 when halt happens. You can also find logs like below, telling that compactor is halting.
   >
-  > `msg="critical error detected; halting" err="compaction failed...`
+  > `msg="critical error detected; halting" err="compaction failed: compaction: pre compaction overlap check: overlaps found while gathering blocks. [mint: 1555128000000, maxt: 1555135200000, range: 2h0m0s, blocks: 2]: <ulid: 01D94ZRM050JQK6NDYNVBNR6WQ, mint: 1555128000000, maxt: 1555135200000, range: 2h0m0s>, <ulid: 01D8AQXTF2X914S419TYTD4P5B, mint: 1555128000000, maxt: 1555135200000, range: 2h0m0s>`
   > There could be different reasons that caused the compactor to halt. A very common case is overlapping blocks. Please refer to our doc **https://thanos.io/tip/operating/troubleshooting.md/#overlaps** for more information.
+#### Overlaps
+- *Block overlap*とは  
+  > Set of blocks with exactly the same external labels in meta.json and for the same time or overlapping time period.
+  - meta.jsonの`thanos.labels`のExternal labelsと`minTime`,`maxTime`がすべて同じのBlockが複数あること
+- Thanosはoverlapped blocksが絶対出ないようにデザインされていて、overlapped blocksはunexpected incidentと見なしてoverlapped blocksに対してautomatic repairを実装してない。  
+  なのでBlock overlapが発生した場合は手動で解決しなければいけない。
+- **Receiver構成の場合、CompactorはPrometheusのExternal labelsをcompaction groupに使わない(`tenant_id`とreceiverの`--label`フラグのみを使う)ため、`replication-factor`を２以上にした場合、同じExternal LabelのReceiver間で同じデータを持ち、Object Storageにアップロードされるため、Block overlapが発生する。**  
+  **それを防ぐために以下のように(ingesting)receiverの`--label`にPod名が入るようにして各Receiverが異なるExternal labelsを持つようにする必要がある**  
+  ```yaml
+  apiVersion: apps/v1
+  kind: StatefulSet
+  metadata:
+    name: thanos-ingesting-receiver
+  spec:
+    replicas: 3
+    selector:
+      matchLabels:
+        app: thanos-ingesting-receiver
+    serviceName: thanos-ingesting-receiver
+    template:
+      metadata:
+        labels:
+          app: thanos-ingesting-receiver
+      spec:
+        securityContext:
+          fsGroup: 1001
+        containers:
+        - name: thanos-ingesting-receiver
+          image: quay.io/thanos/thanos:v0.34.1
+          args:
+          - receive
+          - --grpc-address=0.0.0.0:10901
+          - --http-address=0.0.0.0:10902
+          - --remote-write.address=0.0.0.0:19291
+          - --receive.local-endpoint=127.0.0.1:10901
+          - --receive.tenant-header=THANOS-TENANT
+          - --receive.default-tenant-id=test1
+          - --tsdb.path=/tmp/thanos/receive
+          - --label=env="poc"
+          - --label=receiver="$(MY_POD_NAME)" ★ statefulsetのpod名(e.g. receiver-0)が入り、各receiverが異なるExternal labelsを持つようになる
+          - --tsdb.retention=1d
+          - --objstore.config-file=/etc/thanos/object-store.yaml
+          env:
+          - name: MY_POD_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.name
+            ・
+            ・
+  ```
+  - https://thanos.io/tip/operating/troubleshooting.md/#overlaps  
+    > 2 Prometheus instances are misconfigured and they are uploading the data with exactly the same external labels. This is wrong, they should be unique.
 
 
 ## Ruler

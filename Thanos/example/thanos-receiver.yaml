@@ -28,8 +28,14 @@ spec:
         - --receive.default-tenant-id=test1
         - --tsdb.path=/tmp/thanos/receive
         - --label=env="poc"
+        - --label=receiver="$(MY_POD_NAME)"
         - --tsdb.retention=1d
         - --objstore.config-file=/etc/thanos/object-store.yaml
+        env:
+        - name: MY_POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
         ports:
         - name: grpc
           containerPort: 10901
