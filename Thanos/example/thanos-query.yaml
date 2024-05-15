@@ -23,6 +23,13 @@ spec:
         - --query.tenant-header="THANOS-TENANT"
         - --query.enforce-tenancy
         - --query.auto-downsampling
+        - |
+          --tracing.config=type: JAEGER
+          config:
+            service_name: "thanos-querier"
+            sampler_type: const
+            sampler_param: 1
+            endpoint: "http://jaeger.default.svc:14268/api/traces"
         ports:
         - name: http
           containerPort: 10902

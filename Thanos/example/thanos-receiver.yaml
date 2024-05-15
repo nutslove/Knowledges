@@ -31,6 +31,13 @@ spec:
         - --label=receiver="$(MY_POD_NAME)"
         - --tsdb.retention=1d
         - --objstore.config-file=/etc/thanos/object-store.yaml
+        - |
+          --tracing.config=type: JAEGER
+          config:
+            service_name: "thanos-ingesting-receiver"
+            sampler_type: const
+            sampler_param: 1
+            endpoint: "http://jaeger.default.svc:14268/api/traces"
         env:
         - name: MY_POD_NAME
           valueFrom:
@@ -115,6 +122,13 @@ spec:
         - --label=env="poc"
         - --tsdb.retention=7d
         - --receive.hashrings-algorithm=ketama
+        - |
+          --tracing.config=type: JAEGER
+          config:
+            service_name: "thanos-routing-receiver"
+            sampler_type: const
+            sampler_param: 1
+            endpoint: "http://jaeger.default.svc:14268/api/traces"
         ports:
         - name: grpc
           containerPort: 10901

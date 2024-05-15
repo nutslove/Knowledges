@@ -39,6 +39,13 @@ spec:
         - --retention.resolution-raw=2d
         - --retention.resolution-5m=10d
         - --retention.resolution-1h=90d
+        - |
+          --tracing.config=type: JAEGER
+          config:
+            service_name: "thanos-compactor"
+            sampler_type: const
+            sampler_param: 1
+            endpoint: "http://jaeger.default.svc:14268/api/traces"
         ports:
         - name: http
           containerPort: 10902

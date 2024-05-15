@@ -21,6 +21,13 @@ spec:
         - --query-frontend.downstream-url=http://thanos-query.default.svc:9090
         - --query-range.split-interval=24h # default split interval
         - --query-range.request-downsampled
+        - |
+          --tracing.config=type: JAEGER
+          config:
+            service_name: "thanos-query-frontend"
+            sampler_type: const
+            sampler_param: 1
+            endpoint: "http://jaeger.default.svc:14268/api/traces"
         ports:
         - name: http
           containerPort: 10902
