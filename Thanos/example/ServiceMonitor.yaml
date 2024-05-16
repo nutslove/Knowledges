@@ -1,0 +1,101 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: thanos-store
+  labels:
+    app: thanos-store
+spec:
+  selector:
+    matchLabels:
+      app: thanos-store
+  endpoints:
+    - port: http
+      interval: 30s
+      scheme: http
+      tlsConfig:
+        insecureSkipVerify: true
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: thanos-query
+  labels:
+    app: thanos-query
+spec:
+  selector:
+    matchLabels:
+      app: thanos-query
+  endpoints:
+    - port: http
+      interval: 30s
+      scheme: http
+      tlsConfig:
+        insecureSkipVerify: true
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: thanos-query-frontend
+  labels:
+    app: thanos-query-frontend
+spec:
+  selector:
+    matchLabels:
+      app: thanos-query-frontend
+  endpoints:
+    - port: http
+      interval: 30s
+      scheme: http
+      tlsConfig:
+        insecureSkipVerify: true
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: thanos-ingesting-receiver
+  labels:
+    app: thanos-ingesting-receiver
+spec:
+  selector:
+    matchLabels:
+      app: thanos-ingesting-receiver
+  endpoints:
+    - port: http
+      interval: 30s
+      scheme: http
+      tlsConfig:
+        insecureSkipVerify: true
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: thanos-routing-receiver
+  labels:
+    app: thanos-routing-receiver
+spec:
+  selector:
+    matchLabels:
+      app: thanos-routing-receiver
+  endpoints:
+    - port: http
+      interval: 30s
+      scheme: http
+      tlsConfig:
+        insecureSkipVerify: true
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: thanos-compactor
+  labels:
+    app: thanos-compactor
+spec:
+  selector:
+    matchLabels:
+      app: thanos-compactor
+  endpoints:
+    - port: http
+      interval: 30s
+      scheme: http
+      tlsConfig:
+        insecureSkipVerify: true

@@ -1,3 +1,28 @@
+<!-- TOC -->
+
+- [アーキテクチャ](#アーキテクチャ)
+- [Multi Tenancy](#multi-tenancy)
+- [Sidecar](#sidecar)
+- [Receiver](#receiver)
+  - [routing receiversとingesting receiversの分離](#routing-receiversとingesting-receiversの分離)
+    - [routing receiversとingesting receiversの分離時の設定に関する注意事項](#routing-receiversとingesting-receiversの分離時の設定に関する注意事項)
+  - [`--receive.replication-factor`について](#--receivereplication-factorについて)
+  - [hashringについて](#hashringについて)
+- [Store (Store Gateway)](#store-store-gateway)
+- [Querier (Query)](#querier-query)
+- [Query Frontend](#query-frontend)
+- [Compactor](#compactor)
+  - [compaction group](#compaction-group)
+  - [`--retention.resolution-raw`、`--retention.resolution-5m`、`--retention.resolution-1h`について](#--retentionresolution-raw--retentionresolution-5m--retentionresolution-1hについて)
+  - [Compactor内の`meta.json`について](#compactor内のmetajsonについて)
+  - [Compactor トラブルシューティング](#compactor-トラブルシューティング)
+    - [Overlaps](#overlaps)
+- [Ruler](#ruler)
+- [Store API](#store-api)
+
+<!-- /TOC -->
+<!-- /TOC -->
+
 ## アーキテクチャ
 - Sidecar方式  
   ![](./image/Thanos_sidecar.jpg)
@@ -168,6 +193,8 @@
 - StoreGatewayはローカルディスクをそこまで必要とせず、再起動などでデータが削除されても起動時間が増加するくらいでそこまで影響はない
   > It acts primarily as an API gateway and therefore does not need significant amounts of local disk space. It joins a Thanos cluster on startup and advertises the data it can access. It keeps a small amount of information about all remote blocks on local disk and keeps it in sync with the bucket. This data is generally safe to delete across restarts at the cost of increased startup times.
   > In general, an average of 6 MB of local disk space is required per TSDB block stored in the object storage bucket, but for high cardinality blocks with large label set it can even go up to 30MB and more. It is for the pre-computed index, which includes symbols and postings offsets as well as metadata JSON.
+- Store (Store Gateway)もWeb UIを持っていて、`10902`ポート(http)からアクセス可能
+  - 各Blockに関する情報を確認できる
 
 ## Querier (Query)
 - https://thanos.io/tip/components/query.md/
@@ -232,12 +259,19 @@
 - *Compaction*
   - responsible for **compacting multiple blocks into one to reduce the number of blocks and compact index indices.** We can compact an index quite well in most cases, because series usually live longer than the duration of the smallest blocks (2 hours).
   - https://thanos.io/tip/components/compact.md/#compaction
+  - defaultでは２週間分まで１つのBlockにまとめる
+    - https://thanos.io/tip/components/compact.md/#disk  
+      > In worst case scenario compactor has to have space adequate to 2 times 2 weeks (if your maximum compaction level is 2 weeks) worth of smaller blocks to perform compaction. First, to download all of those source blocks, second to build on disk output of 2 week block composed of those smaller ones.  
+
+      ![](./image/compaction_period.jpg)
 - **Compactorは1つのObject Storageごとに1つのみ動かす必要がある**
   - https://thanos.io/tip/components/compact.md/#warning-only-one-instance-of-compactor-may-run-against-a-single-stream-of-blocks-in-a-single-object-storage
 - HA構成のPrometheusからのメトリクスをCompactor側でもdedupすることができる
   - https://thanos.io/tip/components/compact.md/#vertical-compaction-use-cases
   - でもリスクがあるらしく、あまり使わない方が良さそう？
 - defaultではCompactorはcronjobとして動かせるように処理が終わったらCompletedになってしまうため、継続的に実行させるためには`--wait`と`--wait-interval=5m`フラグを付ける必要がある
+- CompactorのWeb UIを持っていて、`10902`ポート(http)からアクセス可能
+  - 各Blockに関する情報を確認できる
 
 ### compaction group
 - 同じPrometheusからのBlockを「*stream*」もしくは「*compaction group*」という。  
@@ -248,8 +282,6 @@
   - https://thanos.io/tip/components/compact.md/#compaction-groups--block-streams
 
 ### `--retention.resolution-raw`、`--retention.resolution-5m`、`--retention.resolution-1h`について
-- 3つのフラグの関係は2.の方
-![](./image/downsampled.jpg)
 - 5mも1hもrawデータが必要らしい。つまり、1hダウンサンプリングに5mのデータが使われるのではなく、1hダウンサンプリングにもrawデータが使われるらしい。
   - https://www.youtube.com/watch?v=ywOriVffPZg
 
@@ -276,7 +308,7 @@
             "version": 1
     }
     ```
-  - Thanos Compactorの`meta.json`の例  
+  - Thanos Compactorの`meta.json`の例（ **https://thanos.io/tip/thanos/storage.md/#metadata-file-metajson** ）  
     ```json
     {
             "ulid": "01HWMAEN7VNZE2M5VEH0BB6GKC",
@@ -295,12 +327,12 @@
             },
             "version": 1,
             "thanos": { --> これの配下がthanosで追加されたメタデータ
-                    "labels": { --> 各ブロックに関連付けられたラベルセット。これにより、グローバルなクエリエンジンがブロックを適切に識別し、クエリを実行できるようになる。
+                    "labels": { --> External Labels for block
                             "env": "poc",
                             "tenant_id": "test1"
                     },
                     "downsample": { 
-                            "resolution": 0 --> ダウンサンプルされたデータの解像度。データが元の時間解像度からどれだけ減少されたかを示す。
+                            "resolution": 0 --> ダウンサンプルされたデータの解像度。0はダウンサンプリングされてないことを意味する。ダウンサンプリングされている場合は5mや1hの値が入る(らしい)
                     },
                     "source": "receive", --> ブロックがどのThanosコンポーネントによって生成されたかを示す(sidecarから生成された場合はsidecarが入る)
                     "segment_files": [
@@ -323,6 +355,70 @@
             }
     }
     ```
+
+### Compactor トラブルシューティング
+- 参考URL
+  - https://thanos.io/tip/operating/compactor-backlog.md/
+  - https://thanos.io/tip/operating/troubleshooting.md/#overlaps
+- **Compactorでhalt(halting)が発生するとcompactionとdownsampling処理がすべて止まってしまう**  
+  > If compactors halt, any compaction or downsample process stops so it is crucial to make sure no halt happens for compactor deployment.
+  > **`thanos_compact_halted`** metric will be set to 1 when halt happens. You can also find logs like below, telling that compactor is halting.
+  >
+  > `msg="critical error detected; halting" err="compaction failed: compaction: pre compaction overlap check: overlaps found while gathering blocks. [mint: 1555128000000, maxt: 1555135200000, range: 2h0m0s, blocks: 2]: <ulid: 01D94ZRM050JQK6NDYNVBNR6WQ, mint: 1555128000000, maxt: 1555135200000, range: 2h0m0s>, <ulid: 01D8AQXTF2X914S419TYTD4P5B, mint: 1555128000000, maxt: 1555135200000, range: 2h0m0s>`
+  > There could be different reasons that caused the compactor to halt. A very common case is overlapping blocks. Please refer to our doc **https://thanos.io/tip/operating/troubleshooting.md/#overlaps** for more information.
+#### Overlaps
+- *Block overlap*とは  
+  > Set of blocks with exactly the same external labels in meta.json and for the same time or overlapping time period.
+  - meta.jsonの`thanos.labels`のExternal labelsと`minTime`,`maxTime`がすべて同じのBlockが複数あること
+- Thanosはoverlapped blocksが絶対出ないようにデザインされていて、overlapped blocksはunexpected incidentと見なしてoverlapped blocksに対してautomatic repairを実装してない。  
+  なのでBlock overlapが発生した場合は手動で解決しなければいけない。
+- **Receiver構成の場合、CompactorはPrometheusのExternal labelsをcompaction groupに使わない(`tenant_id`とreceiverの`--label`フラグのみを使う)ため、`replication-factor`を２以上にした場合、同じExternal LabelのReceiver間で同じデータを持ち、Object Storageにアップロードされるため、Block overlapが発生する。**  
+  **それを防ぐために以下のように(ingesting)receiverの`--label`にPod名が入るようにして各Receiverが異なるExternal labelsを持つようにする必要がある**  
+  ```yaml
+  apiVersion: apps/v1
+  kind: StatefulSet
+  metadata:
+    name: thanos-ingesting-receiver
+  spec:
+    replicas: 3
+    selector:
+      matchLabels:
+        app: thanos-ingesting-receiver
+    serviceName: thanos-ingesting-receiver
+    template:
+      metadata:
+        labels:
+          app: thanos-ingesting-receiver
+      spec:
+        securityContext:
+          fsGroup: 1001
+        containers:
+        - name: thanos-ingesting-receiver
+          image: quay.io/thanos/thanos:v0.34.1
+          args:
+          - receive
+          - --grpc-address=0.0.0.0:10901
+          - --http-address=0.0.0.0:10902
+          - --remote-write.address=0.0.0.0:19291
+          - --receive.local-endpoint=127.0.0.1:10901
+          - --receive.tenant-header=THANOS-TENANT
+          - --receive.default-tenant-id=test1
+          - --tsdb.path=/tmp/thanos/receive
+          - --label=env="poc"
+          - --label=receiver="$(MY_POD_NAME)" ★ statefulsetのpod名(e.g. receiver-0)が入り、各receiverが異なるExternal labelsを持つようになる
+          - --tsdb.retention=1d
+          - --objstore.config-file=/etc/thanos/object-store.yaml
+          env:
+          - name: MY_POD_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.name
+            ・
+            ・
+  ```
+  - https://thanos.io/tip/operating/troubleshooting.md/#overlaps  
+    > 2 Prometheus instances are misconfigured and they are uploading the data with exactly the same external labels. This is wrong, they should be unique.
+
 
 ## Ruler
 - Alert/Recording Ruleのためのコンポネント

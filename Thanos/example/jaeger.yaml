@@ -1,0 +1,134 @@
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: jaeger-pvc
+spec:
+  storageClassName: gp3-csi
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jaeger
+  labels:
+    app: jaeger
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: jaeger
+  template:
+    metadata:
+      labels:
+        app: jaeger
+    spec:
+      initContainers:
+      - name: init-jaeger
+        image: jaegertracing/all-in-one:1.57
+        securityContext:
+          runAsUser: 0
+        command: ['/bin/sh', '-c', 'mkdir -p /badger/data && touch /badger/data/.initialized && chown -R 10001:10001 /badger/data'] # https://github.com/jaegertracing/jaeger/blob/main/plugin/storage/badger/docs/storage-file-non-root-permission.md
+        volumeMounts:
+        - name: jaeger-storage
+          mountPath: /badger
+      containers:
+      - name: jaeger
+        image: jaegertracing/all-in-one:1.57
+        args:
+        - "--badger.directory-key=/badger/data/keys"
+        - "--badger.directory-value=/badger/data/values"
+        - "--badger.span-store-ttl=168h0m0s" # limit storage to 7d
+        env:
+        - name: SPAN_STORAGE_TYPE
+          value: badger
+        - name: BADGER_EPHEMERAL
+          value: "false"
+        ports:
+        - containerPort: 5775
+          protocol: UDP
+        - containerPort: 5778
+        - containerPort: 6831
+          protocol: UDP
+        - containerPort: 6832
+          protocol: UDP
+        - containerPort: 14250
+        - containerPort: 14268
+        - containerPort: 14269
+        - containerPort: 16686
+        - containerPort: 14270
+        volumeMounts:
+        - name: jaeger-storage
+          mountPath: /badger
+      volumes:
+      - name: jaeger-storage
+        persistentVolumeClaim:
+          claimName: jaeger-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: jaeger
+  labels:
+    app: jaeger
+spec:
+  ports:
+  - name: jaeger-agent-udp
+    port: 5775
+    protocol: UDP
+    targetPort: 5775
+  - name: jaeger-config
+    port: 5778
+    protocol: TCP
+    targetPort: 5778
+  - name: jaeger-agent-thrift-compact-udp
+    port: 6831
+    protocol: UDP
+    targetPort: 6831
+  - name: jaeger-agent-thrift-binary-udp
+    port: 6832
+    protocol: UDP
+    targetPort: 6832
+  - name: jaeger-grpc
+    port: 14250
+    protocol: TCP
+    targetPort: 14250
+  - name: jaeger-collector-http
+    port: 14268
+    protocol: TCP
+    targetPort: 14268
+  - name: jaeger-collector-zipkin
+    port: 14269
+    protocol: TCP
+    targetPort: 14269
+  - name: jaeger-query
+    port: 16686
+    protocol: TCP
+    targetPort: 16686
+  - name: jaeger-admin
+    port: 14270
+    protocol: TCP
+    targetPort: 14270
+  selector:
+    app: jaeger
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  labels:
+    app: jaeger
+  name: jaeger
+  namespace: default
+spec:
+  host: jaeger-default.apps.nutslove.nutslove.net
+  port:
+    targetPort: jaeger-query
+  to:
+    kind: Service
+    name: jaeger
+    weight: 100
+  wildcardPolicy: None
