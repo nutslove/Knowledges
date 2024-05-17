@@ -1,0 +1,2 @@
+- https://argo-rollouts.readthedocs.io/en/stable/
+- Argo Rolloutsは単体では使えず、必ずArgoCDと組み合わせて使う必要がある？
