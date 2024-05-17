@@ -8,7 +8,7 @@
       - ``curl -X POST -H "Content-Type: application/json" -d '{"iam_user":["iam_user1","iam_user3"], "os_user":["os_user1"]}' http://<サーバURL/IP>:8080/post``
     ~~~go
     // 受け取るJsonデータのフォーマット
-    type UserExistCheck struct {
+    type ExampleRequest struct {
     	Db_User       []string `json:"db_user"`
     	Iam_User      []string `json:"iam_user"`
     	Os_User       []string `json:"os_user"`
