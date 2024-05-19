@@ -1,6 +1,8 @@
 - https://argo-rollouts.readthedocs.io/en/stable/
 
 ## Argo Rolloutsインストール
+- **Openshiftには`Red Hat OpenShift GitOps`にArgo Rolloutsも含まれている**
+  - https://docs.openshift.com/gitops/1.12/argo_rollouts/using-argo-rollouts-for-progressive-deployment-delivery.html
 - https://argoproj.github.io/argo-rollouts/installation/
 - デフォルトでは`argo-rollouts`namespaceにインストールされる
 ```shell
