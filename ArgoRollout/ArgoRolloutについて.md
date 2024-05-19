@@ -11,6 +11,7 @@
 - `Rollout`リソースを監視し、`Rollout`を定義した状態に収束させるコアコンポーネント
 
 ### `Rollout`リソース
-- 基本的には`Deployment`リソースと同じように、配下に`ReplicaSet`リソースを管理するリソースだが、
+- `Deployment`リソースを拡張したもので、`Deployment`リソースと同様に配下に`ReplicaSet`リソースを管理する。  
+  `spec.strategy.canary`など`Rollout`リソース独自のフィールド(機能)を持っている
 - `Rollout`リソースで利用できるすべてのフィールド
   - https://argoproj.github.io/argo-rollouts/features/specification/
