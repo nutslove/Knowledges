@@ -13,10 +13,10 @@
     server: <EKSクラスターのAPIサーバのURL>
     config: |
       {
-        "bearerToken": "<対象クラスター上のServiceAccountのトークン>",
+        "bearerToken": "<対象クラスター上のServiceAccountのトークン(Openshiftの場合、oauthのWeb UIから確認できるトークン値を指定)>",
         "tlsClientConfig": {
           "insecure": false,
-          "caData": "<クラスターと安全に通信するためのSSL証明書>"
+          "caData": "<クラスターと安全に通信するためのSSL証明書(kubeconfigファイルのclustersフィールド下の`cluster.certificate-authority-data`のデータを指定)>"
         }
       }
   ```
