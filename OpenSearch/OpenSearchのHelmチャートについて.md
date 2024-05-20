@@ -1,0 +1,5 @@
+- https://github.com/opensearch-project/helm-charts
+- Helm chartのvaluesに`roles`があって、`master`,`ingest`,`data`,`remote_cluster_client`が指定できる
+  - `roles`に複数のロール(e.g. `ingest`と`data`)を指定することもできる
+  - https://github.com/opensearch-project/helm-charts/blob/0c910008bbdaa66f200307864d3b9466c2864319/charts/opensearch/values.yaml#L16
+  - `ingest`はStatelessで、`master`と`data`がStateful

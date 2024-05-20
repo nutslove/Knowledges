@@ -1,0 +1,1 @@
+- OpenShiftには`Red Hat OpenShift GitOps`OperatorにRolloutsも含まれている
