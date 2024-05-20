@@ -48,5 +48,5 @@ kubectl apply -n argo-rollouts -f https://github.com/argoproj/argo-rollouts/rele
   kubectl argo rollouts dashboard
   ```
   **※defaultではlocalhostからしかアクセスできなくて、外部からアクセスするためには追加の設定が必要**
-  ![alt text](image.png)  
+  ![alt text](./image/image.png)  
   - https://github.com/argoproj/argo-helm/blob/argo-rollouts-2.35.2/charts/argo-rollouts/values.yaml#L398
