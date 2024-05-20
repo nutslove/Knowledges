@@ -22,6 +22,7 @@
   ```
   - `metadata.labels`の`argocd.argoproj.io/secret-type: cluster`は、
     ArgoCDがSecretをクラスター情報として認識するために、このラベルを設定することが推奨されている
-  - `stringData.name`には任意の値を指定できる（EKSクラスター名と一致しなくても良い）
-  - `bearerToken`にはターゲットクラスター上のすべての権限(Role)を持っているServiceAccountのSecretで作成されるトークンの値を指定
-  - `caData`にはEKSクラスターと暗号化通信をするための証明書で、kubeconfig(`~/.kube/config`)の`certificate-authority-data`の値を指定
+  - `stringData`配下に以下３つのフィールドが必要
+    - `name`には任意の値を指定できる（EKSクラスター名と一致しなくても良い）
+    - `bearerToken`にはターゲットクラスター上のすべての権限(Role)を持っているServiceAccountのSecretで作成されるトークンの値を指定
+    - `caData`にはEKSクラスターと暗号化通信をするための証明書で、kubeconfig(`~/.kube/config`)の`certificate-authority-data`の値を指定
