@@ -47,4 +47,4 @@ kubectl apply -n argo-rollouts -f https://github.com/argoproj/argo-rollouts/rele
   ```shell
   kubectl argo rollouts dashboard
   ```
-  **※localhostからしかアクセスできなくて、外部からのアクセスはできないように見える。要確認！**
+  **※defaultではlocalhostからしかアクセスできなくて、外部からアクセスするためには追加の設定が必要**
