@@ -26,11 +26,54 @@ kubectl apply -n argo-rollouts -f https://github.com/argoproj/argo-rollouts/rele
 ### Argo Rollouts controller
 - `Rollout`リソースを監視し、`Rollout`を定義した状態に収束させるコアコンポーネント
 
-### `Rollout`リソース
+## `Rollout`リソース
 - `Deployment`リソースを拡張したもので、`Deployment`リソースと同様に配下に`ReplicaSet`リソースを管理する。  
   `spec.strategy.canary`など`Rollout`リソース独自のフィールド(機能)を持っている
 - `Rollout`リソースで利用できるすべてのフィールド
   - https://argoproj.github.io/argo-rollouts/features/specification/
+
+## Canaryリリース
+- `spec.strategy`に`canary`を設定し、その下に`step`フィールドの`setWeight`に新しいバージョンのPodにルーティングする割合を指定し、`pause`に次のstepに移るまで待機する時間を設定する
+  - `pause`に`duration`を省略した場合(`- pause: {}`)、手動で以下のコマンドを実行するまで次のstepに移らない
+    - `kubectl argo rollouts promote <rollout名>`
+- サンプルマニフェストファイル  
+  - 以下の例だとimageなどを更新した場合、最初に1つのPodだけ新しいバージョンにupdateして60秒間待機後、2つ目のpodを新しいバージョンにupdateして10分間待って、3つ目のPodを新しいバージョンにupdateして1時間待って、4つ目のPodを新しいバージョンにupdateして5時間後に最後のPodの新しいバージョンにupdateする
+    ```yaml
+    apiVersion: argoproj.io/v1alpha1
+    kind: Rollout
+    metadata:
+      name: example-rollout
+    spec:
+      replicas: 5
+      selector:
+        matchLabels:
+          app: example
+      template:
+        metadata:
+          labels:
+            app: example
+        spec:
+          containers:
+          - name: rollouts-demo
+            image: argoproj/rollouts-demo:blue
+            ports:
+            - containerPort: 8080
+      strategy:
+        canary:
+          steps:
+          - setWeight: 20
+          - pause: {duration: 60s}
+          - setWeight: 40
+          - pause: {duration: 10m}
+          - setWeight: 60
+          - pause: {duration: 1h}
+          - setWeight: 80
+          - pause: {duration: 5h}
+    ```
+> [!IMPORTANT]
+> Istioなどのツールと組み合わせて使わない場合、setWeightはPod数で割合を合わせる（以下公式ドキュメントから）
+> 
+> If the canary Rollout does not use [traffic management](https://argoproj.github.io/argo-rollouts/features/traffic-management/), the Rollout makes a best effort attempt to achieve the percentage listed in the last `setWeight` step between the new and old version. For example, if a Rollout has 10 Replicas and 10% for the first `setWeight` step, the controller will scale the new desired ReplicaSet to 1 replicas and the old stable ReplicaSet to 9. In the case where the setWeight is 41%, the Rollout attempts to get there by finding the whole number with the smallest delta, rounding up the calculation if the deltas are equals (i.e. the new ReplicaSet has 4 pods since 41% of 10 is closer to 4/10 than 5/10, and the old ReplicaSet has 6 pods). If a user wants to have more fine-grained control of the percentages without a large number of Replicas, that user should use the [traffic management](https://argoproj.github.io/argo-rollouts/features/traffic-management/) functionality.
 
 ## Argo Rollouts CLIチートシート
 - rollouts一覧確認  
