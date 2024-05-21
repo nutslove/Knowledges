@@ -20,10 +20,10 @@
 
 ## overlapping CIDRとGLOBALNET CONTROLLER
 - https://submariner.io/getting-started/architecture/globalnet/
-- overlapping CIDRをGLOBALNET CONTROLLERで回避
-- overlapping CIDR  
+- overlapping CIDR問題をGLOBALNET CONTROLLERで回避
+- overlapping CIDRとは  
   ![](./image/overlapping.jpg)
-- GLOBALNET CONTROLLER  
+- GLOBALNET CONTROLLERとは  
   ![](./image/GLOBALNET.jpg)
 
 ## SubmarinerのArchitecture
