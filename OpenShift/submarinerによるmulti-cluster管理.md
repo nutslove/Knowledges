@@ -11,12 +11,22 @@
 
 ## Submarinerのコンポーネント
 ### Gateway Engine
+- クラスター間のトンネリングを管理するコンポーネント
+- `DaemonSet`として`submariner.io/gateway=true`ラベルが付いているノードにデプロイされる
 
 ### Broker
+- Gatway Engine 間のメタデータの交換を助けるコンポーネント
+- CRD(Custom Resrouce Definition) とそれを保管している Kubernetes の事を指し 、PodやServiceがデプロイされるわけではない
 
 ### Route Agent
+- ノードからアクティブなGateway EngineへトラフィックをルートするAgent
+- masaterノードを含むすべてのノードに`DaemonSet`としてデプロイされる
 
 ### Service Disovery
+- クラスター間のServiceのDNS解決を提供するコンポーネント
+
+### Lighthouse Agent
+- 各クラスター内部に存在しているAgentで、Brokerを通じてServiceの情報のmetadata を他のクラスターと交換する
 
 ## Openshift環境でのSubmariner利用
 - Openshiftでは「Red Hat Advanced Cluster Management for Kubernetes」Operatorをインストールすると、必須で`MultiClusterHub`リソース作成が必要で、`MultiClusterHub`リソースを作成すると、Submarinerがadd-onとしてインストールされる
@@ -25,6 +35,18 @@
 - 「Red Hat Advanced Cluster Management for Kubernetes」Operatorと`MultiClusterHub`リソースを作成するとOpenShiftのUIにクラスターを選択できる画面とクラスター一覧などを確認できるUIが作成される
   ![](./image/multi-cluster-1.jpg)
   ![](./image/multi-cluster-2.jpg)
+- 既存のOpenShiftクラスターを追加するには、「インフラストラクチャー」→「クラスター」→「クラスターリスト」タブ →「クラスターのインポート」
+
+- Submarinerでマルチクラスター構成に入るすべてのOpenShiftクラスターで「Red Hat Advanced Cluster Management for Kubernetes」Operatorをインストールする必要がある
+  - submarinerのCRDとsubmariner-operatorが必要なため
+
+- gatewayとmetrics-proxyは`submariner.io/gateway=true`ラベルが付いているノードにデプロイされて、`submariner.io/gateway=true`ラベルは自動では付与されないため、以下コマンドでgatewayとmetrics-proxyをデプロイしたいノードにラベルを付与する必要がある
+  - `oc label nodes <対象のノード名> submariner.io/gateway=true`
+
+- submariner add-onをインストールすると「Red Hat Advanced Cluster Management for Kubernetes」OperatorをインストールしてないOpenSearchクラスターにも、`submariner-operator`ネームスペースにsubmariner-addonのPodが作成される
+
+
+
 
 # multicluster engine for Kubernetes
 - 「Red Hat Advanced Cluster Management for Kubernetes」Operatorをインストールすると、「multicluster engine for Kubernetes」operatorもインストールされる
