@@ -47,9 +47,6 @@
 
 - submariner add-onをインストールすると「Red Hat Advanced Cluster Management for Kubernetes」OperatorをインストールしてないOpenSearchクラスターにも、`submariner-operator`ネームスペースにsubmariner-addonのPodが作成される
 
-
-
-
 # multicluster engine for Kubernetes
 - 「Red Hat Advanced Cluster Management for Kubernetes」Operatorをインストールすると、「multicluster engine for Kubernetes」operatorもインストールされる
   - https://docs.openshift.com/container-platform/4.15/architecture/mce-overview-ocp.html
