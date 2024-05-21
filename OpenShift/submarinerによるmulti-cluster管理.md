@@ -36,6 +36,8 @@
   ![](./image/multi-cluster-1.jpg)
   ![](./image/multi-cluster-2.jpg)
 - 既存のOpenShiftクラスターを追加するには、「インフラストラクチャー」→「クラスター」→「クラスターリスト」タブ →「クラスターのインポート」
+  - クラウド名は*openstack*
+  - Openstackの「APIアクセス」からダウンロードする`clouds.yaml`に`password`の追加が必要
 
 - Submarinerでマルチクラスター構成に入るすべてのOpenShiftクラスターで「Red Hat Advanced Cluster Management for Kubernetes」Operatorをインストールする必要がある
   - submarinerのCRDとsubmariner-operatorが必要なため
