@@ -1,0 +1,31 @@
+# Submariner
+- 参考URL
+  - https://rheb.hatenablog.com/entry/2021/05/13/Kubernetes_%E9%96%93%E3%82%92%E3%83%97%E3%83%A9%E3%82%A4%E3%83%99%E3%83%BC%E3%83%88%E3%81%AA%E3%83%8D%E3%83%83%E3%83%88%E3%83%AF%E3%83%BC%E3%82%AF%E3%81%A7%E6%8E%A5%E7%B6%9A%E3%81%99%E3%82%8B_Submariner_
+  - https://submariner.io/
+- Submarinerは異なるKubnerentesクラスター間をオーバーレイネットワークで結ぶためのOSSツール。  
+  異なるクラスター間で、Kubernetesの`Service`名を解決するためのLighthouseというプロジェクトもセットで使われている。
+
+- SubmarinerのArchitecture
+![](./image/architecture_1.jpg)
+![](./image/architecture_2.jpg)
+
+## Submarinerのコンポーネント
+### Gateway Engine
+
+### Broker
+
+### Route Agent
+
+### Service Disovery
+
+## Openshift環境でのSubmariner利用
+- Openshiftでは「Red Hat Advanced Cluster Management for Kubernetes」Operatorをインストールすると、必須で`MultiClusterHub`リソース作成が必要で、`MultiClusterHub`リソースを作成すると、Submarinerがadd-onとしてインストールされる
+  - https://access.redhat.com/documentation/ja-jp/red_hat_advanced_cluster_management_for_kubernetes/2.10/html/install/advanced-config-hub
+  - https://access.redhat.com/documentation/ja-jp/red_hat_advanced_cluster_management_for_kubernetes/2.10/html/networking/submariner
+- 「Red Hat Advanced Cluster Management for Kubernetes」Operatorと`MultiClusterHub`リソースを作成するとOpenShiftのUIにクラスターを選択できる画面とクラスター一覧などを確認できるUIが作成される
+  ![](./image/multi-cluster-1.jpg)
+  ![](./image/multi-cluster-2.jpg)
+
+# multicluster engine for Kubernetes
+- 「Red Hat Advanced Cluster Management for Kubernetes」Operatorをインストールすると、「multicluster engine for Kubernetes」operatorもインストールされる
+  - https://docs.openshift.com/container-platform/4.15/architecture/mce-overview-ocp.html
