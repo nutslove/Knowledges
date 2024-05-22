@@ -277,7 +277,7 @@ func main() {
 
 まとめると、`otel.SetTracerProvider`はアプリケーション全体で一貫したトレーシングを実現し、管理を簡素化するために推奨される方法です。しかし、特定の要件に応じて使用するかどうかを決定することができます。
 
-## `otel.SetTextMapPropagator`について
+## ■ `otel.SetTextMapPropagator`について
 `otel.SetTextMapPropagator`は、OpenTelemetryのコンテキストプロパゲーションを設定するための関数です。コンテキストプロパゲーションは、分散システムにおいてトレースコンテキストを伝播させるためのメカニズムです。これにより、異なるサービス間でトレースコンテキストを共有し、一貫したトレーシングが可能になります。
 
 ### `otel.SetTextMapPropagator`とは？
