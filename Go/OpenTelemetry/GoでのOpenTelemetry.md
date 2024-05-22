@@ -5,7 +5,8 @@
 4. `otel.SetTextMapPropagator`でコンテキストのフォーマットを設定
 5. `otel.Tracer`でtracerを取得
 6. `tracer.Start`でspanを開始
-   - `tracer.Start`の第2引数がspanのタイトルとなる
+   - `tracer.Start`の第2引数がspanのタイトルとなる  
+     ![](../image/span_title.jpg)
 7. `span.SetAttributes`でspanにattribute(付加情報)を追加
 
 ```go
@@ -53,7 +54,7 @@ func main() {
 }
 ```
 
-## `NewTracerProvider`について
+## ■ `NewTracerProvider`について
 OpenTelemetry Go SDKの`trace.NewTracerProvider`は、トレースを生成および管理するためのトレーサープロバイダーを作成するための機能です。これはOpenTelemetryのトレース機能を使用するための基本的なコンポーネントの一つです。以下にその詳細を説明します。
 
 ### `trace.NewTracerProvider`の役割
@@ -121,7 +122,7 @@ func main() {
 
 `trace.NewTracerProvider`は、OpenTelemetry Go SDKのトレース機能を最大限に活用するための基本的なスタートポイントであり、アプリケーションのトレースを効果的に管理・エクスポートするために重要な役割を果たします。
 
-## `TracerProvider`について
+## ■ `TracerProvider`について
 `trace.NewTracerProvider`の戻り値である`TracerProvider`は、OpenTelemetryのGo SDKにおける重要なコンポーネントで、トレーシングの中心的な役割を果たします。具体的には、`TracerProvider`は以下のような機能を持っています。
 
 ### `TracerProvider`の機能と役割
@@ -197,7 +198,7 @@ func main() {
 
 `TracerProvider`は、OpenTelemetryのGo SDKでトレースデータを収集、処理、エクスポートするための中心的なコンポーネントです。`trace.NewTracerProvider`関数を使用して作成され、アプリケーション全体でトレーシング機能を統合するために使用されます。適切なスパンプロセッサやエクスポータを設定することで、効率的にトレースデータを管理およびエクスポートできます。
 
-## `otel.SetTracerProvider`について
+## ■ `otel.SetTracerProvider`について
 `otel.SetTracerProvider`は、OpenTelemetryのグローバルトレーサープロバイダーを設定するための関数です。これにより、アプリケーション全体で一貫して同じトレーサープロバイダーが使用されるようになります。以下に詳細を説明します。
 
 ### `otel.SetTracerProvider`とは何か？
@@ -370,7 +371,7 @@ func main() {
 `otel.SetTextMapPropagator`は、OpenTelemetryでコンテキストプロパゲーションを設定するために使用される重要な関数です。適切なプロパゲータを設定することで、サービス間でのトレースコンテキストの伝播が確実に行われ、一貫したトレーシングが可能になります。グローバルなトレーサープロバイダーと共に使用することで、アプリケーション全体で統一されたトレーシング環境を構築できます。
 `otel.SetTextMapPropagator`を使用することで、アプリケーション全体で一貫したコンテキスト伝播フォーマットを設定できます。これにより、異なるサービス間でのトレースの統合が容易になり、分散システムにおけるトレーシングの一貫性と信頼性が向上します。
 
-## `otel.Tracer`について
+## ■ `otel.Tracer`について
 `otel.Tracer`は、OpenTelemetryのトレースAPIを使用してトレーサーを取得するための関数です。トレーサー（Tracer）は、アプリケーション内でスパン（Span）を作成し、トレース（Trace）を生成するために使用されます。
 
 ### `otel.Tracer`とは？
