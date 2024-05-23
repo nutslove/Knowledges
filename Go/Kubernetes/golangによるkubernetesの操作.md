@@ -6,7 +6,7 @@
    2. Kubernetes APIに対して認証を行うために必要なServiceAccountのTokenをPod内のファイルシステム上の`/var/run/secrets/kubernetes.io/serviceaccount/token`を取得
    3. API Serverの証明書を検証するためのCA証明書を、Pod内のファイルシステム上の `/var/run/secrets/kubernetes.io/serviceaccount/ca.crt`から取得 
 - 例  
-  ```yaml
+  ```go
   package main
 
   import (
@@ -55,7 +55,7 @@
 ### サーバ上で実行される場合
 - kubeconfigファイル(`~/.kube/config`)を読み込んで設定
 - 例
-  ```yaml
+  ```go
   package main
 
   import (
