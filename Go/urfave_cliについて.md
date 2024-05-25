@@ -26,50 +26,81 @@
     コマンドラインフラグが設定されていない場合、そして環境変数が設定されている場合、この環境変数の値が使用される。  
 	  `Value`はデフォルト値で、`EnvVars`から渡される値やコマンドラインから渡される値でデフォルトのValueが上書きされる。
 
+- コマンド実行時`Flags`に指定された値を取得するためには、`cli.Context`の`String`や`Bool`などのメソッドを使用する。  
+  例えば、文字列フラグの場合は`c.String("flag-name")`、boolフラグの場合は`c.Bool("flag-name")`を使用する。
+
 - 設定例
   ~~~go
-  package main
+	package main
 
-  import (
-  	"fmt"
-  	"log"
-  	"os"
+	import (
+		"log"
+		"os"
 
-  	"github.com/urfave/cli/v2"
-  )
+		"github.com/urfave/cli/v2"
+	)
 
-  var (
-  	listen_port string
-		scraping_interval int
-  )
+	func main() {
+		app := &cli.App{
+			Name:  "ham3",
+			Usage: "CLI for Ham3",
+			Commands: []*cli.Command{
+				{
+					Name:  "caas",
+					Usage: "Container as a service",
+					Subcommands: []*cli.Command{
+						{
+							Name:   "create",
+							Usage:  "Create a caas cluster",
+							Action: CaasCreate,
+							Flags: []cli.Flag{
+								&cli.StringFlag{
+									Name:     "cluster-name",
+									Aliases:  []string{"c"},
+									Usage:    "Name of the cluster",
+									Required: true,
+								},
+							},
+						},
+						{
+							Name:   "delete",
+							Usage:  "Delete a caas cluster",
+							Action: CaasDelete,
+							Flags: []cli.Flag{
+								&cli.BoolFlag{
+									Name:    "force",
+									Aliases: []string{"f"},
+									Usage:   "Force delete the cluster",
+								},
+							},
+						},
+					},
+				},
+			},
+		}
 
-  func main() {
-  	oci_metrics_exporter := &cli.App{
-  		Name:  "OCI Metrics Exporter", ---------------------------> アプリ名
-  		Usage: "OCI Metrics Exporter for Prometheus", ------------> アプリの用途や機能の簡単な説明
-  		Flags: []cli.Flag{
-  			&cli.StringFlag{
-  				Name:        "listen-port",
-  				Aliases:     []string{"p"},
-  				Usage:       "listen port",
-  				Value:       "8080",
-  				Destination: &listen_port,
-  				EnvVars:     []string{"LISTEN_PORT"},
-  			},
-  			&cli.IntFlag{
-  				Name:        "scraping-interval",
-  				Usage:       "scraping interval",
-  				Value:       "30",
-  				Destination: &scraping_interval,
-  				EnvVars:     []string{"SCRAPING_INTERVAL"},
-  			},
-  		},
-  	}
+		err := app.Run(os.Args)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
 
-  	if err := oci_metrics_exporter.Run(os.Args); err != nil {
-  		log.Fatal(err)
-  	}
-  }
+	func CaasCreate(c *cli.Context) error {
+		// フラグの値を取得
+		clusterName := c.String("cluster-name")
+		if clusterName == "" {
+			return cli.Exit("Error: cluster-name is required", 1)
+		}
+		log.Printf("Creating caas cluster: %s", clusterName)
+		return nil
+	}
+
+	func CaasDelete(c *cli.Context) error {
+		// フラグの値を取得
+		force := c.Bool("force")
+		log.Printf("Deleting caas cluster with force: %v", force)
+		return nil
+	}
   ~~~
 
 ### ■ `Commands`
