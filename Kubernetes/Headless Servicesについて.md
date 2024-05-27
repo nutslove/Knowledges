@@ -25,8 +25,8 @@
   普通のServiceと同様に`<service名>.<namespace名>.svc.cluster.local`で紐づいているすべてのPodのIPを取得することもできる
 
 > [!IMPORTANT]  
-> 普通のServiceは`<service名>.<namespace名>.svc.cluster.local`でServiceに付いている`Cluster IP`が返ってくるが、  
-> Headless Serviceは`<service名>.<namespace名>.svc.cluster.local`で`selector`を満たすすべてのPodのIPアドレスが返ってくる
+> **普通のServiceは`<service名>.<namespace名>.svc.cluster.local`でServiceに付いている`Cluster IP`が返ってくるが、  
+> Headless Serviceは`<service名>.<namespace名>.svc.cluster.local`で`selector`を満たすすべてのPodのIPアドレスが返ってくる**
 
   ```yaml
   apiVersion: apps/v1
