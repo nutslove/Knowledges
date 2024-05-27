@@ -1,7 +1,7 @@
 - CoreDNSに **`externalName`に指定したドメイン名と`Endpoints`に指定したIPアドレスでAレコードが登録されて、さらに`<service名>.<namespace名>.svc.cluster.local`と`externalName`に指定したドメイン名でCNAMEレコードが登録される**
 - `<service名>.<namespace名>.svc.cluster.local`でアクセスするとCNAMEレコード → Aレコード → IPアドレスの順で最終的にIPアドレスを取得できる
 - `ExternalName`は`EXTERNAL-IP`のところにIPアドレスの代わりにドメインが表示される
-- 例（以下では）  
+- 例  
   ```yaml
   ---
   apiVersion: v1
