@@ -22,7 +22,7 @@
   - `<pod名>.<service名>.<namespace名>.svc.cluster.local`で個別のPodのIPアドレスだけ取得することもできるし、  
     普通のServiceと同様に`<service名>.<namespace名>.svc.cluster.local`で紐づいているすべてのPodのIPを取得することもできる
 
-  > [!IMPORTANT]
+  > [!IMPORTANT]  
   > 普通のServiceは`<service名>.<namespace名>.svc.cluster.local`でServiceに付いている`Cluster IP`が返ってくるが、  
   > Headless Serviceは`<service名>.<namespace名>.svc.cluster.local`で`selector`を満たすすべてのPodのIPアドレスが返ってくる
 
