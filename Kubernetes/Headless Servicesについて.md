@@ -17,10 +17,12 @@
     - port: 80
       targetPort: 8080
   ```
+
 - `StatefulSet`の`spec.serviceName`にHeadless Serviceの`metadata.name`を指定することで、`<pod名>.<service名>.<namespace名>.svc.cluster.local`での名前解決ができる  
-  → この例だと`my-statefulset-0.my-headless-service.poc.svc.cluster.local`でPodのIPアドレスが得られる  
-  - `<pod名>.<service名>.<namespace名>.svc.cluster.local`で個別のPodのIPアドレスだけ取得することもできるし、  
-    普通のServiceと同様に`<service名>.<namespace名>.svc.cluster.local`で紐づいているすべてのPodのIPを取得することもできる
+  → 下の例だと`my-statefulset-0.my-headless-service.poc.svc.cluster.local`でPodのIPアドレスが得られる  
+
+- `<pod名>.<service名>.<namespace名>.svc.cluster.local`で個別のPodのIPアドレスだけ取得することもできるし、  
+  普通のServiceと同様に`<service名>.<namespace名>.svc.cluster.local`で紐づいているすべてのPodのIPを取得することもできる
 
 > [!IMPORTANT]  
 > 普通のServiceは`<service名>.<namespace名>.svc.cluster.local`でServiceに付いている`Cluster IP`が返ってくるが、  
