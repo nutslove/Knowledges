@@ -26,7 +26,9 @@
 
 > [!IMPORTANT]  
 > **普通のServiceは`<service名>.<namespace名>.svc.cluster.local`でServiceに付いている`Cluster IP`が返ってくるが、  
-> Headless Serviceは`<service名>.<namespace名>.svc.cluster.local`で`selector`を満たすすべてのPodのIPアドレスが返ってくる**
+> Headless Serviceは`<service名>.<namespace名>.svc.cluster.local`で`selector`を満たすすべてのPodのIPアドレスが返ってくる**  
+> また、普通のServiceはCluster IPにアクセスするとPodのIPにロードバランシングされるが、  
+> Headless ServiceはCluster IPがないため、DNSの名前解決機能だけを使うもの
 
   ```yaml
   apiVersion: apps/v1
