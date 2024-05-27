@@ -47,3 +47,5 @@
   nginx.default.svc.cluster.local. 5 IN   CNAME   www.iij.ad.jp.
   www.iij.ad.jp.          5       IN      A       202.232.2.180
   ```
+- 参考URL
+  - https://eng-blog.iij.ad.jp/archives/9998
