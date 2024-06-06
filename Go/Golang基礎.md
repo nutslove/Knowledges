@@ -118,7 +118,7 @@ updates go.mod to require those versions, and downloads source code into the mod
 
 
 ## その他Goについて色々
-- GoはClassがない（Goはオブジェクト指向言語ではない）
+- GoはClassがない。ただ、Struct(構造体)で同じようなことができる
 - Goはtry catch(except)ではなく、errorというエラー専用型(interface)がある
 - Goにwhileはない
 - gofmtコマンドを使うとgoのフォーマットに変換してくれる  
