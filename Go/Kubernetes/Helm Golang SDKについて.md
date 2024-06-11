@@ -97,7 +97,7 @@
   - Helmリソース情報を保持するタイプとして`secret`を指定した場合、`sh.helm.release.v1.**`のような名前の`Secret`リソースが作成され、Helmリソース情報が保持される
 - インストールの場合は`action.NewInstall()`メソッドで、削除の場合は`action.NewUninstall()`メソッドでそれぞれ`action.Install`型と`action.Uninstall`型が返され、`action.Install`型と`action.Uninstall`型の`Run()`メソッドでインストール/削除を実行する
   - `action.NewInstall()`メソッドの戻り値の`Install`typeの`Wait`フィールドを`true`にするとetcdに登録されるだけではなく、実際に(podが)runnging状態になるまで待つ。  
-    defaultでは`false`になっていてetcdにリソースを登録できたらすぐにぷろんぷとが返される。
+    defaultでは`false`になっていてetcdにリソースを登録できたらすぐにpromptが返される。
 
 #### サンプルコード  
 ```go
