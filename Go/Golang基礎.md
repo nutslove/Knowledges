@@ -2627,8 +2627,7 @@ func main() {
       ~~~
 
 ## `new()` Keyword
-- データTypeによって適切なメモリ空間を割り当て、Zero Valueにする
-- 割り当てられたメモリのPointerを返す
+- 指定されたデータType(型)のZero Valueのインスタンスをメモリ空間を割り当て、割り当てられたメモリのPointerを返す
 - ChannelとMap以外のすべてのデータTypeに使える
 
 ## `make()`関数
