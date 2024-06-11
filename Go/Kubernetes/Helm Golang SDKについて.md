@@ -93,6 +93,11 @@
       ├── chart2-2.0.0.tgz
       └── chart2-2.1.0.tgz
     ```
+- `new(action.Configuration)`で`Configuration`構造体のインスタンスを初期化し、`Init()`メソッドでkubernetesクライアント(e.g. kubeconfig)設定(第1引数)やHelmリソース情報を保持するリソースタイプ(第3引数、`secret`の他に`configmap`や`memory`などを指定できる)を指定してHelmの設定を初期化する
+  - Helmリソース情報を保持するタイプとして`secret`を指定した場合、`sh.helm.release.v1.**`のような名前の`Secret`リソースが作成され、Helmリソース情報が保持される
+- インストールの場合は`action.NewInstall()`メソッドで、削除の場合は`action.NewUninstall()`メソッドでそれぞれ`action.Install`型と`action.Uninstall`型が返され、`action.Install`型と`action.Uninstall`型の`Run()`メソッドでインストール/削除を実行する
+  - `action.NewInstall()`メソッドの戻り値の`Install`typeの`Wait`フィールドを`true`にするとetcdに登録されるだけではなく、実際に(podが)runnging状態になるまで待つ。  
+    defaultでは`false`になっていてetcdにリソースを登録できたらすぐにぷろんぷとが返される。
 
 #### サンプルコード  
 ```go
@@ -170,7 +175,7 @@ func OpenSearchHelmSetting(releaseName string, actionType string) (*action.Insta
   // Helm設定の初期化
   actionConfig := new(action.Configuration)
   if err := actionConfig.Init(settings.RESTClientGetter(), "opensearch", "secret", func(format string, v ...interface{}) {
-    fmt.Sprintf(format, v...)
+    log.Printf(format, v...)
   }); err != nil {
     log.Fatalf("Failed to initialize Helm configuration: %v", err)
   }
@@ -184,7 +189,7 @@ func OpenSearchHelmSetting(releaseName string, actionType string) (*action.Insta
     installClient.ReleaseName = releaseName
     installClient.CreateNamespace = true
     installClient.Wait = true
-    installClient.Timeout = 900
+    installClient.Timeout = 600 * time.Second
     uninstallClient = nil
   } else if actionType == "uninstall" {
     uninstallClient = action.NewUninstall(actionConfig)
