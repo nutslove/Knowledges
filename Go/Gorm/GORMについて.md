@@ -1,7 +1,7 @@
 - GORMはGolangのORM（Object-Relational Mapping）の１つ
 
-## 使い方
-### tagを使った`struct`(構造体)の定義
+# 使い方
+## tagを使った`struct`(構造体)の定義
 - GORMではtagを使用して、構造体(`struct`)のフィールドとDBのカラムをマッピングすることができる。  
 - tagは、バッククオート(`` ` ``)で囲み、キーと値をコロン(`:`)で区切り、複数のスキーマを指定する場合は、セミコロン(`;`)で区切る。
 - 例
@@ -21,7 +21,22 @@
     - 参照先テーブルはGROMが推測。`references:<参照先のテーブル名>.<参照先のカラム名>`のように明示的に参照先テーブルを指定することもできる。
   - `constraint:OnDelete:CASCADE`: 参照先のレコードが削除された場合、このレコードも一緒に削除される
 
-### DBへの接続
+### type(データ型)について
+- tagで`type`でデータ型を明示的に指定することもできる
+- 例  
+  ```go
+  type User struct {
+      Name string `gorm:"type:varchar(100)"`
+      Age int `gorm:"type:int"`
+      IsActive bool `gorm:"type:boolean"`
+      CreatedAt time.Time `gorm:"type:datetime"`
+      Description string `gorm:"type:text"`
+  }
+  ```
+- 明示的に指定しない場合は、gormがGoの型からデータベースのデータ型を推測して設定してくれる
+  - e.g. `string` → `VARCHAR`、`int` → `INTEGER`、`time.Time` → `DATETIME`
+
+## DBへの接続
 - `Open`メソッドでDBに接続する
   ```go
   package main
@@ -43,7 +58,7 @@
   }
   ```
 
-### `AutoMigrate`メソッドでDBにテーブルを追加できる
+## `AutoMigrate`メソッドでDBにテーブルを追加できる
 ```go
 type User struct {
     gorm.Model
@@ -54,11 +69,25 @@ type User struct {
 // テーブル作成
 db.AutoMigrate(&User{})
 ```
-- **`AutoMigrate`メソッドはテーブルの追加だけではなく、tagで定義したスキーマを実際データベースに反映するもの**
+- **`AutoMigrate`メソッドはテーブルの追加だけではなく、tagで定義したスキーマを実際データベースに反映するもの（Migrate the schema）**
 - `gorm.Model`を埋め込むことで、`ID`、`CreatedAt`、`UpdatedAt`、`DeletedAt`フィールドが自動的に追加される。
   - `ID`が自動的に主キーとして設定される
+- デフォルトでは、GORMはテーブル名の末尾に`s`を付けて複数形で作成する（e.g. User → Users）  
+  これを防ぐためにはGORM内蔵の`TableName()`メソッドで明示的にテーブル名を`return`に指定する。  
+  例えば、以下の例ではデフォルトではテーブル名は`dbuserpasswords`になるけど、`TableName()`メソッドの`return`に`dbuserpassword`と指定することで単数形として作られる。  
+  ```go
+  type Dbuserpassword struct {
+          System        string `gorm:"foreignKey:system_id;references:system_id;constraint:OnDelete:CASCADE;column:system_id"`
+          Dbuser        string `gorm:"size:50;column:dbuser"`
+          Password      string `gorm:"size:30;column:dbuserpw"`
+  }
 
-### レコードの追加(Insert)は`Create`、削除は`Delete`、更新(Update)は`Save`メソッドを使用
+  func (Dbuserpassword) TableName() string {
+          return "dbuserpassword"
+  }
+  ```
+
+## レコードの追加(Insert)は`Create`、削除は`Delete`、更新(Update)は`Update`や`Save`メソッドを使用
 ```go
 // ユーザー作成
 user := User{Name: "John Doe", Email: "john@example.com"}
@@ -76,19 +105,57 @@ db.Save(&user)
 db.Delete(&user)
 ```
 
-### ユーザーを検索するには、`First`や`Find`メソッドを使用
+### `Update`と`Save`の違いについて
+- https://gorm.io/docs/update.html
+- `Save`は構造体の変更された(変更がないフィールドも含めて)すべてのフィールドを一括で更新  
+  > `Save` will save all fields when performing the Updating SQL  
+
+  ```go
+  db.First(&user)
+
+  user.Name = "jinzhu 2"
+  user.Age = 100
+  db.Save(&user)
+  // UPDATE users SET name='jinzhu 2', age=100, birthday='2016-01-01', updated_at = '2013-11-17 21:34:10' WHERE id=111;
+  ```
+
+  > `Save` is a combination function. If save value does not contain primary key, it will execute `Create`, otherwise it will execute `Update` (with all fields).
+
+- `Update`は指定された(特定の)フィールドのみを更新  
+
+  ```go
+  // Update with conditions
+  db.Model(&User{}).Where("active = ?", true).Update("name", "hello")
+  // UPDATE users SET name='hello', updated_at='2013-11-17 21:34:10' WHERE active=true;
+
+  // User's ID is `111`:
+  db.Model(&user).Update("name", "hello")
+  // UPDATE users SET name='hello', updated_at='2013-11-17 21:34:10' WHERE id=111;
+
+  // Update attributes with `struct`, will only update non-zero fields
+  db.Model(&user).Updates(User{Name: "hello", Age: 18, Active: false})
+  // UPDATE users SET name='hello', age=18, updated_at = '2013-11-17 21:34:10' WHERE id = 111;
+
+  // Update attributes with `map`
+  db.Model(&user).Updates(map[string]interface{}{"name": "hello", "age": 18, "active": false})
+  // UPDATE users SET name='hello', age=18, active=false, updated_at='2013-11-17 21:34:10' WHERE id=111;
+  ```
+
+  > `Updates` supports updating with `struct` or `map[string]interface{}`, when updating with `struct` it will only update non-zero fields by default
+
+## ユーザーを検索するには、`First`や`Find`メソッドを使用
 - SQLの`SELECT`文に相当。`First`メソッドは`LIMIT 1`を使用して最初のレコードのみを取得し、`Find`メソッドは条件に一致するすべてのレコードを取得
 - `Where`、`Order`、`Limit`、`Offset`などのメソッドを使用することで、より詳細な条件やソート、ページネーションなどを実現できる
   - `Offest`メソッドは、取得するレコードのオフセット（スキップする数）を指定するために使用
   - `Limit`メソッドは、取得するレコードの最大数を指定するために使用
-#### `First`メソッド
+### `First`メソッド
 - 指定された条件に一致する最初のレコードを取得
 - レコードが見つからない場合は、`ErrRecordNotFound`エラーが返される
-#### `Find`メソッド
+### `Find`メソッド
 - 指定された条件に一致するすべてのレコードを取得
 - 条件を指定しない場合は、テーブルのすべてのレコードが取得される
 - 取得したレコードは、スライスまたは構造体のポインタのスライスに格納される
-#### 例
+### 例
 ```go
 // 主キーを使用してレコードを取得
 var user User
