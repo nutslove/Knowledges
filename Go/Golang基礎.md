@@ -118,7 +118,7 @@ updates go.mod to require those versions, and downloads source code into the mod
 
 
 ## その他Goについて色々
-- GoはClassがない（Goはオブジェクト指向言語ではない）
+- GoはClassがない。ただ、Struct(構造体)で同じようなことができる
 - Goはtry catch(except)ではなく、errorというエラー専用型(interface)がある
 - Goにwhileはない
 - gofmtコマンドを使うとgoのフォーマットに変換してくれる  
@@ -2627,8 +2627,7 @@ func main() {
       ~~~
 
 ## `new()` Keyword
-- データTypeによって適切なメモリ空間を割り当て、Zero Valueにする
-- 割り当てられたメモリのPointerを返す
+- 指定されたデータType(型)のZero Valueのインスタンスをメモリ空間を割り当て、割り当てられたメモリのPointerを返す
 - ChannelとMap以外のすべてのデータTypeに使える
 
 ## `make()`関数
@@ -3044,3 +3043,39 @@ fmt.Println(x)  // 10が出力される
   fmt.Printf("数値は %d です", i)
   // コンソールに "数値は 42 です" と出力される
   ~~~
+
+## init関数
+- mainパッケージでimportしたPackageにinit関数がある場合、mainパッケージ内のinit関数よりPackage内のinit関数が先に実行される
+  - importされるタイミングで実行される
+- 1つのコード内に複数のinit関数を定義することは一応できる。(実際に複数のinit関数を定義することはないだろう)
+- 下記例の場合、"Hello from somepackage"が先に出力されて、その後"init in main package"が出力される
+  - `main.go`  
+    ```go
+    package main
+
+    import (
+      "somepackage"
+      "fmt"
+    )
+
+    func init() {
+      fmt.Println("init in main package")
+    }
+
+    func main() {
+        ・
+        ・
+    }
+    ```
+  - `somepackage.go`  
+    ```go
+    package somepackage
+
+    import (
+      "fmt"
+    )
+
+    func init() {
+      fmt.Println("Hello from somepackage")
+    }
+    ```
