@@ -3079,3 +3079,27 @@ fmt.Println(x)  // 10が出力される
       fmt.Println("Hello from somepackage")
     }
     ```
+
+## 文字列検索
+- `strings`パッケージの`Contains`関数である文字列(変数)の中に特定の文字列が含まれているか確認することができる
+  - `Contains`関数の戻り値は`bool`型で含まれているときは`true`、含まれてないときは`false`が返される
+- 例  
+  ```go
+  import (
+    "fmt"
+    "strings"
+  )
+
+  func main() {
+    fmt.Println(strings.Contains("seafood", "foo"))
+    fmt.Println(strings.Contains("seafood", "bar"))
+    fmt.Println(strings.Contains("seafood", ""))
+    fmt.Println(strings.Contains("", ""))
+  }
+
+  // Output:
+  // true
+  // false
+  // true
+  // true
+  ```

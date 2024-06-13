@@ -2,6 +2,7 @@
   - https://github.com/gophercloud/gophercloud
 
 ## KeyStone認証
+### パスワード認証
 - `gophercloud.AuthOptions`構造体に認証に必要な情報を入れて、`AuthenticatedClient()`メソッドに渡して認証する
 - その後、各サービスごとに用意されている`openstack`のメソッド(e.g. Cinderの場合`NewBlockStorageV3`)でクライアントを初期化して、そのクライアントを使って各種サービスを操作する
 
@@ -83,3 +84,93 @@ func main() {
     }
 }
 ```
+
+### Token認証
+> [!TIP]
+> tokenは`openstack token issue -f value -c id`で発行できる  
+> https://docs.openstack.org/python-openstackclient/latest/cli/authentication.html
+
+- `tokens.Validate()`メソッドでTokenの正当性を確認  
+  Tokenが有効な場合は第1戻り値として`true`が、無効な場合は`false`が返ってくる
+- `tokens.Get()`メソッドでTokenに関する詳細な情報(e.g. Project ID、RoleName)を取得できる
+  - `tokens.Get()`メソッドは`Body`、`StatusCode`、`Header`、`Err`が含まれている`GetResult`型を返す
+    - https://github.com/gophercloud/gophercloud/blob/master/results.go#L28
+    - https://github.com/gophercloud/gophercloud/blob/master/openstack/identity/v3/tokens/requests.go
+- 例
+  ```go
+  import (
+        "github.com/gophercloud/gophercloud"
+        "github.com/gophercloud/gophercloud/openstack"
+        "github.com/gophercloud/gophercloud/openstack/identity/v3/tokens"
+  )
+  
+  func main() {
+        opts := gophercloud.AuthOptions{
+                IdentityEndpoint: "http://<KeyStone認証エンドポイント>:5000/v3",
+                Username:         "<ユーザ名>",
+                Password:         "<パスワード>",
+                DomainName:       "Default",
+                TenantName:       "<Project名>",
+        }
+
+        // プロバイダーを作成
+        provider, err := openstack.AuthenticatedClient(opts)
+        if err != nil {
+                fmt.Println("認証中にエラーが発生しました:", err)
+                return
+        }
+
+        // Keystoneサービスクライアントを作成
+        keystoneclient, err := openstack.NewIdentityV3(provider, gophercloud.EndpointOpts{
+                Region: "<Region名>",
+        })
+        if err != nil {
+                fmt.Println("Keystoneサービスクライアントの作成中にエラーが発生しました:", err)
+                return
+        }
+
+        token := "<発行したToken>"
+	tokenValidateResult, err := tokens.Validate(keystoneclient, token)
+	if err != nil {
+		fmt.Println("トークンの検証中にエラーが発生しました:", err)
+		return
+	}
+	fmt.Println("トークン検証結果:", tokenValidateResult)
+	if !tokenValidateResult {
+		fmt.Println("トークンは無効です")
+		return
+	}
+
+	// トークンの詳細情報を取得
+	tokenDetails := tokens.Get(keystoneclient, token)
+
+	fmt.Println("Token詳細情報:", tokenDetails)
+	fmt.Println("-------------------------------------------------------------\n")
+	fmt.Println("Body:", tokenDetails.Body)
+	fmt.Println("-------------------------------------------------------------\n")
+	fmt.Println("StatusCode:", tokenDetails.StatusCode)
+	fmt.Println("-------------------------------------------------------------\n")
+	fmt.Println("Header:", tokenDetails.Header)
+	fmt.Println("-------------------------------------------------------------\n")
+
+	tokeninfo, ok := tokenDetails.Body.(map[string]interface{})["token"].(map[string]interface{})
+	if !ok {
+		fmt.Println("tokenDetails.Bodyの型変換に失敗しました")
+		return
+	}
+	projectID := tokeninfo["project"].(map[string]interface{})["id"]
+	fmt.Println("Project ID:", projectID)
+
+	roles := tokeninfo["roles"].([]interface{})
+	var isAdmin bool
+	var roleName string
+	for _, role := range roles {
+		roleName = role.(map[string]interface{})["name"].(string)
+		fmt.Println("Role Name:", roleName)
+		if strings.Contains(roleName,"admin") {
+			isAdmin = true
+		}
+	}
+	fmt.Println("isAdmin:", isAdmin)
+  }
+  ```
