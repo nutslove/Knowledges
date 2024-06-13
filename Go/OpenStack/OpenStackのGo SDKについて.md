@@ -130,47 +130,47 @@ func main() {
         }
 
         token := "<発行したToken>"
-	tokenValidateResult, err := tokens.Validate(keystoneclient, token)
-	if err != nil {
-		fmt.Println("トークンの検証中にエラーが発生しました:", err)
-		return
-	}
-	fmt.Println("トークン検証結果:", tokenValidateResult)
-	if !tokenValidateResult {
-		fmt.Println("トークンは無効です")
-		return
-	}
+        tokenValidateResult, err := tokens.Validate(keystoneclient, token)
+        if err != nil {
+                fmt.Println("トークンの検証中にエラーが発生しました:", err)
+                return
+        }
+        fmt.Println("トークン検証結果:", tokenValidateResult)
+        if !tokenValidateResult {
+                fmt.Println("トークンは無効です")
+                return
+        }
 
-	// トークンの詳細情報を取得
-	tokenDetails := tokens.Get(keystoneclient, token)
+        // トークンの詳細情報を取得
+        tokenDetails := tokens.Get(keystoneclient, token)
 
-	fmt.Println("Token詳細情報:", tokenDetails)
-	fmt.Println("-------------------------------------------------------------\n")
-	fmt.Println("Body:", tokenDetails.Body)
-	fmt.Println("-------------------------------------------------------------\n")
-	fmt.Println("StatusCode:", tokenDetails.StatusCode)
-	fmt.Println("-------------------------------------------------------------\n")
-	fmt.Println("Header:", tokenDetails.Header)
-	fmt.Println("-------------------------------------------------------------\n")
+        fmt.Println("Token詳細情報:", tokenDetails)
+        fmt.Println("-------------------------------------------------------------\n")
+        fmt.Println("Body:", tokenDetails.Body)
+        fmt.Println("-------------------------------------------------------------\n")
+        fmt.Println("StatusCode:", tokenDetails.StatusCode)
+        fmt.Println("-------------------------------------------------------------\n")
+        fmt.Println("Header:", tokenDetails.Header)
+        fmt.Println("-------------------------------------------------------------\n")
 
-	tokeninfo, ok := tokenDetails.Body.(map[string]interface{})["token"].(map[string]interface{})
-	if !ok {
-		fmt.Println("tokenDetails.Bodyの型変換に失敗しました")
-		return
-	}
-	projectID := tokeninfo["project"].(map[string]interface{})["id"]
-	fmt.Println("Project ID:", projectID)
+        tokeninfo, ok := tokenDetails.Body.(map[string]interface{})["token"].(map[string]interface{})
+        if !ok {
+                fmt.Println("tokenDetails.Bodyの型変換に失敗しました")
+                return
+        }
+        projectID := tokeninfo["project"].(map[string]interface{})["id"]
+        fmt.Println("Project ID:", projectID)
 
-	roles := tokeninfo["roles"].([]interface{})
-	var isAdmin bool
-	var roleName string
-	for _, role := range roles {
-		roleName = role.(map[string]interface{})["name"].(string)
-		fmt.Println("Role Name:", roleName)
-		if strings.Contains(roleName,"admin") {
-			isAdmin = true
-		}
-	}
-	fmt.Println("isAdmin:", isAdmin)
+        roles := tokeninfo["roles"].([]interface{})
+        var isAdmin bool
+        var roleName string
+        for _, role := range roles {
+                roleName = role.(map[string]interface{})["name"].(string)
+                fmt.Println("Role Name:", roleName)
+                if strings.Contains(roleName,"admin") {
+                        isAdmin = true
+                }
+        }
+        fmt.Println("isAdmin:", isAdmin)
   }
   ```
