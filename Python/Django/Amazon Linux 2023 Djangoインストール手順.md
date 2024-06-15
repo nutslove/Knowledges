@@ -1,7 +1,7 @@
 - Amazon Linux 2023にはデフォルトでPython3.9がインストールされている
 ~~~
 yum groupinstall -y "Development Tools"
-pip3 install django==4.1
+pip3 install django==4.2.11
 yum install python3-devel
 yum install python-psycopg2
 yum install postgresql-devel

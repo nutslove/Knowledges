@@ -58,7 +58,10 @@
   }
   ```
 
-## `AutoMigrate`メソッドでDBにテーブルを追加できる
+## `AutoMigrate()`メソッドでDBにテーブルを追加できる
+- https://gorm.io/ja_JP/docs/migration.html
+> **AutoMigrate はテーブル、外部キー、制約、カラム、インデックスを作成します。 カラムのサイズ、精度、null可否などが変更された場合、既存のカラムの型を変更します。 しかし、データを守るために、使われなくなったカラムの削除は実行されません。**
+
 ```go
 type User struct {
     gorm.Model
@@ -66,12 +69,15 @@ type User struct {
     Email string
 }
 
-// テーブル作成
+// テーブル作成/更新
 db.AutoMigrate(&User{})
 ```
-- **`AutoMigrate`メソッドはテーブルの追加だけではなく、tagで定義したスキーマを実際データベースに反映するもの（Migrate the schema）**
+
+- テーブルがすでに存在していて、構造体に変更がなければ`AutoMigrate()`は何もしない
+
+- **`AutoMigrate()`メソッドはテーブルの追加だけではなく、tagで定義したスキーマを実際データベースに反映するもの（Migrate the schema）**
 - `gorm.Model`を埋め込むことで、`ID`、`CreatedAt`、`UpdatedAt`、`DeletedAt`フィールドが自動的に追加される。
-  - `ID`が自動的に主キーとして設定される
+  - `ID`が自動的に主キーとして設定され、`AUTOINCREMENT`が設定される
 - デフォルトでは、GORMはテーブル名の末尾に`s`を付けて複数形で作成する（e.g. User → Users）  
   これを防ぐためにはGORM内蔵の`TableName()`メソッドで明示的にテーブル名を`return`に指定する。  
   例えば、以下の例ではデフォルトではテーブル名は`dbuserpasswords`になるけど、`TableName()`メソッドの`return`に`dbuserpassword`と指定することで単数形として作られる。  
