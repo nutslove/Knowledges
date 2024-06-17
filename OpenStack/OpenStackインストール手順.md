@@ -20,7 +20,11 @@
   - `sunbeam dashboard-url`
 
 # DevStackによるインストール手順
+## 1台サーバ構成
 - https://docs.openstack.org/devstack/latest/
 - https://cloud5.jp/openstack-install/
 - https://stackoverflow.com/questions/42973688/error-opt-stack-logs-error-log-no-such-file-or-directory-devstack-deploy
 - 2024/06時点ではUbuntu22.04でうまくいった（Ubuntu24.04ではエラーになる）
+
+## 複数台構成（試してない）
+- https://docs.openstack.org/devstack/latest/guides/multinode-lab.html
