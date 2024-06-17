@@ -995,7 +995,7 @@ updates go.mod to require those versions, and downloads source code into the mod
 
 ### `map[string]interface{}`（=`map[string]any{}`）について
 - **そもそも`interface{}`は、empty interfaceでどんな型の値でも格納できるもの**
-- goのv1.18から`any`というが追加されたけど、これは`interface{}`のalias
+- goのv1.18から`any`というのが追加されたけど、これは`interface{}`のalias
 - `map[string]interface{}`からのデータ抽出の例
   - valueに更に`map[string]interface{}`が設定されている場合、  
     `変数[key名].(map[string]interface{})[key名]`のように下の階層のvalueにアクセスするためには`.(map[string]interface{})`が必要  
