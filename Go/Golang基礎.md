@@ -993,6 +993,47 @@ updates go.mod to require those versions, and downloads source code into the mod
   - https://go.dev/play/p/rZH2Efbpot
   - https://dev-yakuza.posstree.com/golang/interface/
 
+### `map[string]interface{}`（=`map[string]any{}`）について
+- **そもそも`interface{}`は、empty interfaceでどんな型の値でも格納できるもの**
+- goのv1.18から`any`というが追加されたけど、これは`interface{}`のalias
+- `map[string]interface{}`からのデータ抽出の例
+  - valueに更に`map[string]interface{}`が設定されている場合、  
+    `変数[key名].(map[string]interface{})[key名]`のように下の階層のvalueにアクセスするためには`.(map[string]interface{})`が必要  
+    ```go
+    var Flavors = map[string]interface{}{
+      "m1.tiny": map[string]interface{}{
+        "requests": map[string]interface{}{
+          "cpu":    "125m",
+          "memory": "640Mi",
+        },
+        "limits": map[string]interface{}{
+          "cpu":    "500m",
+          "memory": "1Gi",
+        },
+        "jvm_heap": "512M",
+        "jvm_perm": "128M",
+      },
+    }
+
+    flavor := Flavors["m1.tiny"].(map[string]interface{})
+    requests := flavor["requests"].(map[string]interface{})
+    limits := flavor["limits"].(map[string]interface{})
+    requests_cpu := requests["cpu"]
+    requests_memory := requests["memory"]
+    limits_cpu := limits["cpu"]
+    limits_memory := limits["memory"]
+    jvm_heap := flavor["jvm_heap"]
+    jvm_perm := flavor["jvm_perm"]
+    fmt.Println("flavor:", flavor) // "flavor: map[jvm_heap:512M jvm_perm:128M limits:map[cpu:500m memory:1Gi] requests:map[cpu:125m memory:640Mi]]"
+    fmt.Println("requests:", requests) // "requests: map[cpu:125m memory:640Mi]"
+    fmt.Println("requests_cpu:", requests_cpu) // "requests_cpu: 125m"
+    fmt.Println("requests_memory:", requests_memory) // "requests_memory: 640Mi"
+    fmt.Println("limits_cpu:", limits_cpu) // "limits_cpu: 500m"
+    fmt.Println("limits_memory:", limits_memory) // "limits_memory: 1Gi"
+    fmt.Println("jvm_heap:", jvm_heap) // "jvm_heap: 512M"
+    fmt.Println("jvm_perm:", jvm_perm) // "jvm_perm: 128M"
+    ```
+
 ## CallBack
 - 引数として関数を引き渡すこと
 - 例
@@ -1155,6 +1196,34 @@ func main() {
 	fmt.Println("a2: ", a2) ------> Test methodで代入した"[5 6][7 8]"が出力
 }
 ~~~
+
+- **関数の引数がポインタ型のとき、その関数内では値の更新するために頭に`*`をつけなくて良い**  
+  ```go
+  type Foo struct {
+      value int
+  }
+
+  func PassStruct(foo Foo) {
+      foo.value = 1
+  }
+
+  func PassStructPointer(foo *Foo) {
+      foo.value = 1 ------------------> *foo.value = 1ではない！
+  }
+
+  func main() {
+      var foo Foo
+
+      fmt.Printf("before PassStruct: %v\n", foo.value) -> 0 
+      PassStruct(foo)
+      fmt.Printf("after PassStruct: %v\n", foo.value) -> 0
+
+      fmt.Printf("before PassStructPointer: %v\n", foo.value) -> 0
+      PassStructPointer(&foo)
+      fmt.Printf("after PassStructPointer: %v\n", foo.value) -> 1
+  }
+  ```
+
 - **ポインタの利用シーン**
   1. big chunk of dataを受け渡ししたい場合
   2. 特定のメモリアドレスにある値を変更したい場合
