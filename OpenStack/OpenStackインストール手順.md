@@ -1,4 +1,4 @@
-## インストール手順
+# MicroStackによるインストール手順
 - https://microstack.run/docs/single-node-guided
 - `apt install openssh-server`でsshをインストーr
 - 以下コマンドは一般ユーザで実行
@@ -18,3 +18,8 @@
     - horizonの認証情報などが記載されているファイル
 - 以下コマンドでhorizonのURLを確認し、上で確認した認証情報でログインする
   - `sunbeam dashboard-url`
+
+# DevStackによるインストール手順
+- https://docs.openstack.org/devstack/latest/
+- https://cloud5.jp/openstack-install/
+- https://stackoverflow.com/questions/42973688/error-opt-stack-logs-error-log-no-such-file-or-directory-devstack-deploy
