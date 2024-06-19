@@ -87,8 +87,25 @@ OSD 操作の 1 つの設計目標は、計算能力をできる限り物理デ�
 >
 > When OSDs are deployed, they are automatically added to the CRUSH map under a host bucket that is named for the node on which the OSDs run. This behavior, combined with the configured CRUSH failure domain, ensures that replicas or erasure-code shards are distributed across hosts and that the failure of a single host or other kinds of failures will not affect availability. For larger clusters, administrators must carefully consider their choice of failure domain. For example, distributing replicas across racks is typical for mid- to large-sized clusters.
 
+## Pool
+- Cephクラスタ内のデータを論理的に区分けするための領域（データのグループ化）
+  - 例えば、異なるアプリケーションのデータや異なるパフォーマンス要件を持つデータを別々のプールに格納できる
+- 各poolごとに、独自のCRUSH Rule（データがどのOSD（Object Storage Daemon）に配置されるかを制御）やレプリケーション数、PGの数などの設定が割り当てられる
+
 ## PG (placement group)
 - Objectを保存する論理的な単位
+- PoolはPGの集合
+- １つのPGは複数のOSDにマッピングされる
+  - 通常、PGの数はOSDの数の100倍程度が推奨されている
+- **PoolとPG、OSDのマッピングの例**
+  - Poolの設定とOSD数
+    - Pool A: レプリケーション数3、PG数128
+    - OSD数: 10
+  - 上記の場合、Pool Aの各PGは3つの異なるOSDにマッピングされる。具体的には、次のようなマッピングが行われる
+    - PG 0: OSD 1, OSD 4, OSD 7
+    - PG 1: OSD 2, OSD 5, OSD 8
+    - PG 2: OSD 3, OSD 6, OSD 9
+    - （以下略）
 - 主な役割/機能
   - **データの分散**
     - PGはオブジェクトを複数のOSDに分散して保存する。これによりデータの負荷分散と並列処理が可能になる。
