@@ -2496,7 +2496,7 @@ func main() {
   - **for文はchannelから値が利用可能になるまで待ち続けるため、channelをcloseしない場合、forより下にあるコードは実行されない**
 
   #### `chan error`について
-  - `error`型のzero値は`nil`  
+  - `error`型のzero valueは`nil`  
     なのでcloseされた`error`型のchannelから値を取り出そうとすると`nil`が返ってくる  
     ~~~go
     func main() {
@@ -3176,3 +3176,23 @@ fmt.Println(x)  // 10が出力される
   // true
   // true
   ```
+
+## `error`型の戻り値を返す方法
+1. `errors.New()`を使う  
+   ```go
+   import "errors"
+
+   func someFunction() error {
+       // エラーが発生した場合
+       return errors.New("エラーメッセージ")
+   }
+   ```
+2. `fmt.Errorf()`を使う  
+   ```go
+   import "fmt"
+
+   func someFunction() error {
+       // エラーが発生した場合
+       return fmt.Errorf("エラーメッセージ: %v", someValue)
+   }
+   ```
