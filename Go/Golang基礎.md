@@ -181,7 +181,8 @@ updates go.mod to require those versions, and downloads source code into the mod
       ~~~
     - 省略型に整数/少数の値を代入する場合、自動的に`int`/`float64`型になる
 
-## `...`について（Lexical elementsと呼ぶらしい）
+## `...` (可変長引数) について（Lexical elementsと呼ぶらしい）
+- **可変長引数**という
 - https://go.dev/ref/spec#Operators_and_punctuation
 - `...<型>`
   - スライス (つまり`[]<型>`と同じ) を作成
@@ -220,25 +221,18 @@ updates go.mod to require those versions, and downloads source code into the mod
         fmt.Printf("%T\n", xi) -→ []intが出力される
       }
       ~~~
-    - `...<型>`が複数の引数の中で最後にある場合、呼び出す側は`<型>...`がなくても良い（その場合`...<型>`にはnilが連携される）
-      https://go.dev/ref/spec
-      > Passing arguments to ... parameters
-      > If f is variadic with a final parameter p of type ...T, then within f the type of p is equivalent to type []T. If f is invoked with no actual arguments for p, the value passed to p is nil. Otherwise, the value passed is a new slice of type []T with a new underlying array whose successive elements are the actual arguments, which all must be assignable to T. The length and capacity of the slice is therefore the number of arguments bound to p and may differ for each call site.
-      > 
-      > Given the function and calls
-      > 
-      > func Greeting(prefix string, who ...string)
-      > Greeting("nobody")
-      > Greeting("hello:", "Joe", "Anna", "Eileen")
-      > within Greeting, who will have the value nil in the first call, and []string{"Joe", "Anna", "Eileen"} in the second.
-      > 
-      >If the final argument is assignable to a slice type []T and is followed by ..., it is passed unchanged as the value for a ...T parameter. In this case no new slice is created.
-      > 
-      > Given the slice s and call
-      > 
-      > s := []string{"James", "Jasmine"}
-      > Greeting("goodbye:", s...)
-      > within Greeting, who will have the same value as s with the same underlying array.
+
+### 可変長引数の注意点
+1. 引数が複数ある場合、可変長引数は最後の引数である必要がある
+    - OK  
+      ```go
+      func push(a []string, v ...string) {}
+      ```
+    - NG  
+      ```go
+      func push(v ...string, a []string) {}
+      ```
+2. 可変長引数には同一の型の値のみ使用できる
 
 ## 戻り値を`_`で捨てる
 - 戻り値などで定義は必要だけど使わない変数は`_`で捨てる  
