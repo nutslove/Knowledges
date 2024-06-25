@@ -1,3 +1,5 @@
+- https://golang.hateblo.jp/entry/golang-text-html-template
+
 ## `text/template`の基本的な使い方(文法)
 Goの`text/template`パッケージでは、テンプレート内でif文を使用することができます。以下にif文の基本的な構文と使用例を示します：
 
@@ -34,13 +36,12 @@ Status: Active
 {{else}}
 Status: Inactive
 {{end}}
-
-{{if .Age | ge 18}}
-    {{if .Age | le 60}}
-        Age group: Adult
-    {{else}}
-        Age group: Senior
-    {{end}}
+{{if ge .Age 18}}
+{{if le .Age 60}}
+ 	Age group: Adult
+{{else}}
+	Age group: Senior
+{{end}}
 {{else}}
 Age group: Minor
 {{end}}
@@ -97,8 +98,9 @@ func main() {
 
 これらの構文を使用することで、テンプレート内で条件に基づいて異なる出力を生成することができます。
 
-### カスタム関数
+## カスタム関数
 - テンプレート内でカスタム関数を利用できる
+- `template.Funcs()`メソッドを利用
 - `<関数名> .<第１引数> .<第２引数>`のフォーマット
   - 以下の例だと`contain`が実際の関数(contains)と紐づいている関数名、`.FruitColors`が第１引数、`.Fruit`が第２引数
 - 例  
@@ -157,7 +159,7 @@ func main() {
   }
   ```
 
-### `template.New`と`Execute`メソッドについて
+## `template.New`と`Execute`メソッドについて
 `template.New`と`Execute`メソッドは、それぞれテンプレートの作成と実行という重要な役割を果たします。それぞれの詳細を説明します：
 
 1. `template.New`:
@@ -202,3 +204,84 @@ err := t.Execute(os.Stdout, data)
 3. `Execute`: テンプレートを実行し、結果を出力
 
 これらのステップにより、動的なテキスト生成が可能になります。テンプレートは一度作成・パースされれば、異なるデータで何度でも実行できます。
+
+## テンプレートのコード内利用
+- `Execute`メソッドの第１引数に変換されたテンプレートの格納先を指定
+- `os.Stdout`を指定すると標準出力するだけ
+- コード内で結果を保存して使うためには`bytes.Buffer`型に格納し、`String()`メソッドで文字列に変換する必要がある  
+  ```go
+	// Templateの結果を格納する変数を定義
+	var buf bytes.Buffer
+	err = t.Execute(&buf, OpenSearchTmpldata)
+	if err != nil {
+		return nil, err
+	}
+
+	// Templateの結果を文字列に変換
+	opensearchYaml := buf.String()
+  ```
+
+## 改行について
+- if文(endやelseなども含む)の部分も１行としてカウントされ、テンプレートに空行が入ってしまうため、if文などの条件分の前に`-`を付けて、空白（スペース、タブ、改行）を削除すること
+  - `{{-`は、その直前の空白（スペース、タブ、改行）を削除、  
+    `-}}`は、その直後の空白を削除
+- `-`を付けない場合  
+  ```go
+  const tmpl = `
+  Name: {{.Name}}
+  Age: {{.Age}}
+  {{if .Active}}
+  Status: Active
+  {{else}}
+  Status: Inactive
+  {{end}}
+  {{if ge .Age 18}}
+  {{if le .Age 60}}
+    Age group: Adult
+  {{else}}
+    Age group: Senior
+  {{end}}
+  {{else}}
+    Age group: Minor
+  {{end}}
+  `
+  ```
+  - 出力例  
+    ```
+    Name: Alice
+    Age: 30
+
+    Status: Active
+
+
+
+      Age group: Adult
+    ```
+- `-`を付けた場合  
+  ```go
+  const tmpl = `
+  Name: {{.Name}}
+  Age: {{.Age}}
+  {{- if .Active}}
+  Status: Active
+  {{- else}}
+  Status: Inactive
+  {{- end}}
+  {{- if ge .Age 18}}
+  {{- if le .Age 60}}
+    Age group: Adult
+  {{- else}}
+    Age group: Senior
+  {{- end}}
+  {{- else}}
+    Age group: Minor
+  {{- end}}
+  `
+  ```  
+  - 出力例  
+    ```
+    Name: Alice
+    Age: 30
+    Status: Active
+      Age group: Adult
+    ```
