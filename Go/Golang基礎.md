@@ -1222,7 +1222,7 @@ func main() {
   1. big chunk of dataを受け渡ししたい場合
   2. 特定のメモリアドレスにある値を変更したい場合
 
-#### Method(メソッド)のReceiverがPointer型の場合
+### Method(メソッド)のReceiverがPointer型の場合
 - **Methodを呼び出す時`&`を付けなくても、また、Method内でReceiverの値を参照/更新する時`*`を付けなくてもGoコンパイラが自動的に変換してくれる**
   - Methodの呼び出す例  
     例えば、以下のような構造体とメソッドがあるとします。
@@ -1286,6 +1286,44 @@ func main() {
       fmt.Println(a) // 出力: 6
   }
   ```
+
+### 参照型（reference type）と値型（value type）について
+- 参照型は関数に渡される際に参照（つまり、メモリ上のアドレス）が渡される。そのため、関数内でこれらの型の値を変更すると、元の値も変更される。
+  - 関数から明示的に変更されたマップを(`return`で)返す必要はない
+- 整数や文字列などの基本型は値型（value type）として扱われ、関数に渡す際にコピーが作成される。これらの型を関数内で変更しても、元の変数は変更されない。
+```go
+func modifyMap(m map[string]string) {
+    m["new"] = "value"
+}
+
+func modifyString(s string) {
+    s = "modified"  // この変更は呼び出し元には影響しない
+}
+
+func main() {
+    myMap := make(map[string]string)
+    myString := "original"
+
+    modifyMap(myMap)
+    modifyString(myString)
+
+    fmt.Println(myMap)    // map[new:value] が出力される
+    fmt.Println(myString) // "original" が出力される（変更されていない）
+}
+```
+- 参照型（reference type）
+  - マップ（Map）
+  - スライス（Slice）
+  - チャネル（Channel）
+  - 関数（Function）
+  - インターフェース（Interface）
+  - ポインタ（Pointer）
+- 値型（value type）
+  - 整数型（int, int64など）
+  - 浮動小数点型（float32, float64）
+  - 論理型（bool）
+  - 文字列型（string）
+  - 配列型（固定長）
 
 ## Goroutine
 - GoroutineはGoで実行できる一番小さい単位
