@@ -6,7 +6,7 @@
       display.append("_")
     ~~~
 
-### Pythonの位置引数とキーワード引数について
+## Pythonの位置引数とキーワード引数について
 - 以下のような関数があるとする
   ~~~python
   def greet(name, greeting):
@@ -23,12 +23,13 @@
   # 出力: Hello, Alice!
   ~~~
 
-### `index()`メソッドで、ある要素がListの中で何番目にあるか確認する方法
+## `index()`メソッドで、ある要素がListの中で何番目にあるか確認する方法
 - 以下のリストがあるとしたら`index = fruits.index("apple")`(→0が返ってくる)のように`<List名>.index("<要素名>")`で確認できる
   - `fruits = ["apple", "banana", "cherry"]`
 - Listの中に同じ要素が複数ある場合、`index()`メソッドは最初にヒットした要素のIndexを返す
 - 要素がリストにない場合、IndexError例外が発生する
-### `rindex()`メソッドで、同じ要素がListの中に複数ある場合、最後のIndexを確認する方法
+
+## `rindex()`メソッドで、同じ要素がListの中に複数ある場合、最後のIndexを確認する方法
 ~~~python
 fruits = ["apple", "banana", "apple", "cherry"]
 index = fruits.rindex("apple")
@@ -36,7 +37,7 @@ print(index) --> 2が出力
 ~~~
 - 要素がリストにない場合、-1 が返される
 
-### `if <変数名>:`の意味
+## `if <変数名>:`の意味
 > Pythonにおける if <変数名>: 構文は、変数の「真偽値（truthiness）」を評価します。これは、**変数が定義されているかどうかだけではなく、その値が「偽（False）」と評価されるか「真（True）」と評価されるかをチェック**します。
 >
 > 以下は、Pythonにおける「偽（False）」と評価される主な値のリストです：
@@ -51,7 +52,7 @@ print(index) --> 2が出力
 >
 > したがって、**`if <変数名>:`のコードは変数が定義されていて、かつその値が「真」であるかどうかをチェック**します。**値が「偽」である場合、ifブロックは実行されません**。もし変数が定義されていない場合、PythonはNameErrorを投げます。
 
-### lambda関数(無名関数)
+## lambda関数(無名関数)
 - 文法
   `lambda 引数: 戻り値`
   - 以下のように引数なしで実行することもできる  
@@ -71,13 +72,13 @@ print(index) --> 2が出力
   `loader = loaders[file_type](tmp_location)`の行で、ファイルタイプに応じたローダーが呼び出される際には、そのローダーに対して`tmp_location`のみが引数として渡されます。しかし、"txt"のファイルタイプに対応するローダー（この場合はlambda関数）には、このlambda関数内で`TextLoader`のコンストラクタに`path`と`autodetect_encoding=True`の両方を渡すように定義されています。  
   つまり、lambda関数を介して`TextLoader`を呼び出す際には、lambda関数が受け取った`tmp_location`（`path`として受け取る）を`TextLoader`の第一引数として、そしてlambda関数の定義により`autodetect_encoding=True`が自動的に第二引数として`TextLoader`に渡されます。
 
-### `None`とは
+## `None`とは
 - 他の言語の`null`や`nil`に該当するもの。  
   Pythonにおける特殊な値で、"何もない"、"値が存在しない"を意味する。
 - NoneはPythonの組み込み定数であり、変数が何も参照していないことを示すために使用される。
 
-### 型ヒント
-##### 変数の型ヒント
+## 型ヒント
+### 変数の型ヒント
 - 書き方
   - `<変数名>: <型> = <値>`
 - `:`の後ろにあるのはPython3.5以降で追加された型ヒント機能で、変数・関数の引数・戻り値の期待されるデータ型を指定するために使用される。
@@ -94,7 +95,7 @@ print(index) --> 2が出力
   ):
     ・・・ある処理・・・
   ~~~
-##### 関数の型ヒント
+### 関数の型ヒント
 - 書き方
   ~~~python
   def <関数名>(引数名: 型, ・・・) -> <戻り値の型>:
@@ -103,7 +104,7 @@ print(index) --> 2が出力
 
     return <戻り値>
   ~~~
-##### クラスの型ヒント
+### クラスの型ヒント
 - 例(1)
   ~~~python
   class Curry:
@@ -136,3 +137,91 @@ print(index) --> 2が出力
       def greet(self) -> str:
           return f"Hello, my name is {self.name} and I am {self.age} years old."
   ~~~
+
+## 別のPythonファイルをimportする方法
+### 同じディレクトリ内の別ファイルをimportする場合
+- ファイル名をそのまま使ってimport  
+  ```python
+  import <インポートするpythonファイル名(e.g. mymodule.pyの場合、mymodule)>
+  from <インポートするpythonファイル名> import <関数名>
+  ```
+### 異なるディレクトリ内の別ファイルをimportする場合
+- 相対import  
+  ```python
+  from . import module  # 同じディレクトリ
+  from .. import module  # 親ディレクトリ
+  from ..somedirectory import module  # 親ディレクトリの中のsomedirectoryからのインポート
+  from ...somedirectory import module  # 2つ上の親ディレクトリの中のsomedirectoryからのインポート
+  from ..somedirectory.somedirectory import module # 親ディレクトリの中のsomedirectoryの中のsomedirectoryからのインポート
+  from .subdirectory import module  # 子ディレクトリ
+  ```
+
+## `*args`と`**kwargs`について
+- **`*args`には *tuple* で、`**kwargs`には *dict()* で入る**
+- 例１
+  - Python  
+    ```python
+    def test(*args, **kwargs):
+        print(args)
+        print(kwargs)
+
+    test(1, 2, 3, 4, 5, col=4, row=5)
+    ```
+  - Output  
+    ```shell
+    (1, 2, 3, 4, 5)
+    {'col': 4, 'row': 5}
+    ```
+- 例２（該当する引数がない場合）
+  - Python  
+    ```python
+    def test(*args, **kwargs):
+        print(args)
+        print(kwargs)
+
+    test()
+    ```
+  - Output  
+    ```shell
+    ()
+    {}
+    ```
+- 例３（`**kwargs`かkeyとvalueを受け取る）
+  - Python  
+    ```python
+    def print_info(**kwargs):
+        for key, value in kwargs.items():
+            print(f"{key}: {value}")
+
+    print_info(name="Alice", age=30, city="New York")
+    ```
+  - Output  
+    ```shell
+    name: Alice
+    age: 30
+    city: New York
+    ```
+- 例４（`**kwargs`で受け取ったdictにkey,valueペアを追加）
+  - Python  
+    ```python
+    def add_to_kwargs(**kwargs):
+        # 新しいkey-valueペアを追加
+        kwargs['new_key'] = 'new_value'
+        
+        # 別の方法で追加
+        kwargs.update({'another_key': 'another_value'})
+        
+        # 結果を表示
+        for key, value in kwargs.items():
+            print(f"{key}: {value}")
+
+    # 関数を呼び出し
+    add_to_kwargs(existing_key='existing_value', foo='bar')
+    ```
+  - Output  
+    ```shell
+    existing_key: existing_value
+    foo: bar
+    new_key: new_value
+    another_key: another_value
+    ```
