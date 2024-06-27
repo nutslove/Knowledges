@@ -148,7 +148,7 @@ print(index) --> 2が出力
 ### 異なるディレクトリ内の別ファイルをimportする場合
 - 相対import  
   ```python
-  from . import module  # 同じディレクトリ
+  import module  # 同じディレクトリ
   from .. import module  # 親ディレクトリ
   from ..somedirectory import module  # 親ディレクトリの中のsomedirectoryからのインポート
   from ...somedirectory import module  # 2つ上の親ディレクトリの中のsomedirectoryからのインポート
