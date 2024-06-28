@@ -61,7 +61,7 @@ decorated_func()
 
     def my_decorator(func):
         @wraps(func)
-        def wrapper(*args, **kwargs):
+        def wrapper(*args, **kwargs): ★こういうふうに呼び出し側の引数と関係なく(*args, **kwargs)で受け付けることもできる
             print("Before the function call")
             result = func(*args, **kwargs)
             print("After the function call")
