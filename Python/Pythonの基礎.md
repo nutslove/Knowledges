@@ -186,7 +186,7 @@ print(index) --> 2が出力
     ()
     {}
     ```
-- 例３（`**kwargs`かkeyとvalueを受け取る）
+- 例３（`**kwargs`から１つずつkeyとvalueを受け取る）
   - Python  
     ```python
     def print_info(**kwargs):
@@ -201,7 +201,19 @@ print(index) --> 2が出力
     age: 30
     city: New York
     ```
-- 例４（`**kwargs`で受け取ったdictにkey,valueペアを追加）
+- 例４（`**kwargs`から特定のKeyのValueを取り出す）
+  - `kwargs.get('<対象Key名>')`と`kwargs['<対象Key名>']`の２通りのやり方がある
+    - `kwargs.get`は`kwargs.get('<対象Key名>', '<対象Keyのものがない場合のdefault値>')`でdefault値を定義することもできる
+    ```python
+    def extract_key(**kwargs):
+        value = kwargs.get('key_name', 'default_value')
+        print(f"The value is: {value}")
+
+    # 使用例
+    extract_key(key_name='example', other_key='other_value')  # The value is: example
+    extract_key(other_key='other_value')  # The value is: default_value
+    ```
+- 例５（`**kwargs`で受け取ったdictにkey,valueペアを追加）
   - Python  
     ```python
     def add_to_kwargs(**kwargs):
