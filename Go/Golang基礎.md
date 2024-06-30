@@ -859,9 +859,12 @@ updates go.mod to require those versions, and downloads source code into the mod
       "Lee",
       32
     }
-    var stringer Stringer
 
-    stringer = student // 
+    stringer := Stringer(student)
+    // 以下のようにinterface型の変数を定義し、structインスタンスを代入することもできるが、上記の書き方がより多く使われるらしい
+    // var stringer Stringer
+    // stringer = student
+
     fmt.Printf("%s\n", stringer.String())
   }
   ~~~
