@@ -237,3 +237,28 @@ print(index) --> 2が出力
     new_key: new_value
     another_key: another_value
     ```
+
+## `isinstance()`関数によるobjectの型判定
+- https://docs.python.org/ja/3/library/functions.html#isinstance
+- `isinstance(object, classinfo)`の形で、第１引数で指定した`object`が、第２引数で指定した`classinfo`型(またはそのサブクラスのインスタンス)である場合`True`を返す。`object`が`classinfo`型のオブジェクトでない場合`False`を返す。
+
+### `isinstance()`関数と`type()`関数の違い
+- https://qiita.com/Ryo-0131/items/c5c650359ab8ce10b507
+- isinstance()は継承関係を考慮して型をチェックするのに対し、type()はオブジェクトの型そのものを返す関数なので、サブクラスまで考慮したい場合はisinstance()を使うこと。
+- 比較例  
+  ```python
+  class Fruit:
+      pass
+
+  class Apple(Fruit):
+      pass
+
+  obj_fruit = Fruit()
+  obj_apple = Apple()
+
+  print(isinstance(obj_fruit, Apple))  # False
+  print(type(obj_fruit) == Apple)      # False
+
+  print(isinstance(obj_apple, Fruit))  # True
+  print(type(obj_apple) == Fruit)      # False
+  ```
