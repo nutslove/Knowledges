@@ -1034,7 +1034,7 @@ updates go.mod to require those versions, and downloads source code into the mod
 ### Type assertions
 - `interface{}`型の変数に割り当てた値は、実行(ランタイム)時にその値の実際の型(e.g. string、int)に変換して使う必要があり、その型変換機能をType assertionsという
 - 書き方
-  `<interface{}型の値が入っている変数名>.(変換したい型)`
+  - `<interface{}型変数名>.(変換したい型)`
 - ２つ目の戻り値のための変数を用意すると`interface{}`型に格納された値が変換したい型に一致すれば`true`が、一致しなければ`false`が返ってくる。  
   １つ目の戻り値には変換したい型のzero valueが返ってくる。  
   ２つ目の戻り値のための変数を用意してない場合は、`interface{}`型に格納された値が変換したい型に一致しないとpanicになる。
