@@ -1034,11 +1034,12 @@ updates go.mod to require those versions, and downloads source code into the mod
 ### Type assertions
 - `interface{}`型の変数に割り当てた値は、実行(ランタイム)時にその値の実際の型(e.g. string、int)に変換して使う必要があり、その型変換機能をType assertionsという
 - 書き方
-  - `<interface{}型変数名>.(変換したい型)`
+  - `<interface{}型変数>.(変換したい型)`
 - ２つ目の戻り値のための変数を用意すると`interface{}`型に格納された値が変換したい型に一致すれば`true`が、一致しなければ`false`が返ってくる。  
   １つ目の戻り値には変換したい型のzero valueが返ってくる。  
   ２つ目の戻り値のための変数を用意してない場合は、`interface{}`型に格納された値が変換したい型に一致しないとpanicになる。
-
+- `switch`文にて`<interface{}型変数>.(type)`で`interface{}`内の型による分岐処理を実装できる
+  - `<interface{}型変数>.(type)`は現在のデータ型を返す
 ```go
 func main() {
 	var i interface{} = "hello"
@@ -1058,6 +1059,25 @@ func main() {
   // 型チェック
   if v, ok := i.(string); ok {
     fmt.Println(v) // "hello"
+  }
+  
+}
+
+// swhitch文と`<interface{}型変数>.(type)`で型チェック
+func checkType(arg interface{}) {
+  switch arg.(type) {
+  case bool:
+    fmt.Println("This is a bool", arg)
+  case int, int8, int16, int32, int64:
+    fmt.Println("This is a int", arg)
+  case float64:
+    fmt.Println("This is a float", arg)
+  case string:
+    fmt.Println("This is a string", arg)
+  case nil:
+    fmt.Println("This is a nil", arg)
+  default:
+    fmt.Println("Unknown Type", arg)
   }
 }
 ```
