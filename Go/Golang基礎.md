@@ -1038,6 +1038,7 @@ updates go.mod to require those versions, and downloads source code into the mod
 - ２つ目の戻り値のための変数を用意すると`interface{}`型に格納された値が変換したい型に一致すれば`true`が、一致しなければ`false`が返ってくる。  
   １つ目の戻り値には変換したい型のzero valueが返ってくる。  
   ２つ目の戻り値のための変数を用意してない場合は、`interface{}`型に格納された値が変換したい型に一致しないとpanicになる。
+
 ```go
 func main() {
 	var i interface{} = "hello"
@@ -1053,9 +1054,42 @@ func main() {
 
 	f = i.(float64) // panic
 	fmt.Println(f)
+
+  // 型チェック
+  if v, ok := i.(string); ok {
+    fmt.Println(v) // "hello"
+  }
 }
 ```
 
+### `reflect.TypeOf()`による`interface{}`に割り当てられた値の型確認
+- `reflect`パッケージの`TypeOf()`メソッドで、`interface{}`型に格納された値の実際の型を確認できる
+  ```go
+  var a interface{} = 15
+  b := a
+  c := a.(int)
+
+  fmt.Println("a type:", reflect.TypeOf(a)) // int
+  fmt.Println("b type:", reflect.TypeOf(b)) // int
+  fmt.Println("c type:", reflect.TypeOf(c)) // int
+  ```
+- もちろん普通の型確認にも使える
+  ```go
+  import (
+      "fmt"
+      "reflect"
+  )
+
+  func main() {
+      var x int = 10
+      var y string = "hello"
+      var z float64 = 3.14
+
+      fmt.Println(reflect.TypeOf(x)) // "int"
+      fmt.Println(reflect.TypeOf(y)) // "string"
+      fmt.Println(reflect.TypeOf(z)) // "float64"
+  }
+  ```
 
 ## CallBack
 - 引数として関数を引き渡すこと
