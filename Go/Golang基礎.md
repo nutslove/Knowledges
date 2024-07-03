@@ -3292,6 +3292,27 @@ fmt.Println(x)  // 10が出力される
   // true
   ```
 
+## 文字列の分割
+- `strings`パッケージの`Split`関数で文字列を特定の区切り文字でスライスに分割して格納することができる
+  - `Split`関数の第１引数に分割対象の文字列、第２引数に区切り文字を指定
+```go
+import (
+    "fmt"
+    "strings"
+)
+
+func main() {
+    str := "a b"
+    result := strings.Split(str, " ")
+    
+    fmt.Println(result) // 出力: [a b]
+    
+    // 個別の要素にアクセスする場合
+    fmt.Println(result[0]) // 出力: a
+    fmt.Println(result[1]) // 出力: b
+}
+```
+
 ## `error`型の戻り値を返す方法
 1. `errors.New()`を使う  
    ```go
