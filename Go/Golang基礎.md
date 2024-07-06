@@ -3324,6 +3324,17 @@ func main() {
 }
 ```
 
+## 文字列の連結
+- `+`で連結できる
+  ```go
+  func main() {
+    string1 := "something"
+    string2 := "cool"
+    combine := string1 + string2
+    fmt.Println(combine) // "somethingcool"
+  }
+  ```
+
 ## `error`型の戻り値を返す方法
 1. `errors.New()`を使う  
    ```go
