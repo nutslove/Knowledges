@@ -2822,6 +2822,18 @@ func main() {
 - 組み込みの関数であり、スライス（slice）、マップ（map）、チャネル（channel）を作成するために使用される
 - `make`関数を使用することで、これらのデータ構造を適切に初期化し、メモリを割り当てることができる。`make`を使用せずに宣言すると`nil`の値が割り当てられ、使用前に初期化する必要がある。  
   また、`make`はこれらのデータ構造に特化した関数であり、他の型の変数を作成するためには使用できない。他の型の変数を作成する場合は、`var`による宣言や`:=`を使用した短い宣言などを使用する。
+  - 例  
+    ```go
+    func main() {
+      map1 := make(map[string]int)
+      map1["key1"] = 1
+      fmt.Println("map1:", map1) // "map1: map[key1:1]" が出力
+
+      var map2 map[string]int
+      map2["key2"] = 2 // "panic: assignment to entry in nil map" とPanicになる
+      fmt.Println("map2:", map2)
+    }
+    ```
 
 #### スライス（slice）の作成
 ```go
@@ -2843,7 +2855,6 @@ ch := make(chan elementType, bufferSize)
 ```
 - `elementType`はチャネルを通して送受信される要素の型を指定
 - `bufferSize`はチャネルのバッファサイズ（オプション）を指定。省略するとバッファなしのチャネルが作成される。
-
 
 ## 各型のデフォルト値(Zero Value)
 - int  
@@ -3332,3 +3343,62 @@ func main() {
        return fmt.Errorf("エラーメッセージ: %v", someValue)
    }
    ```
+
+## 標準入力を受け付けて処理
+### `fmt.Scan`を使う方法
+```go
+package main
+
+import "fmt"
+
+func main() {
+    var input string
+    fmt.Scan(&input)
+    fmt.Printf("入力された文字列: %s\n", input)
+}
+```
+
+### `bufio.Scanner`を使う方法
+```go
+package main
+
+import (
+    "bufio"
+    "fmt"
+    "os"
+)
+
+func main() {
+    scanner := bufio.NewScanner(os.Stdin)
+    fmt.Print("文字列を入力してください: ")
+    scanner.Scan()
+    input := scanner.Text()
+    fmt.Printf("入力された文字列: %s\n", input)
+}
+```
+
+### `bufio.Scanner`を使う方法（Ctrl+Dや特定の文字入力まで入力を受け付け続ける）
+```go
+package main
+
+import (
+    "bufio"
+    "fmt"
+    "os"
+)
+
+func main() {
+    scanner := bufio.NewScanner(os.Stdin)
+    fmt.Println("複数行の入力を受け付けます。終了するには Ctrl+D を押してください:")
+    for scanner.Scan() {
+        line := scanner.Text()
+        if line == "x" || line == "exit" {
+            break
+      	}
+        fmt.Printf("入力された行: %s\n", line)
+    }
+    if err := scanner.Err(); err != nil {
+        fmt.Fprintln(os.Stderr, "読み込みエラー:", err)
+    }
+}
+```
