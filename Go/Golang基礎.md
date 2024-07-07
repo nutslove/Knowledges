@@ -2844,10 +2844,14 @@ slice := make([]int, length, capacity)
 
 #### マップ（map）の作成
 ```go
-m := make(map[keyType]valueType)
+m := make(map[keyType]valueType, capacity)
 ```
 - `keyType`はマップのキーの型を指定
 - `valueType`はマップの値の型を指定
+- `capacity`は容量（オプション）を指定。省略した場合はデフォルトの小さな容量で初期化される
+  - mapのサイズが大きくなるにつれて自動的に拡張
+  - 小さなmapや、サイズが不明な場合に適している
+  - 指定した場合は、指定した容量に基づいて内部メモリが事前に割り当てられる。パフォーマンスの最適化に役立つ。特に大きなmapを作成する場合に有効。
 
 #### チャネル（channel）の作成
 ```go
