@@ -3335,6 +3335,81 @@ func main() {
   }
   ```
 
+## 小文字 ⇔ 大文字変換
+1. `strings.ToUpper()` と `strings.ToLower()` 関数を使う方法  
+  - 引数と戻り値ともに`string`型  
+  ```go
+  import "strings"
+
+  str := "Hello, World!"
+  upper := strings.ToUpper(str) // "HELLO, WORLD!"
+  lower := strings.ToLower(str) // "hello, world!"
+  ```
+
+2. `unicode.ToLower()`と`unicode.ToUpper()`関数を使う方法  
+  - 引数と戻り値ともに`rune`型
+    - `rune`型
+       - Goの組み込み型の一つで、Unicode文字（コードポイント）を表す
+       - int32型のエイリアス
+       - 1つのUnicodeコードポイントを表現  
+         ```go
+          var r rune = 'A'
+          fmt.Printf("%c %d %T\n", r, r, r)
+          // 出力: A 65 int32
+         ```
+       - 文字列に対してrange文を使うと、自動的にrune型の値が得らる  
+         ```go
+          for _, r := range "Hello" {
+              fmt.Printf("%c ", r)
+          }
+          // 出力: H e l l o
+         ```
+  ```go
+  func main() {
+    var result string
+    s1 := "Hello"
+    for _, r := range s1 {
+        if unicode.IsUpper(r) {
+            result = result + string(unicode.ToLower(r))
+        } else {
+            result = result + string(unicode.ToUpper(r))
+        }
+    }
+    fmt.Println(result) // hELLO
+  }
+
+  ```
+
+### 文字が大文字か小文字かを確認
+#### `unicode.IsUpper()`、`unicode.IsLower()`関数で1文字ずつ確認  
+```go
+func main() {
+  s1 := "HellO"
+  for _, r := range s1 {
+      if unicode.IsUpper(r) {
+          fmt.Println("It is Upper")
+      } else if unicode.IsLower(r) {
+          fmt.Println("It is Lower")
+      }
+  }
+}
+```
+#### `regexp` パッケージを使用して、正規表現で確認
+```go
+import (
+    "fmt"
+    "regexp"
+)
+
+func main() {
+    text := "The quick brown fox jumps over the lazy dog"
+    pattern := `[A-Z]`
+
+    matched, _ := regexp.MatchString(pattern, text)
+    fmt.Println(matched) // true（最初のT）
+}
+```
+
 ## `error`型の戻り値を返す方法
 1. `errors.New()`を使う  
    ```go
