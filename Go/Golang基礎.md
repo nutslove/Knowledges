@@ -3425,7 +3425,8 @@ fmt.Println(x)  // 10が出力される
     }
     ```
 
-## 文字列検索
+## 文字列操作
+### 文字列検索
 - `strings`パッケージの`Contains`関数である文字列(変数)の中に特定の文字列が含まれているか確認することができる
   - `Contains`関数の戻り値は`bool`型で含まれているときは`true`、含まれてないときは`false`が返される
 - 例  
@@ -3449,7 +3450,7 @@ fmt.Println(x)  // 10が出力される
   // true
   ```
 
-## 文字列の分割
+### 文字列の分割
 - `strings`パッケージの`Split`関数で文字列を特定の区切り文字でスライスに分割して格納することができる
   - `Split`関数の第１引数に分割対象の文字列、第２引数に区切り文字を指定
 ```go
@@ -3470,7 +3471,7 @@ func main() {
 }
 ```
 
-## 文字列の連結
+### 文字列の連結
 - `+`で連結できる
   ```go
   func main() {
@@ -3481,7 +3482,7 @@ func main() {
   }
   ```
 
-## 小文字 ⇔ 大文字変換
+### 小文字 ⇔ 大文字変換
 1. `strings.ToUpper()` と `strings.ToLower()` 関数を使う方法  
   - 引数と戻り値ともに`string`型  
   ```go
@@ -3510,6 +3511,15 @@ func main() {
           }
           // 出力: H e l l o
          ```
+         ```go
+         func solution(str1 string, str2 string) string {
+             var sumstr string
+             for i,_ := range str1 {
+                 sumstr += string(str1[i]) + string(str2[i])         
+             }
+             return sumstr
+         }
+         ```
   ```go
   func main() {
     var result string
@@ -3523,7 +3533,6 @@ func main() {
     }
     fmt.Println(result) // hELLO
   }
-
   ```
 
 ### 文字が大文字か小文字かを確認
@@ -3556,7 +3565,15 @@ func main() {
 }
 ```
 
-## 特殊文字をそのまま出力させる
+### ある文字列をN回繰り返してくっつける
+- `strings`パッケージの`strings.Repeat`を使用  
+  ```go
+  import "strings"
+
+  repeatedString := strings.Repeat("元の文字列", N)
+  ```
+
+### 特殊文字をそのまま出力させる
 - `` で囲むと特殊文字を解釈せずそのまま出力してくれる  
   ```go
   func main() {
