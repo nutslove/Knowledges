@@ -3213,9 +3213,10 @@ fmt.Println(x)  // 10が出力される
    ~~~go
    変数, err = strconv.Atoi(string)
    ~~~
-  2. 数値(Int) → 文字列(Ascii)
+  2. 数値(Int) → 文字列(Ascii)  
+     ※**数値(Int) → 文字列(Ascii)の変換は常に成功するため、エラー値(第２戻り値)はない**
    ~~~go
-   変数, err = strconv.Itoa(int)
+   変数 = strconv.Itoa(int)
    ~~~
 
 #### byteスライスから文字列に変換
