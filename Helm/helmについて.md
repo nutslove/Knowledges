@@ -1,3 +1,6 @@
+## Helmリポジトリを追加
+- `helm repo add <Repo名> <RepoのURL>`
+
 ## Chartのテンプレート
 - `helm pull <Chart名> --untar `でインストールせず、templatesやvalues.yml等をダウンロードすることができる
   - e.g. `helm pull grafana/loki-distributed --version 0.69.9 --untar`
