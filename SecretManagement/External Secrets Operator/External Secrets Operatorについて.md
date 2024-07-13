@@ -57,7 +57,7 @@ kubectl apply -k "https://raw.githubusercontent.com/external-secrets/external-se
     metadata:
       name: my-external-secret
     spec:
-      refreshInterval: "1h"
+      refreshInterval: "1h" ## External Secrets OperatorがSecretStoreからsecretを再取得する間隔
       secretStoreRef:
         name: vault-backend ## SecretStoreのmetadata.nameの値
         kind: SecretStore
@@ -65,11 +65,20 @@ kubectl apply -k "https://raw.githubusercontent.com/external-secrets/external-se
         name: my-secret ## Secretリソースmy-secretとして管理される
         creationPolicy: Owner
       data:
-        - secretKey: my-key
+        - secretKey: my-key1 ## KubernetesのSecretリソース内のkey名（Pod側で指定）
           remoteRef:
             key: path/to/secret ## Vaultのパス
-            property: my-secret-key ## my-secret-keyの値が取得される 
+            property: my-access-key ## my-access-keyの値が取得される（Vault内のsecretのkey名）
+        - secretKey: my-key2 ## KubernetesのSecretリソース内のkey名（Pod側で指定）
+          remoteRef:
+            key: path/to/secret ## Vaultのパス
+            property: my-secret-key ## my-secret-keyの値が取得される（Vault内のsecretのkey名）
     ```
+    - **Secrets Engineのversionが2の場合、pathのEngineの次に`/data/`を追加する必要がある。例えばSecrets Engineが`secret/`で、パスが`secret/minio/config`の場合、`secret/data/minio/config`にする必要がある**
+    - `creationPolicy`には、`Secret`リソースをどのように管理するかを指定
+        - `Owner`: ExternalSecretが作成したSecretリソースの所有者として振る舞い、ExternalSecretが削除されると、関連するSecretリソースも削除される。
+        - `Merge`: ExternalSecretがSecretリソースを作成または更新し、既存のキーと値を維持する。
+        - `None`: Secretリソースの作成や更新を行わず、既存のリソースを変更しない。
 - Pod(Deployment)でSecretを環境変数として参照
     ```yaml
     apiVersion: v1
@@ -80,7 +89,15 @@ kubectl apply -k "https://raw.githubusercontent.com/external-secrets/external-se
       containers:
       - name: my-container
         image: my-image
-        envFrom:
-        - secretRef:
-            name: my-secret ## ExternalSecretのspec.target.nameの値
+        env:
+        - name: envname1 ## 環境変数名
+          valueFrom:
+            secretKeyRef:
+              name: my-secret ## ExternalSecretのspec.target.nameの値
+              key: my-key1 ## ExternalSecretのspec.data.secretKeyの値
+        - name: envname2 ## 環境変数名
+          valueFrom:
+            secretKeyRef:
+              name: my-secret ## ExternalSecretのspec.target.nameの値
+              key: my-key2 ## ExternalSecretのspec.data.secretKeyの値
     ```

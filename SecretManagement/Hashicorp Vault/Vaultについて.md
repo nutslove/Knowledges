@@ -45,9 +45,10 @@
     - `vault secrets enable -path=<有効にしたいpath> kv`
     - 以下の例だと`secret`パスが有効になり、`secret/myapp/config`などのパスにsecretを追加できる
         ```shell
-        vault secrets enable -path=secret kv
+        vault secrets enable -version=2 -path=secret kv
         ## Success! Enabled the kv secrets engine at: secret/
         ```
+    - 無効化は`vault secrets disable <path>`
 - secretを追加
     - `vault kv put <任意のsecretのパス(e.g. secret/minio/config)> <key=value [key=value]>`    
     ```shell
