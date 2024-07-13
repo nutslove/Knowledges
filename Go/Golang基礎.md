@@ -2844,10 +2844,14 @@ slice := make([]int, length, capacity)
 
 #### マップ（map）の作成
 ```go
-m := make(map[keyType]valueType)
+m := make(map[keyType]valueType, capacity)
 ```
 - `keyType`はマップのキーの型を指定
 - `valueType`はマップの値の型を指定
+- `capacity`は容量（オプション）を指定。省略した場合はデフォルトの小さな容量で初期化される
+  - mapのサイズが大きくなるにつれて自動的に拡張
+  - 小さなmapや、サイズが不明な場合に適している
+  - 指定した場合は、指定した容量に基づいて内部メモリが事前に割り当てられる。パフォーマンスの最適化に役立つ。特に大きなmapを作成する場合に有効。
 
 #### チャネル（channel）の作成
 ```go
@@ -3209,9 +3213,10 @@ fmt.Println(x)  // 10が出力される
    ~~~go
    変数, err = strconv.Atoi(string)
    ~~~
-  2. 数値(Int) → 文字列(Ascii)
+  2. 数値(Int) → 文字列(Ascii)  
+     ※**数値(Int) → 文字列(Ascii)の変換は常に成功するため、エラー値(第２戻り値)はない**
    ~~~go
-   変数, err = strconv.Itoa(int)
+   変数 = strconv.Itoa(int)
    ~~~
 
 #### byteスライスから文字列に変換
@@ -3421,7 +3426,8 @@ fmt.Println(x)  // 10が出力される
     }
     ```
 
-## 文字列検索
+## 文字列操作
+### 文字列検索
 - `strings`パッケージの`Contains`関数である文字列(変数)の中に特定の文字列が含まれているか確認することができる
   - `Contains`関数の戻り値は`bool`型で含まれているときは`true`、含まれてないときは`false`が返される
 - 例  
@@ -3445,7 +3451,7 @@ fmt.Println(x)  // 10が出力される
   // true
   ```
 
-## 文字列の分割
+### 文字列の分割
 - `strings`パッケージの`Split`関数で文字列を特定の区切り文字でスライスに分割して格納することができる
   - `Split`関数の第１引数に分割対象の文字列、第２引数に区切り文字を指定
 ```go
@@ -3466,7 +3472,7 @@ func main() {
 }
 ```
 
-## 文字列の連結
+### 文字列の連結
 - `+`で連結できる
   ```go
   func main() {
@@ -3477,7 +3483,7 @@ func main() {
   }
   ```
 
-## 小文字 ⇔ 大文字変換
+### 小文字 ⇔ 大文字変換
 1. `strings.ToUpper()` と `strings.ToLower()` 関数を使う方法  
   - 引数と戻り値ともに`string`型  
   ```go
@@ -3506,6 +3512,15 @@ func main() {
           }
           // 出力: H e l l o
          ```
+         ```go
+         func solution(str1 string, str2 string) string {
+             var sumstr string
+             for i,_ := range str1 {
+                 sumstr += string(str1[i]) + string(str2[i])         
+             }
+             return sumstr
+         }
+         ```
   ```go
   func main() {
     var result string
@@ -3519,7 +3534,6 @@ func main() {
     }
     fmt.Println(result) // hELLO
   }
-
   ```
 
 ### 文字が大文字か小文字かを確認
@@ -3552,7 +3566,15 @@ func main() {
 }
 ```
 
-## 特殊文字をそのまま出力させる
+### ある文字列をN回繰り返してくっつける
+- `strings`パッケージの`strings.Repeat`を使用  
+  ```go
+  import "strings"
+
+  repeatedString := strings.Repeat("元の文字列", N)
+  ```
+
+### 特殊文字をそのまま出力させる
 - `` で囲むと特殊文字を解釈せずそのまま出力してくれる  
   ```go
   func main() {
