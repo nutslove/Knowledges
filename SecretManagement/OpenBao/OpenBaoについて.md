@@ -1,0 +1,3 @@
+- Hashicorp VaultからforkされたLinux Foundation管理下のSecret管理のためのOSS
+    - https://openbao.org/
+    - https://github.com/openbao/openbao/tree/main?tab=readme-ov-file
