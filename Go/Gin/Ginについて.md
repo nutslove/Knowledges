@@ -25,6 +25,55 @@
     </html>
     ~~~
 
+### Baseテンプレートの定義と使い分け
+- https://gin-gonic.com/docs/examples/html-rendering/
+- 参照先となるテンプレート(`*.tmpl`)にて`{{ define "<任意の名前>" }}`でベースを定義し、参照元のテンプレートにて`{{ template "<template名>" <参照先テンプレートファイル階層> }}`でインポートしたうえで追加の情報を上書きする
+- 例（`index.tmpl`で`header.tmpl`をベースにし、独自の追加情報(以下の例だと"Hello")を上書き）
+  - `header.tmpl`  
+    ```html
+    {{ define "header" }}
+    <div class="logo" style="background-color: #D2C7AB; color: white;">
+        <img src="/static/images/santa.png" alt="logo">
+        <h1>TechCareer Talk</h1>
+        <nav>
+            <a href="/" style="color: white;">Documentation</a>
+            <a href="/blog" style="color: white; margin-left: 10px;">Blog</a>
+            <a href="/english" style="color: white; margin-left: 10px;">English</a>
+            <input type="text" placeholder="Search this site..." style="margin-left: 10px;">
+        </nav>
+    </div>
+    {{ end }}
+    ```
+  - `base.tmpl`  
+    ```html
+    {{ define "top" }}
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="UTF-8">
+      <title>TechCareer Talk</title>
+      <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+      <link rel="stylesheet" href="/static/css/style.css">
+    </head>
+    <body>
+      <header>
+        {{ template "header" . }}
+      </header>
+    {{ end }}
+    {{ define "bottom" }}
+    </body>
+    </html>
+    {{ end }}
+    ```
+  - `index.tmpl`  
+    ```html
+    {{ template "top" . }}
+    <div class="container mt-5">
+        Hello
+    </div>
+    {{ template "bottom" . }}
+    ```
+
 ## 使い方
 ~~~go
 import (
