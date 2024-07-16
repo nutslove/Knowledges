@@ -18,3 +18,8 @@
     - e.g. `helm search repo grafana/loki-distributed --versions`
 - Chartバージョンアップ
   - `helm repo update`
+
+## 自作のHelmチャート/リポジトリ作成方法
+- `charts`ディレクトリがあるところで`helm package charts/<チャート名>`コマンドでHelmチャートの`*.tgz`にアーカイブする（e.g. `helm package charts/opensearch`）
+- `*.tgz`があるディレクトリで`helm repo index . --url <HelmリポジトリURL>`で`index.yaml`を生成
+- Nginx/ApacheなどのWebサーバやS3/SwiftなどのObject Storageに`*.tgz`と`index.yaml`をアップロードして、`index.yaml`内の`urls`の値をそのエンドポイントに修正
