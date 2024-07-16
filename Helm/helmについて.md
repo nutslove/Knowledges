@@ -1,3 +1,6 @@
+- `helm create <Helmチャート名>`で`<Helmチャート名>`ディレクトリと、その中に`charts`、`templates`ディレクトリと`Chart.yaml`、`values.yaml`などが作成される
+  - nginxのHelmチャートが作成される
+
 ## Helmリポジトリを追加
 - `helm repo add <Repo名> <RepoのURL>`
 
