@@ -21,7 +21,7 @@
 
 ## 自作のHelmチャート/リポジトリ作成方法
 - `charts`ディレクトリがあるところで`helm package charts/<チャート名>`コマンドでHelmチャートの`*.tgz`にアーカイブする（e.g. `helm package charts/opensearch`）
-  - `charts/<チャート名>/Chart.yaml`ファイルにある`version`、`appVersion`をもとに作成される
+  - `charts/<チャート名>/Chart.yaml`ファイルにある`version`、`appVersion`などをもとに作成される
 
 - `*.tgz`があるディレクトリで`helm repo index . --url <HelmリポジトリURL>`で`index.yaml`を生成
   - `*.tgz`をもとに作成される
