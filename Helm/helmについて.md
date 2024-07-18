@@ -13,6 +13,9 @@
 ## `helm install` or `helm upgrade`時に特定のChartバージョンを使いたい場合は`--version`フラグで指定する
 - e.g. `helm upgrade multi-tenant grafana/loki-distributed --version 0.69.9 --namespace=monitoring --values=loki-2.7.yml`
 
+## テンプレート内でのif文
+- 
+
 ## Helm各種コマンド
 - repoリスト表示
   - `helm repo list`
