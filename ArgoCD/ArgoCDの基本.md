@@ -30,8 +30,8 @@
   spec:
     project: default
     source:
-      chart: sealed-secrets -----------------------------------> Helm chart名（loki microserviceモードの場合「grafana/loki-distributed」）
-      repoURL: https://bitnami-labs.github.io/sealed-secrets ---> Helm Chart gitリポジトリのURL（lokiの場合「https://grafana.github.io/helm-charts」）
+      chart: sealed-secrets ---> Helm chart名
+      repoURL: https://bitnami-labs.github.io/sealed-secrets
       targetRevision: 1.16.1 --> 使用するHelm Chartバージョン(「helm search repo <Helm chart名> --versions」で確認可能)
       helm:
         releaseName: sealed-secrets ----> Helmリリース名
@@ -43,7 +43,9 @@
   ~~~
 
 > [!NOTE]  
-> `repoURL`に指定するのは`charts`ディレクトリや`Chart.yaml`等があるgitリポジトリではなく、**`index.yaml`と`*.tgz`ファイルがあるWebサーバやObject Storageのエンドポイント**
+> - `repoURL`に指定するのは`charts`ディレクトリや`Chart.yaml`等があるgitリポジトリではなく、**`index.yaml`と`*.tgz`ファイルがあるWebサーバやObject Storageのエンドポイント**
+> - `chart`には`index.yaml`の`entries`の下の階層のチャート名を指定
+> - `targetRevision`には`index.yaml`の`version`の部分のチャートVersionを指定
 
 ### **Helm ChartとValues fileが別々のGit Repositoryにある場合の設定方法**
 - https://argo-cd.readthedocs.io/en/stable/user-guide/multiple_sources/#helm-value-files-from-external-git-repository
