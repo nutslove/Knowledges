@@ -42,6 +42,9 @@
       namespace: kubeseal
   ~~~
 
+> [!NOTE]  
+> `repoURL`に指定するのは`charts`ディレクトリや`Chart.yaml`等があるgitリポジトリではなく、**`index.yaml`と`*.tgz`ファイルがあるWebサーバやObject Storageのエンドポイント**
+
 ### **Helm ChartとValues fileが別々のGit Repositoryにある場合の設定方法**
 - https://argo-cd.readthedocs.io/en/stable/user-guide/multiple_sources/#helm-value-files-from-external-git-repository
 - これで3rd partyのHelm Chart(e.g. Loki Helm chart)と自組織Git Repository上のvalues fileを組み合わせることができる
@@ -103,7 +106,6 @@
               hosts:
                 - mydomain.example.com
   ~~~
-
 
 ## その他
 - `targetRevision: HEAD`はデフォルトのブランチ(masterまたはmain)を意味する
