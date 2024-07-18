@@ -35,4 +35,6 @@
 - **デフォルトでは`helm repo index`コマンドは既存の`index.yaml`を上書きしてしまうため、既存の内容を残して新しい内容を追記するためには既存の`index.yaml`を退避しといて`--merge`フラグでそれを指定する必要がある。**
   - **`helm repo index . --url <HelmリポジトリURL> --merge <退避しといた既存のindex.yaml>`**
 
+- チャートを更新し、`*.tgz`と`index.yaml`を更新した場合は、`helm chart update`で反映が必要
+
 - Nginx/ApacheなどのWebサーバやS3/SwiftなどのObject Storageに`*.tgz`と`index.yaml`をアップロードして、`index.yaml`内の`urls`の値をそのエンドポイントに修正
