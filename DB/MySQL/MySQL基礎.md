@@ -45,3 +45,9 @@
         PRIMARY KEY (product_code, product_name)
     );
     ```
+- Table削除
+  - `DROP TABLE <Table名>[, <Table名>];`
+  - `DROP TABLE IF EXISTS <Table名>;`
+- Tableのカラム情報確認
+  - `DESCRIBE <Table名>;`
+  - `SHOW COLUMNS FROM <Table名>;`
