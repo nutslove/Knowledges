@@ -17,6 +17,9 @@
 - 作成中・・・
 
 ## HelmチャートのApplications登録方法
+- `index.yaml`と`*.tgz`があるHelmリポジトリを使う方法と、`charts`ディレクトリや`Chart.yaml`があるGitリポジトリを使う方法がある
+
+### `repoURL`に`index.yaml`と`*.tgz`があるWebサーバ/Object Storageのエンドポイントを指定する場合
 - https://argo-cd.readthedocs.io/en/stable/user-guide/helm/
 - argocdバージョン2.6前までは、values fileは必ずHelm chartと同じgit repositoryに存在している必要があったが、2.6からは別のrepository上のvalues fileも扱えるようになった。  
   > Before v2.6 of Argo CD, Values files must be in the same git repository as the Helm chart. The files can be in a different location in which case it can be accessed using a relative path relative to the root directory of the Helm chart. As of v2.6, values files can be sourced from a separate repository than the Helm chart by taking advantage of multiple sources for Applications.
@@ -47,7 +50,7 @@
 > - `chart`には`index.yaml`の`entries`の下の階層のチャート名を指定
 > - `targetRevision`には`index.yaml`の`version`の部分のチャートVersionを指定
 
-### **Helm ChartとValues fileが別々のGit Repositoryにある場合の設定方法**
+#### **Helm ChartとValues fileが別々のGit Repositoryにある場合の設定方法**
 - https://argo-cd.readthedocs.io/en/stable/user-guide/multiple_sources/#helm-value-files-from-external-git-repository
 - これで3rd partyのHelm Chart(e.g. Loki Helm chart)と自組織Git Repository上のvalues fileを組み合わせることができる
 - 設定例
@@ -67,6 +70,47 @@
       ref: values
   ~~~  
   > In the above example, the prometheus chart will use the value file from git.example.gom/org/value-files.git. \$values resolves to the root of the value-files repository. The $values variable may only be specified at the beginning of the value file path.
+
+### `repoURL`にGitリポジトリを指定する場合
+- **`targetRevision`にはGitリポジトリの(1)Commit ID、(2)ブランチ名、(3)tag名のいずれを指定する**
+- **Gitリポジトリの場合は、`chart`の代わりに`path`パラメータを使用。`path`にはGitリポジトリのトップディレクトリから`charts`ディレクトリへの相対パスを指定する**
+- 設定例  
+  ```yaml
+  ---
+  apiVersion: argoproj.io/v1alpha1
+  kind: Application
+  metadata:
+    name: 'opensearch'
+    namespace: openshift-gitops
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+  spec:
+    destination:
+      namespace: opensearch
+      server: https://kubernetes.default.svc
+    ignoreDifferences:
+    - jsonPointers:
+      - /spec/clusterIP
+      kind: Service
+    project: default
+    source:
+      helm:
+        values: |
+          clusterName: 'mship3'
+          nodeGroup: client
+          roles:
+            - ingest
+            　　・
+            　　・
+            　　・
+        releaseName: 'opensearch-client'
+      path: charts/opensearch
+      repoURL: https://somegitrepository/opensearch-helm-charts.git
+      targetRevision: 'opensearch-2.14.1'
+    syncPolicy:
+      automated:
+        prune: true
+  ```
 
 ### values fileを設けず、直接`Application`の中でvalueを定義することもできる
 - https://argo-cd.readthedocs.io/en/stable/user-guide/helm/#values
