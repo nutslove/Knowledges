@@ -8,19 +8,19 @@
 
 #### Tagの付与
 1. 現在のブランチを確認  
-  ```shell
-  git branch
-  ```
+   ```shell
+   git branch
+   ```
 
 2. タグを付与したいコミットに移動（最新のコミットにタグを付与する場合はこのステップをスキップ）  
-  ```shell
-  git checkout <コミットハッシュ>
-  ```
+   ```shell
+   git checkout <コミットハッシュ>
+   ```
 
 3. タグを付与  
-  ```shell
-  git tag <タグ名>
-  ```
+   ```shell
+   git tag <タグ名>
+   ```
 
   - アノテーション付きタグの場合  
     ```shell
@@ -28,11 +28,11 @@
     ```
 
 4. タグをリモートリポジトリにプッシュ（必要に応じて）
-  ```shell
-  git push origin <タグ名>
-  ```
+   ```shell
+   git push origin <タグ名>
+   ```
 
-  または、すべてのタグをプッシュする  
-  ```shell
-  git push origin --tags
-  ```
+   または、すべてのタグをプッシュする  
+   ```shell
+   git push origin --tags
+   ```
