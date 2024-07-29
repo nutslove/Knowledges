@@ -20,7 +20,9 @@
   - セッションの有効期限は`redis.NewStore`後、`store.Options()`メソッドで設定できる
     - `MaxAge`がセッションの有効期限(秒)で、`Path`がcookieが有効なURLパス (`"/"`はすべてのURLパスで有効という意味)
     - Cookie方式の場合、`MaxAge`の値でCookieの`Expire/Max-Age`が設定され、それを過ぎるとCookieが削除される（ただ、Cookieなのでユーザが編集できる）
+
 ![](./image/cookie.jpg)
+
   ```go
   package routers
 
