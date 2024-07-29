@@ -1,4 +1,4 @@
-## ECMP(Equal Cost Multi Path)とは
+## ECMP (Equal Cost Multi Path) とは
 - あるルータから見て、ある特定の目的地までの間にコストの等しい転送経路が複数存在する場合、その複数の経路にトラフィックを振り分けて負荷分散すること（等コストロードバランシング）
   - BGPで設定できる
 - https://tech.synapse.jp/entry/2021/08/16/110000
