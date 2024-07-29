@@ -89,5 +89,38 @@
 - コード例  
   - 外部セッションストアを使う場合は、Cookie(以下の例では`usersession`)のValueとしてセッションIDが保存され、そのセッションIDを持って外部セッションストアにセッションが存在するか確認する
   ```go
+  import (
+      "github.com/gin-contrib/sessions"
+      "github.com/gin-contrib/sessions/redis"
+      "github.com/gin-gonic/gin"
+      "time"
+  )
 
+  func main() {
+      r := gin.Default()
+      
+      store, _ := redis.NewStore(10, "tcp", "localhost:6379", "", []byte("secret"))
+      store.Options(sessions.Options{
+          MaxAge: 3600, // セッションの有効期限（秒）
+          Path:   "/",  // クッキーが有効なパス
+      })
+
+      r.Use(sessions.Sessions("mysession", store))
+
+      r.GET("/", func(c *gin.Context) {
+          session := sessions.Default(c)
+          // セッションの有効期限をサーバー側で確認
+          if session.Get("expiry") == nil || session.Get("expiry").(time.Time).Before(time.Now()) {
+              session.Clear()
+              session.Save()
+              c.String(401, "Session expired")
+              return
+          }
+          session.Set("expiry", time.Now().Add(30*time.Minute)) // セッションの有効期限を延長
+          session.Save()
+          c.String(200, "Hello World")
+      })
+
+      r.Run(":8080")
+  }
   ```
