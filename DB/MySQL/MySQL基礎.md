@@ -51,3 +51,6 @@
 - Tableのカラム情報確認
   - `DESCRIBE <Table名>;`
   - `SHOW COLUMNS FROM <Table名>;`
+- `datetime`タイプのカラムにinsertするときのフォーマット
+  - `'YYYY-MM-DD hh:mm:ss'`
+  - e.g. `insert into career_boards values (2, 'Want to move to new company', 'kumi', '2024-11-30 00:19:30', 7);`
