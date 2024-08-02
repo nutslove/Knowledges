@@ -3204,7 +3204,7 @@ x := 10
 fmt.Println(x)  // 10が出力される
 ```
 
-## 型変換
+## 型変換（Convert）
 #### 文字列と数値の型変換
 - `strconv`というパッケージを使って型変換を行う
 - 1目の変数には変換後の型の値が渡されて、2つ目の変数(err)には型変換に失敗した時、
@@ -3227,6 +3227,34 @@ fmt.Println(x)  // 10が出力される
   s := string(r)
   // s は "hello"
   ~~~
+
+#### intからfloat64に変換
+- `float64(<int>)`するだけ
+- 例  
+  ```go
+  package main
+
+  import "fmt"
+
+  func main() {
+      i := 5
+      f := float64(i)
+      fmt.Printf("f is %f\n", f)
+  }
+  ```
+
+#### float64からintに変換
+- `int(<float64>)`するだけ
+- 例
+  ```go
+  package main
+  import "fmt"
+  func main() {
+    var x float64 = 5.7
+    var y int = int(x)
+    fmt.Println(y)  // outputs "5"
+  }
+  ```
 
 ## `fmt.Sprintf`と`fmt.Printf`の違い
 - `fmt.Sprintf`は文字列を生成してそれを返すのに対し、`fmt.Printf`は文字列を生成してそれをコンソールに出力する。さらに、`fmt.Printf`は生成した文字列を返さない。
