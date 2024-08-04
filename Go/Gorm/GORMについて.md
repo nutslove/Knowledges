@@ -247,4 +247,8 @@ db.Where("age > ?", 18).Order("created_at DESC").Limit(10).Offset(20).Find(&user
 
 ### `Offset`と`Limit`について
 - `Limit`は取得するレコード数を制限する
-- `Offset`は何件目のレコードから取得するか
+- `Offset`は何件目のレコードから取得するかを指定（indexは0からスタート (1件目のデータのindex=0) ）
+- 例  
+  ```go
+  db.Order("num desc").Offset((page - 1) * 15).Limit(15).Find(&posts)
+  ```
