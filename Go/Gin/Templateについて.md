@@ -258,3 +258,53 @@ Board Type: career
 ```
 
 `$`を使うことで、どんなに深いネスト(e.g. ループ)の中でも最上位のコンテキストにアクセスすることができる。
+
+## Tenplate内で使用できるカスタム関数の登録
+- Ginでは`*gin.Engine.SetFuncMap`でテンプレート内で使えるカスタム関数を作って登録することができる
+  - `template.FuncMap`でカスタム関数を定義し、`*gin.Engine.SetFuncMap`でそれを登録して使う
+- 例
+  - Goコード側  
+    ```go
+    package main
+
+    import (
+        "html/template"
+        "net/http"
+
+        "github.com/gin-gonic/gin"
+    )
+
+    func main() {
+        router := gin.Default()
+
+        // カスタム関数を定義
+        funcMap := template.FuncMap{
+            "minus": func(a, b int) int {
+                return a - b
+            },
+            "add": func(a, b int) int {
+                return a + b
+            },
+            // 他の関数も必要に応じて追加
+        }
+
+        // テンプレートをロードし、FuncMapを適用
+        router.SetFuncMap(funcMap)
+        router.LoadHTMLGlob("templates/*")
+
+        // ルートハンドラー
+        router.GET("/", func(c *gin.Context) {
+            c.HTML(http.StatusOK, "index.tpl", gin.H{
+                "page": 5,
+            })
+        })
+
+        router.Run(":8080")
+    }
+    ```
+  - テンプレート(`tpl`)側  
+    ```tpl
+    <p>Current Page: {{ .page }}</p>
+    <p>Previous Page: {{ minus .page 1 }}</p>
+    <p>Next Page: {{ add .page 1 }}</p>
+    ```
