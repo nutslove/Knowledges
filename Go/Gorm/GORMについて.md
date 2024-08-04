@@ -200,3 +200,51 @@ db.Offset(20).Limit(10).Find(&users)
 var users []User
 db.Where("age > ?", 18).Order("created_at DESC").Limit(10).Offset(20).Find(&users)
 ```
+
+## その他
+
+### レコード数の取得
+- `Count`メソッドを使う  
+  > The Count method in GORM is used to retrieve the number of records that match a given query. It’s a useful feature for understanding the size of a dataset, particularly in scenarios involving conditional queries or data analysis.
+- https://gorm.io/ja_JP/docs/advanced_query.html#Count
+- あるテーブル内のすべてのレコード数を取得する  
+  ```go
+  var count int64
+  db.Model(&YourModel{}).Count(&count)
+  ```
+- 他の例  
+  ```go
+  var count int64
+
+  // Counting users with specific names
+  db.Model(&User{}).Where("name = ?", "jinzhu").Or("name = ?", "jinzhu 2").Count(&count)
+  // SQL: SELECT count(1) FROM users WHERE name = 'jinzhu' OR name = 'jinzhu 2'
+
+  // Counting users with a single name condition
+  db.Model(&User{}).Where("name = ?", "jinzhu").Count(&count)
+  // SQL: SELECT count(1) FROM users WHERE name = 'jinzhu'
+
+  // Counting records in a different table
+  db.Table("deleted_users").Count(&count)
+  // SQL: SELECT count(1) FROM deleted_users
+  ```
+
+### `Order`について
+- `Order`であるカラムの値で降順、昇順(default)に並べ替えることができる
+- 例  
+  ```go
+  type CareerBoard struct {
+    Number int       `gorm:"primaryKey;column:num"`
+    Title  string    `gorm:"size:100;column:title"`
+    Author string    `gorm:"size:30;column:author"`
+    Date   time.Time `gorm:"type:datetime;column:date"`
+    Count  int       `gorm:"column:count"`
+  }
+  var posts []CareerBoard
+  var db *gorm.DB
+  db.Order("num desc").Find(&posts) // ★structでcolumnに指定しているカラム名を指定
+  ```
+
+### `Offset`と`Limit`について
+- `Limit`は取得するレコード数を制限する
+- `Offset`は何件目のレコードから取得するか
