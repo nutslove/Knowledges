@@ -179,3 +179,32 @@ Go テンプレート言語では、以下のように if 文を使用できま�
 </body>
 </html>
 ```
+### range文の注意事項
+- range は主にスライス、配列、マップ、チャネルなどの反復可能なオブジェクトに対して使用される。単一の整数値に対しては使用できない。
+- NG例  
+  - go側
+    ```go
+    c.HTML(http.StatusOK, "index.tpl", gin.H{
+        "pageTotal":  3,
+    })
+    ```
+  - template側
+  ```tpl
+  {{ range .pageTotal }}
+  <span>{{ . }}</span>
+  {{ end }}
+  ```
+
+- OK例  
+  - go側
+    ```go
+    c.HTML(http.StatusOK, "index.tpl", gin.H{
+        "pageTotal":  []int{1,2,3},
+    })
+    ```
+  - template側
+  ```tpl
+  {{ range .pageTotal }}
+  <span>{{ . }}</span>
+  {{ end }}
+  ```
