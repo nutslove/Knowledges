@@ -32,6 +32,7 @@
 - 上記に伴い、パラメータ名やendpointなども変更された。詳細は上記URLを参照。
 
 ## クラスタリングのためのparameter / config
+- https://kazuhira-r.hatenablog.com/entry/2019/11/17/234315
 #### **`discovery.seed_hosts`**
 - OpenSearchクラスターに参加するために`Cluster manager（master） eligible`ノードを「IPアドレス」or「IPアドレス:ポート番号」or「FQDN」の形式でリストとして指定する
 - `cluster_manager`（`master`）だけではなく、`ingest`や`data`ノードでも指定する必要がある
@@ -46,8 +47,14 @@
 - https://opensearch.org/docs/latest/tuning-your-cluster/#step-4-configure-discovery-hosts-and-initial-cluster-manager-nodes-for-a-cluster
 - https://www.elastic.co/guide/en/elasticsearch/reference/current/important-settings.html#initial_master_nodes
 
-#### **``**
--
+## Network関連設定
+- https://opensearch.org/docs/latest/install-and-configure/configuring-opensearch/network-settings/
+- OpenSearchのネットワークには、**OpenSearch内部でノード間の通信に使われる`transport`** と **外部(クライアント)からの通信のための`http`（REST Layer）**の２つがある
+#### **`transport.publish_host`**
+- クラスタリングに使うIPアドレスを明示的に指定（他のノードに私に接続するときこのIPアドレスでアクセスしてねって広報し、他のノードはこのIPアドレスでアクセスしてくる）  
+  > Specifies an address or addresses that an OpenSearch node publishes to other nodes for transport communication.
+#### **`transport.port`**
+- クラスタリングに使うPort番号を明示的に指定（デフォルトは`9300`ポート）
 
 ## Helmチャート
 - https://github.com/opensearch-project/helm-charts
