@@ -17,7 +17,8 @@
   - single-node mode(1つのノードがすべてのroleを担う)として動かす時は`discovery.type`パラメータに`single-node`を指定する必要がある
   - https://opensearch.org/docs/latest/install-and-configure/configuring-opensearch/discovery-gateway-settings/
 - **クラスタリングには「_Cluster UUID_」が識別子として使われ、異なるUUIDを持つノードはクラスターに参加できない。**
-  - **Cluster UUIDは最初にクラスタリング時にCluster manager（master）eligibleに選出されたmasterノードによってアサインされて、各ノードのディスクの保存される**  
+  - **Cluster UUIDは最初にクラスタリング時にCluster manager（master）eligibleに選出されたmasterノードによってアサインされて、各ノードのディスクの保存される。**  
+    Cluster manager（master）eligibleが選出されるまではUUIDは払い出されない。
     > The cluster UUID is assigned by the elected master node when the cluster first forms, and is stored on disk on each node.
 
     https://discuss.elastic.co/t/data-node-s-cluster-uuid-diffrent-from-master-nodes-cluster-uuid/196737
