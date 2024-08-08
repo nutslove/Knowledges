@@ -50,7 +50,7 @@
 
 ## Network関連設定
 - https://opensearch.org/docs/latest/install-and-configure/configuring-opensearch/network-settings/
-- OpenSearchのネットワークには、**OpenSearch内部でノード間の通信に使われる`transport`** と **外部(クライアント)からの通信のための`http`（REST Layer）** の２つがある
+- OpenSearchのネットワークには、**OpenSearch内部でノード間の通信に使われる`transport`（デフォルトのPort番号:`9300`）** と **外部(クライアント)からの通信のための`http`（REST Layer、デフォルトのPort番号:`9200`）** の２つがある
 #### **`transport.publish_host`**
 - クラスタリングに使うIPアドレスを明示的に指定（他のノードに私に接続するときこのIPアドレスでアクセスしてねって広報し、他のノードはこのIPアドレスでアクセスしてくる）  
   > Specifies an address or addresses that an OpenSearch node publishes to other nodes for transport communication.
