@@ -5,6 +5,7 @@
   - https://opensearch.org/docs/latest/troubleshoot/tls/#bad-configuration
   - https://opensearch.org/docs/latest/security/configuration/generate-certificates/
 - OpenSearchでは内部クラスタリングのための`transport`はTLSが必須になっていて、外部からのアクセスのための`http`はデフォルトではTLSが無効になっている
+- `http`でTLSを有効にしてクライアントからのアクセスをHTTPS化して、OpenSearch（**multi-node clusterの場合は最初にクライアントからのアクセスを受け付けるClientノードでのみ**）でTLSを終端させることができる
 - 設定例  
   ```yaml
   opensearch.yml: |
@@ -33,6 +34,8 @@
 ### OpenSearch Dashboard
 - 参照URL
   - https://opensearch.org/docs/latest/install-and-configure/install-dashboards/tls/
+- 前段のLBなどでTLSを終端させてもいいし、OpenSearch Dashboardで直接TLSを終端させることもできる
+  - `server.ssl`配下のパラメータで証明書を指定
 - **OpenSearch（Client）側がHTTPSになっていて、オレオレ証明書の場合、エラーになるため、`opensearch.ssl.verificationMode`を`none`にする必要がある**
 - 設定例  
   ```yaml
