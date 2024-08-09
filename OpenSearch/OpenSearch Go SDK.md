@@ -1,0 +1,2 @@
+- SDKのバージョンはv4まであって、これから実装する場合は基本的にv4を使うこと
+- https://github.com/opensearch-project/opensearch-go/blob/main/USER_GUIDE.md

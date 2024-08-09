@@ -5,6 +5,7 @@
 ### document
 - https://opensearch.org/docs/latest/getting-started/intro/#document
 - RDBで言うと**レコード**
+- 複数のfieldsから構成される
 > A document is a unit that stores information (text or structured data). In OpenSearch, documents are stored in JSON format.
 > 
 > You can think of a document in several ways:
@@ -40,8 +41,18 @@
 
 ### fields
 - RDBで言うと**カラム**
+- keyとvalueの組
+- 転置インデックスはフィールドごとに作成/管理される。  
+  なので、クエリー実行時基本的にフィールド単位で検索される。
 - fieldのtypeを定義(指定)できる
   - **https://opensearch.org/docs/latest/field-types/**
+#### 主なfieldsのタイプ
+##### `text`
+- analyzerで
+- **部分一致**
+
+##### `keyword`
+- **完全一致**
 
 ### OpenSearchの本番運用に向けて
 - https://zenn.dev/istyle/articles/9d8dcfcd16c1b9
