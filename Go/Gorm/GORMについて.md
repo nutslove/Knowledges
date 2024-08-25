@@ -150,13 +150,20 @@ db.Delete(&user)
 
   > `Updates` supports updating with `struct` or `map[string]interface{}`, when updating with `struct` it will only update non-zero fields by default
 
-## ユーザーを検索するには、`First`や`Find`メソッドを使用
-- SQLの`SELECT`文に相当。`First`メソッドは`LIMIT 1`を使用して最初のレコードのみを取得し、`Find`メソッドは条件に一致するすべてのレコードを取得
+## ユーザーを検索するには、`First`、`Take`、`Last`や`Find`メソッドを使用
+- SQLの`SELECT`文に相当。`First`、`Take`、`Last`メソッドは`LIMIT 1`を使用して１レコードのみを取得し、`Find`メソッドは条件に一致するすべてのレコードを取得
 - `Where`、`Order`、`Limit`、`Offset`などのメソッドを使用することで、より詳細な条件やソート、ページネーションなどを実現できる
   - `Offest`メソッドは、取得するレコードのオフセット（スキップする数）を指定するために使用
   - `Limit`メソッドは、取得するレコードの最大数を指定するために使用
 ### `First`メソッド
-- 指定された条件に一致する最初のレコードを取得
+- `LIMIT 1`を使用して指定された条件に一致する最初のレコード（`ORDER BY`）のみを取得
+- レコードが見つからない場合は、`ErrRecordNotFound`エラーが返される
+### `Take`メソッド
+- `LIMIT 1`を使用して指定された条件に一致する（ORDERなし）レコードを１件のみ取得
+- レコードが見つからない場合は、`ErrRecordNotFound`エラーが返される
+ORDER BY id DESC
+### `Last`メソッド
+- `LIMIT 1`を使用して指定された条件に一致する最後のレコード（`ORDER BY DESC`）のみを取得
 - レコードが見つからない場合は、`ErrRecordNotFound`エラーが返される
 ### `Find`メソッド
 - 指定された条件に一致するすべてのレコードを取得
@@ -167,6 +174,15 @@ db.Delete(&user)
 // 主キーを使用してレコードを取得
 var user User
 db.First(&user, 1)
+// SELECT * FROM users ORDER BY id LIMIT 1;
+
+// Get one record, no specified order
+db.Take(&user)
+// SELECT * FROM users LIMIT 1;
+
+// Get last record, ordered by primary key desc
+db.Last(&user)
+// SELECT * FROM users ORDER BY id DESC LIMIT 1;
 
 // 条件を指定してレコードを取得
 var users []User
