@@ -112,6 +112,48 @@ db.Save(&user)
 db.Delete(&user)
 ```
 
+### autoIncrement
+- 主キーのフィールド(カラム)の型が`int`もしくは`uint`の場合、明示的に`autoIncrement`オプションを指定しなくても自動的に`autoIncrement`が適用される
+- `autoIncrement`を無効にしたい場合は`autoIncrement:false`を指定する  
+  ```go
+  type Product struct {
+      ProductID int    `gorm:"primaryKey;autoIncrement:false"`
+      Name      string
+  }
+  ```
+
+- `autoIncrement`が有効になっているフィールド(カラム)はInsert時、指定しなくても自動的に最後のレコードの値＋１の値で挿入される。  
+  また、Gormはレコードの挿入後に自動的に挿入された各カラムの値を構造体に反映してくれて、そこから`autoIncrement`で自動で挿入された値を確認/取得することができる
+  ```go
+  type CareerBoard struct {
+    Number int       `gorm:"primaryKey;column:num"`
+    Title  string    `gorm:"size:100;column:title"`
+    Author string    `gorm:"size:30;column:author"`
+    Date   time.Time `gorm:"type:datetime;column:date"`
+    Count  int       `gorm:"column:count"`
+  }
+
+  addedPost := models.CareerBoard{
+    // Numberは指定してない
+    Title:  "テスト",
+    Author: username.(string),
+    Date:   time.Now(),
+    Count:  0,
+  }
+
+  result := db.Create(&addedPost)
+  if result.Error != nil {
+    c.JSON(http.StatusBadRequest, gin.H{
+      "success": false,
+      "message": result.Error,
+    })
+    return
+  }
+
+  // addedPos構造体に挿入されたNumberも反映されて、取得できる
+  fmt.Println("挿入されたレコードのNumber:", addedPost.Number)
+  ```
+
 ### `Update`と`Save`の違いについて
 - https://gorm.io/docs/update.html
 - `Save`は構造体の変更された(変更がないフィールドも含めて)すべてのフィールドを一括で更新  
