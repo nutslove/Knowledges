@@ -111,6 +111,14 @@ db.Save(&user)
 // ユーザー削除
 db.Delete(&user)
 ```
+- `Delete`メソッドの戻り値の`RowsAffected`で削除されたレコード数を確認できる  
+  ```go
+  func DeleteCareerPost(postId int, db *gorm.DB) {
+  	post := models.CareerBoard{Number: postId}
+  	result := db.Delete(&post)
+  	fmt.Println("削除されたレコード数:", result.RowsAffected)
+  }
+  ```
 
 ### autoIncrement
 - 主キーのフィールド(カラム)の型が`int`もしくは`uint`の場合、明示的に`autoIncrement`オプションを指定しなくても自動的に`autoIncrement`が適用される
@@ -211,6 +219,7 @@ ORDER BY id DESC
 - 指定された条件に一致するすべてのレコードを取得
 - 条件を指定しない場合は、テーブルのすべてのレコードが取得される
 - 取得したレコードは、スライスまたは構造体のポインタのスライスに格納される
+
 ### 例
 ```go
 // 主キーを使用してレコードを取得
