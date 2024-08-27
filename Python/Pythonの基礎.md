@@ -104,6 +104,20 @@ print(index) --> 2が出力
 
     return <戻り値>
   ~~~
+#### 戻り値が複数ある場合の戻り値の型ヒント
+- 戻り値が複数ある場合、戻り値の型ヒントは`typing`の`Tuple`を使って１つのTupleの中に入れる必要がある
+  - Pythonの型ヒントは戻り値が１つの型であることを前提にしていて、Tupleにすることで１つの型として扱えるようにする
+- 例  
+  ```python
+  from typing import Tuple
+
+  def get_user_info() -> Tuple[str, int, bool]:
+      name = "Alice"
+      age = 30
+      is_active = True
+      return name, age, is_active
+  ```
+
 ### クラスの型ヒント
 - 例(1)
   ~~~python
