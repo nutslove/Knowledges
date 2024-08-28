@@ -1,0 +1,2 @@
+- `openstack token issue`を実行するなどして、Keystone Tokenを取得
+- 取得したTokenはCinderに渡る。Cinderは受け取ったそのTokenをKeystoneに対して検証を行い、正しいTokenであるのか、所有者は誰なのか、期限は切れてないかといった情報をKeystoneから得る。この段階でCinderは受け取ったRequestのコンテキストを把握し、このリクエストはどのテナントのものかをKeystoneのToken検証の結果から保持し、そのあとの処理を行う。
