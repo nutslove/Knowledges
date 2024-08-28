@@ -162,7 +162,7 @@ db.Delete(&user)
   fmt.Println("挿入されたレコードのNumber:", addedPost.Number)
   ```
 
-### `Update`と`Save`の違いについて
+### `Update`/`Updates`と`Save`の違いについて
 - https://gorm.io/docs/update.html
 - `Save`は構造体の変更された(変更がないフィールドも含めて)すべてのフィールドを一括で更新  
   > `Save` will save all fields when performing the Updating SQL  
@@ -178,6 +178,7 @@ db.Delete(&user)
 
   > `Save` is a combination function. If save value does not contain primary key, it will execute `Create`, otherwise it will execute `Update` (with all fields).
 
+- `Update`は１つのカラムの更新、`Updates`は複数カラムの更新
 - `Update`は指定された(特定の)フィールドのみを更新  
 
   ```go
@@ -199,6 +200,17 @@ db.Delete(&user)
   ```
 
   > `Updates` supports updating with `struct` or `map[string]interface{}`, when updating with `struct` it will only update non-zero fields by default
+
+- `Model`を使わずに`db.Updates()`で更新することもできる  
+  ```go
+  postForDB := models.CareerBoard{
+    Number: postIdInt,
+    Title:  requestData.Title,
+    Date:   time.Now(),
+  }
+
+  result := db.Updates(&postForDB)
+  ```
 
 ## ユーザーを検索するには、`First`、`Take`、`Last`や`Find`メソッドを使用
 - SQLの`SELECT`文に相当。`First`、`Take`、`Last`メソッドは`LIMIT 1`を使用して１レコードのみを取得し、`Find`メソッドは条件に一致するすべてのレコードを取得
