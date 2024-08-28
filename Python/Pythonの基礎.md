@@ -438,3 +438,106 @@ print(index) --> 2が出力
   print(isinstance(obj_apple, Fruit))  # True
   print(type(obj_apple) == Fruit)      # False
   ```
+
+## 特殊メソッド
+### `__dict__`メソッド
+- Objectが持つ**属性**と**その値**を格納する**辞書**
+- **Class**や**Instance**の属性を動的に確認・操作するために使用される
+- 例 (インスタンス)  
+  ```python
+  class MyClass:
+      def __init__(self, x, y):
+          self.x = x
+          self.y = y
+
+  obj = MyClass(1, 2)
+  print(obj.__dict__)
+  # {'x': 1, 'y': 2}
+
+  ## 追加
+  obj.__dict__['z'] = 3
+  print(obj.__dict__)
+  # {'x': 1, 'y': 2, 'z': 3}
+
+  ## 更新
+  obj.__dict__['x'] = 4
+  print(obj.__dict__)
+  # {'x': 4, 'y': 2, 'z': 3}
+
+  ## 削除h
+  del obj.__dict__['x']
+  print(obj.__dict__)
+  # {'y': 2, 'z': 3}
+  ```
+
+- 例 (クラス)  
+  ```python
+  class MyClass:
+      class_var = "クラス変数"
+
+      def __init__(self, instance_var):
+          self.instance_var = instance_var
+
+  ## クラスの__dict__を表示
+  print(MyClass.__dict__)
+  # {'__module__': '__main__', 'class_var': 'クラス変数', '__init__': <function MyClass2.__init__ at 0x7ff57b163790>, '__dict__': <attribute '__dict__' of 'MyClass2' objects>, '__weakref__': <attribute '__weakref__' of 'MyClass2' objects>, '__doc__': None}
+  ```
+
+- 例 (`__repr__`メソッドとの組み合わせ)  
+  ```python
+  class ConfigObject:
+      def __repr__(self):
+          return str(self.__dict__)
+
+  fluentd = ConfigObject()
+  print("fluentd:", fluentd)
+  # fluentd: {}
+
+  fluentd.agent_config = ConfigObject()
+  print("fluentd:", fluentd)
+  # fluentd: {'agent_config': {}}
+  print("fluentd.agent_config:", fluentd.agent_config)
+  # fluentd.agent_config: {}
+
+  fluentd.agent_config.url = "http://someurl.com"
+  fluentd.agent_config.someparam = "somevalue"
+  print("fluentd:", fluentd)
+  # fluentd: {'agent_config': {'url': 'http://someurl.com', 'someparam': 'somevalue'}}
+  print("fluentd.agent_config:", fluentd.agent_config)
+  # fluentd.agent_config: {'url': 'http://someurl.com', 'someparam': 'somevalue'}
+
+  conf = fluentd.agent_config
+  print(conf.url)
+  print(fluentd.agent_config.url)
+  # http://someurl.com
+  print(conf.someparam)
+  print(fluentd.agent_config.someparam)
+  # somevalue
+  ```
+
+### `__repr__`メソッド
+- https://docs.python.org/ja/3.11/library/functions.html#repr
+- `__repr__`は`object`クラスで定義されており、すべてのクラスは暗黙的に`object`クラスを継承する。そのため、すべてのクラスに`__repr__`メソッドは定義（継承）されている。
+- **オブジェクトの内部状態（文字列）を返す特殊な文字列**
+  - 通常デバックや開発者がオブジェクトの状態を確認するために使われるみたい
+- クラスは、 **`__repr__()`メソッドを定義することで、この関数によりそのクラスのインスタンスが返すものを制御することができる**
+- `__repr__`の戻り値は**文字列**でなければならない
+- 例  
+  ```python
+  class Person:
+    def __init__(self, name, age):
+        self.name = name
+        self.age = age
+
+    def __repr__(self):
+        return f"Person('{self.name}', {self.age})"
+
+  person = Person("John", 52)
+  print(person) 
+  print(repr(person)) ## print(person)と同じ 
+  # Person('John', 52)
+  print(person.name)
+  # John
+  print(person.age)
+  # 52
+  ```
