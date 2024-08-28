@@ -59,6 +59,16 @@
 - `opensearchapi.Client`の **`Update`メソッド** を使う
   - https://github.com/opensearch-project/opensearch-go/blob/main/opensearchapi/api_update.go#L19
 - **更新の場合は直接ドキュメントのフィールドを指定するのではなく、`doc`フィールド内にUpdateしたいフィールドを指定する必要がある**
+- OpenSearchに送信されるJSONは以下のような形式になる  
+  ```json
+  {
+    "doc": {
+      "title": "更新されたタイトル",
+      "author": "ユーザー名",
+      "post": "更新された内容"
+    }
+  }
+  ```
 - 例  
   ```go
   type Post struct {
