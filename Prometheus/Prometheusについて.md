@@ -283,6 +283,10 @@
       {method="post", code="404"} 0.175           //  21 / 120
       ~~~
 
+#### `or vector(0)`
+- Prometheusはpromqlでクエリーに一致するデータポイントがない場合、空のベクトルを返し、Grafana上で"No Data"として表示される。promqlの末尾に`or vector(0)`をつけると、一致するデータポイントがない場合、"No Data"ではなく、"0"を返す
+- 例: `prometheus_engine_query_duration_seconds{} or vector(0)`
+
 ## Prometheus Podを差起動せずConfigをReloadする方法
 > A configuration reload is triggered by sending a SIGHUP to the Prometheus process or sending a HTTP POST request to the /-/reload endpoint
 - **Prometheus起動時`--web.enable-lifecycle`flagを付ける必要がある**
