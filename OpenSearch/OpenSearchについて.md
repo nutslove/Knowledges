@@ -98,3 +98,21 @@
 - v2.11.1まではデフォルトのadminのパスワードとして`admin`で自動的に払い出されたけど、  
   v2.12.0からは環境変数`OPENSEARCH_INITIAL_ADMIN_PASSWORD`にデフォルトのadminパスワードを設定する必要がある。（相当複雑なPWじゃないとweakとエラーとなる）
   - https://opensearch.org/blog/replacing-default-admin-credentials/
+
+### Searchの取得件数
+- デフォルトではTopの10件のみ取得されるけど、`"size"`パラメータで10より大きい数字を指定することで10件以上取得することができる
+  - https://medium.com/@musabdogan/elasticsearch-query-to-return-all-records-more-than-10-000-documents-84fe1bfee661
+- 例  
+  ```go
+  content := strings.NewReader(fmt.Sprintf(`{
+    "size": 100,
+    "query": {
+        "bool": {
+            "should": [
+                { "match_phrase": { "title": "%s" }},
+                { "match_phrase": { "post": "%s" }}
+            ]
+        }
+    }
+  }`, searchKeyword, searchKeyword))
+  ```
