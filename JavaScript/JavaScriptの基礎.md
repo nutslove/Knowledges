@@ -44,7 +44,7 @@
                           ・
     <script>
     function validateSearchForm() {
-      var query = document.getElementsByName("query")[0].value;
+      let query = document.getElementsByName("query")[0].value;
       if (query == null || query.trim() == "") {
         alert("検索語を入力してください");
         return false;
