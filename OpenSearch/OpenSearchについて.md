@@ -23,6 +23,29 @@
   - データをindexに格納することで検索が可能になる
 - 一般的に特定のタイプの文書やデータの**集合**に対して作成
 
+#### indexの作成
+- OpenSearch DashBoardのDev ToolにてPUTメソッドで追加できる
+- 例  
+  ```shell
+  PUT /{新しいindex名}
+  {
+    "settings": {
+      "number_of_shards": 1,
+      "number_of_replicas": 1
+    },
+    "mappings": {
+      "properties": {
+        "my_field": {
+          "type": "text"
+        },
+        "another_field": {
+          "type": "keyword"
+        }
+      }
+    }
+  }
+  ```
+
 ### document
 - https://opensearch.org/docs/latest/getting-started/intro/#document
 - RDBで言うと**レコード**
@@ -57,7 +80,7 @@
 #### fieldsのタイプ(型)の確認方法
 - OpenSearch DashBoardのDev Toolにて以下の通り打てば確認できる  
   ```shell
-  GET /<index名>/_mapping
+  GET /{index名}/_mapping
   {
     "query": {
       "match_all": {}
