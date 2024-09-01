@@ -28,6 +28,32 @@
 >~~~
 > このコードを実行すると、元々「これはテストです。」と表示されていた部分が「内容が変更されました！」に変わります。これは、**document.getElementById**が`<p id="example"\>`要素を取得し、その`textContent`プロパティを変更したためです。
 
+## `document.getElementsByName(<nameの値>)`について
+- HTML内の特定の`name`属性を持つ要素を取得し、操作する
+- **`<form>`タグでフォーム送信時にjavascriptの特定の関数を実行できる`onsubmit`イベント属性を使った例**
+  - 検索ボタンを押した時に`validateSearchForm()`関数が実行され、何も入力されてなかったりスペースだけ入力されているとアラートを返す
+    ```html
+                          ・
+                          ・
+    <form action="/search" method="get" onsubmit="return validateSearchForm()">
+      <input type="text" name="query" placeholder="Search post...">
+      <button type="submit">検索</button>
+    </form>
+                          ・
+                          ・
+    <script>
+    function validateSearchForm() {
+      var query = document.getElementsByName("query")[0].value;
+      if (query == null || query.trim() == "") {
+        alert("検索語を入力してください");
+        return false;
+      }
+      return true;
+    }
+    </script>
+    ```
+
+
 ## `document.getElementById(<ID名>).innerText`と`document.getElementById(<ID名>).innerHTML`について
 - 以下Chat-GPTからの回答
 > JavaScriptにおいて、`document.getElementById(<ID名>).innerHTML`と`document.getElementById(<ID名>).innerText`は特定のHTML要素の内容を取得または設定するために使用されます。これら二つのプロパティの主な違いは、HTMLタグをどのように扱うかです。
