@@ -271,7 +271,7 @@ updates go.mod to require those versions, and downloads source code into the mod
   > GoではArrayの代わりにSlicesを使うことが推奨されている  
   > https://go.dev/doc/effective_go#arrays
 
-## Slices
+## Slices（スライス）
 - 参照URL
   - https://go.dev/tour/moretypes/11#:~:text=The%20capacity%20of%20a%20slice,provided%20it%20has%20sufficient%20capacity.
 - スライスはArrayの参照であって、値の実体はArrayにある
@@ -365,6 +365,27 @@ updates go.mod to require those versions, and downloads source code into the mod
   - pythonみたいに`<Slice名>[-1]`では取得できない(エラーになる)
   - `<Slice名>[len(<Slice名>)-1]`というふうにSliceの長さから-1して最後の要素を取得する
     - 例：`fmt.Println("Metric:",*resp.Items[i].AggregatedDatapoints[len(resp.Items[i].AggregatedDatapoints)-1].Value)`
+
+### スライスの重複排除
+- `golang.org/x/exp/slices`ライブライで、`Sort()`関数でSortさせてから、`Compact()`関数を実行することで重複排除を行うことができる
+- 例  
+  ```go
+  package main
+
+  import (
+  	"fmt"
+  	"golang.org/x/exp/slices"
+  )
+
+  func main() {
+  	strs := []string{"A", "B", "C", "A", "A", "D", "B", "E", "F"}
+  	slices.Sort(strs)
+  	unique := slices.Compact(strs)
+  	fmt.Printf("%+v\n", unique)
+    // [A B C D E F]
+  }
+
+  ```
 
 ## Map
 - Format
