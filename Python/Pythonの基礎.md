@@ -439,6 +439,18 @@ print(index) --> 2が出力
   print(type(obj_apple) == Fruit)      # False
   ```
 
+## 関数で、デフォルト値を持つ引数とデフォルト値を持たない引数の順番
+- Pythonの文法上の制約で、関数にてデフォルト値を持つ引数の後にデフォルト値を持たない引数を置くことはできない
+- https://stackoverflow.com/questions/24719368/syntaxerror-non-default-argument-follows-default-argument
+- NG例  
+  ```python
+  def a(len1, hgt=len1, til, col=0): # デフォルト値を持つhgtの後のtilがデフォルト値を持たないためNG
+  ```
+- OK例  
+  ```python
+  def example(a, b, c=None, r="w", d=[], *ae,  **ab):
+  ```
+
 ## 特殊メソッド
 ### `__dict__`メソッド
 - Objectが持つ**属性**と**その値**を格納する**辞書**
