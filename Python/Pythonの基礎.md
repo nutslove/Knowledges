@@ -152,16 +152,17 @@ print(index) --> 2が出力
           return f"Hello, my name is {self.name} and I am {self.age} years old."
   ~~~
 
-### `typing`モジュールの型ヒント
-- `typing` モジュールは Python の標準ライブラリの一部で、型チェックをサポートするための機能を提供
+### `typing`ライブラリの型ヒント
+- `typing` ライブラリは（Python3.5以降に導入された）Pythonの標準ライブラリの一部で、型チェックをサポートするための機能を提供
 - 普通の型ヒントにはない`Optional`や`List`などの複雑な型ヒントを使える
-- **型の強制力はない**
+- **型の強制力はない**（実行時に型チェックなどは行われない）
   - ただ、`mypy`などのツールを使って、型の一致をチェックすることができる
-#### `typing`モジュールで使える型ヒント（一部）
-- `typing`モジュールで使えるすべての型ヒントは[typingドキュメント](https://docs.python.org/ja/3/library/typing.html)から確認
+#### `typing`ライブラリで使える型ヒント（一部）
+- `typing`ライブラリで使えるすべての型ヒントは[typingドキュメント](https://docs.python.org/ja/3/library/typing.html)から確認
 1. `Optional`
     - 変数が指定された型の値か、`None`であることを示す。  
       たとえば、`Optional[int]`は、その変数がint型の値またはNoneのいずれかを持つことを意味する。  
+      `Optional[X]`は`X | None` (や `Union[X, None]`) と同等  
       ```python
       from typing import Optional
 
@@ -179,6 +180,7 @@ print(index) --> 2が出力
       def get_value(data: Dict[str, int], key: str) -> int:
           return data[key]
       ```
+      - python 3.9からは`from typing import Dict`も不要となり、`dict[srt, int]`("d"が小文字)のように使える
 3. `List`
     - 任意の型の要素を持つリストを示す。  
       たとえば、`List[int]`は整数のリストを意味する。  
@@ -188,9 +190,20 @@ print(index) --> 2が出力
       def sum_numbers(numbers: List[int]) -> int:
           return sum(numbers)
       ```
-4. `Union`
+    - python 3.9からは`from typing import List`も不要となり、`list[int]`("l"が小文字)のように使える
+4. `Tuple`
+    - 固定長の不変なタプルを表す。各要素の型を個別に指定できる。  
+      例えば、以下は文字列、整数、浮動小数点数の3要素のタプルを表す。  
+      ```python
+      from typing import Tuple
+
+      Tuple[str, int, float]
+      ```
+
+5. `Union`
     - 複数の型のいずれかであることを示す。  
       たとえば、`Union[int, str]`は、整数または文字列のいずれかを意味する。  
+      `Union[X, Y]`は`X | Y `と等価で X または Y を表す。  
       ```python
       from typing import Union
 
