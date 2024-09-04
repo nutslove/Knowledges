@@ -26,3 +26,43 @@
             "client": request.client.host,
         }
   ```
+
+## `JSONResponse`について
+- JSONでレスポンスを返す時、URLが含まれている関数に`response_class=JSONResponse`を指定して`return`では普通のjson形式で返す方法と、関数には`response_class=JSONResponse`を指定せず、`return JSONResponse()`で返す方法がある
+- URLが含まれている関数に`response_class=JSONResponse`を指定して、`return`では普通のjson形式で返す例
+  - `status_code`の指定はできない  
+  ```python
+  from fastapi.responses import HTMLResponse, JSONResponse
+
+  @logaas_router.get("/", response_class=JSONResponse)
+  @keystone.token_validation_check
+  async def logaas_status(request: Request, token: str = None, project_id: str = None, is_admin: bool = False):
+    client = logaas.LOGaaSClient(project_id=project_id)
+    try:
+      response = client.get_logaas_status()
+    except Exception as e:
+      return {
+        "messages": f"Getting OpenSearch Cluster information failed: {e}"
+      }
+    else:
+      return response
+  ```
+- 関数には`response_class=JSONResponse`を指定せず、`return JSONResponse()`で返す例
+  - `status_code`の指定ができる
+  - **`content`の指定は必須**  
+  ```python
+  from fastapi.responses import HTMLResponse, JSONResponse
+
+  @logaas_router.get("/", response_class=JSONResponse)
+  @keystone.token_validation_check
+  async def logaas_status(request: Request, token: str = None, project_id: str = None, is_admin: bool = False):
+    client = logaas.LOGaaSClient(project_id=project_id)
+    try:
+      response = client.get_logaas_status()
+    except Exception as e:
+      return JSONResponse(status_code=500, content={
+        "messages": f"Getting OpenSearch Cluster information failed: {e}"
+      })
+    else:
+      return JSONResponse(status_code=200, content=response)
+  ```

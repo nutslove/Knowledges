@@ -41,3 +41,32 @@
   - JSONをPythonデータに変換する
   - データを検証する（型チエックなど）
   - Path Operation Functionのパラメータ(上記の例では`item`)にデータを渡す
+
+- `BaseModel`を継承しているクラス型の引数（上記だと`item: Item`）を初期化するときは、`BaseModel`を継承しているクラス型で初期化する
+  - 例  
+    ```python
+    from typing import Optional
+
+    class LOGaaSClientBase(BaseModel):
+    cluster_type: Optional[str] = default_cluster_type
+    opensearch_version: Optional[str] = default_opensearch_version
+    opensearch_dashboard_version: Optional[str] = default_opensearch_dashboard_version
+    scale_size: Optional[int] = default_scale_size
+    ```
+
+    ```python
+    import logaas
+
+    @logaas_router.post("/", response_class=JSONResponse)
+    @keystone.token_validation_check
+    async def logaas_create(request: Request, token: str = None, project_id: str = None, is_admin: bool = False, reqData: logaas.LOGaaSClientBase = logaas.LOGaaSClientBase()):
+      cluster_id = utilities.get_uuid()
+      client = logaas.LOGaaSClient(
+        project_id,
+        cluster_id,
+        reqData.cluster_type,
+        reqData.opensearch_version,
+        reqData.opensearch_dashboard_version,
+        reqData.scale_size
+      )
+    ```
