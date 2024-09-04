@@ -28,8 +28,8 @@
   ```
 
 ## `JSONResponse`について
-- JSONでレスポンスを返す時、URLが含まれている関数に`response_class=JSONResponse`を指定して`return`では普通のjson形式で返す方法と、関数には`response_class=JSONResponse`を指定せず、`return JSONResponse()`で返す方法がある
-- URLが含まれている関数に`response_class=JSONResponse`を指定して、`return`では普通のjson形式で返す例
+- JSONでレスポンスを返す時、Path Operation Functionに`response_class=JSONResponse`を指定して`return`では普通のjson形式で返す方法と、Path Operation Functionには`response_class=JSONResponse`を指定せず、`return JSONResponse()`で返す方法がある
+- Path Operation Functionに`response_class=JSONResponse`を指定して、`return`では普通のjson形式で返す例
   - `status_code`の指定はできない  
   ```python
   from fastapi.responses import HTMLResponse, JSONResponse
@@ -47,7 +47,7 @@
     else:
       return response
   ```
-- 関数には`response_class=JSONResponse`を指定せず、`return JSONResponse()`で返す例
+- Path Operation Functionには`response_class=JSONResponse`を指定せず、`return JSONResponse()`で返す例
   - `status_code`の指定ができる
   - **`content`の指定は必須**  
   ```python

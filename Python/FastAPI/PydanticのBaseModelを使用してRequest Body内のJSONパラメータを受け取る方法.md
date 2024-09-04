@@ -43,7 +43,7 @@
   - Path Operation Functionのパラメータ(上記の例では`item`)にデータを渡す
 
 - `BaseModel`を継承しているクラス型の引数（上記だと`item: Item`）を初期化するときは、`BaseModel`を継承しているクラス型で初期化する
-  - 例  
+  - 例（`reqData: logaas.LOGaaSClientBase = logaas.LOGaaSClientBase()`の部分）  
     ```python
     from typing import Optional
 
