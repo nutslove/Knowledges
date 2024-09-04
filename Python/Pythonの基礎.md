@@ -199,6 +199,7 @@ print(index) --> 2が出力
 
       Tuple[str, int, float]
       ```
+    - python 3.9からは`from typing import Tuple`も不要となり、`tuple[str, int, float]`("t"が小文字)のように使える
 
 5. `Union`
     - 複数の型のいずれかであることを示す。  
