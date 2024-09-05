@@ -23,6 +23,31 @@
   # 出力: Hello, Alice!
   ~~~
 
+## `except`（例外処理）について
+- ある関数内の`except`で`raise`で上げたエラー内容は呼び出し元の関数に伝播される
+- 例
+  - 呼び出し元  
+    ```python
+    import test1
+
+    try:
+      test1.test_func1("ng")
+    except Exception as e:
+      print(f"error: {e}")
+    ```  
+    **→ `"error: 呼び出し先でエラーが発生しました"`が出力される**
+  - 呼び出し先（`test1.py`）  
+    ```python
+    def test_func1(arg1: str):
+      try:
+        if arg1 == "ok":
+          pass
+        else:
+          raise ValueError("呼び出し先でエラーが発生しました")
+      except Exception as e:
+        raise e
+    ```
+
 ## `index()`メソッドで、ある要素がListの中で何番目にあるか確認する方法
 - 以下のリストがあるとしたら`index = fruits.index("apple")`(→0が返ってくる)のように`<List名>.index("<要素名>")`で確認できる
   - `fruits = ["apple", "banana", "cherry"]`
@@ -566,4 +591,19 @@ print(index) --> 2が出力
   # John
   print(person.age)
   # 52
+  ```
+
+## 三項演算子
+![](./image/ternary_operator.jpg)
+- 参照URL
+  - https://atmarkit.itmedia.co.jp/ait/articles/2104/02/news016.html
+- if文を1行で記述
+- 例  
+  ```python
+  cinder_id = cinder.create_cinder_volume(
+      f"{self.cluster_id}-master-opensearch-pv-{i}",
+      self.data_disk_size if self.cluster_type == "standard" else 2,
+      "az-a",
+      self.disk_type if self.cluster_type == "standard" else "economy-medium"
+  )
   ```
