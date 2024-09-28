@@ -1,7 +1,7 @@
 ## Headless Serviceとは
 - 特定のPodに直接アクセスするために使用されるService。主にStatefulSetで使われる。
-- 通常のServiceはServiceにIPアドレスが割り当てられ、そのServiceに紐づいている複数のEndpointsにロードバランシングされるが、Headless ServiceはServiceにIPアドレスが割り当てられない。
-  - `selector`の条件に一致するPodのIPアドレスでEndpointsが作成されて、Serviceとマッピングされるのは一緒
+- **通常のServiceはServiceにIPアドレスが割り当てられ、そのServiceの`selector`に指定した(複数の)PodのIPが含まれた`Endpoints`が自動で作成され (その後Podの追加/削除時に自動で`Endpoints`も更新される)、複数のPodにロードバランシングされるが、Headless ServiceはServiceにIPアドレスが割り当てられない。**
+  - `selector`の条件に一致するPodのIPアドレスで`Endpoints`が作成されて、Serviceとマッピングされるのは一緒
 - `ClusterIP: None`にするとHeadless Serviceになる  
   ```yaml
   apiVersion: v1
@@ -18,7 +18,7 @@
       targetPort: 8080
   ```
 
-- `StatefulSet`の`spec.serviceName`にHeadless Serviceの`metadata.name`を指定することで、`<pod名>.<service名>.<namespace名>.svc.cluster.local`での名前解決ができる  
+- **`StatefulSet`の`spec.serviceName`にHeadless Serviceの`metadata.name`を指定することで、`<pod名>.<service名>.<namespace名>.svc.cluster.local`での名前解決ができる**  
   → 下の例だと`my-statefulset-0.my-headless-service.poc.svc.cluster.local`でPodのIPアドレスが得られる  
 
 - `<pod名>.<service名>.<namespace名>.svc.cluster.local`で個別のPodのIPアドレスだけ取得することもできるし、  
