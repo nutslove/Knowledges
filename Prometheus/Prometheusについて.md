@@ -113,6 +113,8 @@
 - 参考URL
   - https://www.youtube.com/watch?v=hSpBpVvgRxk
 ### SampleとTime Series
+- **Sample**（Data Point）
+  - 時間と値のペア
 ![](./image/sample_and_timeseries.jpg)
 - 参考URL
   - https://www.youtube.com/watch?v=ZGQIitaKoTM
