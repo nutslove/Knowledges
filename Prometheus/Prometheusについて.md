@@ -115,6 +115,7 @@
 ### SampleとTime Series
 - **Sample**（Data Point）
   - 時間と値のペア
+
 ![](./image/sample_and_timeseries.jpg)
 - 参考URL
   - https://www.youtube.com/watch?v=ZGQIitaKoTM
@@ -134,7 +135,7 @@
 
 ### Histogram
 - 値（例えば、応答時間）の分布を観察するのに使用される。バケット(bucket)が使われ、各バケットは値の特定の範囲を表す。例えば、0.1,0.2,0.5というバケットを事前に作成しておいて、応答時間が0.1秒以下、0.2秒以下、0.5秒以下などのリクエストの数を計算することができる。
-  > **Warning**
+  > [!WARNING]
   > **事前にバケットの範囲(leの値)を定義する必要がある**
 - 各metricごとに以下３つのmetricsが生成される
   1. `<metric名>_bucket{le=<事前に定義したleの値>}`
