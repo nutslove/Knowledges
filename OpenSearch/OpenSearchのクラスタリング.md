@@ -47,7 +47,7 @@
 - https://opensearch.org/docs/latest/tuning-your-cluster/#step-4-configure-discovery-hosts-and-initial-cluster-manager-nodes-for-a-cluster
 - https://www.elastic.co/guide/en/elasticsearch/reference/current/important-settings.html#initial_master_nodes
 
-## クラスタリングの状態確認
+## クラスターの状態確認
 - `<OpenSearch(またはClientノード)のエンドポイント>/_cat/nodes?v`
   - クラスターに参加したコンポーネントの一覧が確認できる
 - `<OpenSearch(またはClientノード)のエンドポイント>/_cluster/health?pretty`
