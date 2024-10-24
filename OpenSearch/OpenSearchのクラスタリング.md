@@ -23,7 +23,6 @@
 
     https://discuss.elastic.co/t/data-node-s-cluster-uuid-diffrent-from-master-nodes-cluster-uuid/196737
 
-
 ### 用語の変更
 - https://opensearch.org/blog/Adopting-inclusive-language-across-OpenSearch/
 - 変更された用語
@@ -47,6 +46,18 @@
 - *ノードType(role)が`cluster_manager`（`master`）の時のみ必要*
 - https://opensearch.org/docs/latest/tuning-your-cluster/#step-4-configure-discovery-hosts-and-initial-cluster-manager-nodes-for-a-cluster
 - https://www.elastic.co/guide/en/elasticsearch/reference/current/important-settings.html#initial_master_nodes
+
+## クラスタリングの状態確認
+- `<OpenSearch(またはClientノード)のエンドポイント>/_cat/nodes?v`
+  - クラスターに参加したコンポーネントの一覧が確認できる
+- `<OpenSearch(またはClientノード)のエンドポイント>/_cluster/health?pretty`
+  - clusterの状態確認
+- `<OpenSearch(またはClientノード)のエンドポイント>/_cat/allocation?v`
+  - Disk使用率
+- `<OpenSearch(またはClientノード)のエンドポイント>/_cat/indices?v&s=index:asc`
+  - indexごとの情報
+- `<OpenSearch(またはClientノード)のエンドポイント>/_cat/shards?v`
+  - shardごとの情報
 
 ## Network関連設定
 - https://opensearch.org/docs/latest/install-and-configure/configuring-opensearch/network-settings/
