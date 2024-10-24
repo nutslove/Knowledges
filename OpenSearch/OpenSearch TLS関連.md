@@ -30,6 +30,8 @@
         nodes_dn:
             - 'CN=*.es.lee-test.com,OU=Career Cloud Develop Dept\.,O=KDDI,L=Chiyoda-Ku,ST=Tokyo,C=JP'
   ```
+- API（Clientノード）のFQDNにアンダースコア`_`が含まれているとエラーになる
+  - https://github.com/opendistro-for-elasticsearch/sample-code/issues/194
 
 ### OpenSearch Dashboard
 - 参照URL
