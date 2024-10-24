@@ -48,16 +48,40 @@
 - https://www.elastic.co/guide/en/elasticsearch/reference/current/important-settings.html#initial_master_nodes
 
 ## クラスターの状態確認
-- `<OpenSearch(またはClientノード)のエンドポイント>/_cat/nodes?v`
-  - クラスターに参加したコンポーネントの一覧が確認できる
-- `<OpenSearch(またはClientノード)のエンドポイント>/_cluster/health?pretty`
-  - clusterの状態確認
-- `<OpenSearch(またはClientノード)のエンドポイント>/_cat/allocation?v`
-  - Disk使用率
-- `<OpenSearch(またはClientノード)のエンドポイント>/_cat/indices?v&s=index:asc`
-  - indexごとの情報
-- `<OpenSearch(またはClientノード)のエンドポイント>/_cat/shards?v`
-  - shardごとの情報
+- クラスターに参加したコンポーネントの一覧が確認できる
+  - `<OpenSearch(またはClientノード)のエンドポイント>/_cat/nodes?v`
+- clusterの状態確認
+  - `<OpenSearch(またはClientノード)のエンドポイント>/_cluster/health?pretty`
+- Disk使用率
+  - `<OpenSearch(またはClientノード)のエンドポイント>/_cat/allocation?v`
+- indexごとの情報
+  - `<OpenSearch(またはClientノード)のエンドポイント>/_cat/indices?v&s=index:asc`
+    - `s=xx:asc` はsort指定。`s=<sortしたい項目名>:<昇順/降順>`
+      - 昇順：`asc`
+      - 降順：`desc`
+- shardごとの情報
+  - `<OpenSearch(またはClientノード)のエンドポイント>/_cat/shards?v`
+    - `state=STARTED` が正常。`UNASSIGNED`があれば、data-Nodeへの割り当てがされていない状態
+    - `prirep` = `p`:primary `r`:replica(secondary)
+    - `r`が`UNASSIGNED`の状態でPrimary ShardがLostすると該当indexのデータは復旧できなくなる
+- UNASSIGNEDの理由を表示
+  - `<OpenSearch(またはClientノード)のエンドポイント>/_cat/shards?h=index,shard,state,prirep,unassigned.reason`
+    - `h=`でヘッダー(出力する項目)を指定
+  - `unassigned.reason`
+    | reason | |
+    | --- | --- |
+    |INDEX_CREATED | インデックスを作成するためのAPIで問題が発生 |
+    |CLUSTER_RECOVERED | クラスターに対して完全なデータ復元が実行された |
+    |INDEX_REOPENED | インデックスが有効または無効になっている |
+    |DANGLING_INDEX_IMPORTED | dangling indexの結果がインポートされていない |
+    |NEW_INDEX_RESTORED | データがスナップショットから新しいインデックスに復元されている |
+    |EXISTING_INDEX_RESTORED | データがスナップショットから無効なインデックスに復元された |
+    |REPLICA_ADDED | レプリカ シャードが明示的に追加された |
+    |ALLOCATION_FAILED | シャードの割り当てが失敗した |
+    |NODE_LEFT | シャードが割り当てられていたノードがクラスターから除外された |
+    |REINITIALIZED | シャードの移動からシャードの初期化までのプロセスに誤った操作 (シャドウ レプリカ シャードの使用など) が存在する |
+    |REROUTE_CANCELLED | ルーティングが明示的にキャンセルされたために割り当てがキャンセルされた |
+    |REALLOCATED_REPLICA | より適切なレプリカの場所が使用され、既存のレプリカの割り当てがキャンセルされる。その結果、シャードは割り当てられない |
 
 ## Network関連設定
 - https://opensearch.org/docs/latest/install-and-configure/configuring-opensearch/network-settings/
