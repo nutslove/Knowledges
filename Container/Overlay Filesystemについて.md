@@ -7,6 +7,7 @@
 - OverlayFSは変更をUpper layerに記録し、Lower layerを不変の基盤として扱う設計になっている
 - Upper layerは通常、読み書き可能であり、Lower layerは読み取り専用として扱われる
   - その結果、ファイルの追加、更新、削除はすべてUpper layerで行われ、同じパスのLower layerのファイルやディレクトリは隠蔽される
+  - Overlay layer上にあるLower layerからのファイルを更新/削除しても、Lower layer上のファイルをそのままで、Upper layer上で反映される
 
 #### Layerとは
 - それぞれのLayerはrootファイルシステムとデータを持っている
