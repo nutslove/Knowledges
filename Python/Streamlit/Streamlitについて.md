@@ -11,6 +11,15 @@
 
 ## 画面右上に表示される`Deploy`と設定ボタンを非表示にする方法
 - https://discuss.streamlit.io/t/how-to-hide-deploy-button-in-streamlit-version-1-38/80477
+- 設定例  
+  ```python
+  st.markdown("""
+      <style>
+          #MainMenu {visibility: hidden;}
+          .stAppDeployButton {visibility: hidden;}
+      </style>
+  """, unsafe_allow_html=True)
+  ```
 
 ## 会話履歴をすべて表示させる方法
 ```python
