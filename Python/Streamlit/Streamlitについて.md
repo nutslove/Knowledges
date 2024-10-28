@@ -57,3 +57,7 @@ def main():
 - `session_state`のデータはサーバ側で保存されて、ブラウザなどclient側には保存されない
   - https://discuss.streamlit.io/t/hey-i-have-a-serious-issue-about-storing-things-in-the-session-state/35761/8  
   ![](../image/streamlit_session_state.jpg)
+
+## 改行について
+- https://zenn.dev/canard0328/articles/streamlit_how_to_use
+- `st.markdown`内でも改行は`\n`
