@@ -1,0 +1,7 @@
+- 複数のページ/Appを作成する方法としてMultipage AppsとTabsの２つがある
+  - **Multipage Apps**
+    - https://docs.streamlit.io/develop/concepts/multipage-apps/overview
+  - **Tabs**
+    - https://docs.streamlit.io/develop/api-reference/layout/st.tabs
+- レンダリングする速度はMultipage Appsの方が早い
+  - https://discuss.streamlit.io/t/speed-of-rendering-content-in-tabs-vs-multipage-apps/44306
