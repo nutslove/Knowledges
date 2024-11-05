@@ -97,13 +97,13 @@
 # API
 - https://opensearch.org/docs/latest/api-reference/search/
 
-## あるIndex内のあるIDのDocument検索
+### あるIndex内のあるIDのDocument検索
 - 例  
   ```shell
   curl -k -u <ユーザ名>:<パスワード> http(s)://<APIのエンドポイント>/<対象index名>/_doc/<対象ID>?pretty
   ```
 
-## あるIndex内の全Document検索
+### あるIndex内の全Document検索
 - 例  
   ```shell
   curl -k -u <ユーザ名>:<パスワード> http(s)://<APIのエンドポイント>/<対象index名>/_search?pretty
