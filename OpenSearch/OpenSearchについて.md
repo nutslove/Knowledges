@@ -108,6 +108,17 @@
   ```shell
   curl -k -u <ユーザ名>:<パスワード> http(s)://<APIのエンドポイント>/<対象index名>/_search?pretty
   ```
+- キーワード検索の例  
+  ```shell
+  curl -k -u <ユーザ名>:<パスワード> http(s)://<APIのエンドポイント>/<対象index名>/_search?pretty -H 'Content-Type: application/json' -d'
+  {
+    "query": {
+      "term": {
+        "<Key>": "<Value>"
+      }
+    }
+  }'
+  ```
 
 # adminのパスワード
 - v2.11.1まではデフォルトのadminのパスワードとして`admin`で自動的に払い出されたけど、  
