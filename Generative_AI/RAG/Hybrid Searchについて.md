@@ -2,6 +2,7 @@
   - https://python.langchain.com/docs/how_to/hybrid/
   - https://dalab.jp/archives/journal/hybrid-search/
   - https://qiita.com/isanakamishiro2/items/4eb175bb2bc80d7225cb
+  - https://qiita.com/jw-automation/items/045917be7b558509fdf2#1-%E3%83%8F%E3%82%A4%E3%83%96%E3%83%AA%E3%83%83%E3%83%89%E3%82%B5%E3%83%BC%E3%83%81
 
 ## セマンティック検索（Semantic Search）とは
 - クエリの単語に文字通り一致する内容ではなく、クエリの**意味**に一致する内容を返す検索方式
