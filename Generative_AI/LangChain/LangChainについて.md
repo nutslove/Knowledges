@@ -221,3 +221,21 @@
 
 ## その他
 - レスポンスのパラメータで指定する`top_k`は言語モデルがテキスト(回答文)を生成する際に、各ステップで考慮するトークン(文字列)の候補数を指定する。具体的には、モデルが次のトークンを選ぶ際に、確率が最も高い上位 k 個のトークンの中から選択を行うようになる。なので、`temperature`を低く設定している場合は、`top_k`を大きく設定してもあまり意味がない
+
+## Output Parser
+- https://python.langchain.com/api_reference/core/output_parsers.html
+
+### `StrOutputParser`
+- a simple parser that extracts the `content` field from an `AIMessageChunk`, giving us the `token` returned by the model.
+- LLMからの回答のうち、`content`の部分だけを抜き取ってくれるOutput Parser
+- **`StrOutputParser`を使わなかった場合のLLMからの回答**  
+  ```
+  content='指定' additional_kwargs={} response_metadata={} id='run-dc2d9bdf-31e2-4c9d-a40f-53a0edcff970'|content='でき' additional_kwargs={} response_metadata={} id='run-dc2d9bdf-31e2-4c9d-a40f-53a0edcff970'|content='る' additional_kwargs={} response_metadata={} id='run-dc2d9bdf-31e2-4c9d-a40f-53a0edcff970'|content='ロード' additional_kwargs={} response_metadata={} id='run-dc2d9bdf-31e2-4c9d-a40f-53a0edcff970'|content='バ' additional_kwargs={} response_metadata={} id='run-dc2d9bdf-31e2-4c9d-a40f-53a0edcff970'|content='ラン' additional_kwargs={} response_metadata={} id='run-dc2d9bdf-31e2-4c9d-a40f-53a0edcff970'|content='サ' additional_kwargs={} response_metadata={} id='run-dc2d9bdf-31e2-4c9d-a40f-53a0edcff970'|content='ー' additional_kwargs={} response_metadata={} id='run-dc2d9bdf-31e2-4c9d-a40f-53a0edcff970'
+  ```
+- **`StrOutputParser`を使かった場合のLLMからの回答**  
+  ```
+  |指定|でき|る|ロード|バ|ラン|サ|ー|
+  ```
+- 参考URL
+  - https://python.langchain.com/docs/how_to/streaming/#using-stream
+  - https://python.langchain.com/api_reference/core/output_parsers/langchain_core.output_parsers.string.StrOutputParser.html
