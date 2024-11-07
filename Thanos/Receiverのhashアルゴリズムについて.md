@@ -24,4 +24,4 @@
   ```
 - `endpoints`内の各（Ingesting）Receiver（上記の例だと`"thanos-ingesting-receiver-0.thanos-ingesting-receiver.metrics.svc.cluster.local:10901"`～`"thanos-ingesting-receiver-2.thanos-ingesting-receiver.metrics.svc.cluster.local:10901"`）はそれぞれハッシュ化され、リング状に配置される。例えばreceiver-0のハッシュ値は5で、receiver-1のハッシュ値は10で、receiver-2のハッシュ値は15だとする。
 - Receiverに連携されるメトリクスがラベルでハッシュ化される。例えばメトリクス1～3があるとして、メトリクス1のハッシュ値が4で、メトリクス2のハッシュ値が7で、メトリクス3のハッシュ値が13だとする
-- 各メトリクスは自分のハッシュ値と近いReceiverに（Routing Receiverによって）フォーワーディングされる
+- 各メトリクスは自分のハッシュ値と近いReceiverに（Routing Receiverによって）フォーワーディングされる。上記の例だとメトリクス1はreceiver-0に、メトリクス2はreceiver-1に、メトリクス3はreceiver-2にフォーワーディングされる。
