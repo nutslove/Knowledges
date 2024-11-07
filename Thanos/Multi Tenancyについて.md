@@ -9,7 +9,23 @@
 ### ingestion
 - **Receiverは自動的にingestionされるデータにあるHTTPヘッダーの`THANOS-TENANT`の値を、`tenant_id`というラベルに変換して保存する**
   - **https://www.youtube.com/watch?v=SAyPQ2d8v4Q**  
-  ![](./image/multi_tenancy_2.jpg)
+  ![](./image/multi_tenancy_2.jpg)  
+  - `THANOS-TENANT`headerを追加してRemote Write先に送るPrometheusリソースの設定例  
+    ```yaml
+    apiVersion: monitoring.coreos.com/v1
+    kind: Prometheus
+    metadata:
+      name: k8s
+      namespace: metrics
+    spec:
+      remoteWrite:
+      - url: "http://thanos-routing-receiver.metrics.svc:19291/api/v1/receive"
+        headers:
+          THANOS-TENANT: metrics
+          　　　　・
+        　　　　　・
+        　　　　　・
+    ```
 ### query
 - **Querier(Query)実行時、`--query.enforce-tenancy`フラグを付けて実行すると、HTTPヘッダーの`THANOS-TENANT`の値を、`tenant_id`というラベルの値に変換/挿入してクエリーを投げてくれる**  
   ![](./image/multi_tenancy_4.jpg)

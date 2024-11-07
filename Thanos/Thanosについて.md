@@ -23,19 +23,19 @@
 <!-- /TOC -->
 <!-- /TOC -->
 
-## アーキテクチャ
+# アーキテクチャ
 - Sidecar方式  
   ![](./image/Thanos_sidecar.jpg)
 
 - Receiver方式  
   ![](./image/arch_receive.jpg)
 
-## Multi Tenancy
+# Multi Tenancy
 - https://thanos.io/tip/operating/multi-tenancy.md/
 - **Thanosは色んなところでPrometheusの`global.external_labels`を使ってPrometheusインスタンスを識別するため、Prometheus側の`global.external_labels`の設定は必須である**
   - https://thanos.io/tip/thanos/quick-tutorial.md/#external-labels
 
-## Sidecar
+# Sidecar
 - https://thanos.io/tip/components/sidecar.md/
 - PrometheusコンテナのSidecarコンテナとして起動され、定期的に (defaultでは2時間ごと) PrometheusのメトリクスをObject Storageに送信する
   - **Object Storageに送られる前にPrometheusがcrashすると直近のメトリクスデータがなくなるので、PV付きでPrometheusを実行すること！**
@@ -47,7 +47,7 @@
 - Thanos Sidecarに強制的にObject StorageにflushするようなAPIはない
   - https://github.com/thanos-io/thanos/issues/1849
 
-## Receiver
+# Receiver
 - https://thanos.io/v0.8/proposals/201812_thanos-remote-receive/
 - ReceiverもPrometheusと同様に２時間ごとにObject Storageにブロックをアップロードする
   - https://medium.com/@appareddy.prabha/configuring-thanos-receiver-a-step-by-step-guide-for-long-term-storage-in-prometheus-3f2b487accab
@@ -63,7 +63,7 @@
   **①Receiverに設定する`--label`フラグ、②Receiverに連携される`THANOS-TENANT`ヘッダー、この２つのみがThanosが認識するexternal labelとして設定される。**  
   Store GatewayやCompactor内部で確認できる`meta.json`ファイルの`thanos.labels`フィールドでThanosが認識しているexternal labelsを確認できる。
 
-### routing receiversとingesting receiversの分離
+## routing receiversとingesting receiversの分離
 - https://thanos.io/tip/proposals-accepted/202012-receive-split.md/
   > This allows setting optional deployment model were only routing receivers are using hashring files and does the routing and replication. That allows ingesting receivers to not handle any routing or hashring, only receiving multi tenant writes.
 
@@ -102,7 +102,7 @@
   /tmp/thanos/receive $
   ```
 
-#### routing receiversとingesting receiversの分離時の設定に関する注意事項
+### routing receiversとingesting receiversの分離時の設定に関する注意事項
 - **`--receive.hashrings-file`(もしくは`--receive.hashrings`)はrouting receiversにのみ設定！**
   - `--receive.hashrings-file`と`--receive.local-endpoint`の両方のパラメータを指定するとrouting receivers兼ingesting receiversになる
   - [関連するソースコード](https://github.com/nutslove/thanos/blob/main/cmd/thanos/receive.go#L985)  
@@ -128,14 +128,14 @@
     ```
 - **`--receive.replication-factor`パラメータは routing-receiver にのみ指定！**
 
-### `--receive.replication-factor`について
+## `--receive.replication-factor`について
 - https://thanos.io/v0.8/proposals/201812_thanos-remote-receive/
 - If any time-series in a write request received by a Thanos receiver is not successfully written to at least *(REPLICATION_FACTOR + 1)/2* nodes, the receiver responds with an error. For example, to attempt to store 3 copies of every time-series and ensure that every time-series is successfully written to at least 2 Thanos receivers in the target hashring, all receivers should be configured with the following flag: `--receive.replication-factor=3`
 - `--receive.replication-factor`の数にはデータを受け付けたReceiverも含まれている  
    例えば`--receive.replication-factor=3`にした場合、データを受け付けたReceiverは自分以外の２つのReceiverにデータをレプリケーションする
 - replicationは同じhashring内のReceiver間で行われる
 
-### hashringについて
+## hashringについて
 - Lokiとは違ってReceiver同士のhashringのconfigファイルを作成してReceiver実行時`--receive.hashrings-file`フラグとして指定する必要がある
   - 動的にhashringを管理してくれる*Receive Controller*というのもある
     - https://thanos.io/tip/components/receive.md/#hashring-management-and-autoscaling-in-kubernetes
@@ -186,7 +186,7 @@
     ]
     ```
 
-## Store (Store Gateway)
+# Store (Store Gateway)
 - https://thanos.io/tip/components/store.md/
 - Store GatewayとObject Storageは１対１の設定で、複数のObject Storageがある場合はObject Storageの数の分Store Gatewayが必要  
   ![](./image/StoreGateway_1.jpg)
@@ -196,7 +196,7 @@
 - Store (Store Gateway)もWeb UIを持っていて、`10902`ポート(http)からアクセス可能
   - 各Blockに関する情報を確認できる
 
-## Querier (Query)
+# Querier (Query)
 - https://thanos.io/tip/components/query.md/
 - Querier is fully **stateless** and horizontally scalable.
 - HA構成のPrometheusで収集された重複メトリクスのdeduplication(重複排除)もQuerierが行う
@@ -245,11 +245,11 @@
   up{job="prometheus",env="2",cluster="2",replica="A"} 1
   ```
 
-## Query Frontend
+# Query Frontend
 - https://thanos.io/tip/components/query-frontend.md/
 - Query Frontend is fully **stateless** and horizontally scalable.
 
-## Compactor
+# Compactor
 - https://thanos.io/tip/components/compact.md/
 - Down Sampling、Retention、Compactionを担当するコンポーネント
 - defaultではobject storage上のデータの保持期間はない(無期限保持)
@@ -273,7 +273,7 @@
 - CompactorのWeb UIを持っていて、`10902`ポート(http)からアクセス可能
   - 各Blockに関する情報を確認できる
 
-### compaction group
+## compaction group
 - 同じPrometheusからのBlockを「*stream*」もしくは「*compaction group*」という。  
   **Compactorはこのcompaction group単位で並列でcompaction処理を行う。**  
   **compaction groupはexternal labels (Thanos (e.g. Store Gateway, Compactor) の`meta.json`の`thanos.labels`フィールドで確認できる)が同じもの**  
@@ -281,11 +281,17 @@
 - 参考URL
   - https://thanos.io/tip/components/compact.md/#compaction-groups--block-streams
 
+## DownSamplingについて
+- DownSamplingの目的は**読み込みパフォーマンス向上**であり、DiskやObject Storageの容量削減ではない。**逆に`5m`と`1h`用のスペースが必要となるため、rawだけ保存するときと比べて最大３倍までストレージサイズは上がる可能性がある**  
+  > The goal of downsampling is to provide an opportunity to get fast results for range queries of big time intervals like months or years.
+  > 
+  > Keep in mind that the initial goal of downsampling is not saving disk or object storage space. In fact, downsampling doesn’t save you any space but instead, it adds 2 more blocks for each raw block which are only slightly smaller or relatively similar size to raw blocks. This is done by internal downsampling implementation which, to ensure mathematical correctness, holds various aggregations. This means that downsampling can increase the size of your storage a bit (~3x), if you choose to store all resolutions (recommended and enabled by default).
+
 ### `--retention.resolution-raw`、`--retention.resolution-5m`、`--retention.resolution-1h`について
 - 5mも1hもrawデータが必要らしい。つまり、1hダウンサンプリングに5mのデータが使われるのではなく、1hダウンサンプリングにもrawデータが使われるらしい。
   - https://www.youtube.com/watch?v=ywOriVffPZg
 
-### Compactor内の`meta.json`について
+## Compactor内の`meta.json`について
 - Thanos Compactorの`meta.json`はPrometheusの`meta.json`からThanosのためのmetadata(`thanos`フィールド)が追加されている
   - Store Gateway内の`meta.json`にも`thanos`フィールドがある
   - Prometheusの`meta.json`の例  
@@ -356,7 +362,7 @@
     }
     ```
 
-### Compactor トラブルシューティング
+## Compactor トラブルシューティング
 - 参考URL
   - https://thanos.io/tip/operating/compactor-backlog.md/
   - https://thanos.io/tip/operating/troubleshooting.md/#overlaps
@@ -366,7 +372,7 @@
   >
   > `msg="critical error detected; halting" err="compaction failed: compaction: pre compaction overlap check: overlaps found while gathering blocks. [mint: 1555128000000, maxt: 1555135200000, range: 2h0m0s, blocks: 2]: <ulid: 01D94ZRM050JQK6NDYNVBNR6WQ, mint: 1555128000000, maxt: 1555135200000, range: 2h0m0s>, <ulid: 01D8AQXTF2X914S419TYTD4P5B, mint: 1555128000000, maxt: 1555135200000, range: 2h0m0s>`
   > There could be different reasons that caused the compactor to halt. A very common case is overlapping blocks. Please refer to our doc **https://thanos.io/tip/operating/troubleshooting.md/#overlaps** for more information.
-#### Overlaps
+### Overlaps
 - *Block overlap*とは  
   > Set of blocks with exactly the same external labels in meta.json and for the same time or overlapping time period.
   - meta.jsonの`thanos.labels`のExternal labelsと`minTime`,`maxTime`がすべて同じのBlockが複数あること
@@ -420,14 +426,14 @@
     > 2 Prometheus instances are misconfigured and they are uploading the data with exactly the same external labels. This is wrong, they should be unique.
 
 
-## Ruler
+# Ruler
 - Alert/Recording Ruleのためのコンポネント
 - Recording Ruleによって新しく生成されたメトリクスは、Prometheusと同様にRulerのローカルディスク(HDD/SSD)に２時間間隔でTSDB blockで生成されて、Object Storageにアップロードされる
   - RulerにもStore APIが実装されていて、まだObject StorageにアップロードされてないメトリクスについてQuerierからクエリーを受け付ける
 - 参考URL
   - https://thanos.io/tip/components/rule.md/
 
-## Store API
+# Store API
 - Thanosコンポーネント間でメトリクスデータを取得するための標準化された/gRPCで実装されているAPIインターフェース
 > StoreAPI is a common proto interface for gRPC component that can connect to Querier in order to fetch the metric series. Natively Thanos implements Sidecar (local Prometheus data), Ruler and Store gateway. This solves fetching series from Prometheus or Prometheus TSDB format
 - 参考URL
