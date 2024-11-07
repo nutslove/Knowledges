@@ -290,6 +290,9 @@
 ### `--retention.resolution-raw`、`--retention.resolution-5m`、`--retention.resolution-1h`について
 - 5mも1hもrawデータが必要らしい。つまり、1hダウンサンプリングに5mのデータが使われるのではなく、1hダウンサンプリングにもrawデータが使われるらしい。
   - https://www.youtube.com/watch?v=ywOriVffPZg
+- データ保存のイメージは以下の **2.** になる  
+  ![](./image/downsampled.jpg)  
+  - クエリーに対してどの粒度のデータを取ってくるかはクエリーの期間(e.g. 1年分のメトリクス)などによって決まるっぽい
 
 ## Compactor内の`meta.json`について
 - Thanos Compactorの`meta.json`はPrometheusの`meta.json`からThanosのためのmetadata(`thanos`フィールド)が追加されている
