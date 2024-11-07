@@ -28,6 +28,7 @@
     ```
 ### query
 - **Querier(Query)実行時、`--query.enforce-tenancy`フラグを付けて実行すると、HTTPヘッダーの`THANOS-TENANT`の値を、`tenant_id`というラベルの値に変換/挿入してクエリーを投げてくれる**  
+  https://thanos.io/tip/proposals-done/202304-query-path-tenancy.md/  
   ![](./image/multi_tenancy_4.jpg)
 - `--query.enforce-tenancy`フラグをつけないと、Grafanaなどで`THANOS-TENANT`ヘッダーを設定してもすべてのテナント(`tenant_id`ラベル)のメトリクスが参照できてしまう
 - 逆にQuerier(Query)を`--query.enforce-tenancy`フラグを付けて実行している場合、Grafanaで`THANOS-TENANT`ヘッダーを設定しないと何のデータも見れない
