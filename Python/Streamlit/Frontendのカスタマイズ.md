@@ -1,0 +1,4 @@
+- Custom Componentsというのを使ってHTML、JavaScript（Reactもサポート）でフロントエンド部分をカスタマイズできる
+- 参照URL
+  - https://github.com/streamlit/component-template?tab=readme-ov-file
+  - https://docs.streamlit.io/develop/concepts/custom-components
