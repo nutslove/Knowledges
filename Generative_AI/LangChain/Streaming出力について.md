@@ -6,7 +6,7 @@
 ### pythonの`yield`とStreamlitの`st.write_stream`を使う
 - https://docs.streamlit.io/develop/api-reference/write-magic/st.write_stream
 
-### `invoke`の例
+## `invoke`の例
 ```python
 import streamlit as st
 import json
@@ -80,10 +80,10 @@ if __name__ == '__main__':
     main()
 ```
 
-### `stream`の例
+## `stream`の例
 - content（回答内容）だけ受け取るために`StrOutputParser`を使用
 - LLMを叩く関数を`st.write_stream`で囲む
-- `stream`メソッドはChunkを少しずつ返すので、`for`文で回しながら`yield`でChunkを処理する
+- LangChainの`stream`メソッドはChunkを少しずつ返すので、`for`文で回しながら`yield`でChunkを処理する
 - LLMを叩く関数が明示的に`return`しなくても`yield`で処理したChunkの固まりがLLMを叩く関数の戻り値として入る（下記の例の`res`変数）
 
 ```python
