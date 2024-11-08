@@ -186,6 +186,16 @@
     ]
     ```
 
+## 読み込み(Query Path)における対象（e.g. テナント）のReceiverとStore Gatewayの選別について
+- 書き込み(Write Path)においてテナントごとの対象Receiverは上記の`hashring.json`で指定できる
+- **読み込み(Query Path)時は明示的にテナントごとのReceiverを指定しているわけではなく、ReceiverやStore GatewayにはExternal Labelを持っていて、Querierは`--endpoint`で指定したReceiverやStore GatewayやSidecarの中から対象のExternal Labelを持たないものにはクエリーを投げない。**  
+  **http headerで連携した`tenant_id`ラベルは自動的にExternal Labelとして登録されるため、Hard Tenancyの場合でもQuerierに`--query.tenant-header="THANOS-TENANT"`と`--query.enforce-tenancy`のパラメータを指定して実行するだけでQuerierが自動的にクエリーに含まれている`tenant_id`ラベルを持つエンドポイント(Receiverだけではなく、Store GatewayやSidecarも)にのみリクエストを投げるので問題ない。**
+
+![](./image/receiver_specify_1.jpg)
+![](./image/receiver_specify_2.jpg)
+![](./image/receiver_specify_3.jpg)
+
+
 # Store (Store Gateway)
 - https://thanos.io/tip/components/store.md/
 - Store GatewayとObject Storageは１対１の設定で、複数のObject Storageがある場合はObject Storageの数の分Store Gatewayが必要  
