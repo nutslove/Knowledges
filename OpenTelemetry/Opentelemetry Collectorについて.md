@@ -9,6 +9,22 @@
   - その他にはLoki Receiverもある（まだAlpha）
     - https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/lokireceiver
 
+## `UseLocalHostAsDefaultHost`について
+- Otel Collector v0.104.0から`receiver.otlp`で`endpoint`を指定してない場合、default値が`0.0.0.0`から`localhost`に変更された。  
+  Otel CollectorがSidecar方式の場合は問題ないけど、Otel CollectorをGateway方式の場合は以下のように明示的に`endpoint`に`0.0.0.0:<port番号>`と記載する必要がある。
+  ```yaml
+  receivers:
+    otlp:
+      protocols:
+        grpc:
+          endpoint: 0.0.0.0:4317
+        http:
+          endpoint: 0.0.0.0:4318
+  ```
+- 参照URL
+  - https://github.com/open-telemetry/opentelemetry-collector-contrib/releases/tag/v0.104.0
+  - https://zenn.dev/ryoyoshii/articles/e87bc69d616ee1
+
 # 各種Receiver
 ## Filelog Receiver
 - https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/filelogreceiver
