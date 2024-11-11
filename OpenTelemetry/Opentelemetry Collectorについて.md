@@ -17,7 +17,7 @@
 ## Prometheus Receiver
 - https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/receiver/prometheusreceiver/README.md
 - Prometheusと同様にメトリクスをスクレイピングするReceiver
-- exemplarの受信をサポートする。ただ、OTLPフォーマットに変換する  
+- **exemplars**の受信をサポートする。ただ、OTLPフォーマットに変換する  
   > This receiver accepts exemplars coming in Prometheus format and converts it to OTLP format.
   > 1. Value is expected to be received in `float64` format
   > 2. Timestamp is expected to be received in `ms`
