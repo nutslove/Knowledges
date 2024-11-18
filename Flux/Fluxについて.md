@@ -38,3 +38,7 @@ flux bootstrap github \
 ```shell
 kubectl apply -f https://raw.githubusercontent.com/flux-iac/tofu-controller/main/docs/release.yaml
 ```
+- Branch Plannerを有効にしてインストールする場合  
+  ```shell
+  kubectl apply -f https://raw.githubusercontent.com/flux-iac/tofu-controller/main/docs/branch-planner/release.yaml
+  ```
