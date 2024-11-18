@@ -42,3 +42,53 @@ kubectl apply -f https://raw.githubusercontent.com/flux-iac/tofu-controller/main
   ```shell
   kubectl apply -f https://raw.githubusercontent.com/flux-iac/tofu-controller/main/docs/branch-planner/release.yaml
   ```
+
+### `Terraform`リソースを強制削除する方法
+- https://flux-iac.github.io/tofu-controller/use-tf-controller/resource-deletion/
+- コマンド例  
+  ```shell
+  kubectl patch terraforms.infra.contrib.fluxcd.io \
+  -n stk helloworld \
+  -p '{"metadata":{"finalizers":null}}' \
+  --type=merge
+  ```
+
+## `flux-system` namespace削除方法
+- https://github.com/fluxcd/terraform-provider-flux/issues/67
+### 手順
+- Dump the descriptor as JSON to a file  
+  ```shell
+  kubectl get namespace flux-system -o json > flux-system.json
+  ```
+
+- Edit flux-system.json and remove kubernetes from the finalizers array 
+  - 修正前
+    ```
+          ・
+          ・
+
+    "spec": {
+            "finalizers": [
+                "kubernetes"
+            ]
+        },
+          ・
+          ・
+
+    ```
+  - 修正後
+    ```
+          ・
+          ・
+
+    "spec": {
+            "finalizers": []
+        },
+          ・
+          ・
+
+    ```
+- Executing our cleanup command  
+  ```shell
+  kubectl replace --raw "/api/v1/namespaces/flux-system/finalize" -f ./flux-system.json
+  ```
