@@ -32,6 +32,12 @@ flux bootstrap github \
   --path=./AWS/k8s/flux --personal
   ```
 
+- 以下のDeployment（Pod）が`flux-system` namespace上に作成される
+  - `helm-controller`
+  - `kustomize-controller`
+  - `notification-controller`
+  - `source-controller`
+
 ## Terraform / Open Tofu Controller for Flux install
 - https://flux-iac.github.io/tofu-controller/getting_started/
 
