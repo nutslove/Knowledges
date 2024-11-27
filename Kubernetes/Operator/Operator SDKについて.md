@@ -145,12 +145,19 @@
 
 ## CRDの定義
 - **`api/<--versionで指定したバージョン>/<--kindで指定した名前>_types.go`の`Spec`と`Status`の構造体(`struct`)の部分を修正してCRDのSpecやStatusを定義する**
+- **`*_types.go`を修正した後、`make generate`コマンドを実行して`api/<--versionで指定したバージョン>/zz_generated.deepcopy.go`をUpdateすること**
 
 ## ControllerのReconcileループのロジックを実装
-- **`internal/controller/<--kindで指定した名前>_controller.go`ファイルにControllerのReconcileループのロジックを実装する**
+- **`internal/controller/<--kindで指定した名前>_controller.go`ファイルの`Reconcile`メソッド内にControllerのReconcileループのロジックを実装する**
+- `Reconcile`メソッドが返す`error`の中身によって`Reconcile`メソッドが繰り返して呼び出されるか１回で終わるかが決まる。  
+  返す`error`が`nil`の場合は１回で終わる。
 
 ## `make manifests`コマンドでCRDのマニフェストファイルを作成
 - `config/crd/bases/`ディレクトリが作成され、その中にサンプルのマニフェストファイルが作成される
 - `config/rbac/role.yaml`ファイルが作成される
 - **`make manifests`コマンドは`api/<--versionで指定したバージョン>/<--kindで指定した名前>_types.go`の`Spec`と`Status`の構造体(`struct`)の部分を見てマニフェストファイルを生成する**
 
+## Operatorの実行
+- https://sdk.operatorframework.io/docs/building-operators/golang/tutorial/#run-the-operator
+- 開発(PoC)の目的でKubernetesクラスター外でOperatorを実行する時は`make install run`
+- `Deployment`としてKubernetesクラスター内で実行する場合は`make deploy`
