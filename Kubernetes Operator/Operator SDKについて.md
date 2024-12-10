@@ -66,10 +66,10 @@
             `-- utils.go
     ```
 
-## `operator-sdk api`コマンドでAPIとControllerを作成
+## `operator-sdk create api`コマンドでAPIとControllerを作成
 - 書式  
   ```
-  operator-sdk api --group <API Group名(e.g. apps/v1のappsの部分)> --version <API Version> --kind <リソースのKind> --resource --controller
+  operator-sdk create api --group <API Group名(e.g. apps/v1のappsの部分)> --version <API Version> --kind <リソースのKind> --resource --controller
   ```  
   - `--resource`フラグはCRDのコードを生成、`--controller`フラグはコントローラーのコードを生成する
   - 追加で`api`、`bin`、`internal`ディレクトリが作成される  
@@ -290,7 +290,6 @@ func (r *MyAppReconciler) SetupWithManager(mgr ctrl.Manager) error {
 - テスト実行時に`suite_test.go`でセットアップした環境下でこれらのテストが実行される
 ### テストの実行
 - `make test`コマンドでテストを実行する
-
 
 # 各ファイルについて
 ## `cmd/main.go`
