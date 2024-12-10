@@ -278,6 +278,20 @@ func (r *MyAppReconciler) SetupWithManager(mgr ctrl.Manager) error {
     make deploy IMG=<your-registry>/<your-operator>:<tag>
     ```
 
+## Operatorのテスト
+### `suite_test.go`
+- `internal/controller/suite_test.go`で`envtest`、`ginkgo`、`gomega`というテストフレームワーク/ツールでOperator(`Reconcile`)の挙動テストのための環境初期化を行う
+  - `BeforeSuite`ブロックで環境初期化を、`AfterSuite`ブロックで後処理を記述
+- `envtest`（`envtest.Environment`と`testEnv.Start()`）は軽量な(疑似的な)API Serverとetcdをインメモリで起動し、擬似的なKubernetes APIサーバー環境をテスト中に構築する
+- `AddToScheme`関数で`Scheme`にCRDの型情報を追加することで、`k8sClient`がCRオブジェクトを適切にシリアライズ・デシリアライズできるようにする
+- `TestControllers`のエントリーポイント関数でGinkgoの`RunSpecs(t, "Suite名")`を呼び出すことで、Ginkgoによるテストスイートが開始される
+### `*_controller_test.go`
+- **実際のテストケースは`internal/controller/*_controller_test.go`の`Describe`や`It`ブロックで記述**
+- テスト実行時に`suite_test.go`でセットアップした環境下でこれらのテストが実行される
+### テストの実行
+- `make test`コマンドでテストを実行する
+
+
 # 各ファイルについて
 ## `cmd/main.go`
 - managerを初期化して実行する
