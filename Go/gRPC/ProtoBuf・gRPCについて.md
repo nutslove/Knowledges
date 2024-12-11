@@ -39,7 +39,7 @@
   syntax = "proto3"; --> 末尾に";"が必要
 
   message Person {
-    string name = 1; <span style="color: red;">★ --> 1は値の代入ではなくタグ</span>
+    string name = 1; <span style="background-color: red;">//★ 1は値の代入ではなくタグ</span>
     int32 id = 2;
     string email = 3;
 
