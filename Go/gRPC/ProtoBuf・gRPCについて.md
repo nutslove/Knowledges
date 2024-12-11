@@ -267,6 +267,43 @@
 - golangの場合、`.proto`ファイルに`option go_package = <パッケージ名>`オプションでGoのパッケージ名を指定する必要がある。  
   これは、生成されたGoファイル内での`package`ステートメントに反映される。
 
+## シリアライズ（Serialize）、デシリアライズ（Deserialize）
+
+
+## protobufから生成された（デシリアライズされた）構造体をjsonに変換
+- `"github.com/golang/protobuf/jsonpb"`を使用
+- 例  
+  ~~~go
+  import (
+    "protobuf/proto/pb"
+    "github.com/golang/protobuf/jsonpb"
+  )
+
+  func main() {
+  	employee := &pb.Employee{ // ProtoBufで定義しているmessage
+  		Id:    1,
+  		Name:  "Lee",
+  		Email: "test@example.com",
+	  }
+
+  	m := jsonpb.Marshaler{}
+  	out, err := m.MarshalToString(employee)
+  	if err != nil {
+  		log.Fatalln("Can't marshal to json", err)
+  	}
+
+  	fmt.Println(out)
+
+    // jsonを構造体に戻す
+  	readEmployee := &pb.Employee{}
+  	if err := jsonpb.UnmarshalString(out, readEmployee); err != nil {
+  		log.Fatalln("Can't unmarshal from json", err)
+  	}
+
+  	fmt.Println(readEmployee)
+  }
+  ~~~
+
 # gRPC
 ## gRPC開発の流れ
 1. protoファイルを作成
