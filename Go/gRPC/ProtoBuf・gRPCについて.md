@@ -354,32 +354,64 @@
 2. protoファイルをコンパイルし、サーバ / クライアントの雛形コードを作成
 3. 雛形コードを使用してサーバ / クライアントを実装
 
+## Service
+- protoファイル内に定義するRPC（メソッド）の実装単位
+- Service内に定義するメソッドがgRPCのエンドポイントになる
+- Serviceにより、クライアントとサーバー間で関数のような通信を行うことができる
+- 1つのService内に複数のメソッドを定義できる
+- **Service名、メソッド名、引数（リクエスト）、戻り値（レスポンス）**を定義する必要がある
+  - メソッドは`rpc`のキーワードの次に指定
+- goにコンパイルすると、Interfaceに変換される
+  - その雛型のInterfaceを使って実装する
+
+### Serviceの定義例
+```proto
+syntax = "proto3";
+
+package example;
+
+service Greeter { // GreeterがService名
+  // Unary RPC: 1リクエスト -> 1レスポンス
+  rpc SayHello (HelloRequest) returns (HelloResponse); // これがメソッド
+}
+
+// リクエストメッセージの定義
+message HelloRequest {
+  string name = 1;
+}
+
+// レスポンスメッセージの定義
+message HelloResponse {
+  string message = 1;
+}
+```
+
 ## gRPCの通信方式
 1. **Unary RPC**
    - 1リクエスト・1レスポンス方式
    - 通常の関数コールのような扱い
-   - Unary RPCのService定義
-     ~~~
-     ~~~
 2. **Server Streaming RPC**
    - 1リクエスト・複数レスポンス方式
    - クライアントはサーバから送信完了の信号が送信されるまで、ストリームのメッセージを読み続ける
    - サーバからのプッシュ通知などで使われる
-   - Server Streaming RPCのService定義
+   - Server Streaming RPCのService定義（レスポンスの`returns`に`stream`が付く）
      ~~~
+     rpc ListMessages (MessageRequest) returns (stream MessageResponse);
      ~~~
 3. **Client Streaming RPC**
    - 複数リクエスト・1レスポンス方式
    - サーバはクライアントからリクエスト完了の信号が送信されるまで、ストリームメッセージを読み続け、レスポンスを返さない
    - 大きなファイルのアップロードなどに使われる
-   - Client Streaming RPCのService定義
+   - Client Streaming RPCのService定義（リクエストの引数のところに`stream`が付く）
      ~~~
+     rpc SendMessages (stream MessageRequest) returns (MessageSummary);
      ~~~
 4. **Bidirectional Streaming RPC**
    - 複数リクエスト・複数レスポンス方式
    - クライアントとサーバのストリームが独立していて、リクエストとレスポンスに順序は守らなくても良い
      - クライアントから複数リクエストを送り終わった後にサーバから複数レスポンスを返すのではなく、クライアントが送信している間にサーバからレスポンスを返しても良い
      - チャットなどで使われる
-   - Client Streaming RPCのService定義
+   - Client Streaming RPCのService定義（両方に`stream`が付く）
      ~~~
+     rpc Chat (stream ChatMessage) returns (stream ChatMessage);
      ~~~
