@@ -268,7 +268,51 @@
   これは、生成されたGoファイル内での`package`ステートメントに反映される。
 
 ## シリアライズ（Serialize）、デシリアライズ（Deserialize）
+- `"google.golang.org/protobuf/proto"`を使用
+- シリアライズは`Marshal`関数、デシリアライズは`Unmarshal`関数を使用
+- 例  
+  ~~~go
+  package main
 
+  import (
+  	"fmt"
+  	"io/ioutil"
+  	"log"
+  	"protobuf/proto/pb"
+
+  	"google.golang.org/protobuf/proto"
+  )
+
+  func main() {
+  	employee := &pb.Employee{
+  		Id:    1,
+  		Name:  "Lee",
+  		Email: "test@example.com",
+  	}
+
+  	binData, err := proto.Marshal(employee)
+  	if err != nil {
+  		log.Fatalln("Can't serialize", err)
+  	}
+
+  	if err := ioutil.WriteFile("test.bin", binData, 0666); err != nil {
+  		log.Fatalln("Can't Write to file", err)
+  	}
+
+  	in, err := ioutil.ReadFile("test.bin")
+  	if err != nil {
+  		log.Fatalln("Can't Read file", err)
+  	}
+
+  	readEmployee := &pb.Employee{} // デシリアライズしたデータを格納する空の構造体を初期化した変数を用意
+  	err = proto.Unmarshal(in, readEmployee)
+  	if err != nil {
+  		log.Fatalln("Can't deserialize", err)
+  	}
+
+  	fmt.Println(readEmployee)
+  }
+  ~~~
 
 ## protobufから生成された（デシリアライズされた）構造体をjsonに変換
 - `"github.com/golang/protobuf/jsonpb"`を使用
