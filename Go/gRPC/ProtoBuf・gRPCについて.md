@@ -255,8 +255,10 @@
 - golangの場合
   - `protoc --go_out=<outputディレクトリ> <inputとなるprotoファイル> [<inputとなるprotoファイル2> <inputとなるprotoファイル3> ・・・]`
   - golangはプラグインで追加する必要がある
-  - コンパイルに成功したらgoファイル生成される
+  - コンパイルに成功したらgoファイル（`<service名>.pb.go`）が生成される
   - messageで定義した内容はgoの`struct`に変換される
+  - gRPC用のコンパイルでは`--go-grpc_out=<ファイルを出力したいパスを指定（.はカレントディレクトリに生成）>`（**gRPCクライアントとサーバの雛形コードを生成してくれる**）を指定する
+    - gRPCサーバーとクライアントの雛形コードである`<service名>_grpc.pb.go`が追加で生成される
 - pythonの場合
   - `protoc --python_out=<outputディレクトリ> <inputとなるprotoファイル>`
 - inputファイルは`*.proto`のように複数指定することもできる
@@ -266,6 +268,88 @@
   - `-I`オプションを省略した場合はカレントディレクトリ`-I.`が設定される
 - golangの場合、`.proto`ファイルに`option go_package = <パッケージ名>`オプションでGoのパッケージ名を指定する必要がある。  
   これは、生成されたGoファイル内での`package`ステートメントに反映される。
+
+## gRPCクライアントとサーバの雛形コード（`<service名>_grpc.pb.go`）とサーバ、クライアントのためのコード作成
+- `protoc`コマンドの`--go-grpc_out`オプションで`<service名>_grpc.pb.go`が生成され、その中にprotoファイルで定義した`service`を元にInterfaceとメソッドが作成されている
+
+### Server側実装
+- **`<service名>_grpc.pb.go`の中のメソッドは`receiver`として`Unimplemented<Service名>Server`（e.g. `UnimplementedFileServiceServer`）という構造体を持ち、デフォルトでは`"method <メソッド名> not implemented"`と未実装のエラーを返すため、別のファイルでこのメソッドを上書き(実装)する必要がある**
+  - メソッドの上書きの際に以下のように`server`構造体に`Unimplemented<Service名>Server`構造体を埋め込み、`<service名>_grpc.pb.go`で定義されているメソッドが`server`で使えるようになり、`server`をreceiverとして持つメソッドを新たに定義することで`<service名>_grpc.pb.go`内のメソッドを上書きする  
+    ```go
+    package main
+
+    import (
+    	"context"
+    	"log"
+    	"net"
+
+    	pb "path/to/your/proto" // protobufの生成コードのパッケージパス
+    	"google.golang.org/grpc"
+    )
+
+    type server struct {
+    	pb.UnimplementedYourServiceServer
+    }
+
+    // 実際のメソッドを実装
+    func (s *server) YourMethod(ctx context.Context, req *pb.YourRequest) (*pb.YourResponse, error) {
+    	log.Printf("Received request: %v", req)
+    	return &pb.YourResponse{Message: "Hello, " + req.Name}, nil
+    }
+
+    func main() {
+    	lis, err := net.Listen("tcp", ":50051")
+    	if err != nil {
+    		log.Fatalf("Failed to listen: %v", err)
+    	}
+
+    	grpcServer := grpc.NewServer()
+    	pb.RegisterYourServiceServer(grpcServer, &server{}) // gRPCサーバに`server`構造体が実装するメソッド(`YourMethod`)が登録され、クライアント側でメソッド(`YourMethod`)を呼び出した時に`server.<メソッド>`(`server.YourMethod`)が実行される
+
+    	log.Println("Server is running on port :50051")
+    	if err := grpcServer.Serve(lis); err != nil {
+    		log.Fatalf("Failed to serve: %v", err)
+    	}
+    }
+    ```
+
+### Client側実装
+- クライアントを作成し、gRPCサーバーにリクエストを送信
+- 例  
+  ```go
+  package main
+
+  import (
+  	"context"
+  	"log"
+  	"time"
+
+  	pb "path/to/your/proto" // プロトバッファの生成コードのパッケージパス
+  	"google.golang.org/grpc"
+  )
+
+  func main() {
+  	conn, err := grpc.Dial("localhost:50051", grpc.WithInsecure()) // WithInsecureはTLSを使わない
+  	if err != nil {
+  		log.Fatalf("Failed to connect: %v", err)
+  	}
+  	defer conn.Close()
+
+  	client := pb.NewYourServiceClient(conn)
+
+  	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+  	defer cancel()
+
+  	req := &pb.YourRequest{Name: "World"}
+  	res, err := client.YourMethod(ctx, req)
+  	if err != nil {
+  		log.Fatalf("Could not greet: %v", err)
+  	}
+
+  	log.Printf("Response: %s", res.Message)
+  }
+  ```
+
 
 ## シリアライズ（Serialize）、デシリアライズ（Deserialize）
 - `"google.golang.org/protobuf/proto"`を使用

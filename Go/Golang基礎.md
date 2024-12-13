@@ -697,7 +697,7 @@ updates go.mod to require those versions, and downloads source code into the mod
     }
     ~~~
 
-### Embedded structs
+### Embedded structs（構造体の埋め込み）
 - 他の言語のClassの継承みたいな感じ
 - 既存のstructの中のfieldを継承し、追加のfieldを追加して使う
 - Format
@@ -746,6 +746,8 @@ updates go.mod to require those versions, and downloads source code into the mod
   fmt.Println(agent.name, agent.sex, agent.age, agent.pay, agent.country)
   -→ agent.person.nameのようにpersonを入れなくて良い 
   ~~~
+- 埋め込んだ型のメソッドセットを埋め込み元でも使用できる
+- Goでは、埋め込み型のメソッドよりも、埋め込み元で直接定義されたメソッドが優先される
 
 ### Anonymous structs
 - `type <struct名>`でstructを宣言せず、1回限りの (1つの変数だけで使える) struct
@@ -761,7 +763,7 @@ updates go.mod to require those versions, and downloads source code into the mod
   }
   ~~~
 
-## Methods
+## Methods（メソッド）
 - *a method is just a function with a receiver argument.*
   - つまり、MethodはStructをReceiver引数として持つ関数
 - A method is nothing more than a FUNC attached to a TYPE
