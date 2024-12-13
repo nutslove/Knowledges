@@ -315,6 +315,13 @@
 
 ### Client側実装
 - クライアントを作成し、gRPCサーバーにリクエストを送信
+- `grpc.Dial`（戻り値: `*grpc.ClientConn`）でサーバーに接続を確立し、`pb.NewYourServiceClient`でクライアントを初期化し、`client.<メソッド名>`でサーバーのメソッドを呼び出す
+  - メソッドに引数がある場合は`client.<メソッド名>`の第２引数に指定して連携
+  - `grpc.Dial`のフォーマット  
+    ```
+    conn, err := grpc.Dial(target string, opts ...grpc.DialOption)
+    ```
+    - 第２引数が接続オプション
 - 例  
   ```go
   package main
@@ -329,7 +336,7 @@
   )
 
   func main() {
-  	conn, err := grpc.Dial("localhost:50051", grpc.WithInsecure()) // WithInsecureはTLSを使わない
+  	conn, err := grpc.Dial("localhost:50051", grpc.WithInsecure()) // WithInsecureはTLSを使わない。`grpc.WithTransportCredentials`はTLSを使う
   	if err != nil {
   		log.Fatalf("Failed to connect: %v", err)
   	}
