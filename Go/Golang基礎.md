@@ -1,42 +1,132 @@
-## Go Workspace
-- Workspaceには以下の3つのディレクトリが必要
-  - /bin
-  - /pkg
-  - /src  
-<br>
-
+## `GOROOT`の下のディレクトリ
    | パス | 内容 |
    | --- | --- |
    | /bin | コンパイルされたものが格納される |
-   | /pkg | プログラムから呼び出されるライブラリ(?) |
-   | /src | ?? |
+   | /pkg | プロジェクト内で再利用可能なパッケージ(コード)を格納 |
+   | /src | `GOROOT`の下の`/src`ディレクトリは標準パッケージのソースコードが格納されている。 |
 
-  ### 環境変数
-  - GOPATH
-    - points to your go workspace
-  - GOROOT
-    - points to your binary installation of Go
+### 環境変数
+- `GOPATH`
+  - points to your go workspace
+- `GOROOT`
+  - points to your binary installation of Go
+
+## Goプロジェクトの構造
+- 以下githubリポジトリ参照！
+  - **https://github.com/golang-standards/project-layout?tab=readme-ov-file**
+
+### 現代的なGoプロジェクトの構造
+- 一例
+  ```
+  project/
+  ├── cmd/
+  │   ├── app1/
+  │   │   └── main.go
+  │   └── app2/
+  │       └── main.go
+  ├── pkg/
+  │   ├── logger/
+  │   │   └── logger.go
+  │   └── config/
+  │       └── config.go
+  ├── internal/
+  │   ├── service/
+  │   │   └── service.go
+  │   └── repository/
+  │       └── repository.go
+  ├── go.mod
+  ├── go.sum
+  └── README.md
+  ```
+
+- 小規模の場合は`cmd/`ディレクトリがない場合もある  
+  ```
+  project/
+  ├── main.go
+  ├── internal/
+  │   ├── service.go
+  │   └── repository.go
+  ├── pkg/
+  │   └── utils.go
+  ├── go.mod
+  ├── go.sum
+  └── README.md
+  ```
+
+- いくつかのOSSのGithubリポジトリを見た感じだと、**`pkg/`ディレクトリにビジネスロジックを書いているところが多そう**
+
+#### `cmd/`ディレクトリ
+- **役割**
+  - アプリケーションのエントリーポイントを格納
+- **特徴**
+  - 各サブディレクトリが個別のバイナリを生成する
+  - 通常、エントリーポイントとなる`main.go`のみを配置
+  - ビジネスロジックは直接記述せず、内部パッケージを呼び出す形にする
+- コード例 `cmd/app1/main.go`  
+  ```go
+  package main
+
+  import "project/internal/service"
+
+  func main() {
+      service.Start()
+  }
+  ```
+
+#### `pkg/`ディレクトリ
+- **役割**
+  - 再利用可能なライブラリや汎用的なコードを格納
+- **特徴**
+  - 外部プロジェクトからインポート可能
+  - 他プロジェクトで再利用するユーティリティや汎用ライブラリを含む
+- コード例 `pkg/logger/logger.go`  
+  ```go
+  package logger
+
+  import "log"
+
+  func LogInfo(message string) {
+      log.Println("[INFO]", message)
+  }
+  ```
+
+#### `internal/`ディレクトリ
+- **役割**
+  - アプリケーション内部でのみ利用するコードを格納
+- **特徴**
+  - `internal`ディレクトリ配下のパッケージは、Goのルールにより同一モジュール外からインポートできない
+- コード例 `internal/service/service.go`  
+  ```go
+  package service
+
+  import "fmt"
+
+  func Start() {
+      fmt.Println("Service started!")
+  }
+  ```
 
 ## Go Module
-- ModuleはGoパッケージ管理の手助けをしてくれるもの
-  - パッケージのバージョンを固定したり、常に最新バージョンを使うように設定したりすることができる
-   #### Go Module作成(初期化)
-   - `go mod init <Module名>`で初期化  
-     → `go.mod`が作成される（これによって、現在のディレクトリがGoモジュールのルートディレクトリであることが示される）
-     - `go.mod`とは
-       - Goモジュールのパスを書いておくファイル
+- Moduleはプロジェクト構成単位（1つのモジュールが1つのプロジェクト）
 - Moduleは、関連するパッケージの集合であり、プロジェクト全体を一つの単位として扱う。これにより、バージョン管理や依存関係の解決が容易になる。
 - **`go mod tiny`** コマンド
-  - 依存関係を整理し、go.modとgo.sumファイルを更新する
-  - 未使用の依存関係を削除し、必要な依存関係を追加
-  - go.modファイルとgo.sumファイルを、実際のソースコードと同期させる
+  - 依存関係を整理し、`go.mod`と`go.sum`ファイルを更新する
+  - **`go.mod`の中には定義されているけど実際コードでは未使用のモジュールを`go.mod`から削除し、`go.mod`の中には定義されてないけどコードでは使っている必要なモジュールを`go.mod`に追加**
+  - **依存関係のモジュールのソースコードのダウンロード（削除）もする**
+  - `go.mod`ファイルと`go.sum`ファイルを、実際のソースコードと同期させる
   - これにより、プロジェクトの依存関係が正確に管理される
-- `go build`は指定されたパッケージとそのすべての依存パッケージがコンパイルされ、静的にリンクされた単一の実行可能ファイルが生成される。この実行可能ファイルには、importしているすべてのパッケージのバイナリコードが含まれている。  
+- `go build`は指定されたパッケージとそのすべての依存パッケージがコンパイルされ、静的にリンクされた単一の実行可能ファイルが生成される。この実行可能ファイルには、`import`しているすべてのパッケージのバイナリコードが含まれている。  
   Goは静的リンクを使用しているため、生成された実行可能ファイルは、実行に必要なすべてのコードを含んでいる。つまり、実行可能ファイルを別のシステムに移動しても、依存パッケージを別途インストールする必要がない。
   - `-o <バイナリ名>`でファイル名とは異なるバイナリファイルを生成できる
     - e.g. `go build -o logaas main.go`
+### Go Module作成(初期化)
+- `go mod init <Module名>`で初期化  
+  - `go.mod`が作成される（これによって、現在のディレクトリがGoモジュールのルートディレクトリであることが示される）
+- **`go.mod`ファイルは**
+  - Goモジュールの依存関係管理ファイル
+  - module名と使用しているGoのバージョン、使用している(依存関係の)モジュールが記載されている
 
-### パッケージ関連
+## パッケージ関連
 - Go v1.16までは`go get`は、パッケージをダウンロードした後に`go install`を実行してダウンロードしたパッケージのコンパイルまでしていた。
   - コンパイルされたパッケージ(バイナリ)は`$GOBIN`または`$GOPATH/bin`または`$HOME/go/bin`配下に配置される
 - 現在(Go v1.17以降)は`go get`は`go.mod`の依存関係の調整にだけ使われて、パッケージのインストール(コンパイル＋`$GOBIN`または`$GOPATH/bin`への配置)には`go install`を使う
@@ -102,17 +192,17 @@ updates go.mod to require those versions, and downloads source code into the mod
       >
       > これにより、Dockerコンテナ内でのGoアプリケーションのビルドが効率的かつ一貫性を持って行われます。
 
-##### `go get`と`go install`について
+### `go get`と`go install`について
 - **`go get`**
   - `go get`コマンドは、指定したパッケージのソースコードをインターネット上からダウンロードし、ローカルの作業環境に配置する。このコマンドは、指定したパッケージだけでなく、その依存関係にあるパッケージも一緒にダウンロードする。ダウンロードしたパッケージは、`GOPATH`環境変数で指定されたディレクトリの`src`フォルダ内に配置される。
 - **`go install`**
   - `go install`コマンドは、ソースコードをコンパイルして実行可能なバイナリファイルを生成し、それを`GOPATH`環境変数で指定されたディレクトリの`bin`フォルダ内に配置する。このコマンドは、開発中のプロジェクトや依存するパッケージをビルドして、すぐに実行可能な状態にする。
 
-##### `go.sum`ファイル
+### `go.sum`ファイル
 - プロジェクトの依存関係として使用される各パッケージの特定のバージョンに対するchecksum（ハッシュ値）が記録されていて、パッケージの内容が変更されていないことを確認するために使用され、依存関係の中で意図しない変更や悪意のある変更がないかを検証することができる
 - `go mod`コマンド（特に`go mod tidy`や`go get`など）を使用する際に自動的に生成または更新される。このファイルは通常、ソースコード管理システム（例えばGit）にコミットされるべき。これにより、プロジェクトをクローンまたはダウンロードするすべての開発者が、同じ依存関係を使用してプロジェクトをビルドできるようになる。
 
-##### Windowsで`go get`時、"Access is denied"が出た時の対応
+### Windowsで`go get`時、"Access is denied"が出た時の対応
 - 事象
   - WindowsでGoをインストールするとCドライブの`Program Files`フォルダ内にインストールされ、  
     その後、一般ユーザで`go get`でパッケージをダウンロードしようとすると、  
@@ -127,8 +217,8 @@ updates go.mod to require those versions, and downloads source code into the mod
 - Goにwhileはない
 - gofmtコマンドを使うとgoのフォーマットに変換してくれる  
 `gofmt -w <対象goファイル>`
-- main()関数以外はmainもしくはinit関数内で明示的に呼び出す必要がある
-- init()関数がmain()関数より先に実行される
+- `main()`関数以外はmainもしくはinit関数内で明示的に呼び出す必要がある
+- `init()`関数が`main()`関数より先に実行される
 - GoにもGCが存在する
   - ただ、fileなど明示的に開放しなければいけないものもある
   - 明示的に開放する必要があるものはdeferを使って開放する
@@ -141,7 +231,7 @@ updates go.mod to require those versions, and downloads source code into the mod
 - Goも本当は構文の最後に`;`が付くけど、コンパイラーがコンパイル時に付けてくれるので人が意識する(付ける)必要はない。ただ、for文やif文など1行に複数の構文を書く場合は明示的に`;`を付ける必要がある
 - main関数の中で`return`でプログラムが終了する
 
-### Goインストール（Linux）
+## Goインストール（Linux）
 - `wget https://dl.google.com/go/go1.18.4.linux-amd64.tar.gz`
 - `rm -rf /usr/local/go && tar -C /usr/local -xzf go1.18.4.linux-amd64.tar.gz`
 - `export PATH=$PATH:/usr/local/go/bin`
