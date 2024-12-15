@@ -66,97 +66,106 @@
      	TracerProvider() TracerProvider
      }
      ```
-7. `span.SetAttributes`でspanにattribute(付加情報)を追加（*Optional*）
-
-```go
-import (
-   "go.opentelemetry.io/otel"
-   "go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
-   "go.opentelemetry.io/otel/propagation"
-   "go.opentelemetry.io/otel/sdk/resource"
-   "go.opentelemetry.io/otel/sdk/trace"
-   semconv "go.opentelemetry.io/otel/semconv/v1.4.0"   
-)
-
-func main() {
-   // OTLPエクスポーターの設定 (Start establishes a connection to the receiving endpoint.)
-   // 第１引数がcontextで第２引数がoptions(2つ目のパラメータからスライスとなる)
-   exporter, err := otlptracehttp.New(context.Background(),
-      otlptracehttp.WithEndpoint("<traceを受け付けるツール(e.g. jaeger, otel collector)のアドレス>:<traceを受け付けるポート(e.g. 4318)>"),
-      otlptracehttp.WithInsecure(), // TLSを無効にする場合に指定
+7. `span.SetAttributes`でspanにattribute(付加情報)を追加（*Optional*）  
+   ```go
+   import (
+      "go.opentelemetry.io/otel"
+      "go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
+      "go.opentelemetry.io/otel/propagation"
+      "go.opentelemetry.io/otel/sdk/resource"
+      "go.opentelemetry.io/otel/sdk/trace"
+      semconv "go.opentelemetry.io/otel/semconv/v1.4.0"   
    )
 
-   //// Tracerの設定
-   // NewTracerProvider returns a new and configured TracerProvider.
-   //
-   // By default the returned TracerProvider is configured with:
-   //   - a ParentBased(AlwaysSample) Sampler
-   //   - a random number IDGenerator
-   //   - the resource.Default() Resource
-   //   - the default SpanLimits.
-   //
-   // The passed opts are used to override these default values and configure the
-   // returned TracerProvider appropriately.
-   tp := trace.NewTracerProvider(
-      trace.WithBatcher(exporter),
-      trace.WithResource(resource.NewWithAttributes(
-         semconv.SchemaURL,                     // SchemaURL is the schema URL used to generate the trace ID. Must be set to an absolute URL.
-         semconv.ServiceNameKey.String("HAM3"), // ServiceNameKey is the key used to identify the service name in a Resource.
-      )),
-   )
-   // プログラム終了時に適切にリソースを解放
-   defer tp.Shutdown(context.Background())
+   func main() {
+      // OTLPエクスポーターの設定 (Start establishes a connection to the receiving endpoint.)
+      // 第１引数がcontextで第２引数がoptions(2つ目のパラメータからスライスとなる)
+      exporter, err := otlptracehttp.New(context.Background(),
+         otlptracehttp.WithEndpoint("<traceを受け付けるツール(e.g. jaeger, otel collector)のアドレス>:<traceを受け付けるポート(e.g. 4318)>"),
+         otlptracehttp.WithInsecure(), // TLSを無効にする場合に指定
+      )
 
-   // SetTracerProvider registers `tp` as the global trace provider.
-   otel.SetTracerProvider(tp)
-   otel.SetTextMapPropagator(propagation.TraceContext{})
+      //// Tracerの設定
+      // NewTracerProvider returns a new and configured TracerProvider.
+      //
+      // By default the returned TracerProvider is configured with:
+      //   - a ParentBased(AlwaysSample) Sampler
+      //   - a random number IDGenerator
+      //   - the resource.Default() Resource
+      //   - the default SpanLimits.
+      //
+      // The passed opts are used to override these default values and configure the
+      // returned TracerProvider appropriately.
+      tp := trace.NewTracerProvider(
+         trace.WithBatcher(exporter),
+         trace.WithResource(resource.NewWithAttributes(
+            semconv.SchemaURL,                     // SchemaURL is the schema URL used to generate the trace ID. Must be set to an absolute URL.
+            semconv.ServiceNameKey.String("HAM3"), // ServiceNameKey is the key used to identify the service name in a Resource.
+         )),
+      )
+      // プログラム終了時に適切にリソースを解放
+      defer tp.Shutdown(context.Background())
 
-   // ####################################################################################
-//    // Tracer is the creator of Spans.
-//    //
-//    // Warning: Methods may be added to this interface in minor releases. See
-//    // package documentation on API implementation for information on how to set
-//    // default behavior for unimplemented methods.
-//    type Tracer interface {
-//    	// Users of the interface can ignore this. This embedded type is only used
-//    	// by implementations of this interface. See the "API Implementations"
-//    	// section of the package documentation for more information.
-//    	embedded.Tracer
+      // SetTracerProvider registers `tp` as the global trace provider.
+      otel.SetTracerProvider(tp)
+      otel.SetTextMapPropagator(propagation.TraceContext{})
 
-//    	// Start creates a span and a context.Context containing the newly-created span.
-//    	//
-//    	// If the context.Context provided in `ctx` contains a Span then the newly-created
-//    	// Span will be a child of that span, otherwise it will be a root span. This behavior
-//    	// can be overridden by providing `WithNewRoot()` as a SpanOption, causing the
-//    	// newly-created Span to be a root span even if `ctx` contains a Span.
-//    	//
-//    	// When creating a Span it is recommended to provide all known span attributes using
-//    	// the `WithAttributes()` SpanOption as samplers will only have access to the
-//    	// attributes provided when a Span is created.
-//    	//
-//    	// Any Span that is created MUST also be ended. This is the responsibility of the user.
-//    	// Implementations of this API may leak memory or other resources if Spans are not ended.
-//    	Start(ctx context.Context, spanName string, opts ...SpanStartOption) (context.Context, Span)
-//    }
-   // ####################################################################################
-   tr := otel.Tracer("ham3")                      // spanのotel.library.name semantic conventionsに入る値
-   ctx, span := tr.Start(ctx, "somethins started") // (新しい)spanの開始
-   defer span.End()                               // spanの終了
+      // ####################################################################################
+   //    // Tracer is the creator of Spans.
+   //    //
+   //    // Warning: Methods may be added to this interface in minor releases. See
+   //    // package documentation on API implementation for information on how to set
+   //    // default behavior for unimplemented methods.
+   //    type Tracer interface {
+   //    	// Users of the interface can ignore this. This embedded type is only used
+   //    	// by implementations of this interface. See the "API Implementations"
+   //    	// section of the package documentation for more information.
+   //    	embedded.Tracer
 
-   // Add attributes to the span
-   span.SetAttributes(
-      attribute.String("http.method", c.Request.Method),
-      attribute.String("http.path", c.Request.URL.Path),
-      attribute.String("http.host", c.Request.Host),
-      attribute.Int("http.status_code", statusCode),
-      attribute.String("http.user_agent", c.Request.UserAgent()),
-      attribute.String("http.remote_addr", c.Request.RemoteAddr),
-   )
-}
-```
+   //    	// Start creates a span and a context.Context containing the newly-created span.
+   //    	//
+   //    	// If the context.Context provided in `ctx` contains a Span then the newly-created
+   //    	// Span will be a child of that span, otherwise it will be a root span. This behavior
+   //    	// can be overridden by providing `WithNewRoot()` as a SpanOption, causing the
+   //    	// newly-created Span to be a root span even if `ctx` contains a Span.
+   //    	//
+   //    	// When creating a Span it is recommended to provide all known span attributes using
+   //    	// the `WithAttributes()` SpanOption as samplers will only have access to the
+   //    	// attributes provided when a Span is created.
+   //    	//
+   //    	// Any Span that is created MUST also be ended. This is the responsibility of the user.
+   //    	// Implementations of this API may leak memory or other resources if Spans are not ended.
+   //    	Start(ctx context.Context, spanName string, opts ...SpanStartOption) (context.Context, Span)
+   //    }
+      // ####################################################################################
+      tr := otel.Tracer("ham3")                      // spanのotel.library.name semantic conventionsに入る値
+      ctx, span := tr.Start(ctx, "somethins started") // (新しい)spanの開始
+      defer span.End()                               // spanの終了
+
+      // Add attributes to the span
+      span.SetAttributes(
+         attribute.String("http.method", c.Request.Method),
+         attribute.String("http.path", c.Request.URL.Path),
+         attribute.String("http.host", c.Request.Host),
+         attribute.Int("http.status_code", statusCode),
+         attribute.String("http.user_agent", c.Request.UserAgent()),
+         attribute.String("http.remote_addr", c.Request.RemoteAddr),
+      )
+   }
+   ```
 
 ## ■ `NewTracerProvider`について
 - OpenTelemetry Go SDKの`trace.NewTracerProvider`は、traceを生成および管理するための `TracerProvider` を作成する(返す)
+
+## ■ `SetTracerProvider`について
+- **`SetTracerProvider`はグローバルな`TracerProvider`を設定するための関数であり、この設定によって`otel.Tracer`を通じて取得される`Tracer`が自動的にその`TracerProvider`に紐づく**
+  - `otel.SetTracerProvider(tp)`が呼ばれると[global.SetTracerProvider(tp)](https://github.com/open-telemetry/opentelemetry-go/blob/main/trace.go)が実行され、`global.SetTracerProvider(tp)`メソッド内の`globalTracer.Store(tracerProviderHolder{tp: tp})`でグローバル変数`globalTracer`に`TracerProvider`が保持される。  
+    その後、`otel.Tracer()`の内部で`GetTracerProvider()`が呼ばれ、さらに`GetTracerProvider()`から`global.TracerProvider()`が呼ばれ、`global.TracerProvider()`内の`globalTracer.Load().(tracerProviderHolder).tp`で上で格納した`TracerProvider`が返される。
+    返されたグローバルな`TracerProvider`から`Tracer`メソッドでTracerを取得し、`Start()`メソッドでSpanを開始する流れ
+- **`otel.SetTracerProvider`で生成される`TracerProvider`は同一プロセス内で動作するGoコード全体、つまりアプリケーション全体で共有される**
+  - ここでいう「アプリケーション全体」とは、基本的に以下を意味する
+    - **1. 同じGoランタイム上で実行されている**
+    - **2. 同じバイナリとしてコンパイルされ、同一のmain関数（およびその呼び出し範囲）内で実行されているコード全てを指す**
 
 ### `TracerProvider`の構成オプション
 - **`trace.WithBatcher`**
