@@ -2932,7 +2932,23 @@ func main() {
 - ChannelとMap以外のすべてのデータTypeに使える
 
 ## `make()`関数
-- 組み込みの関数であり、スライス（slice）、マップ（map）、チャネル（channel）を作成するために使用される
+- 組み込みの関数であり、**スライス（slice）、マップ（map）、チャネル（channel）** を作成するために使用される
+  - sliceはZero Vauleが入ったスライスが、mapは空のmapが、channelも空のchannelが作成される  
+    ```go
+    func main() {
+      s := make([]int, 3)
+      fmt.Println(s)
+      // [0 0 0] が出力される
+
+      m := make(map[string]int)
+      fmt.Println(m)
+      // map[]が出力される
+
+      c := make(chan int)
+      fmt.Println(c)
+      // 0xc0000260c0などのメモリアドレスが出力される
+    }
+    ```
 - `make`関数を使用することで、これらのデータ構造を適切に初期化し、メモリを割り当てることができる。`make`を使用せずに宣言すると`nil`の値が割り当てられ、使用前に初期化する必要がある。  
   また、`make`はこれらのデータ構造に特化した関数であり、他の型の変数を作成するためには使用できない。他の型の変数を作成する場合は、`var`による宣言や`:=`を使用した短い宣言などを使用する。
   - 例  
@@ -2953,7 +2969,8 @@ func main() {
 slice := make([]int, length, capacity)
 ```
 - `length`は初期長を指定
-- `capacity`は容量（オプション）を指定。省略した場合はlengthと同じ値になる。
+- `capacity`は容量（オプション）を指定。
+  - 省略した場合はlengthと同じ値になる。
 
 #### マップ（map）の作成
 ```go
@@ -2961,7 +2978,8 @@ m := make(map[keyType]valueType, capacity)
 ```
 - `keyType`はマップのキーの型を指定
 - `valueType`はマップの値の型を指定
-- `capacity`は容量（オプション）を指定。省略した場合はデフォルトの小さな容量で初期化される
+- `capacity`は容量（オプション）を指定。
+  - 省略した場合はデフォルトの小さな容量で初期化される
   - mapのサイズが大きくなるにつれて自動的に拡張
   - 小さなmapや、サイズが不明な場合に適している
   - 指定した場合は、指定した容量に基づいて内部メモリが事前に割り当てられる。パフォーマンスの最適化に役立つ。特に大きなmapを作成する場合に有効。
@@ -2971,19 +2989,20 @@ m := make(map[keyType]valueType, capacity)
 ch := make(chan elementType, bufferSize)
 ```
 - `elementType`はチャネルを通して送受信される要素の型を指定
-- `bufferSize`はチャネルのバッファサイズ（オプション）を指定。省略するとバッファなしのチャネルが作成される。
+- `bufferSize`はチャネルのバッファサイズ（オプション）を指定。
+  - 省略するとバッファなしのチャネルが作成される。
 
 ## 各型のデフォルト値(Zero Value)
-- int  
+- `int`  
   → 0
-- string  
+- `string`  
   → "" (empty string)
-- bool  
+- `bool`  
   → false
-- floats  
+- `floats`  
   → 0.0
-- その他  
-  → nil
+- その他(`error`など)  
+  → `nil`
 
 ## Goは独自のTypeを作成することができる
 - Format
