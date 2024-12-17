@@ -10,7 +10,13 @@
 6. `tracer.Start`でspanを開始
    - `tracer.Start`の第2引数がspanのタイトルとなる  
      ![](../image/span_title.jpg)
-   - `tracer.Start`メソッドの２つ目の戻り値(`span`)のメソッドでSpanに属性(attribute)を追加したり、`End()`でSpanを終了させる  
+   - `tracer.Start`メソッドの２つ目の戻り値(`span`)のメソッドでSpanに属性(attribute)を追加(`span.SetAttributes()`メソッド)したり、`End()`でSpanを終了させる  
+     - `span.AddEvent()`メソッドで以下のようなLogを追加することができる  
+       ```go
+       ctx, span := tr.Start(context.Background(), "data streaming started")
+       span.AddEvent("data push executed")
+       ```
+       ![span_event](../image/span_event.jpg)
      ```go
      type Span interface {
      	// Users of the interface can ignore this. This embedded type is only used
@@ -74,6 +80,7 @@
       "go.opentelemetry.io/otel/propagation"
       "go.opentelemetry.io/otel/sdk/resource"
       "go.opentelemetry.io/otel/sdk/trace"
+      "go.opentelemetry.io/otel/attribute"
       semconv "go.opentelemetry.io/otel/semconv/v1.4.0"   
    )
 
@@ -331,5 +338,11 @@ func main() {
 ```
 
 # Metric
+- 参考URL
+  - https://opentelemetry.io/docs/languages/go/instrumentation/#metrics  
+      > you’ll need to have an initialized `MeterProvider` that lets you create a `Meter`. Meters let you create instruments that you can use to create different kinds of metrics.
+- `MeterProvider`
 
 # Log
+- 参照URL
+  - https://opentelemetry.io/docs/languages/go/instrumentation/#logs
