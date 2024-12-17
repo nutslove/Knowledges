@@ -405,6 +405,7 @@ func main() {
 ## 設定の流れ
 - 基本的にTraceの時と同じ
 1. `otlpmetrichttp.New`もしくは`otlpmetricgrpc.New`でexporter(メトリクスの送り先)を設定し、接続を確立する  
+   - Otel Collectorの`otlp`レシーバーのエンドポイントに連携
    - debug/開発環境でバックエンドにメトリクスを送らずに標準出力にメトリクス情報を出力する`"go.opentelemetry.io/otel/exporters/stdout/stdoutmetric"`もある
 2. `NewMeterProvider`で作成したexporterとSevice名などのリソースを渡して`MeterProvider`を設定する
    - NewMeterProvider設定時に`sdkmetric.WithReader()`の`sdkmetric.NewPeriodicReader()`の中で`sdkmetric.WithInterval()`でOtel Collectorにメトリクスを送信する間隔(defaultは1m)を設定できる
