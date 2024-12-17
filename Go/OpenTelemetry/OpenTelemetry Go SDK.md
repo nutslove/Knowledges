@@ -17,61 +17,62 @@
        span.AddEvent("data push executed")
        ```
        ![span_event](../image/span_event.jpg)
-     ```go
-     type Span interface {
-     	// Users of the interface can ignore this. This embedded type is only used
-     	// by implementations of this interface. See the "API Implementations"
-     	// section of the package documentation for more information.
-     	embedded.Span
+     - `span`のメソッド  
+       ```go
+       type Span interface {
+       	// Users of the interface can ignore this. This embedded type is only used
+       	// by implementations of this interface. See the "API Implementations"
+       	// section of the package documentation for more information.
+       	embedded.Span
 
-     	// End completes the Span. The Span is considered complete and ready to be
-     	// delivered through the rest of the telemetry pipeline after this method
-     	// is called. Therefore, updates to the Span are not allowed after this
-     	// method has been called.
-     	End(options ...SpanEndOption)
+       	// End completes the Span. The Span is considered complete and ready to be
+       	// delivered through the rest of the telemetry pipeline after this method
+       	// is called. Therefore, updates to the Span are not allowed after this
+       	// method has been called.
+       	End(options ...SpanEndOption)
 
-     	// AddEvent adds an event with the provided name and options.
-     	AddEvent(name string, options ...EventOption)
+       	// AddEvent adds an event with the provided name and options.
+       	AddEvent(name string, options ...EventOption)
 
-     	// AddLink adds a link.
-     	// Adding links at span creation using WithLinks is preferred to calling AddLink
-     	// later, for contexts that are available during span creation, because head
-     	// sampling decisions can only consider information present during span creation.
-     	AddLink(link Link)
+       	// AddLink adds a link.
+       	// Adding links at span creation using WithLinks is preferred to calling AddLink
+       	// later, for contexts that are available during span creation, because head
+       	// sampling decisions can only consider information present during span creation.
+       	AddLink(link Link)
 
-     	// IsRecording returns the recording state of the Span. It will return
-     	// true if the Span is active and events can be recorded.
-     	IsRecording() bool
+       	// IsRecording returns the recording state of the Span. It will return
+       	// true if the Span is active and events can be recorded.
+       	IsRecording() bool
 
-     	// RecordError will record err as an exception span event for this span. An
-     	// additional call to SetStatus is required if the Status of the Span should
-     	// be set to Error, as this method does not change the Span status. If this
-     	// span is not being recorded or err is nil then this method does nothing.
-     	RecordError(err error, options ...EventOption)
+       	// RecordError will record err as an exception span event for this span. An
+       	// additional call to SetStatus is required if the Status of the Span should
+       	// be set to Error, as this method does not change the Span status. If this
+       	// span is not being recorded or err is nil then this method does nothing.
+       	RecordError(err error, options ...EventOption)
 
-     	// SpanContext returns the SpanContext of the Span. The returned SpanContext
-     	// is usable even after the End method has been called for the Span.
-     	SpanContext() SpanContext
+       	// SpanContext returns the SpanContext of the Span. The returned SpanContext
+       	// is usable even after the End method has been called for the Span.
+       	SpanContext() SpanContext
 
-     	// SetStatus sets the status of the Span in the form of a code and a
-     	// description, provided the status hasn't already been set to a higher
-     	// value before (OK > Error > Unset). The description is only included in a
-     	// status when the code is for an error.
-     	SetStatus(code codes.Code, description string)
+       	// SetStatus sets the status of the Span in the form of a code and a
+       	// description, provided the status hasn't already been set to a higher
+       	// value before (OK > Error > Unset). The description is only included in a
+       	// status when the code is for an error.
+       	SetStatus(code codes.Code, description string)
 
-     	// SetName sets the Span name.
-     	SetName(name string)
+       	// SetName sets the Span name.
+       	SetName(name string)
 
-     	// SetAttributes sets kv as attributes of the Span. If a key from kv
-     	// already exists for an attribute of the Span it will be overwritten with
-     	// the value contained in kv.
-     	SetAttributes(kv ...attribute.KeyValue)
+       	// SetAttributes sets kv as attributes of the Span. If a key from kv
+       	// already exists for an attribute of the Span it will be overwritten with
+       	// the value contained in kv.
+       	SetAttributes(kv ...attribute.KeyValue)
 
-     	// TracerProvider returns a TracerProvider that can be used to generate
-     	// additional Spans on the same telemetry pipeline as the current Span.
-     	TracerProvider() TracerProvider
-     }
-     ```
+       	// TracerProvider returns a TracerProvider that can be used to generate
+       	// additional Spans on the same telemetry pipeline as the current Span.
+       	TracerProvider() TracerProvider
+       }
+       ```
 7. `span.SetAttributes`でspanにattribute(付加情報)を追加（*Optional*）  
    ```go
    import (
@@ -163,6 +164,60 @@
 
 ## ■ `NewTracerProvider`について
 - OpenTelemetry Go SDKの`trace.NewTracerProvider`は、traceを生成および管理するための `TracerProvider` を作成する(返す)
+- `NewTracerProvider`の引数の`trace.WithResource`で指定するResourceは`resource.New()`メソッドと`resource.NewWithAttributes()`メソッド２つの設定方法がある
+  - `resource.New()`メソッド  
+    ※**`resource.New()`はエラーを返すためエラーハンドリングが必要**
+    ```go
+    import (
+      "go.opentelemetry.io/otel/sdk/resource"
+    )
+
+    func main() {
+      resource, err := resource.New(context.Background(),
+         resource.WithSchemaURL(semconv.SchemaURL),
+         resource.WithAttributes(
+            semconv.ServiceNameKey.String("streaming"),
+            semconv.ServiceVersionKey.String("1.0.0"),
+         ),
+      )
+      if err != nil {
+         fmt.Errorf("failed to create resource: %w", err)
+      }
+
+      tp := trace.NewTracerProvider(
+         trace.WithBatcher(exporter,
+         trace.WithBatchTimeout(1*time.Second),
+         trace.WithMaxExportBatchSize(128),
+      ),
+         trace.WithSampler(trace.AlwaysSample()), // すべてのトレースをサンプリング
+         trace.WithResource(resource),
+      )
+    }
+    ```
+  - `resource.NewWithAttributes()`メソッド  
+    ※**`resource.NewWithAttributes()`はエラーを返さない**  
+    ```go
+    import (
+      "go.opentelemetry.io/otel/sdk/resource"
+    )
+
+    func main() {
+	   resource := resource.NewWithAttributes(
+         semconv.SchemaURL,                          // SchemaURL is the schema URL used to generate the trace ID. Must be set to an absolute URL.
+         semconv.ServiceNameKey.String("streaming"), // ServiceNameKey is the key used to identify the service name in a Resource.
+         semconv.ServiceVersionKey.String("1.0.0"),
+      )
+
+      tp := trace.NewTracerProvider(
+         trace.WithBatcher(exporter,
+      	   trace.WithBatchTimeout(1*time.Second),
+      	   trace.WithMaxExportBatchSize(128),
+         ),
+         trace.WithSampler(trace.AlwaysSample()), // すべてのトレースをサンプリング
+         trace.WithResource(resource),
+      )
+    }
+    ```
 
 ## ■ `SetTracerProvider`について
 - **`SetTracerProvider`はグローバルな`TracerProvider`を設定するための関数であり、この設定によって`otel.Tracer`を通じて取得される`Tracer`が自動的にその`TracerProvider`に紐づく**
