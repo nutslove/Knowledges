@@ -440,49 +440,49 @@ func main() {
    promExporter, err := otlpmetricgrpc.New(ctxmetric,
       otlpmetricgrpc.WithInsecure(),
       otlpmetricgrpc.WithEndpoint("localhost:4317"),
-	)
+   )
 
-	meterProvider := sdkmetric.NewMeterProvider(
-		sdkmetric.WithResource(resource),
-		sdkmetric.WithReader(sdkmetric.NewPeriodicReader(promExporter,
-			// Default is 1m
-			sdkmetric.WithInterval(3*time.Second))),
-	)
-	defer func() {
-		if err := meterProvider.Shutdown(context.Background()); err != nil {
-			log.Printf("Failed to shutdown meter provider: %v", err)
-		}
-	}()
+   meterProvider := sdkmetric.NewMeterProvider(
+      sdkmetric.WithResource(resource),
+      sdkmetric.WithReader(sdkmetric.NewPeriodicReader(promExporter,
+         // Default is 1m
+         sdkmetric.WithInterval(3*time.Second))),
+   )
+   defer func() {
+      if err := meterProvider.Shutdown(context.Background()); err != nil {
+         log.Printf("Failed to shutdown meter provider: %v", err)
+      }
+   }()
 
-	otel.SetMeterProvider(meterProvider)
-	meter := otel.Meter("streaming")
-	// ヒストグラムの作成
-	histogram, err := meter.Float64Histogram(
-		"request_duration_seconds",
-		metric.WithDescription("Request duration in seconds"),
-		metric.WithUnit("s"),
-	)
-	if err != nil {
-		log.Fatal(err)
-	}
+   otel.SetMeterProvider(meterProvider)
+   meter := otel.Meter("streaming")
+   // ヒストグラムの作成
+   histogram, err := meter.Float64Histogram(
+      "request_duration_seconds",
+      metric.WithDescription("Request duration in seconds"),
+      metric.WithUnit("s"),
+   )
+   if err != nil {
+      log.Fatal(err)
+   }
 
 
-	r.POST("/push", func(c *gin.Context) {
-		// 処理時間の計測
-		startTime := time.Now()
+   r.POST("/push", func(c *gin.Context) {
+      // 処理時間の計測
+      startTime := time.Now()
 
-		fmt.Println("Test Push!")
-		duration := time.Since(startTime).Seconds()
+      fmt.Println("Test Push!")
+      duration := time.Since(startTime).Seconds()
 
       // トレースIDとスパンIDを属性として追加
-		histogram.Record(ctxmetric, duration,
-			metric.WithAttributes(
-				attribute.String("service", "streaming"),
-		   )
+      histogram.Record(ctxmetric, duration,
+         metric.WithAttributes(
+            attribute.String("service", "streaming"),
+         )
       )
-	})
+   })
 
-	r.Run(":8081")
+   r.Run(":8081")
 }
 ```
 - **Counter**の例  
