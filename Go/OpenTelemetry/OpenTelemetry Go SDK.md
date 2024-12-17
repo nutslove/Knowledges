@@ -495,6 +495,9 @@ func main() {
       attribute.Int("attr2", 200),
    ))
    ```
+## exemplars
+- **実装できるか確認**
+- https://pkg.go.dev/go.opentelemetry.io/otel/sdk/metric/exemplar
 
 # Log
 - 参照URL
