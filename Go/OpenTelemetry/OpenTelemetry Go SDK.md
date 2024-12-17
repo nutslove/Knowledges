@@ -419,15 +419,15 @@ func main() {
 ### 設定例
 ```go
 import (
-	"context"
-	"fmt"
-	"log"
-	"time"
+   "context"
+   "fmt"
+   "log"
+   "time"
 
-	"github.com/gin-gonic/gin"
+   "github.com/gin-gonic/gin"
    "go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc"
+   "go.opentelemetry.io/otel/attribute"
+   "go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc"
    "go.opentelemetry.io/otel/metric"
    sdkmetric "go.opentelemetry.io/otel/sdk/metric"
    "go.opentelemetry.io/otel/sdk/resource"
