@@ -436,10 +436,10 @@ import (
 func main() {
    r := gin.Default()
 
-	ctxmetric := context.Background()
-	promExporter, err := otlpmetricgrpc.New(ctxmetric,
-		otlpmetricgrpc.WithInsecure(),
-		otlpmetricgrpc.WithEndpoint("localhost:4317"),
+   ctxmetric := context.Background()
+   promExporter, err := otlpmetricgrpc.New(ctxmetric,
+      otlpmetricgrpc.WithInsecure(),
+      otlpmetricgrpc.WithEndpoint("localhost:4317"),
 	)
 
 	meterProvider := sdkmetric.NewMeterProvider(
@@ -477,8 +477,7 @@ func main() {
       // トレースIDとスパンIDを属性として追加
 		histogram.Record(ctxmetric, duration,
 			metric.WithAttributes(
-				attribute.String("service", "streaming",
-			   ),
+				attribute.String("service", "streaming"),
 		   )
       )
 	})
