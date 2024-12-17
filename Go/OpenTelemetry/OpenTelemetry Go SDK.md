@@ -11,6 +11,11 @@
    - `tracer.Start`の第2引数がspanのタイトルとなる  
      ![](../image/span_title.jpg)
    - `tracer.Start`メソッドの２つ目の戻り値(`span`)のメソッドでSpanに属性(attribute)を追加(`span.SetAttributes()`メソッド)したり、`End()`でSpanを終了させる  
+     - `span.SpanContext().TraceID().String()`と`span.SpanContext().SpanID().String()`でTraceIDとSpanIDを確認できる  
+       ```go
+		fmt.Println("trace-id:", span.SpanContext().TraceID().String())
+		fmt.Println("span-id:", span.SpanContext().SpanID().String())
+       ```
      - `span.AddEvent()`メソッドで以下のようなLogを追加することができる  
        ```go
        ctx, span := tr.Start(context.Background(), "data streaming started")
@@ -396,7 +401,100 @@ func main() {
 - 参考URL
   - https://opentelemetry.io/docs/languages/go/instrumentation/#metrics  
       > you’ll need to have an initialized `MeterProvider` that lets you create a `Meter`. Meters let you create instruments that you can use to create different kinds of metrics.
-- `MeterProvider`
+  - https://mackerel.io/ja/blog/entry/2023/12/21/192203
+## 設定の流れ
+- 基本的にTraceの時と同じ
+1. `otlpmetrichttp.New`もしくは`otlpmetricgrpc.New`でexporter(メトリクスの送り先)を設定し、接続を確立する  
+   - debug/開発環境でバックエンドにメトリクスを送らずに標準出力にメトリクス情報を出力する`"go.opentelemetry.io/otel/exporters/stdout/stdoutmetric"`もある
+2. `NewMeterProvider`で作成したexporterとSevice名などのリソースを渡して`MeterProvider`を設定する
+   - NewMeterProvider設定時に`sdkmetric.WithReader()`の`sdkmetric.NewPeriodicReader()`の中で`sdkmetric.WithInterval()`でOtel Collectorにメトリクスを送信する間隔(defaultは1m)を設定できる
+3. `otel.SetMeterProvider`でアプリ全体でMeterProviderを使用するようにする
+   - `Shutdown()`メソッド（`defer mp.Shutdown()`）でプログラム終了時に適切にリソースを解放する
+4. `otel.Meter`でMeterを取得
+5. 取得したMeterからメトリクスを初期化
+   - メトリクスのDataタイプごとにメソッドが異なる
+6. 初期化したメトリクスのメソッドでメトリクスを生成
+   - メトリクス生成時`metric.WithAttributes()`の中で`attribute.String`や`attribute.Int`などでメトリクスにラベルを追加することができる
+### 設定例
+```go
+import (
+	"context"
+	"fmt"
+	"log"
+	"time"
+
+	"github.com/gin-gonic/gin"
+   "go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc"
+   "go.opentelemetry.io/otel/metric"
+   sdkmetric "go.opentelemetry.io/otel/sdk/metric"
+   "go.opentelemetry.io/otel/sdk/resource"
+)
+
+func main() {
+   r := gin.Default()
+
+	ctxmetric := context.Background()
+	promExporter, err := otlpmetricgrpc.New(ctxmetric,
+		otlpmetricgrpc.WithInsecure(),
+		otlpmetricgrpc.WithEndpoint("localhost:4317"),
+	)
+
+	meterProvider := sdkmetric.NewMeterProvider(
+		sdkmetric.WithResource(resource),
+		sdkmetric.WithReader(sdkmetric.NewPeriodicReader(promExporter,
+			// Default is 1m
+			sdkmetric.WithInterval(3*time.Second))),
+	)
+	defer func() {
+		if err := meterProvider.Shutdown(context.Background()); err != nil {
+			log.Printf("Failed to shutdown meter provider: %v", err)
+		}
+	}()
+
+	otel.SetMeterProvider(meterProvider)
+	meter := otel.Meter("streaming")
+	// ヒストグラムの作成
+	histogram, err := meter.Float64Histogram(
+		"request_duration_seconds",
+		metric.WithDescription("Request duration in seconds"),
+		metric.WithUnit("s"),
+	)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+
+	r.POST("/push", func(c *gin.Context) {
+		// 処理時間の計測
+		startTime := time.Now()
+
+		fmt.Println("Test Push!")
+		duration := time.Since(startTime).Seconds()
+
+      // トレースIDとスパンIDを属性として追加
+		histogram.Record(ctxmetric, duration,
+			metric.WithAttributes(
+				attribute.String("service", "streaming",
+			   ),
+		   )
+      )
+	})
+
+	r.Run(":8081")
+}
+```
+- **Counter**の例  
+   ```go
+   meter := otel.Meter("streaming")
+   counter := meter.Int64Counter("counter")
+
+   counter.Add(context.Background(), 1, metric.WithAttributes(
+      attribute.String("attr1", "value1"),
+      attribute.Int("attr2", 200),
+   ))
+   ```
 
 # Log
 - 参照URL
