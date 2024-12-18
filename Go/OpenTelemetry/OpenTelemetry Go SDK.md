@@ -11,6 +11,9 @@
   - [■ `otel.SetTextMapPropagator`について](#-otelsettextmappropagatorについて)
     - [プロパゲータの種類](#プロパゲータの種類)
     - [`otel.SetTextMapPropagator`の使用方法](#otelsettextmappropagatorの使用方法)
+  - [gRPCでのトレース連携](#grpcでのトレース連携)
+    - [Server側](#server側)
+    - [Client側](#client側)
 - [Metric](#metric)
   - [設定の流れ](#設定の流れ-1)
     - [設定例](#設定例)
@@ -415,6 +418,218 @@ func main() {
     // ここにトレースしたいコードを追加
 }
 ```
+
+## gRPCでのトレース連携
+- コンテキストを伝播するためには、Server側では`grpc.NewServer()`で、Client側では`grpc.Dial()`で、両方でInterceptorを設定する必要がある
+- Client側でメソッドを呼び出す時に`tr.Start()`で生成された`context`を引数で渡して、Server側で`tr.Start()`メソッドの引数にその`context`を指定することでトレースが繋がる
+### Server側
+- `grpc.NewServer()`の引数として`grpc.UnaryInterceptor(otelgrpc.UnaryServerInterceptor())`と`grpc.StreamInterceptor(otelgrpc.StreamServerInterceptor())`を指定
+- 例  
+  ```go
+  package main
+
+  import (
+  	"context"
+  	"fmt"
+  	"log"
+  	"net"
+  	"protobuf/pb"
+  	"time"
+
+  	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
+  	"go.opentelemetry.io/otel"
+  	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
+  	"go.opentelemetry.io/otel/propagation"
+  	"go.opentelemetry.io/otel/sdk/resource"
+  	"go.opentelemetry.io/otel/sdk/trace"
+  	semconv "go.opentelemetry.io/otel/semconv/v1.4.0"
+  	"google.golang.org/grpc"
+  )
+
+  type server struct {
+  	pb.UnimplementedStreamServiceServer
+  }
+
+  func (*server) Upload(ctx context.Context, req *pb.StreamRequest) (*pb.StreamResponse, error) {
+  	// ここではグローバルなTracerProviderを用いてSpanを開始
+  	tr := otel.Tracer("uploader")
+  	_, span := tr.Start(ctx, "uploader started")
+  	defer span.End()
+
+  	span.AddEvent("upload executed")
+  	fmt.Println("trace-id:", span.SpanContext().TraceID().String())
+  	fmt.Println("span-id:", span.SpanContext().SpanID().String())
+
+  	fmt.Printf("Received request: %v\n", req)
+
+  	dataSize := len([]byte(req.GetData()))
+  	return &pb.StreamResponse{Size: int32(dataSize)}, nil
+  }
+
+  func main() {
+  	ctxInit := context.Background()
+  	exporter, err := otlptracegrpc.New(ctxInit,
+  		otlptracegrpc.WithEndpoint("10.111.1.179:4317"),
+  		otlptracegrpc.WithInsecure(),
+  	)
+  	if err != nil {
+  		log.Fatalln("Failed to set exporter for otlp/grpc:", err)
+  	}
+
+  	resource := resource.NewWithAttributes(
+  		semconv.SchemaURL,
+  		semconv.ServiceNameKey.String("uploader"),
+  		semconv.ServiceVersionKey.String("1.0.1"),
+  	)
+
+  	tp := trace.NewTracerProvider(
+  		trace.WithBatcher(exporter,
+  			trace.WithBatchTimeout(1*time.Second),
+  			trace.WithMaxExportBatchSize(128),
+  		),
+  		trace.WithSampler(trace.AlwaysSample()),
+  		trace.WithResource(resource),
+  	)
+  	defer tp.Shutdown(ctxInit)
+
+  	otel.SetTracerProvider(tp)
+  	otel.SetTextMapPropagator(propagation.TraceContext{})
+
+  	lis, err := net.Listen("tcp", "localhost:50051")
+  	if err != nil {
+  		log.Fatalf("Failed to listen: %v", err)
+  	}
+
+  	s := grpc.NewServer(
+  		grpc.UnaryInterceptor(otelgrpc.UnaryServerInterceptor()),
+  		grpc.StreamInterceptor(otelgrpc.StreamServerInterceptor()),
+  	)
+  	pb.RegisterStreamServiceServer(s, &server{})
+
+  	fmt.Println("server is running...")
+  	if err := s.Serve(lis); err != nil {
+  		log.Fatalf("Failed to serve: %v", err)
+  	}
+  }
+  ```
+
+### Client側
+- `grpc.Dial()`の引数として`grpc.WithUnaryInterceptor(otelgrpc.UnaryClientInterceptor())`と`grpc.WithStreamInterceptor(otelgrpc.StreamClientInterceptor())`を指定
+- 例  
+  ```go
+  package main
+
+  import (
+  	"context"
+  	"fmt"
+  	"log"
+  	"protobuf/pb"
+  	"time"
+
+  	"github.com/gin-gonic/gin"
+  	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
+  	"go.opentelemetry.io/otel"
+  	"go.opentelemetry.io/otel/attribute"
+  	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc"
+  	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
+  	"go.opentelemetry.io/otel/metric"
+  	"go.opentelemetry.io/otel/propagation"
+  	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
+  	"go.opentelemetry.io/otel/sdk/resource"
+  	"go.opentelemetry.io/otel/sdk/trace"
+  	semconv "go.opentelemetry.io/otel/semconv/v1.4.0"
+  	"google.golang.org/grpc"
+  )
+
+  func callUpload(ctx context.Context, client pb.StreamServiceClient, tenant string, data string) {
+  	req := &pb.StreamRequest{
+  		Tenant: tenant,
+  		Data:   data,
+  	}
+  	res, err := client.Upload(ctx, req)
+  	if err != nil {
+  		log.Fatalf("request to gRPC server failed: %v", err)
+  	}
+
+  	fmt.Println("data size:", res.GetSize())
+  }
+
+  func main() {
+  	r := gin.Default()
+  	streaming := r.Group("log/api/v1")
+  	streaming.Use(TenantidCheck())
+
+  	// gRPC
+  	conn, err := grpc.Dial("localhost:50051",
+  		grpc.WithInsecure(),
+  		grpc.WithUnaryInterceptor(otelgrpc.UnaryClientInterceptor()),
+  		grpc.WithStreamInterceptor(otelgrpc.StreamClientInterceptor()),
+  	)
+  	if err != nil {
+  		log.Fatalf("Failed to connect: %v", err)
+  	}
+  	defer conn.Close()
+
+  	client := pb.NewStreamServiceClient(conn)
+
+  	// #### Trace関連設定
+  	/// otlp/gRPC
+  	exporter, err := otlptracegrpc.New(context.Background(),
+  		otlptracegrpc.WithEndpoint("10.111.1.179:4317"),
+  		otlptracegrpc.WithInsecure(), // TLSを無効にする場合に指定
+  	)
+  	if err != nil {
+  		log.Fatalln("Failed to set exporter for otlp/grpc")
+  	}
+
+  	resource := resource.NewWithAttributes(
+  		semconv.SchemaURL,                         // SchemaURL is the schema URL used to generate the trace ID. Must be set to an absolute URL.
+  		semconv.ServiceNameKey.String("receiver"), // ServiceNameKey is the key used to identify the service name in a Resource.
+  		semconv.ServiceVersionKey.String("1.0.1"),
+  	)
+
+  	tp := trace.NewTracerProvider(
+  		trace.WithBatcher(exporter,
+  			trace.WithBatchTimeout(1*time.Second),
+  			trace.WithMaxExportBatchSize(128),
+  		),
+  		trace.WithSampler(trace.AlwaysSample()), // すべてのトレースをサンプリング
+  		trace.WithResource(resource),
+  	)
+  	// プログラム終了時に適切にリソースを解放
+  	defer tp.Shutdown(context.Background())
+
+  	// SetTracerProvider registers `tp` as the global trace provider.
+  	otel.SetTracerProvider(tp)
+  	otel.SetTextMapPropagator(propagation.TraceContext{})
+
+  	tr := otel.Tracer("streaming")
+
+  	streaming.POST("/push", func(c *gin.Context) {
+  		ctx, span := tr.Start(context.Background(), "data streaming started")
+  		defer span.End()
+
+  		// Add attributes to the span
+  		span.SetAttributes(
+  			attribute.String("http.method", c.Request.Method),
+  			attribute.String("http.path", c.Request.URL.Path),
+  			attribute.String("http.host", c.Request.Host),
+  			attribute.String("http.user_agent", c.Request.UserAgent()),
+  			attribute.String("http.remote_addr", c.Request.RemoteAddr),
+  		)
+  		span.AddEvent("data push executed")
+
+  		// あとで実際のデータ連携処理を実装
+  		fmt.Println("Data Push!")
+  		callUpload(ctx, client, c.GetHeader("Tenant-id"), "test data")
+
+  		fmt.Println("trace-id:", span.SpanContext().TraceID().String())
+  		fmt.Println("span-id:", span.SpanContext().SpanID().String())
+  	})
+
+  	r.Run(":8081")
+  }
+  ```
 
 # Metric
 - 参考URL
