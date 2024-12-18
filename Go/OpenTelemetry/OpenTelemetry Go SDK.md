@@ -1,4 +1,5 @@
 <!-- TOC -->
+
 - [Trace](#trace)
   - [設定の流れ](#設定の流れ)
   - [■ `NewTracerProvider`について](#-newtracerproviderについて)
@@ -19,6 +20,7 @@
     - [設定例](#設定例)
   - [exemplars](#exemplars)
 - [Log](#log)
+
 <!-- /TOC -->
 # Trace
 ## 設定の流れ
@@ -420,8 +422,8 @@ func main() {
 ```
 
 ## gRPCでのトレース連携
-- コンテキストを伝播するためには、Server側では`grpc.NewServer()`で、Client側では`grpc.Dial()`で、両方でInterceptorを設定する必要がある
-- Client側でメソッドを呼び出す時に`tr.Start()`で生成された`context`を引数で渡して、Server側で`tr.Start()`メソッドの引数にその`context`を指定することでトレースが繋がる
+- **コンテキストを伝播するためには、Server側では`grpc.NewServer()`で、Client側では`grpc.Dial()`で、両方でInterceptorを設定する必要がある**
+- **Client側でメソッドを呼び出す時に`tr.Start()`で生成された`context`を引数で渡して、Server側で`tr.Start()`メソッドの引数にその`context`を指定することでトレースが繋がる**
 ### Server側
 - `grpc.NewServer()`の引数として`grpc.UnaryInterceptor(otelgrpc.UnaryServerInterceptor())`と`grpc.StreamInterceptor(otelgrpc.StreamServerInterceptor())`を指定
 - 例  
