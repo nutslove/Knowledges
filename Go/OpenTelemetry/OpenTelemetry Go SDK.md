@@ -40,7 +40,7 @@
 		fmt.Println("trace-id:", span.SpanContext().TraceID().String())
 		fmt.Println("span-id:", span.SpanContext().SpanID().String())
        ```
-     - `span.AddEvent()`メソッドで以下のようなLogを追加することができる  
+     - `span.AddEvent()`メソッドで以下のようなLog(GrafanaではEventとして出る)を追加することができる  
        ```go
        ctx, span := tr.Start(context.Background(), "data streaming started")
        span.AddEvent("data push executed")
