@@ -1,3 +1,22 @@
+<!-- TOC -->
+- [Trace](#trace)
+  - [設定の流れ](#設定の流れ)
+  - [■ `NewTracerProvider`について](#-newtracerproviderについて)
+  - [■ `SetTracerProvider`について](#-settracerproviderについて)
+    - [`TracerProvider`の構成オプション](#tracerproviderの構成オプション)
+    - [`TracerProvider`の主なメソッド](#tracerproviderの主なメソッド)
+  - [■ `otel.Tracer`について](#-oteltracerについて)
+    - [`Tracer`の具体的な役割](#tracerの具体的な役割)
+    - [`otel.Tracer`の使用例](#oteltracerの使用例)
+  - [■ `otel.SetTextMapPropagator`について](#-otelsettextmappropagatorについて)
+    - [プロパゲータの種類](#プロパゲータの種類)
+    - [`otel.SetTextMapPropagator`の使用方法](#otelsettextmappropagatorの使用方法)
+- [Metric](#metric)
+  - [設定の流れ](#設定の流れ-1)
+    - [設定例](#設定例)
+  - [exemplars](#exemplars)
+- [Log](#log)
+<!-- /TOC -->
 # Trace
 ## 設定の流れ
 1. `otlptracehttp.New`もしくは`otlptracegrpc.New`でexporter(トレースの送り先)を設定し、接続を確立する  
