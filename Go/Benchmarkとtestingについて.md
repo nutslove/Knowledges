@@ -1,4 +1,5 @@
 <!-- TOC -->
+
 - [Benchmark / Test(`testing`) 共通](#benchmark--testtesting-共通)
 - [Benchmark](#benchmark)
 - [`testing`](#testing)
@@ -8,6 +9,7 @@
   - [`t.Run()`メソッドによるサブテスト](#trunメソッドによるサブテスト)
   - [テストの並列実行（`Parallel()`メソッド）](#テストの並列実行parallelメソッド)
     - [`Parallel()`メソッドの特性](#parallelメソッドの特性)
+
 <!-- /TOC -->
 
 # Benchmark / Test(`testing`) 共通
@@ -202,8 +204,18 @@
 - 1つのテスト関数内に`t.Run()`メソッドでサブテストを定義することができる
 - 例１  
   ```go
-
+  func TestExample(t *testing.T) {
+      t.Run("ケース1", func(t *testing.T) {
+          // テストケース1の内容
+      })
+      
+      t.Run("ケース2", func(t *testing.T) {
+          // テストケース2の内容
+      })
+  }
   ```
+- 以下のように特定のサブテストのみを実行することもできる
+  - `go test -run TestExample/ケース1  # "ケース1"のみ実行`
 
 ## テストの並列実行（`Parallel()`メソッド）
 - 参考URL
@@ -321,13 +333,11 @@
     	t.Run("Func1_Sub1", func(t *testing.T) {
     		defer trace("Func1_Sub1")()
     		t.Parallel()
-
     		// ...
     	})
 
     	t.Run("Func1_Sub2", func(t *testing.T) {
     		defer trace("Func1_Sub2")()
-
     		t.Parallel()
     		// ...
     	})
