@@ -1,4 +1,16 @@
-## Benchmark / Test 共通
+<!-- TOC -->
+- [Benchmark / Test(`testing`) 共通](#benchmark--testtesting-共通)
+- [Benchmark](#benchmark)
+- [`testing`](#testing)
+  - [例](#例)
+  - [table testsの他の例](#table-testsの他の例)
+  - [テストカバレッジ](#テストカバレッジ)
+  - [`t.Run()`メソッドによるサブテスト](#trunメソッドによるサブテスト)
+  - [テストの並列実行（`Parallel()`メソッド）](#テストの並列実行parallelメソッド)
+    - [`Parallel()`メソッドの特性](#parallelメソッドの特性)
+<!-- /TOC -->
+
+# Benchmark / Test(`testing`) 共通
 - `import testing`でtestingパッケージのimportが必要
 - テストしたいgoファイル名に`_test.go`をつける
   - ex) `main.go`の場合`main_test.go`
@@ -6,7 +18,7 @@
 - 戻り値を持たない
 - テストファイル(`_test.go`)は、テスト対象のファイルと同じディレクトリに配置
 
-## Benchmarkの基本
+# Benchmark
 - 性能測定時使う
 - Benchmark関数名は必ず`Benchmark`から始まる必要がある。
 - `Benchmark`の次には`_`や大文字が来れる
@@ -14,7 +26,7 @@
   - NG例: `BenchmarksomeFunction`
 - Benchmark関数は`*testing.B`引数のみを受け付ける
 
-## `testing`の基本
+# `testing`
 - https://pkg.go.dev/testing
   > Package testing provides support for automated testing of Go packages.
 - テスト関数はテストする関数の前に`Test`(もしくは`Test_`)を付ける
@@ -28,7 +40,7 @@
     - 例えば`Test_MyFunction`というテスト関数のみをテストしたい場合は`go test -run Test_MyFunction`を実行
   - `go test ./<対象Package名>`で特定のパッケージのみをテストすることもできる
   - `-v`オプション(`go test -v`)でテストの詳細なログを確認できる
-### 例
+## 例
 - `calc.go`  
   ~~~go
   package calc
@@ -75,7 +87,7 @@
   }
   ~~~
 
-### table testsの他の例
+## table testsの他の例
 - main.go
   ```go
   package main
@@ -145,7 +157,7 @@
   }
   ```
 
-### テストカバレッジ
+## テストカバレッジ
 - テストカバレッジとは、テストスイート(複数のテストケースをまとめたもの)がテスト対象のコードをどれだけカバーしているかを示す指標
 - `go test -cover`でテストカバレッジを確認できる
 - 例えば、以下の`main.go`を以下の`main_test.go`を使って、`go test -cover`と実行すると、下記のように出力される。  
@@ -185,3 +197,207 @@
     coverage: 50.0% of statements --> カバレッジ(テスト対象コードの50%がテストによってカバーされているということ)
     ok      example/package    0.013s --> 実行時間
     ~~~
+
+## `t.Run()`メソッドによるサブテスト
+- 1つのテスト関数内に`t.Run()`メソッドでサブテストを定義することができる
+- 例１  
+  ```go
+
+  ```
+
+## テストの並列実行（`Parallel()`メソッド）
+- 参考URL
+  - https://engineering.mercari.com/blog/entry/how_to_use_t_parallel/
+- `testing`パッケージを使ったテストコードの実行は、デフォルトでは**パッケージ内では逐次的に**、**パッケージごとは並列に実行される**
+  - 例えば、aパッケージとbパッケージがあった場合、aパッケージ内のテストコードは逐次実行され、bパッケージ内のテストコードも逐次実行される。しかし、aパッケージとbパッケージのテストは並列に実行される。
+- パッケージ内で並列に実行するために`Parallel()`メソッドを使用
+
+### `Parallel()`メソッドの特性
+- **`Parallel()`メソッドを設定しているテスト関数は、他の`Parallel()`メソッドを設定しているテスト関数とのみ並列に実行される**  
+- **`t.Parallel()`メソッドの呼び出しは、一時停止してから再開する（一時停止した場合、`=== PAUSE`と表示され、処理が再開した場合、`=== CONT`と表示される）**  
+- **`t.Parallel()メソッド`を呼び出していない（パッケージ内の）すべてのトップレベルのテスト関数が終了してから、`t.Parallel()`メソッドを呼び出しているトップレベルのテスト関数の処理が再開して並列に実行される**
+- **`t.Run()`によるサブテスト関数内で`t.Parallel()`メソッドを呼び出している場合、その親のトップレベルのテスト関数が「終了して戻る」まで、サブテスト関数は`t.Parallel()`メソッドの呼び出しで一時停止する**
+- 最大並列数は`-parallel`フラグで指定可能
+  - デフォルトでは`GOMAXPROCS`の値が設定される
+- 例１  
+  - コード
+    ```go
+    package main
+
+    import (
+        "fmt"
+        "testing"
+    )
+
+    func trace(name string) func() {
+        fmt.Printf("%s entered\n", name)
+        return func() {
+            fmt.Printf("%s returned\n", name)
+        }
+
+    }
+
+    func Test_Func1(t *testing.T) {
+        defer trace("Test_Func1")()
+
+        // ...
+    }
+
+    func Test_Func2(t *testing.T) {
+        defer trace("Test_Func2")()
+        t.Parallel()
+
+        // ...
+    }
+
+    func Test_Func3(t *testing.T) {
+        defer trace("Test_Func3")()
+
+        // ...
+    }
+
+    func Test_Func4(t *testing.T) {
+        defer trace("Test_Func4")()
+        t.Parallel()
+
+        // ...
+    }
+
+    func Test_Func5(t *testing.T) {
+        defer trace("Test_Func5")()
+
+        // ...
+    }
+    ```
+  - 出力  
+    ```
+    === RUN   Test_Func1
+    Test_Func1 entered
+    Test_Func1 returned                <- 1 （完了）
+    --- PASS: Test_Func1 (0.00s)
+    === RUN   Test_Func2
+    Test_Func2 entered
+    === PAUSE Test_Func2               <- 2 (一時停止）
+    === RUN   Test_Func3
+    Test_Func3 entered
+    Test_Func3 returned                <- 3 （完了）
+    --- PASS: Test_Func3 (0.00s)
+    === RUN   Test_Func4
+    Test_Func4 entered
+    === PAUSE Test_Func4               <- 4 (一時停止）
+    === RUN   Test_Func5
+    Test_Func5 entered
+    Test_Func5 returned                <- 5 （完了）
+    --- PASS: Test_Func5 (0.00s)
+    === CONT  Test_Func2               <- 処理が再開
+    Test_Func2 returned                <- 完了
+    === CONT  Test_Func4               <- 処理が再開
+    Test_Func4 returned                <- 完了
+    --- PASS: Test_Func2 (0.00s)
+    --- PASS: Test_Func4 (0.00s)
+    PASS
+    ```
+- 例２（`t.Run()`によるサブテスト関数内で`t.Parallel()`メソッドを呼び出している場合）
+  - コード  
+    ```go
+    package main
+
+    import (
+    	"fmt"
+    	"testing"
+    )
+
+    func trace(name string) func() {
+    	fmt.Printf("%s entered\n", name)
+    	return func() {
+    		fmt.Printf("%s returned\n", name)
+    	}
+
+    }
+
+    func Test_Func1(t *testing.T) {
+    	defer trace("Test_Func1")()
+
+    	t.Run("Func1_Sub1", func(t *testing.T) {
+    		defer trace("Func1_Sub1")()
+    		t.Parallel()
+
+    		// ...
+    	})
+
+    	t.Run("Func1_Sub2", func(t *testing.T) {
+    		defer trace("Func1_Sub2")()
+
+    		t.Parallel()
+    		// ...
+    	})
+
+    	// ...
+    }
+
+    func Test_Func2(t *testing.T) {
+    	defer trace("Test_Func2")()
+    	t.Parallel()
+
+    	// ...
+    }
+
+    func Test_Func3(t *testing.T) {
+    	defer trace("Test_Func3")()
+
+    	// ...
+    }
+
+    func Test_Func4(t *testing.T) {
+    	defer trace("Test_Func4")()
+    	t.Parallel()
+
+    	// ...
+    }
+
+    func Test_Func5(t *testing.T) {
+    	defer trace("Test_Func5")()
+
+    	// ...
+    }
+    ```
+  - 出力  
+    ```
+    === RUN   Test_Func1
+    Test_Func1 entered
+    === RUN   Test_Func1/Func1_Sub1
+    Func1_Sub1 entered                          <- Func1_Sub1が開始
+    === PAUSE Test_Func1/Func1_Sub1             <- Func1_Sub1が一時停止
+    === RUN   Test_Func1/Func1_Sub2
+    Func1_Sub2 entered                          <- Func1_Sub2が開始
+    === PAUSE Test_Func1/Func1_Sub2             <- Func1_Sub2が一時停止
+    Test_Func1 returned                         <- Test_Func1の呼び出し戻り（＊）
+    === CONT  Test_Func1/Func1_Sub1             <- Func1_Sub1が再開
+    Func1_Sub1 returned                         <- Func1_Sub1が完了
+    === CONT  Test_Func1/Func1_Sub2             <- Func1_Sub2が再開
+    Func1_Sub2 returned                         <- Func1_Sub2が完了
+    --- PASS: Test_Func1 (0.00s)                <- Test_Func1の結果表示
+        --- PASS: Test_Func1/Func1_Sub1 (0.00s)
+        --- PASS: Test_Func1/Func1_Sub2 (0.00s)
+    === RUN   Test_Func2                        <- ここまでTest_Func2は実行されない
+    Test_Func2 entered
+    === PAUSE Test_Func2
+    === RUN   Test_Func3
+    Test_Func3 entered
+    Test_Func3 returned
+    --- PASS: Test_Func3 (0.00s)
+    === RUN   Test_Func4
+    Test_Func4 entered
+    === PAUSE Test_Func4
+    === RUN   Test_Func5
+    Test_Func5 entered
+    Test_Func5 returned
+    --- PASS: Test_Func5 (0.00s)
+    === CONT  Test_Func2
+    Test_Func2 returned
+    === CONT  Test_Func4
+    Test_Func4 returned
+    --- PASS: Test_Func4 (0.00s)
+    --- PASS: Test_Func2 (0.00s)
+    PASS
+    ```
