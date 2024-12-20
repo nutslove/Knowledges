@@ -1,26 +1,18 @@
+# 目次
 <!-- TOC -->
 
-- [Benchmark / Test(`testing`) 共通](#benchmark--testtesting-共通)
+- [目次](#%E7%9B%AE%E6%AC%A1)
+- [Benchmark / Testtesting 共通](#benchmark--testtesting-%E5%85%B1%E9%80%9A)
 - [Benchmark](#benchmark)
-- [`testing`](#testing)
-  - [例](#例)
-  - [table testsの他の例](#table-testsの他の例)
-  - [テストカバレッジ](#テストカバレッジ)
-  - [`t.Run()`メソッドによるサブテスト](#trunメソッドによるサブテスト)
-  - [テストの並列実行（`Parallel()`メソッド）](#テストの並列実行parallelメソッド)
-    - [`Parallel()`メソッドの特性](#parallelメソッドの特性)
+- [testing](#testing)
+  - [例](#%E4%BE%8B)
+  - [table testsの他の例](#table-tests%E3%81%AE%E4%BB%96%E3%81%AE%E4%BE%8B)
+  - [テストカバレッジ](#%E3%83%86%E3%82%B9%E3%83%88%E3%82%AB%E3%83%90%E3%83%AC%E3%83%83%E3%82%B8)
+  - [t.Runメソッドによるサブテスト](#trun%E3%83%A1%E3%82%BD%E3%83%83%E3%83%89%E3%81%AB%E3%82%88%E3%82%8B%E3%82%B5%E3%83%96%E3%83%86%E3%82%B9%E3%83%88)
+  - [テストの並列実行（Parallelメソッド）](#%E3%83%86%E3%82%B9%E3%83%88%E3%81%AE%E4%B8%A6%E5%88%97%E5%AE%9F%E8%A1%8Cparallel%E3%83%A1%E3%82%BD%E3%83%83%E3%83%89)
+    - [Parallelメソッドの特性](#parallel%E3%83%A1%E3%82%BD%E3%83%83%E3%83%89%E3%81%AE%E7%89%B9%E6%80%A7)
 
 <!-- /TOC -->
-
-# Benchmark / Test(`testing`) 共通
-- `import testing`でtestingパッケージのimportが必要
-- テストしたいgoファイル名に`_test.go`をつける
-  - ex) `main.go`の場合`main_test.go`
-- main関数はテストされない
-- 戻り値を持たない
-- テストファイル(`_test.go`)は、テスト対象のファイルと同じディレクトリに配置
-
-# Benchmark
 - 性能測定時使う
 - Benchmark関数名は必ず`Benchmark`から始まる必要がある。
 - `Benchmark`の次には`_`や大文字が来れる

@@ -1,5 +1,7 @@
+# 目次
 <!-- TOC -->
 
+- [目次](#目次)
 - [Trace](#trace)
   - [設定の流れ](#設定の流れ)
   - [■ `NewTracerProvider`について](#-newtracerproviderについて)
@@ -11,6 +13,17 @@
     - [`otel.Tracer`の使用例](#oteltracerの使用例)
   - [■ `otel.SetTextMapPropagator`について](#-otelsettextmappropagatorについて)
     - [プロパゲータの種類](#プロパゲータの種類)
+    - [`otel.SetTextMapPropagator`の使用方法](#otelsettextmappropagatorの使用方法)
+  - [gRPCでのトレース連携](#grpcでのトレース連携)
+    - [Server側](#server側)
+    - [Client側](#client側)
+- [Metric](#metric)
+  - [設定の流れ](#設定の流れ-1)
+    - [設定例](#設定例)
+  - [exemplars](#exemplars)
+- [Log](#log)
+
+<!-- /TOC -->の種類](#プロパゲータの種類)
     - [`otel.SetTextMapPropagator`の使用方法](#otelsettextmappropagatorの使用方法)
   - [gRPCでのトレース連携](#grpcでのトレース連携)
     - [Server側](#server側)
