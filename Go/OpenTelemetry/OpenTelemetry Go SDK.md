@@ -1,41 +1,28 @@
-# 目次
+# 目次 <!-- omit in toc -->
 <!-- TOC -->
 
-- [目次](#目次)
 - [Trace](#trace)
-  - [設定の流れ](#設定の流れ)
-  - [■ `NewTracerProvider`について](#-newtracerproviderについて)
-  - [■ `SetTracerProvider`について](#-settracerproviderについて)
-    - [`TracerProvider`の構成オプション](#tracerproviderの構成オプション)
-    - [`TracerProvider`の主なメソッド](#tracerproviderの主なメソッド)
-  - [■ `otel.Tracer`について](#-oteltracerについて)
-    - [`Tracer`の具体的な役割](#tracerの具体的な役割)
-    - [`otel.Tracer`の使用例](#oteltracerの使用例)
-  - [■ `otel.SetTextMapPropagator`について](#-otelsettextmappropagatorについて)
-    - [プロパゲータの種類](#プロパゲータの種類)
-    - [`otel.SetTextMapPropagator`の使用方法](#otelsettextmappropagatorの使用方法)
-  - [gRPCでのトレース連携](#grpcでのトレース連携)
-    - [Server側](#server側)
-    - [Client側](#client側)
+  - [設定の流れ](#%E8%A8%AD%E5%AE%9A%E3%81%AE%E6%B5%81%E3%82%8C)
+  - [■ NewTracerProviderについて](#%E2%96%A0-newtracerprovider%E3%81%AB%E3%81%A4%E3%81%84%E3%81%A6)
+  - [■ SetTracerProviderについて](#%E2%96%A0-settracerprovider%E3%81%AB%E3%81%A4%E3%81%84%E3%81%A6)
+    - [TracerProviderの構成オプション](#tracerprovider%E3%81%AE%E6%A7%8B%E6%88%90%E3%82%AA%E3%83%97%E3%82%B7%E3%83%A7%E3%83%B3)
+    - [TracerProviderの主なメソッド](#tracerprovider%E3%81%AE%E4%B8%BB%E3%81%AA%E3%83%A1%E3%82%BD%E3%83%83%E3%83%89)
+  - [■ otel.Tracerについて](#%E2%96%A0-oteltracer%E3%81%AB%E3%81%A4%E3%81%84%E3%81%A6)
+    - [Tracerの具体的な役割](#tracer%E3%81%AE%E5%85%B7%E4%BD%93%E7%9A%84%E3%81%AA%E5%BD%B9%E5%89%B2)
+    - [otel.Tracerの使用例](#oteltracer%E3%81%AE%E4%BD%BF%E7%94%A8%E4%BE%8B)
+  - [■ otel.SetTextMapPropagatorについて](#%E2%96%A0-otelsettextmappropagator%E3%81%AB%E3%81%A4%E3%81%84%E3%81%A6)
+    - [プロパゲータの種類](#%E3%83%97%E3%83%AD%E3%83%91%E3%82%B2%E3%83%BC%E3%82%BF%E3%81%AE%E7%A8%AE%E9%A1%9E)
+    - [otel.SetTextMapPropagatorの使用方法](#otelsettextmappropagator%E3%81%AE%E4%BD%BF%E7%94%A8%E6%96%B9%E6%B3%95)
+  - [gRPCでのトレース連携](#grpc%E3%81%A7%E3%81%AE%E3%83%88%E3%83%AC%E3%83%BC%E3%82%B9%E9%80%A3%E6%90%BA)
+    - [Server側](#server%E5%81%B4)
+    - [Client側](#client%E5%81%B4)
 - [Metric](#metric)
-  - [設定の流れ](#設定の流れ-1)
-    - [設定例](#設定例)
-  - [exemplars](#exemplars)
-- [Log](#log)
-
-<!-- /TOC -->の種類](#プロパゲータの種類)
-    - [`otel.SetTextMapPropagator`の使用方法](#otelsettextmappropagatorの使用方法)
-  - [gRPCでのトレース連携](#grpcでのトレース連携)
-    - [Server側](#server側)
-    - [Client側](#client側)
-- [Metric](#metric)
-  - [設定の流れ](#設定の流れ-1)
-    - [設定例](#設定例)
+  - [設定の流れ](#%E8%A8%AD%E5%AE%9A%E3%81%AE%E6%B5%81%E3%82%8C)
+    - [設定例](#%E8%A8%AD%E5%AE%9A%E4%BE%8B)
   - [exemplars](#exemplars)
 - [Log](#log)
 
 <!-- /TOC -->
-# Trace
 ## 設定の流れ
 1. `otlptracehttp.New`もしくは`otlptracegrpc.New`でexporter(トレースの送り先)を設定し、接続を確立する  
    - debug/開発環境でバックエンドにトレースを送らずに標準出力にトレース情報を出力する`"go.opentelemetry.io/otel/exporters/stdout/stdouttrace"`もある
