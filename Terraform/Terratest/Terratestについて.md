@@ -1,5 +1,6 @@
 # Terratestとは
 - goの`testing`パッケージを使って、Terraform PlanやApplyを実行することができる
+- goのTestと同様に`_test.go`ファイル内に`"github.com/gruntwork-io/terratest/modules/terraform"`パッケージを使って`terraform init/plan/apply/destroy`処理を実装し、`go test -v [_test.go]`で実行できる
 
 ### 例
 ```go
