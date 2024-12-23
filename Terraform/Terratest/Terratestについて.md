@@ -1,6 +1,11 @@
 # Terratestとは
 - goの`testing`パッケージを使って、Terraform PlanやApplyを実行することができる
 - goのTestと同様に`_test.go`ファイル内に`"github.com/gruntwork-io/terratest/modules/terraform"`パッケージを使って`terraform init/plan/apply/destroy`処理を実装し、`go test -v [_test.go]`で実行できる
+- メソッドで末尾に`E`が付くものと付かないものの違い
+  - `E`が付くもの（e.g. `PlanE`、`ApplyE`）
+    - エラー時にエラーを返す
+  - `E`が付かないもの（e.g. `Plan`、`Apply`）
+    - エラー時にエラーを返さず、テストを失敗させる
 
 ## 例
 ```go
@@ -111,9 +116,99 @@ func TestTerratest(t *testing.T) {
 	```
 
 
-## `terraform`メソッド種類
-### `terraform.InitE()`
+## Assertについて
+- `assert`ライブラリ（`"github.com/stretchr/testify/assert"`）を使う
+  - https://github.com/stretchr/testify
+- Terraform側で`output`ブロックに確認したい値を定義し、`terraform.Output()`メソッドでTerraformの`output`ブロック名でリソース情報を取得し、`assert`で確認する流れ
+### 例  
+- terraform側  
+  ```
+  resource "aws_iam_policy" "test_policy" {
+    name        = "test-policy"
+    description = "A test policy"
+    policy = jsonencode({
+      Version = "2012-10-17"
+      Statement = [
+        {
+          Action = [
+            "ec2:Describe*",
+          ]
+          Effect   = "Allow"
+          Resource = "*"
+        },
+      ]
+    })
+  }
 
-### `terraform.PlanE()`
+  output "test_policy_id" {
+    value = aws_iam_policy.test_policy.id
+  }
+	```
+- terratest側  
+  ```go
+	package test
 
-### `terraform.ApplyE()`
+	import (
+		"github.com/gruntwork-io/terratest/modules/terraform"
+		"github.com/stretchr/testify/assert"
+		"testing"
+	)
+
+	func TestTerratest(t *testing.T) {
+  	output := terraform.Output(t, terraformOptions, "test_policy_id")
+		test_policy_id := "<test_policyのPolicy ID>"
+		assert.Equal(t, output, test_policy_id)
+	}
+	```
+
+- **TerraformがModule構成の場合、ルートtf側でmodule内のoutputを再度ルートtf側で取得/output設定をし、terratest側ではルートtf側のoutputから取得する必要がある**
+  - terraform側  
+    - moduleを呼び出す側の`.tf`  
+      ```
+      module "test" {
+        source = "../../../modules/iam"
+      }
+
+      output "test_policy_id" {
+        value = module.test.test_policy_id
+      }
+		```
+    - module側（呼び出される側）  
+      ```
+      resource "aws_iam_policy" "test_policy" {
+        name        = "test-policy"
+        description = "A test policy"
+        policy = jsonencode({
+          Version = "2012-10-17"
+          Statement = [
+            {
+              Action = [
+                "ec2:Describe*",
+              ]
+              Effect   = "Allow"
+              Resource = "*"
+            },
+          ]
+        })
+      }
+
+      output "test_policy_id" {
+        value = aws_iam_policy.test_policy.id
+      }
+    	```
+  - terratest側  
+    ```go
+  	package test
+
+  	import (
+  		"github.com/gruntwork-io/terratest/modules/terraform"
+  		"github.com/stretchr/testify/assert"
+  		"testing"
+  	)
+
+  	func TestTerratest(t *testing.T) {
+    	output := terraform.Output(t, terraformOptions, "test_policy_id")
+  		test_policy_id := "<test_policyのPolicy ID>"
+  		assert.Equal(t, output, test_policy_id)
+  	}
+  	```
