@@ -100,7 +100,7 @@ func TestTerratest(t *testing.T) {
       // ... 他の設定
     }
 		```
-	- terratest  
+  - terratest  
 		```go
     terraformOptions := &terraform.Options{
         TerraformDir: "../AWS/dev/tokyo/",
