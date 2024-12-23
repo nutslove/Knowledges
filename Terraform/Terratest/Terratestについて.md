@@ -101,14 +101,15 @@ func TestTerratest(t *testing.T) {
     }
 		```
   - terratest  
-		```go
+    ```go
     terraformOptions := &terraform.Options{
         TerraformDir: "../AWS/dev/tokyo/",
         Vars: map[string]interface{}{
             "create_resource": false,
         },
     }
-		```
+	```
+
 
 ## `terraform`メソッド種類
 ### `terraform.InitE()`
