@@ -27,3 +27,13 @@
     rolearn: arn:aws:iam::<EKSクラスターがあるAWSアカウントID>:role/<kubectlを実行しているEC2にアタッチされているIAMロール名>
     username: masteruser
   ~~~
+
+# Worker Nodeについて
+- EC2インスタンスを使うタイプとして「セルフマネージド型ノード」、「マネージドノードグループ」、「Auto Mode」の3つのタイプがある
+## セルフマネージド
+
+## マネージド
+
+## Auto Mode
+- 2024年
+
