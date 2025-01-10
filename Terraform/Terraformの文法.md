@@ -228,3 +228,6 @@
 
 
 ### `flatten`
+
+
+### `dynamic`
