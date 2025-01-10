@@ -190,7 +190,7 @@
   - https://zenn.dev/kyo2bay/articles/a6f98473141f36
 
 ## その他の文法
-#### `length`
+### `length`
 - indexの長さを取得
 - 例
   ```tf
@@ -204,7 +204,7 @@
   }
   ```
 
-#### 条件分岐
+### 三項演算子
 - 例１）num変数の値が１の場合は`yes`が、1以外の場合は`no`が入る
   - `var.num == "1" ? "yes" : "no"`
 - 例２）  
@@ -220,5 +220,11 @@
     subnet_id     = var.environment == "prd" ? "subnet-12345678" : "subnet-87654321"
   }
   ~~~
+- 以下のように条件文をネストすることもできる。  
+  以下の場合、最初の条件`try(v.domain_name, "") != ""`がfalseの場合、次の条件文`v.is_s3_origin`が判定される  
+  ```tf
+  try(v.domain_name, "") != "" ? v.domain_name : v.is_s3_origin ? module.s3[v.origin_sub_sid].regional_domain_name : module.alb[v.origin_sub_sid].dns_name
+  ```
 
-#### `flatten`
+
+### `flatten`
