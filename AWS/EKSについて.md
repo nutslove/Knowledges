@@ -33,9 +33,11 @@
 - EC2インスタンスを使うタイプとして「セルフマネージド型ノード」、「マネージドノードグループ」、「Auto Mode」の3つのタイプがある
 ![](./image/data_plane_for_ecs_and_eks.jpg)
   - https://www.youtube.com/watch?v=JT9aV27FixI&t=1288s
+- AMIはEKS Optimized(最適化) AMIを利用
+  - https://docs.aws.amazon.com/ja_jp/eks/latest/userguide/eks-optimized-ami.html
 
 ## セルフマネージド型ノード
-- 利用者がAuto Scaling Group（EC2インスタンス）とAMIを作成/管理する
+- 利用者がAuto Scaling Group（EC2インスタンス）を作成/管理する
   - EC2作成後、Controll Plane（Master Node）への登録作業も必要
 - kubeletの更新方法を細かく制御できる
 - ノード追加/終了時のPodの退避などのライフサイクルフックも利用者側で設定する必要がある
