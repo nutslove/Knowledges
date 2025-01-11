@@ -30,6 +30,7 @@
 
 # Worker Node（Data Plane）について
 - **https://www.youtube.com/watch?v=WzCxHW0wNBo**
+  - https://pages.awscloud.com/rs/112-TZM-766/images/202110_AWS_Black_Belt_Containers222_EKS_DataPlane.pdf
 - EC2インスタンスを使うタイプとして「セルフマネージド型ノード」、「マネージドノードグループ」、「Auto Mode」の3つのタイプがある
 ![](./image/data_plane_for_ecs_and_eks.jpg)
   - https://www.youtube.com/watch?v=JT9aV27FixI&t=1288s
