@@ -28,11 +28,30 @@
     username: masteruser
   ~~~
 
-# Worker Nodeについて
+# Worker Node（Data Plane）について
+- **https://www.youtube.com/watch?v=WzCxHW0wNBo**
 - EC2インスタンスを使うタイプとして「セルフマネージド型ノード」、「マネージドノードグループ」、「Auto Mode」の3つのタイプがある
-## セルフマネージド
+![](./image/data_plane_for_ecs_and_eks.jpg)
+  - https://www.youtube.com/watch?v=JT9aV27FixI&t=1288s
 
-## マネージド
+## セルフマネージド型ノード
+- 利用者がAuto Scaling Group（EC2インスタンス）とAMIを作成/管理する
+  - EC2作成後、Controll Plane（Master Node）への登録作業も必要
+- kubeletの更新方法を細かく制御できる
+- ノード追加/終了時のPodの退避などのライフサイクルフックも利用者側で設定する必要がある
+  - https://note.jpn.pioneer/n/n29ae2990c1eb
+
+![](./image/self_managed_node_1.jpg)
+![](./image/self_managed_node_2.jpg)
+
+## マネージド型ノードグループ
+- EKSがAuto Scaling Group（EC2インスタンス）を作成して管理してくれる
+  - ASGの設定にはライフサイクルフックが標準設定されている
+- 基本的にはマネージド型ノードグループを使うこと
+- Terraformの`aws_eks_node_group`リソースで作成
+
+![](./image/managed_node_group_1.jpg)
+![](./image/managed_node_group_2.jpg)
 
 ## Auto Mode
 - 2024年

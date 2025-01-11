@@ -4,7 +4,7 @@
 - Task定義に基づいて起動されるコンテナ群
 - 同一Task内のコンテナは同一ホスト上で実行される
 
-### Task Definition
+## Task Definition
 - ECSタスクの設定を記述するテンプレート
 - Kubernetesのマニフェストファイルのようなもの
 - 以下のようなものを定義
@@ -16,14 +16,14 @@
   - ネットワークモード
   - etc.
 
-#### Task Size
+### Task Size
 - Task全体(Task内のすべてのコンテナが分け合ってして使う)リソースサイス
 - Fargateの場合、指定できるCPUとメモリの値の組み合わせが決まっている
   - https://docs.aws.amazon.com/ja_jp/AmazonECS/latest/developerguide/task_definition_parameters.html#task_size
 - `cpu`、`memory`２つの項目がある
 - Fargateの場合、設定必須
 
-#### `containerDefinitions`の中で定義できるコンテナ単位のリソース割り当て
+### `containerDefinitions`の中で定義できるコンテナ単位のリソース割り当て
 - 以下３つの項目がある
   - `cpu`
     - CPUの場合は、Limitを超えてもコンテナが強制終了されず、CPUスロットリングがかかる
@@ -34,8 +34,11 @@
     - コンテナ用に予約するメモリのソフトリミット（タスクが保証する最低限のメモリ量）
 - `memory`コンテナレベルと`memoryReservation`値の両方を指定する場合、`memory`値は`memoryReservation`値より大きくする必要がある
 
-#### `portMappings`
+### `portMappings`
 - KubernetesのServiceリソースの`ports`に該当する項目
+
+### `logConfiguration`
+
 
 ## Service
 - KubernetesのDeploymentsとServiceに近い概念
@@ -139,5 +142,3 @@
 ## DataPlaneとしてFargateを使う場合の注意事項
 - Taskの定義にCPUとメモリのLimitの設定が必須（EC2の場合は省略可）
 - 使用できるネットワークモードは`awsvpc`のみ
-
-## logDriver
