@@ -57,5 +57,8 @@
 ![](./image/managed_node_group_2.jpg)
 
 ## Auto Mode
-- 2024年
-
+- 2024年12月に発表された新機能
+- https://aws.amazon.com/jp/blogs/news/getting-started-with-amazon-eks-auto-mode/  
+  > Amazon EKS Auto Mode は、インフラストラクチャの自動プロビジョニング、最適なコンピューティングインスタンスの選択、リソースの動的スケーリング、コスト最適化のために継続的なコンピューティングの最適化、オペレーティングシステム (OS) のパッチ適用、AWS セキュリティサービスとの統合により、Kubernetes クラスター管理を効率化します。有効にすると、EKS Auto Mode は AWS のベストプラクティスに基づいてクラスター機能を設定し、アプリケーションのデプロイに最適な状態でクラスターを準備します。
+- Terraform構築時の注意点
+  - https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eks_cluster#eks-cluster-with-eks-auto-mode
