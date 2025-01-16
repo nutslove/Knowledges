@@ -12,8 +12,9 @@
 - マネコンからも「アクセス」タブの「IAM アクセスエントリ」でEKS操作権限とマッピングされているIAMプリンシパルを確認できる  
   ![](./image/EKS_IAM_MAPPING.jpg)
   - 「アクセスエントリの作成」からIAMプリンシパルを追加できる
-    - Terraformでは`aws_eks_access_entry`リソースで追加できる
+    - Terraformでは`aws_eks_access_entry`と`aws_eks_access_policy_association`リソースで追加できる
       - https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/eks_access_entry
+      - https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eks_access_policy_association
 
 ## ConfigMap（aws-auth）での設定方法
 - EKSクラスターはデフォルトでは作成したIAMエンティティしかkubectlで操作できない
