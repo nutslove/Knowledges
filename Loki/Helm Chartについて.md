@@ -12,6 +12,7 @@
   ```
 
 # MicroServices Mode
+- **https://grafana.com/docs/loki/latest/setup/install/helm/install-microservices/**
 - 以下でHelmリポジトリを追加する  
   ```shell
   helm repo add grafana https://grafana.github.io/helm-charts
