@@ -14,7 +14,7 @@
 - ログイン後GUI上でパスワード変更ができる
 
 ## 構成
-- 作成中・・・
+- https://hiroki-hasegawa.hatenablog.jp/entry/2023/05/02/145115?utm_source=pocket_reader
 
 ## HelmチャートのApplications登録方法
 - `index.yaml`と`*.tgz`があるHelmリポジトリを使う方法と、`charts`ディレクトリや`Chart.yaml`があるGitリポジトリを使う方法がある
