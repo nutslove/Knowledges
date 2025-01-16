@@ -3,7 +3,7 @@
 
 # *Update!* LokiのHelm Chart
 - すべてのModeで以下の共通の１つのHelmチャートを使うようになった模様
-  - https://grafana.github.io/helm-chartsの`grafana/loki`
+  - https://grafana.github.io/helm-charts の`grafana/loki`
 - 以下で確認できる  
   ```shell
   helm repo add grafana https://grafana.github.io/helm-charts
@@ -13,7 +13,7 @@
 
 ## MicroServices Mode
 > [!CAUTION]
-> 以下のHelmチャートはアップデートされなくなった。
+> 以下のHelmチャートはアップデートされなくなった。  
 > `grafana/loki`チャートを使うこと！
 - githubリポジトリ
   - https://github.com/grafana/helm-charts/tree/main/charts/loki-distributed
