@@ -78,3 +78,12 @@
   > Amazon EKS Auto Mode は、インフラストラクチャの自動プロビジョニング、最適なコンピューティングインスタンスの選択、リソースの動的スケーリング、コスト最適化のために継続的なコンピューティングの最適化、オペレーティングシステム (OS) のパッチ適用、AWS セキュリティサービスとの統合により、Kubernetes クラスター管理を効率化します。有効にすると、EKS Auto Mode は AWS のベストプラクティスに基づいてクラスター機能を設定し、アプリケーションのデプロイに最適な状態でクラスターを準備します。
 - Terraform構築時の注意点
   - https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eks_cluster#eks-cluster-with-eks-auto-mode
+
+# EBS CSIについて
+- AddonでEBS Driverをインストールした時、EBSの`StorageClass`がdefaultのStorageClassになっておらず、PVCでいちいち`storageClassName`を指定しないといけない。  
+  なので、`kubectl edit sc gp2`で`metadata.annotations`に以下を追加すること  
+  ```yaml
+  metadata:
+    annotations:
+      storageclass.kubernetes.io/is-default-class: "true"
+  ```
