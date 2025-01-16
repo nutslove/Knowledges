@@ -1,3 +1,6 @@
+> [!CAUTION]
+> 2025/01 現在はまたmicroservices modeが推奨となった  
+> 以下のUpdate!のところを参照
 - Simple scalable deployment modeは途中から追加されたものだけど、現在は推奨されているModeらしい
   - https://grafana.com/blog/2022/12/19/the-only-helm-chart-you-need-for-grafana-loki-is-here/  
     ![](image/simple%20scalable%20mode.jpg)
