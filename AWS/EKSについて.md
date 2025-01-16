@@ -1,9 +1,24 @@
 - Terraformで指定するAMIリリースバージョンは以下のサイトから確認できる
   - https://github.com/awslabs/amazon-eks-ami/blob/master/CHANGELOG.md
 
-## TerraformでクロスアカウントのEKSクラスターを作成した時、kubectlを打てるようにする方法
+# TerraformでクロスアカウントのEKSクラスターを作成した時、kubectlを打てるようにする方法
+
+## *Update!* EKS APIでの設定方法
+- https://dev.classmethod.jp/articles/eks-access-management-with-iam-access-entry/
+- `aws eks list-access-entries --cluster-name <EKS Cluster名>`でEKSクラスターを操作できるIAMプリンシパルを確認できる
+  - EKS Clusterのauthentication modeが`API`か`API_AND_CONFIG_MAP`になっている必要がある
+    - Terraformでは`aws_eks_cluster`リソースの`access_config`でブロックで設定できる
+      - https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eks_cluster#access_config
+- マネコンからも「アクセス」タブの「IAM アクセスエントリ」でEKS操作権限とマッピングされているIAMプリンシパルを確認できる  
+  ![](./image/EKS_IAM_MAPPING.jpg)
+  - 「アクセスエントリの作成」からIAMプリンシパルを追加できる
+    - Terraformでは`aws_eks_access_entry`リソースで追加できる
+      - https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/eks_access_entry
+
+## ConfigMap（aws-auth）での設定方法
 - EKSクラスターはデフォルトでは作成したIAMエンティティしかkubectlで操作できない
-  - `kube-system`ネームスペースの`aws-auth`という`ConfigMap`にて`mapRoles`でEKSクラスター作成エンティティが設定されている
+  - https://docs.aws.amazon.com/ja_jp/eks/latest/userguide/security-iam-id-based-policy-examples.html
+- `kube-system`ネームスペースの`aws-auth`という`ConfigMap`にて`mapRoles`でEKSクラスターを作成したIAMプリンシパルが設定されている
 - `kubectl`がインストールされているサーバで以下コマンドを実行し新しいクラスターを登録する（`~/.kube/config`が更新される）
   ~~~
   aws eks update-kubeconfig --region ap-northeast-1 --name <EKSクラスター名>
