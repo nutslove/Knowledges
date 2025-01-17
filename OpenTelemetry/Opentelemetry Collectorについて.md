@@ -89,6 +89,8 @@
 - **ocb(OpenTelemetry Collector builder)を使ってデフォルトでは含まれてないreceiver、exporterなどを追加した独自のOpentelemetry Collectorをビルドできる**
   - https://zenn.dev/k6s4i53rx/articles/df59cb65b34ef8
   - https://opentelemetry.io/docs/collector/custom-collector/
+  - **設定ファイル全量**
+    - https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/cmd/otelcontribcol/builder-config.yaml
 
 # その他
 - `<OpenTelemetry_CollectorのIP>:8888/metrics`でOtel-Collector自体のメトリクスを確認できる
