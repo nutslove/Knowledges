@@ -27,3 +27,10 @@
 - その他のフラグについては以下のページで確認
   - **https://opentelemetry.io/docs/languages/java/configuration/**
 - otel-collectorへの通信にTLSを使わない場合、環境変数`OTEL_EXPORTER_OTLP_INSECURE="true"`を設定する
+- 実行の例  
+  ```shell
+  export OTEL_EXPORTER_OTLP_INSECURE="true"
+  java -javaagent:./opentelemetry-javaagent.jar -Dotel.exporter.otlp.endpoint=http://localhost:4318 \
+  -Dotel.exporter.otlp.protocol=http/protobuf -Dotel.service.name=petclinic-demo -Dotel.traces.exporter=otlp \
+  -Dotel.metrics.exporter=prometheus -jar target/*.jar
+  ```
