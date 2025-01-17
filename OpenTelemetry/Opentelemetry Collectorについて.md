@@ -11,6 +11,7 @@
 
 ## otlpのhttpとgrpcによる設定の違い
 - **httpの場合は`exporter`の種類が`otlp`ではなく、`otlphttp`！**
+  - https://github.com/open-telemetry/opentelemetry-collector/blob/main/exporter/otlphttpexporter/README.md
 - 設定例  
   ```yaml
   exporters:
