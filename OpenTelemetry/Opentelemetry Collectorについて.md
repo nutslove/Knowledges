@@ -9,6 +9,28 @@
   - その他にはLoki Receiverもある（まだAlpha）
     - https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/lokireceiver
 
+## otlpのhttpとgrpcによる設定の違い
+- **httpの場合は`exporter`の種類が`otlp`ではなく、`otlphttp`！**
+- 設定例  
+  ```yaml
+  exporters:
+    debug:
+    otlphttp/loki:
+      endpoint: http://123.12.12.123:31100
+      tls:
+        insecure: true
+    otlphttp/tempo:
+      endpoint: http://123.12.12.123:31090
+      tls:
+        insecure: true
+    prometheusremotewrite: # Thanos
+      endpoint: http://123.12.12.123:31700/api/v1/receive
+      tls:
+        insecure: true
+      external_labels:
+        system: otel_demo
+  ```
+
 ## `UseLocalHostAsDefaultHost`について
 - Otel Collector v0.104.0から`receiver.otlp`で`endpoint`を指定してない場合、default値が`0.0.0.0`から`localhost`に変更された。  
   Otel CollectorがSidecar方式の場合は問題ないけど、Otel CollectorをGateway方式の場合は以下のように明示的に`endpoint`に`0.0.0.0:<port番号>`と記載する必要がある。
