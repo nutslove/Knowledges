@@ -1,4 +1,8 @@
 ## query-schedulerとは
+- https://grafana.com/docs/loki/latest/get-started/components/#query-scheduler  
+  > The **query scheduler** is an optional service providing more [advanced queuing functionality](https://grafana.com/docs/loki/latest/operations/query-fairness/) than the query frontend. When using this component in the Loki deployment, query frontend pushes split up queries to the query scheduler which enqueues them in an internal in-memory queue. There is a queue for each tenant to guarantee the query fairness across all tenants. The queriers that connect to the query scheduler act as workers that pull their jobs from the queue, execute them, and return them to the query frontend for aggregation. Queriers therefore need to be configured with the query scheduler address (via the `-querier.scheduler-address` CLI flag) in order to allow them to connect to the query scheduler.
+  >
+  > Query schedulers are **stateless**. **However, due to the in-memory queue, it’s recommended to run more than one replica to keep the benefit of high availability. Two replicas should suffice in most cases.**
 - query-frontendが持つqueryのqueueを代わりに保持し、query-frontendの負荷を軽減する  
   > The query-scheduler is an optional, stateless component that retains a queue of queries to execute, and distributes the workload to available queriers.
   ![](image/query-scheduler.jpg)
@@ -14,9 +18,10 @@
   そのためにはconfigファイルにて`frontend.scheduler_address`(query-frontend)と`frontend_worker.scheduler_address`(querier)でquery-schedulerのアドレスを指定する必要がある
       > To run with the Query Scheduler, the frontend needs to be passed the scheduler’s address via `-frontend.scheduler-address` and the querier processes needs to be started with `-querier.scheduler-address` set to the same address. Both options can also be defined via the configuration file.
 
-    > **Warning**
-    > - **`frontend_worker.scheduler_address`を指定した場合は`frontend_worker.frontend_address`の指定は外すこと！**  
-    > >It is not valid to start the querier with both a configured frontend and a scheduler address.
+> **Warning**
+> - **`frontend_worker.scheduler_address`を指定した場合は`frontend_worker.frontend_address`の指定は外すこと！**  
+> >It is not valid to start the querier with both a configured frontend and a scheduler address.
+
    - Helmでdistributed chartでデプロイしている場合は`<Helmリソース名>-loki-distributed-query-scheduler`でServiceが作成されるので、`tsdb_shipper.index_gateway_client.server_address`に`<Helmリソース名>-loki-distributed-query-scheduler.<NameSpace>.svc.cluster.local:9095`を設定
 #### frontend_worker
 - `frontend_worker`はquerierの中で実行されるworkerでquery-frontend(もしくはquery-scheduler)からqueryを取り出して検索処理を行う  
