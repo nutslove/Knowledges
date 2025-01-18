@@ -1,3 +1,16 @@
+
+# Index Gateway
+- https://grafana.com/docs/loki/latest/get-started/components/#index-gateway
+- **query frontend**と**querier**がIndex Gatewayを使う
+  - **query frontend**は発行されたクエリーをどうshardするか決めるために該当クエリーのlog volumeの情報を得るためにIndex Gatewayに問い合わせる
+  - **querier**はどのChunkを呼び出してクエリーすればいいかを知るためにIndex Gatewayに問い合わせる
+
+  > The index gateway service is responsible for handling and serving metadata queries. Metadata queries are queries that look up data from the index. The index gateway is only used by “shipper stores”, such as single store TSDB or single store BoltDB.
+  >
+  > The query frontend queries the index gateway for the log volume of queries so it can make a decision on how to shard the queries. The queriers query the index gateway for chunk references for a given query so they know which chunks to fetch and query.
+  >
+  > The index gateway can run in `simple` or `ring` mode. In `simple` mode, each index gateway instance serves all indexes from all tenants. In `ring` mode, index gateways use a consistent hash ring to distribute and shard the indexes per tenant amongst available instances.
+
 - index gatewayはLoki v2.3から追加されたコンポーネント
   - https://grafana.com/docs/loki/latest/release-notes/v2-3/  
     > We created an index gateway which takes on the task of downloading the boltdb-shipper index files allowing you to run your queriers without any local disk requirements, this is really helpful in Kubernetes environments where you can return your queriers from Statefulsets back to Deployments and save a lot of PVC costs and operational headaches.
