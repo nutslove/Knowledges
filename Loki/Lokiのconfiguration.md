@@ -1,3 +1,6 @@
+## Configuration best practice
+- https://grafana.com/docs/loki/latest/configure/bp-configure/
+
 ## ingester
 - 参考URL
   - https://grafana.com/docs/loki/latest/configuration/#ingester
