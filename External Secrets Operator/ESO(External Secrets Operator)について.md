@@ -25,6 +25,7 @@
 - 参照URL
   - https://aws.amazon.com/jp/blogs/news/leverage-aws-secrets-stores-from-eks-fargate-with-external-secrets-operator/
     - IRSAでの設定例
+  - https://external-secrets.io/latest/provider/aws-secrets-manager/
   - https://techstep.hatenablog.com/entry/2023/02/02/182127
 
 ### `SecretStore`
