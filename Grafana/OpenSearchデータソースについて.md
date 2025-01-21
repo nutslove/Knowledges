@@ -15,6 +15,16 @@
 - ExploreやDashboard設定でDataSourceとしてOpenSearchを選択後、Query Typeに「**Lucene**」を選択し、表示形式として**Logs**または**Raw Data**を選択後、クエリーに`*`や`__index:"<index名>"`など入力して実行  
   ![](./image/opensearch_datasource_for_log_3.jpg)
 
+# OpenSearchでのLogs to Traces、Traces to Logsの設定方法
+## Logs to Traces
+- **前提としてログの中にあるtrace idをOpenSearchのfieldとして認識させる必要がある**
+  - 以下のようにfield名でしか紐づけができないため  
+    ![](./image/opensearch_datasource_for_trace.jpg)
+- 上記のように「Data links」の「Field」にtrace idが入っているfield名を入力する
+## Traces to Logs
+- defaultだとクエリーに「`service_name:"<Service名>"`」が入ってしまって`service_name`フィールドがないと検索にヒットされず、TraceIDだけで検索したいので以下のように「Tags」の設定を入れることでTraceIDだけで検索される  
+  ![](./image/opensearch_datasource_for_trace_to_log.jpg)
+
 # Lucene
 Luceneクエリー文法（Query Syntax）は、検索エンジンとしてのElasticsearchやOpenSearchなどでよく使われるクエリー言語の1つです。Luceneクエリーを知っておくことで、ログやドキュメントの検索を的確に行うことができます。ここでは、Luceneクエリーの基本構文から応用的な書き方まで、例を交えて説明します。
 
