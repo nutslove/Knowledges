@@ -83,6 +83,7 @@
         SocketModeHandler(app, os.environ["SLACK_APP_TOKEN"]).start() # アプリを起動
   ```
 - `/invite @<ボット名>`でチャネルにボットを参加させる
+  - `/remove @<ボット名>`でチャネルから削除も可能
 
 ## 特定のメッセージに反応するApp
 - https://tools.slack.dev/bolt-python/ja-jp/getting-started/
@@ -108,7 +109,7 @@
       SocketModeHandler(app, os.environ["SLACK_APP_TOKEN"]).start()
   ```
 
-# AWS Lambdaと連携
+# AWS API Gateway + Lambdaと連携
 - 参考URL
   - https://www.beex-inc.com/blog/slackbot-aws-lambda-python
   - https://tools.slack.dev/bolt-python/api-docs/slack_bolt/adapter/aws_lambda/index.html
@@ -134,7 +135,14 @@
       say(f"次のメッセージを受け取りました: {text}")
 
   # Lambdaイベントハンドラー
-  def lambda_handler(event, context):
+  def handler(event, context):
       slack_handler = SlackRequestHandler(app=app)
       return slack_handler.handle(event, context)
+  ```
+- `Dockerfile`例  
+  ```dockerfile
+  FROM public.ecr.aws/lambda/python:3.13
+  COPY requirements.txt app.py ${LAMBDA_TASK_ROOT}/
+  RUN pip3 install -r requirements.txt
+  CMD [ "app.handler" ]
   ```
