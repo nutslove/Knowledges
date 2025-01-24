@@ -109,7 +109,9 @@
   ```
 
 # AWS Lambdaと連携
-- https://www.beex-inc.com/blog/slackbot-aws-lambda-python
+- 参考URL
+  - https://www.beex-inc.com/blog/slackbot-aws-lambda-python
+  - https://tools.slack.dev/bolt-python/api-docs/slack_bolt/adapter/aws_lambda/index.html
 - コード例  
   ```python
   import os
