@@ -1,0 +1,2 @@
+- RAGでデータソースのUpdateがある場合、Vector Storeにも同期させる必要がある。その時使えるのはLangchainのindexing API
+  - https://python.langchain.com/docs/how_to/indexing/
