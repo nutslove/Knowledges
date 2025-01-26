@@ -3,14 +3,15 @@
 
 - [作成方法](#作成方法)
   - [Socket Modeについて](#socket-modeについて)
-- [slack_bolt](#slack_bolt)
+- [slack\_bolt](#slack_bolt)
   - [`process_before_response`について](#process_before_responseについて)
 - [Event契機でApp実行](#event契機でapp実行)
   - [Event一覧](#event一覧)
   - [共通設定](#共通設定)
   - [ボットがメンションされたときに反応するApp](#ボットがメンションされたときに反応するapp)
   - [特定のメッセージに反応するApp](#特定のメッセージに反応するapp)
-- [AWS Lambdaと連携](#aws-lambdaと連携)
+- [AWS API Gateway + Lambdaと連携](#aws-api-gateway--lambdaと連携)
+- [Interactiveな応答を処理する設定](#interactiveな応答を処理する設定)
 
 <!-- /TOC -->
 
@@ -146,3 +147,8 @@
   RUN pip3 install -r requirements.txt
   CMD [ "app.handler" ]
   ```
+
+# Interactiveな応答を処理する設定
+- Slackから送信されたbuttonを押したときなど、Slackで継続的なやりとりをするためには「**Interactivity**」を有効にする必要がある
+- 「Interactivity & Shortcuts」の「Interactivity」を有効にして「Request URL」に、「Event Subscriptions」の「Enable Events」の「Request URL」に入力したのと同じURLを入力する  
+  ![](./image/interactivity.jpg)
