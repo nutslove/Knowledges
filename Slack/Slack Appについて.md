@@ -4,7 +4,10 @@
 - [作成方法](#作成方法)
   - [Socket Modeについて](#socket-modeについて)
 - [slack\_bolt](#slack_bolt)
-  - [`process_before_response`について](#process_before_responseについて)
+  - [`process_before_response`と`ack()`について](#process_before_responseとackについて)
+    - [例](#例)
+    - [SlackのTimeout(タイムアウト)について](#slackのtimeoutタイムアウトについて)
+    - [非同期処理例のイメージ](#非同期処理例のイメージ)
 - [Event契機でApp実行](#event契機でapp実行)
   - [Event一覧](#event一覧)
   - [共通設定](#共通設定)
@@ -30,24 +33,46 @@
   - https://tools.slack.dev/bolt-python/ja-jp/getting-started/
   - https://tools.slack.dev/bolt-python/api-docs/slack_bolt/index.html
 
-## `process_before_response`について
-- Bolt for Python では、デフォルトではすべてのリクエストを処理した後にレスポンスを返す
-- しかし、`process_before_response=True`に設定するとリクエスト処理中にレスポンスを先に返し、その後バックグラウンドで処理を続けることができる
-- 例  
+## `process_before_response`と`ack()`について
+- Bolt for Python では、デフォルトではすべてのリクエストを処理した後にSlackにレスポンス（`ack()`）を返す
+- しかし、この動作を変更し、リクエストの処理が完了する前に即座に Slack に応答を返すようにするのが`process_before_response=True`の設定
+- `process_before_response=True`を設定することで、先に`ack()`を返し、その後に時間のかかる処理を非同期的に実行することができる
+### 例
+- `process_before_response=False`の場合  
   ```python
-  from slack_bolt import App
+  app = App(
+      token=os.environ["SLACK_BOT_TOKEN"],
+      signing_secret=os.environ["SLACK_SIGNING_SECRET"]
+  )
 
-  app = App(process_before_response=True)
-
-  @app.event("message")
-  def handle_message(event, say):
-      say("Processing your message...")
-      # 長時間の処理をここで行う
-      print(f"Message: {event['text']}")
-
-  if __name__ == "__main__":
-      app.start(3000)
+  @app.event("app_mention")
+  def handle_mention(ack, say):
+      # リクエストを処理してから `ack()` を返す（3秒以内に処理が完了する必要がある）
+      result = some_quick_function()  # 処理が短い
+      ack()  # 完了後に応答
+      say(f"処理結果: {result}")
   ```
+- `process_before_response=True`の場合  
+  ```python
+  app = App(
+      token=os.environ["SLACK_BOT_TOKEN"],
+      signing_secret=os.environ["SLACK_SIGNING_SECRET"],
+      process_before_response=True  # 処理前に応答を返す
+  )
+
+  @app.event("app_mention")
+  def handle_mention(ack, say):
+      ack()  # 先に応答を返す（Slackのタイムアウトを回避）
+      result = some_long_running_task()  # 時間のかかる処理
+      say(f"処理結果: {result}")
+  ```
+### SlackのTimeout(タイムアウト)について
+- Slack では、3秒以内に`ack()` (リクエストの確認応答) を返す必要がありる。`ack()`を返さないと Slack はタイムアウトとみなし、エラー扱いになる。
+- Slack の推奨パターンとしては 「先に`ack()`で応答してから、重い処理は後続の非同期タスクで行う」 というやり方をとるのがベストプラクティス
+### 非同期処理例のイメージ
+- ボタン押下などのイベント発生 → `ack()`をすぐ返す (Slack側はタイムアウトしない)
+- その後、Lambda ではキュー（SQS）にリクエストを投げるなど別の方法で時間のかかる処理を実行する
+- 結果を別途Slackに`chat.postMessage`や`say()`などで投稿
 
 # Event契機でApp実行
 ## Event一覧
