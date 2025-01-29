@@ -8,4 +8,5 @@
 - 以下の場合、`message`というラベルが追加される
   - `(count_over_time({pod_name="grafana-c5768ff6d-ppfx7"} |="error" | pattern `<message>` [1m]))`
 - 上記の設定で、`{{ $values.B.Labels.message }}`でSummaryなどに記述できて、logの中身が連携される
+- また、Labelに`message`として連携されるので、アラートを受け取るバックエンド(e.g. Lambda)でラベルから`message`を抜き取って処理することもできる
 - **ただ、messageごとに異なるアラートとして扱われるので、messageの内容が１文字でも違うと、LogQLにヒットするログの数の分アラートが発砲される**
