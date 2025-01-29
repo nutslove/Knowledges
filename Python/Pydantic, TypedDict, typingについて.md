@@ -53,7 +53,6 @@
       Tuple[str, int, float]
       ```
     - python 3.9からは`from typing import Tuple`も不要となり、`tuple[str, int, float]`("t"が小文字)のように使える
-
 5. `Union`
     - 複数の型のいずれかであることを示す。  
       たとえば、`Union[int, str]`は、整数または文字列のいずれかを意味する。  
@@ -98,6 +97,29 @@
       configure(10)     # OK
       configure("other") # エラー
       ```
+7. `Annotated`
+   - 型情報に追加のメタデータを付与する
+   - 基本の型情報を保持しながら、追加情報を付与することができる
+   - 基本構文  
+     ```python
+     from typing import Annotated
+
+     T = Annotated[型, メタデータ]
+     ```
+     - `型`: 基本となる型（例えば `int`, `str`, `list[str]` など）
+     - `メタデータ`: 追加の情報を指定（例えば `max_length=10` などの制約）
+   - **単体で使う時はあくまで型ヒントで制約の強制はできないけど、Pydanticと組み合わせて使うことで制約の強制ができる**  
+     ```python
+     from typing import Annotated
+     from pydantic import BaseModel, Field
+
+     class User(BaseModel):
+         name: Annotated[str, Field(max_length=10)]
+         age: Annotated[int, Field(ge=18)]  # 18歳以上であることを保証
+
+     user = User(name="Alice", age=20)  # OK
+     user = User(name="A very long name", age=15)  # 例外発生
+     ```
 
 # `TypedDict`
 - Python 3.8で公式に`typing`モジュールに追加されたので
@@ -237,5 +259,3 @@
    user = User(name="Alice", age=30)
    user.update_age("Not an integer")  # これはエラーにならない
    ```
-
-# `TypedDict`
