@@ -25,3 +25,14 @@
 ## 5. チェックポイントとリカバリ
 - ステートのチェックポイントを作成し、保存する機能がある
 - これにより、長時間実行されるタスクを中断し、あとで再開したり、エラーが発生した場合に特定のポイントから処理を再開したりすることが可能
+
+# `Command`
+- 参考URL
+  - https://zenn.dev/pharmax/articles/d91085d904657d
+  - https://blog.langchain.dev/command-a-new-tool-for-multi-agent-architectures-in-langgraph/
+  - https://changelog.langchain.com/announcements/command-in-langgraph-to-build-edgeless-multi-agent-workflows
+
+# `ToolNode`
+- 参考URL
+  - https://langchain-ai.github.io/langgraph/how-tos/tool-calling/
+  - https://langchain-ai.github.io/langgraph/reference/prebuilt/#langgraph.prebuilt.chat_agent_executor.create_react_agent
