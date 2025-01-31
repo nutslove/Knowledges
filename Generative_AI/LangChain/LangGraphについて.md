@@ -31,8 +31,12 @@
   - https://zenn.dev/pharmax/articles/d91085d904657d
   - https://blog.langchain.dev/command-a-new-tool-for-multi-agent-architectures-in-langgraph/
   - https://changelog.langchain.com/announcements/command-in-langgraph-to-build-edgeless-multi-agent-workflows
+- **状態を更新すると同時に、次に実行するNodeを指定する** 機能
 
 # `ToolNode`
 - 参考URL
   - https://langchain-ai.github.io/langgraph/how-tos/tool-calling/
   - https://langchain-ai.github.io/langgraph/reference/prebuilt/#langgraph.prebuilt.chat_agent_executor.create_react_agent
+
+# LangGraphとLangfuseの連携
+- https://langfuse.com/docs/integrations/langchain/example-python-langgraph
