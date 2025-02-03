@@ -92,7 +92,48 @@
 
   graph = builder.compile()
   ```
-  ![](./image/Command_1.png)
+  ![](./image/Command_1.png)  
+
+  **逆に`conditional_edges`ではなく、`edge`を追加したい場合は、`Command`の`goto`に`None`を指定し、`add_edge`で明示的に実線でつなげる必要がある。**  
+  - 例  
+    ```python
+    def alert_status_check_node(state: State) -> Command: # Literalを指定しない
+        result = alert_status_check_agent.invoke(state)
+        return Command(
+            update={
+                "messages": [
+                    HumanMessage(content=result["messages"][-1].content, name="alert_status_check_agent")
+                ]
+            },
+            goto=None, # Noneを指定
+        )
+
+    aws_personol_health_dashboard_check_agent = create_react_agent(llm, tools=[aws_personol_health_dashboard_check])
+
+    def aws_personol_health_dashboard_check_node(state: State) -> Command: # Literalを指定しない
+        result = aws_personol_health_dashboard_check_agent.invoke(state)
+        return Command(
+            update={
+                "messages": [
+                    HumanMessage(content=result["messages"][-1].content, name="aws_personol_health_dashboard_check")
+                ]
+            },
+            goto=None, # Noneを指定
+        )
+
+    builder = StateGraph(State)
+    builder.add_node("supervisor", supervisor_node)
+    builder.add_node("rag_analysis", rag_analysis_node)
+    builder.add_node("alert_status_check", alert_status_check_node)
+    builder.add_node("aws_personol_health_dashboard_check", aws_personol_health_dashboard_check_node)
+    builder.add_edge(START, "rag_analysis")
+    
+    ## 明示的に`add_edge`で指定 
+    builder.add_edge("aws_personol_health_dashboard_check", "supervisor")
+    builder.add_edge("alert_status_check", "supervisor")
+    
+    graph = builder.compile()
+    ```
 
 # `ToolNode`
 - 参考URL
