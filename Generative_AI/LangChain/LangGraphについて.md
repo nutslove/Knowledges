@@ -43,7 +43,7 @@
   **`Command`に`Literal[]`は必須！ ちゃんと返す候補のNodeを指定すること！ 以下の例だと`Command[Literal["node_b", "node_c"]]`**  
 
 > [!IMPORTANT]
-> You might have noticed that we used `Command` as a return type annotation, e.g. `Command[Literal["node_b", "node_c"]]`. This is necessary for the graph rendering and tells LangGraph that `node_a` can navigate to `node_b` and `node_c`.
+> You might have noticed that we used `Command` as a return type annotation, e.g. `Command[Literal["node_b", "node_c"]]`. This is necessary for the graph rendering and tells LangGraph that `node_a` can navigate to `node_b` and `node_c`.  
 
   以下の例でもnode Aとnode B・Cを`add_conditional_edges()`でつなげてないけど、Commandで指定しているため、グラフ上は以下のようにつながっている  
   ```python
@@ -94,46 +94,46 @@
   ```
   ![](./image/Command_1.png)  
 
-  **逆に`conditional_edges`ではなく、`edge`を追加したい場合は、`Command`の`goto`に`None`を指定し、`add_edge`で明示的に実線でつなげる必要がある。**  
-  - 例  
-    ```python
-    def alert_status_check_node(state: State) -> Command: # Literalを指定しない
-        result = alert_status_check_agent.invoke(state)
-        return Command(
-            update={
-                "messages": [
-                    HumanMessage(content=result["messages"][-1].content, name="alert_status_check_agent")
-                ]
-            },
-            goto=None, # Noneを指定
-        )
+  - **逆に`conditional_edges`ではなく、`edge`を追加したい場合は、`Command`の`goto`に`None`を指定し、`add_edge`で明示的に実線でつなげる必要がある。**  
+    - 例  
+      ```python
+      def alert_status_check_node(state: State) -> Command: # Literalを指定しない
+          result = alert_status_check_agent.invoke(state)
+          return Command(
+              update={
+                  "messages": [
+                      HumanMessage(content=result["messages"][-1].content, name="alert_status_check_agent")
+                  ]
+              },
+              goto=None, # Noneを指定
+          )
 
-    aws_personol_health_dashboard_check_agent = create_react_agent(llm, tools=[aws_personol_health_dashboard_check])
+      aws_personol_health_dashboard_check_agent = create_react_agent(llm, tools=[aws_personol_health_dashboard_check])
 
-    def aws_personol_health_dashboard_check_node(state: State) -> Command: # Literalを指定しない
-        result = aws_personol_health_dashboard_check_agent.invoke(state)
-        return Command(
-            update={
-                "messages": [
-                    HumanMessage(content=result["messages"][-1].content, name="aws_personol_health_dashboard_check")
-                ]
-            },
-            goto=None, # Noneを指定
-        )
+      def aws_personol_health_dashboard_check_node(state: State) -> Command: # Literalを指定しない
+          result = aws_personol_health_dashboard_check_agent.invoke(state)
+          return Command(
+              update={
+                  "messages": [
+                      HumanMessage(content=result["messages"][-1].content, name="aws_personol_health_dashboard_check")
+                  ]
+              },
+              goto=None, # Noneを指定
+          )
 
-    builder = StateGraph(State)
-    builder.add_node("supervisor", supervisor_node)
-    builder.add_node("rag_analysis", rag_analysis_node)
-    builder.add_node("alert_status_check", alert_status_check_node)
-    builder.add_node("aws_personol_health_dashboard_check", aws_personol_health_dashboard_check_node)
-    builder.add_edge(START, "rag_analysis")
-    
-    ## 明示的に`add_edge`で指定 
-    builder.add_edge("aws_personol_health_dashboard_check", "supervisor")
-    builder.add_edge("alert_status_check", "supervisor")
-    
-    graph = builder.compile()
-    ```
+      builder = StateGraph(State)
+      builder.add_node("supervisor", supervisor_node)
+      builder.add_node("rag_analysis", rag_analysis_node)
+      builder.add_node("alert_status_check", alert_status_check_node)
+      builder.add_node("aws_personol_health_dashboard_check", aws_personol_health_dashboard_check_node)
+      builder.add_edge(START, "rag_analysis")
+      
+      ## 明示的に`add_edge`で指定 
+      builder.add_edge("aws_personol_health_dashboard_check", "supervisor")
+      builder.add_edge("alert_status_check", "supervisor")
+      
+      graph = builder.compile()
+      ```
 
 # `ToolNode`
 - 参考URL
