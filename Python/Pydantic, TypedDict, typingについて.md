@@ -120,6 +120,31 @@
      user = User(name="Alice", age=20)  # OK
      user = User(name="A very long name", age=15)  # 例外発生
      ```
+8. `Self`
+    - Python 3.11 以降に追加された型ヒントであり、「そのクラス自身のインスタンス」を示す型  
+    ```python
+    from typing import Self
+
+    class MyClass:
+        def __init__(self, value: int):
+            self.value = value
+
+        def validate(self) -> Self:
+            print("Validation complete")
+            return self
+
+    # インスタンス作成
+    obj = MyClass(10)
+
+    # メソッドチェーンが可能になる
+    new_obj = obj.validate()
+
+    print(obj is new_obj)  # True （同じインスタンスを返している）
+    ```
+    - `self`を返すことで、メソッドチェーンを実現することができる  
+      ```python
+      obj.validate().validate().validate()
+      ```
 
 # `TypedDict`
 - Python 3.8で公式に`typing`モジュールに追加されたので
