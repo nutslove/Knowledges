@@ -145,6 +145,7 @@
   - https://langchain-ai.github.io/langgraph/how-tos/create-react-agent/
   - https://python.langchain.com/api_reference/langchain/agents/langchain.agents.react.agent.create_react_agent.html
   - https://zenn.dev/mah/scraps/bb122058647649
+
 ## 概要
 - **`create_react_agent`はReActエージェントを作成してくれる関数**
   - scratchからReActエージェントを作る方法
@@ -152,6 +153,135 @@
 - **ソースコード**
   - https://github.com/langchain-ai/langgraph/blob/main/libs/langgraph/langgraph/prebuilt/chat_agent_executor.py#L237
 - **関数内で`ToolNode`でToolをNode化したり、`bind_tools`でmodelとtoolをバインドしたり、`add_node`・`add_edge`した後、`CompiledStateGraph`型を返す。**
+
+## `create_react_agent`関数の引数
+- https://langchain-ai.github.io/langgraph/reference/prebuilt/#langgraph.prebuilt.chat_agent_executor.create_react_agent
+
+### `response_format`
+- An optional schema for the final agent output.
+If provided, output will be formatted to match the given schema and returned in the `structured_response` state key. If not provided, `structured_response` will not be present in the output state. Can be passed in as:  
+  ```
+  - an OpenAI function/tool schema,
+  - a JSON Schema,
+  - a TypedDict class,
+  - or a Pydantic class.
+  - a tuple (prompt, schema), where schema is one of the above.
+      The prompt will be used together with the model that is being used to generate the structured response.
+  ```
+
+> [!IMPORTANT]
+> `response_format` requires the model to support `.with_structured_output`
+
+- BedrockとOpenAIはStructured outputをサポートしている
+  - https://python.langchain.com/docs/integrations/chat/
+
+##### `.with_structured_output()` method
+- the easiest and most reliable way to get structured outputs.
+- https://python.langchain.com/docs/how_to/structured_output/#the-with_structured_output-method
+- Bedrockの例  
+  ```python
+  from langchain_aws import ChatBedrock
+
+  llm = ChatBedrock(model="anthropic.claude-3-5-sonnet-20240620-v1:0",
+      beta_use_converse_api=True)
+
+  from typing import Optional
+  from pydantic import BaseModel, Field
+
+  # Pydantic
+  class Joke(BaseModel):
+      """Joke to tell user."""
+
+      setup: str = Field(description="The setup of the joke")
+      punchline: str = Field(description="The punchline to the joke")
+      rating: Optional[int] = Field(
+          default=None, description="How funny the joke is, from 1 to 10"
+      )
+
+  structured_llm = llm.with_structured_output(Joke)
+  structured_llm.invoke("Tell me a joke about cats")
+  ```  
+  - output  
+    ```
+    Joke(setup='Why was the cat sitting on the computer?', punchline='Because it wanted to keep an eye on the mouse!', rating=7)
+    ```
+
+### `prompt`
+- An optional prompt for the LLM. Can take a few different forms:  
+  - str: This is converted to a SystemMessage and added to the beginning of the list of messages in state["messages"].
+  - SystemMessage: this is added to the beginning of the list of messages in state["messages"].
+  - Callable: This function should take in full graph state and the output is then passed to the language model.
+  - Runnable: This runnable should take in full graph state and the output is then passed to the language model.
+- **例1** (Add a system prompt for the LLM)  
+  ```python
+  >>> system_prompt = "You are a helpful bot named Fred."
+  >>> graph = create_react_agent(model, tools, prompt=system_prompt)
+  >>> inputs = {"messages": [("user", "What's your name? And what's the weather in SF?")]}
+  >>> for s in graph.stream(inputs, stream_mode="values"):
+  ...     message = s["messages"][-1]
+  ...     if isinstance(message, tuple):
+  ...         print(message)
+  ...     else:
+  ...         message.pretty_print()
+  ('user', "What's your name? And what's the weather in SF?")
+  ================================== Ai Message ==================================
+  Hi, my name is Fred. Let me check the weather in San Francisco for you.
+  Tool Calls:
+  check_weather (call_lqhj4O0hXYkW9eknB4S41EXk)
+  Call ID: call_lqhj4O0hXYkW9eknB4S41EXk
+  Args:
+      location: San Francisco
+  ================================= Tool Message =================================
+  Name: check_weather
+  It's always sunny in San Francisco
+  ================================== Ai Message ==================================
+  The weather in San Francisco is currently sunny. If you need any more details or have other questions, feel free to ask!
+  ```
+- **例2**（Add a more complex prompt for the LLM）  
+  ```python
+  >>> from langchain_core.prompts import ChatPromptTemplate
+  >>> prompt = ChatPromptTemplate.from_messages([
+  ...     ("system", "You are a helpful bot named Fred."),
+  ...     ("placeholder", "{messages}"),
+  ...     ("user", "Remember, always be polite!"),
+  ... ])
+  >>>
+  >>> graph = create_react_agent(model, tools, prompt=prompt)
+  >>> inputs = {"messages": [("user", "What's your name? And what's the weather in SF?")]}
+  >>> for s in graph.stream(inputs, stream_mode="values"):
+  ...     message = s["messages"][-1]
+  ...     if isinstance(message, tuple):
+  ...         print(message)
+  ...     else:
+  ...         message.pretty_print()
+  ```
+- **例3**（Add complex prompt with custom graph state）  
+  ```python
+  >>> from typing_extensions import TypedDict
+  >>>
+  >>> from langgraph.managed import IsLastStep
+  >>> prompt = ChatPromptTemplate.from_messages(
+  ...     [
+  ...         ("system", "Today is {today}"),
+  ...         ("placeholder", "{messages}"),
+  ...     ]
+  ... )
+  >>>
+  >>> class CustomState(TypedDict):
+  ...     today: str
+  ...     messages: Annotated[list[BaseMessage], add_messages]
+  ...     is_last_step: IsLastStep
+  >>>
+  >>> graph = create_react_agent(model, tools, state_schema=CustomState, prompt=prompt)
+  >>> inputs = {"messages": [("user", "What's today's date? And what's the weather in SF?")], "today": "July 16, 2004"}
+  >>> for s in graph.stream(inputs, stream_mode="values"):
+  ...     message = s["messages"][-1]
+  ...     if isinstance(message, tuple):
+  ...         print(message)
+  ...     else:
+  ...         message.pretty_print()
+  ``` 
+
 ## 戻り値
 - 戻り値の型は **`CompiledStateGraph`**
   - https://github.com/langchain-ai/langgraph/blob/main/libs/langgraph/langgraph/graph/state.py#L597
@@ -193,9 +323,6 @@
   - `validate`メソッドはベースClassの[`Pregel`](https://github.com/langchain-ai/langgraph/blob/main/libs/langgraph/langgraph/pregel/__init__.py#L199C7-L199C13)にあって、[`Self`を返している](https://github.com/langchain-ai/langgraph/blob/main/libs/langgraph/langgraph/pregel/__init__.py#L304)ので、`CompiledStateGraph`クラスのまま。
 
 # `MessagesState`
-- 
-
-# `with_structured_output`
 - 
 
 # `bind_tools`
