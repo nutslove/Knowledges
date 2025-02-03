@@ -87,3 +87,6 @@
     annotations:
       storageclass.kubernetes.io/is-default-class: "true"
   ```
+
+# IAM Roles for Service Accounts (IRSA) 
+- AWS IAM ロールとKubernetes Service Accountをマッピングする EKSの機能

@@ -1,6 +1,18 @@
 - https://langchain-ai.github.io/langgraph/concepts/agentic_concepts/
 - https://www.anthropic.com/research/building-effective-agents
 
+## ReAct（Reasoning and Acting）
+- CoTなど行動計画の作成や調整等を行う推論(Reasoning)と、Web検索などを行う行動(Acting)を組み合わせて、精度を上げる手法
+- 推論 → 行動 → 観察 → 推論 → 行動 → 観察 → ・・・ の流れ
+- **https://react-lm.github.io/**
+  ![](./image/react_1.jpg)  
+  ![](./image/react_2.jpg)
+
+## MRKL（Modular Reasoning, Knowledge and Learning）
+- 複数の外部モジュール/ツール（e.g. 数学の問題を解くためには計算モジュール、天気情報を取得するためにはAPIアクセスモジュール）を活用して推論・知識取得・学習を行うエージェントフレームワークの一種
+
+## Reflection Agent
+- https://www.issoh.co.jp/tech/details/4055/
 
 ## Multi Agent Pattern
 - https://langchain-ai.github.io/langgraph/concepts/multi_agent/#multi-agent-architectures
