@@ -45,54 +45,54 @@
 > [!IMPORTANT]
 > You might have noticed that we used `Command` as a return type annotation, e.g. `Command[Literal["node_b", "node_c"]]`. This is necessary for the graph rendering and tells LangGraph that `node_a` can navigate to `node_b` and `node_c`.  
 
-  以下の例でもnode Aとnode B・Cを`add_conditional_edges()`でつなげてないけど、Commandで指定しているため、グラフ上は以下のようにつながっている  
-  ```python
-  import random
-  from typing_extensions import TypedDict, Literal
+  - 以下の例でもnode Aとnode B・Cを`add_conditional_edges()`でつなげてないけど、Commandで指定しているため、グラフ上は以下のようにつながっている  
+    ```python
+    import random
+    from typing_extensions import TypedDict, Literal
 
-  from langgraph.graph import StateGraph, START
-  from langgraph.types import Command
+    from langgraph.graph import StateGraph, START
+    from langgraph.types import Command
 
-  # Define graph state
-  class State(TypedDict):
-      foo: str
+    # Define graph state
+    class State(TypedDict):
+        foo: str
 
-  # Define the nodes
-  def node_a(state: State) -> Command[Literal["node_b", "node_c"]]:
-      print("Called A")
-      value = random.choice(["a", "b"])
-      # this is a replacement for a conditional edge function
-      if value == "a":
-          goto = "node_b"
-      else:
-          goto = "node_c"
+    # Define the nodes
+    def node_a(state: State) -> Command[Literal["node_b", "node_c"]]:
+        print("Called A")
+        value = random.choice(["a", "b"])
+        # this is a replacement for a conditional edge function
+        if value == "a":
+            goto = "node_b"
+        else:
+            goto = "node_c"
 
-      # note how Command allows you to BOTH update the graph state AND route to the next node
-      return Command(
-          # this is the state update
-          update={"foo": value},
-          # this is a replacement for an edge
-          goto=goto,
-      )
+        # note how Command allows you to BOTH update the graph state AND route to the next node
+        return Command(
+            # this is the state update
+            update={"foo": value},
+            # this is a replacement for an edge
+            goto=goto,
+        )
 
-  def node_b(state: State):
-      print("Called B")
-      return {"foo": state["foo"] + "b"}
+    def node_b(state: State):
+        print("Called B")
+        return {"foo": state["foo"] + "b"}
 
-  def node_c(state: State):
-      print("Called C")
-      return {"foo": state["foo"] + "c"}
+    def node_c(state: State):
+        print("Called C")
+        return {"foo": state["foo"] + "c"}
 
-  builder = StateGraph(State)
-  builder.add_edge(START, "node_a")
-  builder.add_node(node_a)
-  builder.add_node(node_b)
-  builder.add_node(node_c)
-  # NOTE: there are no edges between nodes A, B and C!
+    builder = StateGraph(State)
+    builder.add_edge(START, "node_a")
+    builder.add_node(node_a)
+    builder.add_node(node_b)
+    builder.add_node(node_c)
+    # NOTE: there are no edges between nodes A, B and C!
 
-  graph = builder.compile()
-  ```
-  ![](./image/Command_1.png)  
+    graph = builder.compile()
+    ```  
+    ![](./image/Command_1.png)  
 
   - **逆に`conditional_edges`ではなく、`edge`を追加したい場合は、`Command`の`goto`に`None`を指定し、`add_edge`で明示的に実線でつなげる必要がある。**  
     - 例  
