@@ -143,7 +143,7 @@
 # `create_react_agent`関数
 - *参考URL*
   - https://langchain-ai.github.io/langgraph/how-tos/create-react-agent/
-  - https://python.langchain.com/api_reference/langchain/agents/langchain.agents.react.agent.create_react_agent.html
+  - https://langchain-ai.github.io/langgraph/reference/prebuilt/#langgraph.prebuilt.chat_agent_executor.create_react_agent
   - https://zenn.dev/mah/scraps/bb122058647649
 
 ## 概要
@@ -282,6 +282,26 @@ If provided, output will be formatted to match the given schema and returned in 
   ...         message.pretty_print()
   ``` 
 
+### `state_schema`
+- An optional state schema that defines graph state. **Must have `messages` and `is_last_step` keys.** Defaults to `AgentState` that defines those two keys.
+- 指定しないとデフォルトで以下の`AgentState`が適用される  
+  ```python
+  from langchain_core.messages import AIMessage, BaseMessage, SystemMessage, ToolMessage
+  from langgraph.graph.message import add_messages
+  from langgraph.managed import IsLastStep, RemainingSteps
+  from pydantic import BaseModel
+
+  StructuredResponse = Union[dict, BaseModel]
+
+  class AgentState(TypedDict):
+      """The state of the agent."""
+
+      messages: Annotated[Sequence[BaseMessage], add_messages]
+      is_last_step: IsLastStep
+      remaining_steps: RemainingSteps
+      structured_response: StructuredResponse
+  ```
+
 ## 戻り値
 - 戻り値の型は **`CompiledStateGraph`**
   - https://github.com/langchain-ai/langgraph/blob/main/libs/langgraph/langgraph/graph/state.py#L597
@@ -323,7 +343,45 @@ If provided, output will be formatted to match the given schema and returned in 
   - `validate`メソッドはベースClassの[`Pregel`](https://github.com/langchain-ai/langgraph/blob/main/libs/langgraph/langgraph/pregel/__init__.py#L199C7-L199C13)にあって、[`Self`を返している](https://github.com/langchain-ai/langgraph/blob/main/libs/langgraph/langgraph/pregel/__init__.py#L304)ので、`CompiledStateGraph`クラスのまま。
 
 # `MessagesState`
-- 
+- https://langchain-ai.github.io/langgraph/concepts/low_level/#messagesstate
+- Since having a list of messages in your state is so common, there exists a prebuilt state called `MessagesState` which makes it easy to use messages. `MessagesState` is defined with a single `messages` key which is a list of `AnyMessage` objects and uses the `add_messages` reducer. Typically, there is more state to track than just messages, so we see people subclass this state and add more fields, like:  
+  ```python
+  from langgraph.graph import MessagesState
+
+  class State(MessagesState):
+      documents: list[str]
+  ```
+
+## `Reducers`
+- https://langchain-ai.github.io/langgraph/concepts/low_level/#reducers
+- Reducers are key to understanding how updates from nodes are applied to the `State`. Each key in the `State` has its own independent reducer function. If no reducer function is explicitly specified then it is assumed that all updates to that key should override it. There are a few different types of reducers, starting with the default type of reducer:
+- 現在の State とアクションを受け取り、新しい State を返す関数
+- `from langgraph.graph.message import add_messages`の`add_messages`もReducerの１つ
+
+### `add_messages` Reducer
+- https://langchain-ai.github.io/langgraph/reference/graphs/#langgraph.graph.message.add_messages
+- https://langchain-ai.github.io/langgraph/concepts/low_level/#using-messages-in-your-graph
+- In addition to keeping track of message IDs, the `add_messages` function will also try to deserialize messages into LangChain `Message` objects whenever a state update is received on the `messages` channel.  
+  This allows sending graph inputs / state updates in the following format:  
+  ```python
+  # this is supported
+  {"messages": [HumanMessage(content="message")]}
+
+  # and this is also supported
+  {"messages": [{"type": "human", "content": "message"}]}
+  ```  
+
+  Since the state updates are always deserialized into LangChain `Messages` when using `add_messages`, **you should use dot notation to access message attributes, like `state["messages"][-1].content`.**  
+  Below is an example of a graph that uses `add_messages` as it's reducer function.  
+  ```python
+  from langchain_core.messages import AnyMessage
+  from langgraph.graph.message import add_messages
+  from typing import Annotated
+  from typing_extensions import TypedDict
+
+  class GraphState(TypedDict):
+      messages: Annotated[list[AnyMessage], add_messages]
+  ```
 
 # `bind_tools`
 - 参考URL
