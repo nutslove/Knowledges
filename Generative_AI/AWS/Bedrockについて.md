@@ -13,6 +13,7 @@
         beta_use_converse_api=False,
     )
     ```
+- **なのでMulti AgentsやToolなどで、最後にAIMessageが入っている場合は、そのままLLMに投げるのではなくて、System PromptとHumanMessageだけ抜き取ってLLMに投げるようにする必要がある**
 
 ## Tool use
 - OpenAIのFunction Callingに該当するもの
