@@ -432,5 +432,8 @@ If provided, output will be formatted to match the given schema and returned in 
     ).bind_tools(tools)
     ```
 
+# `state.update()`メソッド
+- Stateの更新を行うメソッドで、引数には辞書や `(key, value)` のペアのイテラブルが必要
+
 # LangGraphとLangfuseの連携
 - https://langfuse.com/docs/integrations/langchain/example-python-langgraph
