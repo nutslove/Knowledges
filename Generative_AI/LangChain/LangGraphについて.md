@@ -432,6 +432,11 @@ If provided, output will be formatted to match the given schema and returned in 
     ).bind_tools(tools)
     ```
 
+# tool callingするagentにstructured outputさせる方法
+- **https://langchain-ai.github.io/langgraph/how-tos/react-agent-structured-output/**
+- LLMモデルとtoolを紐づける`bind_tools`メソッドと、LLMに構造化されたoutputを強制する`with_structured_output`メソッドを併用することはできない。
+- なのでtoolを使うagentに構造化されたoutputを出させるためには別のやり方が必要。詳細は上記URLを参照！
+
 # `state.update()`メソッド
 - Stateの更新を行うメソッドで、引数には辞書や `(key, value)` のペアのイテラブルが必要
 
