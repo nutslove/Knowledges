@@ -135,10 +135,130 @@
       graph = builder.compile()
       ```
 
-# `ToolNode`
+# Tool
+## `tool`
+- https://python.langchain.com/docs/concepts/tools/
+- `@tool`デコレーターを付けることでToolを作ることができる
+  - Automatically infer the tool's **name**, **description** and **expected arguments**, while also supporting customization.
+- The key attributes that correspond to the tool's schema:
+  - **name**: The name of the tool.
+  - **description**: A description of what the tool does.
+  - **args**: Property that returns the JSON schema for the tool's arguments.
+- tool自体も`invoke()`メソッドを持つ  
+  ```python
+  from langchain_core.tools import tool
+
+  @tool
+  def multiply(a: int, b: int) -> int:
+     """Multiply two numbers."""
+     return a * b
+  
+  res = multiply.invoke({"a": 2, "b": 3})
+  print(res) # 6
+  ```
+- その後、`bind_tools`したLLMモデルのインスタンスから`invoke()`すると、(1)AIがToolの使用が必要と判断した時は以下のように`content`の部分が空になっていて、代わりに`additional_kwargs`に`tool_calls`が入る。(2)それから`tool_calls.name`と`args`を使ってToolを`invoke()`する。(3)最後に`HumanMessage`、`tool_calls`する`AIMessage`、`ToolMessage`のリストを与えて`bind_tools`したLLMモデルを`invoke()`するとTool実行結果を踏まえてLLMが回答を生成する  
+  ```python
+  from langchain_core.tools import tool
+  from langchain_aws import ChatBedrock
+  from typing import Sequence
+  from langchain_core.messages import AnyMessage, HumanMessage
+
+  @tool
+  def multiply(a: int, b: int) -> int:
+     """Multiply two numbers."""
+     return a * b
+
+  message_list: Sequence[AnyMessage] = [HumanMessage("what is 3 multiply 5?")]
+
+  llm_with_tools = ChatBedrock(
+      model_id="anthropic.claude-3-5-sonnet-20240620-v1:0",
+      model_kwargs={"temperature": 0.1}
+  ).bind_tools([multiply])
+
+  AIMessage = llm_with_tools.invoke(message_list) # (1)
+  message_list.append(AIMessage)
+  print(AIMessage)
+  # content='' additional_kwargs={'usage': {'prompt_tokens': 373, 'completion_tokens': 99, 'total_tokens': 472}, 'stop_reason': 'tool_use', 'model_id': 'anthropic.claude-3-5-sonnet-20240620-v1:0'} response_metadata={'usage': {'prompt_tokens': 373, 'completion_tokens': 99, 'total_tokens': 472}, 'stop_reason': 'tool_use', 'model_id': 'anthropic.claude-3-5-sonnet-20240620-v1:0'} id='run-d4663813-1b02-4ffd-9d1e-b76a52dab39c-0' tool_calls=[{'name': 'multiply', 'args': {'a': 3, 'b': 5}, 'id': 'toolu_bdrk_01HZjRLgnB2K2RsituWbBpDS', 'type': 'tool_call'}] usage_metadata={'input_tokens': 373, 'output_tokens': 99, 'total_tokens': 472}
+  ## → AIMessage
+
+  print(AIMessage.tool_calls)
+  # [{'name': 'multiply', 'args': {'a': 3, 'b': 5}, 'id': 'toolu_bdrk_01HZjRLgnB2K2RsituWbBpDS', 'type': 'tool_call'}]
+
+  ToolMessage = multiply.invoke(AIMessage.tool_calls[0]) # (2)
+  message_list.append(ToolMessage)
+  print(ToolMessage)
+  # content='15' name='multiply' tool_call_id='toolu_bdrk_01HZjRLgnB2K2RsituWbBpDS'
+  ## → ToolMessage
+
+  AIMessage = llm_with_tools.invoke(message_list) # (3)
+  message_list.append(AIMessage)
+  print(AIMessage)
+  # content='The result of multiplying 3 by 5 is 15.\n\nTo break it down:\n1. We used the "multiply" function, which takes two parameters: "a" and "b".\n2. We set "a" to 3 and "b" to 5.\n3. The function returned the result 15.\n\nSo, 3 multiplied by 5 equals 15.' additional_kwargs={'usage': {'prompt_tokens': 454, 'completion_tokens': 96, 'total_tokens': 550}, 'stop_reason': 'end_turn', 'model_id': 'anthropic.claude-3-5-sonnet-20240620-v1:0'} response_metadata={'usage': {'prompt_tokens': 454, 'completion_tokens': 96, 'total_tokens': 550}, 'stop_reason': 'end_turn', 'model_id': 'anthropic.claude-3-5-sonnet-20240620-v1:0'} id='run-2923ab44-888f-4b8c-834a-b21cfcf1db7e-0' usage_metadata={'input_tokens': 454, 'output_tokens': 96, 'total_tokens': 550}
+  ## → AIMessage
+
+  print(message_list)
+  # [HumanMessage(content='what is 3 multiply 5?', additional_kwargs={}, response_metadata={}), AIMessage(content='', additional_kwargs={'usage': {'prompt_tokens': 373, 'completion_tokens': 99, 'total_tokens': 472}, 'stop_reason': 'tool_use', 'model_id': 'anthropic.claude-3-5-sonnet-20240620-v1:0'}, response_metadata={'usage': {'prompt_tokens': 373, 'completion_tokens': 99, 'total_tokens': 472}, 'stop_reason': 'tool_use', 'model_id': 'anthropic.claude-3-5-sonnet-20240620-v1:0'}, id='run-d4663813-1b02-4ffd-9d1e-b76a52dab39c-0', tool_calls=[{'name': 'multiply', 'args': {'a': 3, 'b': 5}, 'id': 'toolu_bdrk_01HZjRLgnB2K2RsituWbBpDS', 'type': 'tool_call'}], usage_metadata={'input_tokens': 373, 'output_tokens': 99, 'total_tokens': 472}), ToolMessage(content='15', name='multiply', tool_call_id='toolu_bdrk_01HZjRLgnB2K2RsituWbBpDS'), AIMessage(content='The result of multiplying 3 by 5 is 15.\n\nTo break it down:\n1. We used the "multiply" function, which takes two parameters: "a" and "b".\n2. We set "a" to 3 and "b" to 5.\n3. The function returned the result 15.\n\nSo, 3 multiplied by 5 equals 15.', additional_kwargs={'usage': {'prompt_tokens': 454, 'completion_tokens': 96, 'total_tokens': 550}, 'stop_reason': 'end_turn', 'model_id': 'anthropic.claude-3-5-sonnet-20240620-v1:0'}, response_metadata={'usage': {'prompt_tokens': 454, 'completion_tokens': 96, 'total_tokens': 550}, 'stop_reason': 'end_turn', 'model_id': 'anthropic.claude-3-5-sonnet-20240620-v1:0'}, id='run-2923ab44-888f-4b8c-834a-b21cfcf1db7e-0', usage_metadata={'input_tokens': 454, 'output_tokens': 96, 'total_tokens': 550})]
+  ```
+
+## `bind_tools`
+- 参考URL
+  - https://python.langchain.com/docs/concepts/tool_calling/
+- 上記URLに以下の通り記載されている通り、(tool callingをサポートする)LLM ModelにToolの存在を認識させて、Toolに必要なinputスキーマを理解させるために、ToolとLLM Modelを紐づける必要がある。  
+  > **The tool needs to be connected to a model that supports tool calling. This gives the model awareness of the tool and the associated input schema required by the tool.**
+- ソースコード（以下で本当に合っているか要確認）
+  - https://github.com/langchain-ai/langchain/blob/master/libs/langchain/langchain/chat_models/base.py#L870
+- 使い方
+  - 基本的な使い方はToolを定義し、Chatモデルに`bind_tools()`で紐づけるだけ  
+    ```python
+    @tool
+    def python_repl_tool(
+        code: Annotated[str, "The python code to execute to generate your chart."],
+    ) -> str:
+        """Use this to execute python code and do math. If you want to see the output of a value,
+        you should print it out with `print(...)`. This is visible to the user."""
+        try:
+            result = repl.run(code)
+        except BaseException as e:
+            return f"Failed to execute. Error: {repr(e)}"
+        result_str = f"Successfully executed:\n\`\`\`python\n{code}\n\`\`\`\nStdout: {result}"
+        return result_str
+
+    @tool
+    def shell_tool(
+        command: Annotated[str, "The shell command to execute."],
+    ) -> str:
+        """Use this to execute shell commands. This is visible to the user."""
+        try:
+            result = subprocess.run(
+                command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+            )
+        except BaseException as e:
+            return f"Failed to execute. Error: {repr(e)}"
+        result_str = f"Successfully executed:\n\`\`\`shell\n{command}\n\`\`\`\nStdout: {result.stdout}\nStderr: {result.stderr}"
+        return result_str
+
+    # Define available tools
+    tools = [python_repl_tool, shell_tool]
+
+    llm = ChatBedrock(
+        model_id="anthropic.claude-3-5-sonnet-20240620-v1:0",
+        model_kwargs={
+            "temperature": 0.1,
+            "max_tokens": 8000,
+        }
+    ).bind_tools(tools)
+    ```
+
+## `ToolNode`
 - 参考URL
   - https://langchain-ai.github.io/langgraph/how-tos/tool-calling/
   - https://langchain-ai.github.io/langgraph/reference/prebuilt/#langgraph.prebuilt.chat_agent_executor.create_react_agent
+
+
+## tool callingするagentにstructured outputさせる方法
+- **https://langchain-ai.github.io/langgraph/how-tos/react-agent-structured-output/**
+- LLMモデルとtoolを紐づける`bind_tools`メソッドと、LLMに構造化されたoutputを強制する`with_structured_output`メソッドを併用することはできない。
+- なのでtoolを使うagentに構造化されたoutputを出させるためには別のやり方が必要。詳細は上記URLを参照！
 
 # `create_react_agent`関数
 - *参考URL*
@@ -382,60 +502,6 @@ If provided, output will be formatted to match the given schema and returned in 
   class GraphState(TypedDict):
       messages: Annotated[list[AnyMessage], add_messages]
   ```
-
-# `bind_tools`
-- 参考URL
-  - https://python.langchain.com/docs/concepts/tool_calling/
-- 上記URLに以下の通り記載されている通り、(tool callingをサポートする)LLM ModelにToolの存在を認識させて、Toolに必要なinputスキーマを理解させるために、ToolとLLM Modelを紐づける必要がある。  
-  > **The tool needs to be connected to a model that supports tool calling. This gives the model awareness of the tool and the associated input schema required by the tool.**
-- ソースコード（以下で本当に合っているか要確認）
-  - https://github.com/langchain-ai/langchain/blob/master/libs/langchain/langchain/chat_models/base.py#L870
-- 使い方
-  - 基本的な使い方はToolを定義し、Chatモデルに`bind_tools()`で紐づけるだけ  
-    ```python
-    @tool
-    def python_repl_tool(
-        code: Annotated[str, "The python code to execute to generate your chart."],
-    ) -> str:
-        """Use this to execute python code and do math. If you want to see the output of a value,
-        you should print it out with `print(...)`. This is visible to the user."""
-        try:
-            result = repl.run(code)
-        except BaseException as e:
-            return f"Failed to execute. Error: {repr(e)}"
-        result_str = f"Successfully executed:\n\`\`\`python\n{code}\n\`\`\`\nStdout: {result}"
-        return result_str
-
-    @tool
-    def shell_tool(
-        command: Annotated[str, "The shell command to execute."],
-    ) -> str:
-        """Use this to execute shell commands. This is visible to the user."""
-        try:
-            result = subprocess.run(
-                command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
-            )
-        except BaseException as e:
-            return f"Failed to execute. Error: {repr(e)}"
-        result_str = f"Successfully executed:\n\`\`\`shell\n{command}\n\`\`\`\nStdout: {result.stdout}\nStderr: {result.stderr}"
-        return result_str
-
-    # Define available tools
-    tools = [python_repl_tool, shell_tool]
-
-    llm = ChatBedrock(
-        model_id="anthropic.claude-3-5-sonnet-20240620-v1:0",
-        model_kwargs={
-            "temperature": 0.1,
-            "max_tokens": 8000,
-        }
-    ).bind_tools(tools)
-    ```
-
-# tool callingするagentにstructured outputさせる方法
-- **https://langchain-ai.github.io/langgraph/how-tos/react-agent-structured-output/**
-- LLMモデルとtoolを紐づける`bind_tools`メソッドと、LLMに構造化されたoutputを強制する`with_structured_output`メソッドを併用することはできない。
-- なのでtoolを使うagentに構造化されたoutputを出させるためには別のやり方が必要。詳細は上記URLを参照！
 
 # `state.update()`メソッド
 - Stateの更新を行うメソッドで、引数には辞書や `(key, value)` のペアのイテラブルが必要
