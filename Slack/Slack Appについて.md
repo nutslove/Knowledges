@@ -67,12 +67,22 @@
       say(f"処理結果: {result}")
   ```
 ### SlackのTimeout(タイムアウト)について
-- Slack では、3秒以内に`ack()` (リクエストの確認応答) を返す必要がありる。`ack()`を返さないと Slack はタイムアウトとみなし、エラー扱いになる。
+- Slack では、3秒以内に`ack()` (リクエストの確認応答) を返す必要がある。`ack()`を返さないと Slack はタイムアウトとみなし、エラー扱いになる。
 - Slack の推奨パターンとしては 「先に`ack()`で応答してから、重い処理は後続の非同期タスクで行う」 というやり方をとるのがベストプラクティス
 ### 非同期処理例のイメージ
 - ボタン押下などのイベント発生 → `ack()`をすぐ返す (Slack側はタイムアウトしない)
 - その後、Lambda ではキュー（SQS）にリクエストを投げるなど別の方法で時間のかかる処理を実行する
 - 結果を別途Slackに`chat.postMessage`や`say()`などで投稿
+
+## `conversations_history`、`conversations_replies`
+- https://api.slack.com/methods/conversations.history
+- https://api.slack.com/methods/conversations.replies
+- `conversations_history`はチャネルのすべての会話履歴をとってくるもので、`conversations_replies`は特定のメッセージ(スレッド)の会話履歴をとってくるもの
+- `conversations_history`と`conversations_replies`APIを使用するためには、以下のスコープのいずれかが必要
+  - `channels:history` - パブリックチャンネルの履歴を読む権限
+  - `groups:history` - プライベートチャンネルの履歴を読む権限
+  - `mpim:history` - マルチパーソンDMの履歴を読む権限
+  - `im:history` - DMの履歴を読む権限
 
 # Event契機でApp実行
 ## Event一覧
