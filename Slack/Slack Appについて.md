@@ -84,6 +84,111 @@
   - `mpim:history` - マルチパーソンDMの履歴を読む権限
   - `im:history` - DMの履歴を読む権限
 
+## `views_open`や`views_update`メソッドで使用できる`private_metadata`について
+- `private_metadata`はモーダルを開いた際に、サーバー側で必要なコンテキストデータを埋め込むために使われる
+- `private_metadata`で連携した値は`view["private_metadata"]`で取得できる
+- 例  
+  ```python
+  @app.action("execute_command")
+  def execute_command(ack, body, client):
+      ack()  # ボタンクリックの確認
+
+      # ボタンで渡された値を取得
+      command = body["actions"][0]["value"]
+      channel_id = body["channel"]["id"]
+      thread_ts = body["message"]["ts"]
+      analysis_result_and_command = body["message"]["blocks"][0]
+
+      # モーダルを開く
+      try:
+          client.views_open(
+              trigger_id=body["trigger_id"],
+              view={
+                  "type": "modal",
+                  "title": {
+                      "type": "plain_text",
+                      "text": "実行確認"
+                  },
+                  "blocks": [
+                      {
+                          "type": "section",
+                          "text": {
+                              "type": "mrkdwn",
+                              "text": f"本当に以下のコマンドを実行しますか？\n```\n{command}\n```"
+                          }
+                      }
+                  ],
+                  "submit": {
+                      "type": "plain_text",
+                      "text": "実行する"
+                  },
+                  "close": {
+                      "type": "plain_text",
+                      "text": "やめる"
+                  },
+                  "callback_id": "command_confirmation",  # このIDで後でハンドリングする
+                  "private_metadata": json.dumps({       # 必要な情報を保存
+                      "command": command,
+                      "channel_id": channel_id,
+                      "thread_ts": thread_ts
+                  })
+              }
+          )
+      except Exception as e:
+          print(f"Error opening modal: {e}")
+
+  # モーダルの送信（実行するボタン）が押された時のハンドラー
+  @app.view("command_confirmation")
+  def handle_command_execution(ack, body, client, view):
+      ack()
+      
+      # private_metadataから保存した情報を取得
+      metadata = json.loads(view["private_metadata"])
+      command = metadata["command"]
+      channel_id = metadata["channel_id"]
+      thread_ts = metadata["thread_ts"]
+
+      previous_message = client.conversations_replies(
+          channel=channel_id,
+          ts=thread_ts
+      )
+
+      previous_message_blocks = previous_message["messages"][-1]["blocks"]
+      analysis_result_and_command = previous_message_blocks[0]
+
+      try:
+          send_sqs_command_message(os.environ.get("SQS_QUEUE_FOR_COMMAND_URL"),command, thread_ts, channel_id)
+      except Exception as e:
+          print("Error sending message to sqs for command:", str(e))
+
+      updated_blocks = [
+          # 最初のブロック（analysis_results）はそのまま保持
+          analysis_result_and_command,
+          # 2番目のブロック（action_buttons）を新しい内容に更新
+          {
+              "type": "section",
+              "block_id": "action_buttons",
+              "text": {
+                  "type": "mrkdwn",
+                  "text": "コマンドを実行します。しばらくお待ちください。"
+              }
+          }
+      ]
+      client.chat_update(
+          channel=channel_id,
+          ts=thread_ts,
+          text="",
+          blocks=updated_blocks
+      )
+  ```
+
+### `private_metadata`の制約
+- `private_metadata`に入れたデータが3001文字数を超えると以下のエラーが出る  
+  ```
+  Error opening modal: The request to the Slack API failed. (url: https://slack.com/api/views.open)
+  The server responded with: {'ok': False, 'error': 'invalid_arguments', 'response_metadata': {'messages': ['[ERROR] failed to match all allowed schemas [json-pointer:/view]', '[ERROR] must be less than 3001 characters [json-pointer:/view/private_metadata]']}}
+  ```
+
 # Event契機でApp実行
 ## Event一覧
 - https://api.slack.com/events
