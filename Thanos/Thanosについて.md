@@ -12,10 +12,11 @@
 - [Store (Store Gateway)](#store-store-gateway)
 - [Querier (Query)](#querier-query)
 - [Query Frontend](#query-frontend)
+  - [`max_idle_conns_per_host`について](#max_idle_conns_per_hostについて)
 - [Compactor](#compactor)
   - [compaction group](#compaction-group)
   - [DownSamplingについて](#downsamplingについて)
-  - [`--retention.resolution-raw`、`--retention.resolution-5m`、`--retention.resolution-1h`について](#--retentionresolution-raw--retentionresolution-5m--retentionresolution-1hについて)
+    - [`--retention.resolution-raw`、`--retention.resolution-5m`、`--retention.resolution-1h`について](#--retentionresolution-raw--retentionresolution-5m--retentionresolution-1hについて)
   - [Compactor内の`meta.json`について](#compactor内のmetajsonについて)
   - [Compactor トラブルシューティング](#compactor-トラブルシューティング)
     - [Overlaps](#overlaps)
@@ -260,6 +261,11 @@
 # Query Frontend
 - https://thanos.io/tip/components/query-frontend.md/
 - Query Frontend is fully **stateless** and horizontally scalable.
+
+## `max_idle_conns_per_host`について
+- `--query-frontend.downstream-url`に1つのホスト(e.g. ロードバランサー)を指定している場合は`max_idle_conns_per_host`を100以上に設定すること！  
+  > If it is pointing to a single host, most likely a load-balancer, then it is highly recommended to increase `max_idle_conns_per_host` via these parameters to at least 100 because otherwise query-frontend will not be able to leverage HTTP keep-alive connections, and the latency will be 10 - 20% higher. By default, the Go HTTP client will only keep two idle connections per each host.
+- https://thanos.io/tip/components/query-frontend.md/#recommended-downstream-tripper-configuration
 
 # Compactor
 - https://thanos.io/tip/components/compact.md/
