@@ -42,3 +42,43 @@
           fmt.Println(string(jsonData))
   }
   ~~~
+
+## 深い階層のJSONデータのマッピング
+- 例えば、以下の`jsonData`のデータの場合、`results`の部分を取得するためのStructは以下のようになる  
+  ```go
+  package main
+
+  import (
+  	"encoding/json"
+  	"fmt"
+  )
+
+  // JSONの構造をGoの構造体にマッピング
+  type NrqlResponse struct {
+  	Data struct {
+  		Actor struct {
+  			Account struct {
+  				Nrql struct {
+  					Results []map[string]interface{} `json:"results"`
+  				} `json:"nrql"`
+  			} `json:"account"`
+  		} `json:"actor"`
+  	} `json:"data"`
+  }
+
+  func main() {
+  	// NewRelicのJSONデータ
+  	jsonData := `{"data":{"actor":{"account":{"nrql":{"results":[{"level":"WARN","message":"Business exception occurred.","timestamp":1739861118060}]}}}}}`
+
+  	// JSONをパース
+  	var response NrqlResponse
+  	err := json.Unmarshal([]byte(jsonData), &response)
+  	if err != nil {
+  		fmt.Println("JSONデコードエラー:", err)
+  		return
+  	}
+
+  	// 結果を出力
+  	fmt.Println(response.Data.Actor.Account.Nrql.Results)
+  }
+  ```
