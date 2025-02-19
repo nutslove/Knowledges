@@ -1144,7 +1144,7 @@ updates go.mod to require those versions, and downloads source code into the mod
     fmt.Println("jvm_perm:", jvm_perm) // "jvm_perm: 128M"
     ```
 
-### Type assertions
+### Type assertions（型アサーション）
 - `interface{}`型の変数に割り当てた値は、実行(ランタイム)時にその値の実際の型(e.g. string、int)に変換して使う必要があり、その型変換機能をType assertionsという
 - 書き方
   - `<interface{}型変数>.(変換したい型)`
@@ -3335,58 +3335,6 @@ x := 10
 }
 fmt.Println(x)  // 10が出力される
 ```
-
-## 型変換（Convert）
-#### 文字列と数値の型変換
-- `strconv`というパッケージを使って型変換を行う
-- 1目の変数には変換後の型の値が渡されて、2つ目の変数(err)には型変換に失敗した時、
- 「error」型のエラー情報が渡される（正常に型変換された場合は「nil」が渡される）
-  1. 文字列(Ascii) → 数値(Int)
-   ~~~go
-   変数, err = strconv.Atoi(string)
-   ~~~
-  2. 数値(Int) → 文字列(Ascii)  
-     ※**数値(Int) → 文字列(Ascii)の変換は常に成功するため、エラー値(第２戻り値)はない**
-   ~~~go
-   変数 = strconv.Itoa(int)
-   ~~~
-
-#### byteスライスから文字列に変換
-- `string()`を使って返還
-- 例
-  ~~~go
-  r := []rune{'h', 'e', 'l', 'l', 'o'}
-  s := string(r)
-  // s は "hello"
-  ~~~
-
-#### intからfloat64に変換
-- `float64(<int>)`するだけ
-- 例  
-  ```go
-  package main
-
-  import "fmt"
-
-  func main() {
-      i := 5
-      f := float64(i)
-      fmt.Printf("f is %f\n", f)
-  }
-  ```
-
-#### float64からintに変換
-- `int(<float64>)`するだけ
-- 例
-  ```go
-  package main
-  import "fmt"
-  func main() {
-    var x float64 = 5.7
-    var y int = int(x)
-    fmt.Println(y)  // outputs "5"
-  }
-  ```
 
 ## `fmt.Sprintf`と`fmt.Printf`の違い
 - `fmt.Sprintf`は文字列を生成してそれを返すのに対し、`fmt.Printf`は文字列を生成してそれをコンソールに出力する。さらに、`fmt.Printf`は生成した文字列を返さない。
