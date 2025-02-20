@@ -254,11 +254,13 @@
   - https://langchain-ai.github.io/langgraph/how-tos/tool-calling/
   - https://langchain-ai.github.io/langgraph/reference/prebuilt/#langgraph.prebuilt.chat_agent_executor.create_react_agent
 
-
 ## tool callingするagentにstructured outputさせる方法
 - **https://langchain-ai.github.io/langgraph/how-tos/react-agent-structured-output/**
 - LLMモデルとtoolを紐づける`bind_tools`メソッドと、LLMに構造化されたoutputを強制する`with_structured_output`メソッドを併用することはできない。
 - なのでtoolを使うagentに構造化されたoutputを出させるためには別のやり方が必要。詳細は上記URLを参照！
+
+## 複数のToolを並列で実行させる方法
+- 要確認（https://python.langchain.com/docs/how_to/tool_calling_parallel/）
 
 # `create_react_agent`関数
 - *参考URL*
