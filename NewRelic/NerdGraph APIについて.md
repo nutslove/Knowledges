@@ -33,11 +33,22 @@ curl -X POST https://api.newrelic.com/graphql -H 'Content-Type: application/json
 - 基本的にはnrqlを使ってやる場合ログと一緒
 
 1. `SINCE`と`UNTIL`でメトリクスの範囲を指定  
-```
+```shell
 curl -X POST https://api.newrelic.com/graphql \
      -H 'Content-Type: application/json' \
      -H 'API-Key: <APIキー>' \
      -d '{ "query": "{ actor { account(id: <アカウントID>) { nrql(query: \"SELECT filter(count(*), WHERE request.uri NOT LIKE '"'"'%dealer/new-applications%'"'"') AS WEB商流, filter(count(*), WHERE request.uri LIKE '"'"'%dealer/new-applications%'"'"') AS 販売店商流 FROM Transaction WHERE appName = '"'"'prod-goku-core'"'"' AND request.method = '"'"'POST'"'"' AND request.uri LIKE '"'"'%new-applications%'"'"' AND request.uri NOT LIKE '"'"'%/cancel%'"'"' FACET http.statusCode TIMESERIES 1 hour SINCE 6 hours ago UNTIL now LIMIT MAX EXTRAPOLATE\") { results } } } }" }' | jq
+```
+
+2. メトリクスの種類を一覧取得
+   - `keyset()`: 取得可能なメトリクスの種類を一覧取得
+   - `SINCE 30 minutes ago`: 直近30分間のメトリクスを対象にする  
+
+```shell
+curl -X POST https://api.newrelic.com/graphql \
+  -H 'Content-Type: application/json' \
+  -H 'API-Key: NRAK-xxxxxx' \
+  -d '{ "query": "{ actor { account(id: <アカウントID>) { nrql(query: \"SELECT keyset() FROM Metric SINCE 30 minutes ago\") { results } } } }" }'
 ```
 
 ## アラート
