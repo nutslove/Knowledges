@@ -3,6 +3,33 @@
 - LangGraphのワークフローで実行される各ノードによって更新された値を保存するための仕組み
 - 各ノードは、このステートに保存されているデータを読み書きしながら処理を進めていく
 - ステートのデータ構造はPydanticのBaseModelクラスを用いて定義する
+- 各ノードの処理の前にステートが渡され、各ノードはこのステートを参照して処理を行い、処理結果によってステートを更新し、処理を終える（更新されたステートは次のノードに渡される）
+- ステートの各フィールドで、更新時のオペレーションを`typing.Annotated`で明示的に指定することができる  
+  defaultでは`set`オペレーションが使用され、値が上書きされる。  
+  リストや辞書などで、上書きではなく要素を追加していきたい場合は`add`オペレーションを指定する  
+  ```python
+  import operator
+  from typing import Annotated
+
+  from pydantic import BaseModel, Field
+
+
+  class State(BaseModel):
+      query: str = Field(..., description="ユーザーからの質問")
+      current_role: str = Field(
+          default="", description="選定された回答ロール"
+      )
+      messages: Annotated[list[str], operator.add] = Field(
+          default=[], description="回答履歴"
+      )
+      current_judge: bool = Field(
+          default=False, description="品質チェックの結果"
+      )
+      judgement_reason: str = Field(
+          default="", description="品質チェックの判定理由"
+      )
+  ```
+
 ## ノード
 - 各ノードが特定の処理や判断を担当
 
