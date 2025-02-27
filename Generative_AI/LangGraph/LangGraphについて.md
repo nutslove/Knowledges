@@ -10,9 +10,7 @@
   ```python
   import operator
   from typing import Annotated
-
   from pydantic import BaseModel, Field
-
 
   class State(BaseModel):
       query: str = Field(..., description="ユーザーからの質問")
