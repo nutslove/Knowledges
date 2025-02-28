@@ -3,8 +3,91 @@
 - LangGraphのワークフローで実行される各ノードによって更新された値を保存するための仕組み
 - 各ノードは、このステートに保存されているデータを読み書きしながら処理を進めていく
 - ステートのデータ構造はPydanticのBaseModelクラスを用いて定義する
+- 各ノードの処理の前にステートが渡され、各ノードはこのステートを参照して処理を行い、処理結果によってステートを更新し、処理を終える（更新されたステートは次のノードに渡される）
+- ステートの各フィールドで、更新時のオペレーションを`typing.Annotated`で明示的に指定することができる  
+  defaultでは`set`オペレーションが使用され、値が上書きされる。  
+  リストや辞書などで、上書きではなく要素を追加していきたい場合は`add`オペレーションを指定する  
+  ```python
+  import operator
+  from typing import Annotated
+  from pydantic import BaseModel, Field
+
+  class State(BaseModel):
+      query: str = Field(..., description="ユーザーからの質問")
+      current_role: str = Field(
+          default="", description="選定された回答ロール"
+      )
+      messages: Annotated[list[str], operator.add] = Field(
+          default=[], description="回答履歴"
+      )
+      current_judge: bool = Field(
+          default=False, description="品質チェックの結果"
+      )
+      judgement_reason: str = Field(
+          default="", description="品質チェックの判定理由"
+      )
+  ```
+
 ## ノード
 - 各ノードが特定の処理や判断を担当
+### ノードの指定
+- `StateGraph`クラスの`add_node`関数の引数に、ノードとして使う関数またはRunnable（LCELのオブジェクト）を指定
+- 例１：関数またはRunnable（LCELのオブジェクト）だけを指定  
+  ```python
+  workflow.add_node(answering_node) # ノード名＝関数名となる(左記の場合は"answering_node")
+  ```
+- 例２：ノード名と関数またはRunnable（LCELのオブジェクト）を指定  
+  ```python
+  workflow.add_node("answering", answering_node) # ノード名は"answering"になる
+  ```  
+### ノードの実装方法
+#### 関数の場合
+- **ステートオブジェクトを引数にとり、更新差分を表す辞書型のオブジェクトを返す**  
+  ```python
+  def answering_node(state: State) -> dict[str, Any]:
+      query = state.query
+      role = state.current_role
+      role_details = "\n".join([f"- {v['name']}: {v['details']}" for v in ROLES.values()])
+      prompt = ChatPromptTemplate.from_template(
+  """あなたは{role}として回答してください。以下の質問に対して、あなたの役割に基づいた適切な回答を提供してください。
+
+  役割の詳細:
+  {role_details}
+
+  質問: {query}
+
+  回答:""".strip()
+      )
+      chain = prompt | llm | StrOutputParser()
+      answer = chain.invoke({"role": role, "role_details": role_details, "query": query})
+      return {"messages": [answer]} # messagesフィールドのリストに要素を追加するため、リスト型で返す
+  ```
+- もしくは、**ノードの中でステートを更新して、State全体を返しても良い**  
+  ```python
+  from langgraph.graph import MessagesState
+
+  class State(MessagesState):
+      system_name: str = ""
+      metric_list: str = ""
+      newrelic_account_id: str = ""
+
+  def run_newrelic_nrql(
+      state: State,
+  ) -> State:
+      system_info = get_system_info(state["system_name"])
+      queries = [metric["query"] for metric in system_info["metrics"]]
+
+      result = ""
+      try:
+          result = requests.post(f"{newrelic_wrapper_endpoint}/api/v1/nrql", json={"account_id": system_info["newrelic_account_id"],"queries": queries})
+      except requests.exceptions.RequestException as e:
+          state["metric_list"] = f"Failed to execute. Error: {repr(e)}"
+
+      result_str = result.json()
+      state["newrelic_account_id"] = system_info["newrelic_account_id"] # ステートを更新
+      state["metric_list"] = result_str["data"] # ステートを更新
+      return state # 更新したステートを返す
+  ```
 
 ## エッジ
 - 各ノードの処理間のつながりや関係性を表現
