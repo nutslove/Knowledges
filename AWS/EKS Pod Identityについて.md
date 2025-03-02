@@ -41,7 +41,7 @@
   ```
 
 ## IAM RoleとService Accountを関連付ける
-- Terraformの場合  
+- Terraformの場合（https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eks_pod_identity_association）  
   ```
   resource "aws_eks_pod_identity_association" "s3" {
       cluster_name    = aws_eks_cluster.platform_cluster_auto_mode.name
