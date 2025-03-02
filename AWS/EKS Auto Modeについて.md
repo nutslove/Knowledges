@@ -164,3 +164,10 @@
     targetGroupARN: arn:aws:elasticloadbalancing:ap-northeast-1:123456789:targetgroup/argocd-tg/abcdefghijklmnop
     targetType: ip
   ```
+
+# その他Auto Modeの注意点
+## Hop Limit
+- Auto ModeではワーカーノードのHop Limitを変更することはできない
+  - https://github.com/aws/containers-roadmap/issues/2498
+- なのでPod Identityを使う必要がある（Pod Identityを使うとIMDSを使わないため）
+  - https://docs.aws.amazon.com/ja_jp/eks/latest/userguide/pod-id-association.html
