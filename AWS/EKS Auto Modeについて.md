@@ -95,6 +95,24 @@
 ## Pod Disruption Budgets
 
 
+# Storage
+## `StorageClass`
+- EKS Auto Modeではユーザが使うための`StorageClass`はデフォルトで作成されない。EKS Auto Modeのストレージ機能を使用するには、`ebs.csi.eks.amazonaws.com` を参照する`StorageClass`を作成する必要がある。  
+  ```yaml
+  apiVersion: storage.k8s.io/v1
+  kind: StorageClass
+  metadata:
+    name: auto-ebs-sc
+    annotations:
+      storageclass.kubernetes.io/is-default-class: "true"
+  provisioner: ebs.csi.eks.amazonaws.com
+  volumeBindingMode: WaitForFirstConsumer
+  parameters:
+    type: gp3
+    encrypted: "true"
+  ```
+- https://docs.aws.amazon.com/ja_jp/eks/latest/userguide/sample-storage-workload.html
+
 # `Ingress`周りについて
 - 参考URL
   - https://zenn.dev/hanabusashun/articles/43572ae6e15366
