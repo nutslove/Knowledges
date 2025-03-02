@@ -165,6 +165,16 @@
     targetType: ip
   ```
 
+# Add-ons
+- https://docs.aws.amazon.com/eks/latest/userguide/eks-add-ons.html#addon-consider-auto
+- https://docs.aws.amazon.com/eks/latest/userguide/workloads-add-ons-available-eks.html
+- EKS Auto Modeでは以下のAdd-onはインストール不要
+  - VPC CNI
+  - kube-proxy
+  - CoreDNS
+  - EBS CNI Dribe
+  - EKS Pod Identity Agent
+
 # その他Auto Modeの注意点
 ## Hop Limit
 - Auto ModeではワーカーノードのHop Limitを変更することはできない
