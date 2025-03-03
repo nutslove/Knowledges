@@ -5,6 +5,24 @@
 ## install
 - https://external-secrets.io/latest/introduction/getting-started/
 
+### Helmで`values.yml`を用いてデプロイする場合
+- `values.yml`の全量
+  - https://github.com/external-secrets/external-secrets/blob/main/deploy/charts/external-secrets/values.yaml
+- `values.yml`の例  
+  ```yaml
+  global:
+    nodeSelector:
+      karpenter.sh/nodepool: arm64-nodepool
+      karpenter.sh/capacity-type: on-demand
+  serviceAccount:
+    create: true
+    name: "eso-service-account"
+  ```
+- インストール  
+  ```shell
+  helm install external-secrets --values=values.yml external-secrets/external-secrets -n external-secrets --create-namespace
+  ```
+
 ## Components
 - https://external-secrets.io/latest/api/components/  
   ![](./image/components.jpg)
