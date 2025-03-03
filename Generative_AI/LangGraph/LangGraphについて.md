@@ -91,6 +91,34 @@
 
 ## エッジ
 - 各ノードの処理間のつながりや関係性を表現
+### 条件付きエッジ
+- `add_conditional_edges`関数を使用
+- 第１引数に遷移元ノード名を指定し、第２引数に何らかの値を返す関数を設定する。
+  - (optional) 第３引数に第２引数で返される値に対応する遷移先ノード名とのマッピングを辞書型オブジェクトで設定  
+  ```python
+  from langgraph.graph import END
+
+  # checkノードから次のノードへの遷移に条件付きエッジを定義
+  # state.current_judgeの値がTrueならENDノードへ、Falseならselectionノードへ
+  workflow.add_conditional_edges(
+      "check",
+      lambda state: state.current_judge,
+      {True: END, False: "selection"}
+  )
+  ```
+
+## チェックポイント
+- ワークフローの実行中に**特定の時点のステート**をスナップショットのように保存する機能
+### チェックポイントのメリット(目的)
+1. **ステートの永続化**
+    - ワークフローの実行状態を保存し、あとでその時点のステートの状態から再開できる
+2. **エラー回復**
+    - 処理中にエラーが発生した場合、直前のチェックポイントから再開できる
+3. **デバック**
+    - ワークフローの実行過程を追跡し、問題の原因を特定しやすくする
+
+### チェックポイントのデータ構造
+- LangGraphの処理ステップごとに`CheckpointTuple`というデータ構造で保存される
 
 # LangGraphの特徴
 ## 1. 明示的なステート管理
@@ -631,7 +659,7 @@ If provided, output will be formatted to match the given schema and returned in 
       model_kwargs={"temperature": 0.1}
   ).bind_tools(tools)
   ```  
-  ![](./image/node_return_1.png)
+  ![](../LangChain//image/node_return_1.png)
 
   ```json
   {'messages': [HumanMessage(content='aws s3api get-bucket-policy --bucket ai-1-bucket', additional_kwargs={}, response_metadata={}, id='cee2be20-dd27-4d26-91c6-7fcbbb67870d'), AIMessage(content='', additional_kwargs={'usage': {'prompt_tokens': 505, 'completion_tokens': 124, 'total_tokens': 629}, 'stop_reason': 'tool_use', 'model_id': 'anthropic.claude-3-5-sonnet-20240620-v1:0'}, response_metadata={'usage': {'prompt_tokens': 505, 'completion_tokens': 124, 'total_tokens': 629}, 'stop_reason': 'tool_use', 'model_id': 'anthropic.claude-3-5-sonnet-20240620-v1:0'}, id='run-63c6cbcb-6f87-4eae-98d7-73bc537f4711-0', tool_calls=[{'name': 'shell_tool', 'args': {'command': 'aws s3api get-bucket-policy --bucket ai-1-bucket'}, 'id': 'toolu_bdrk_01E3eqNam9zFWUGPs8VBBRcy', 'type': 'tool_call'}], usage_metadata={'input_tokens': 505, 'output_tokens': 124, 'total_tokens': 629}), ToolMessage(content='{"stdout": "", "stderr": "\\nAn error occurred (AccessDenied) when calling the GetBucketPolicy operation: Access Denied\\n"}', name='shell_tool', id='4cf79f46-9c0d-44d7-8c89-e37cfe622c25', tool_call_id='toolu_bdrk_01E3eqNam9zFWUGPs8VBBRcy'), AIMessage(content='申し訳ありませんが、コマンドの実行中にエラーが発生しました。エラーメッセージは以下の通りです：\n\n```\nAn error occurred (AccessDenied) when calling the GetBucketPolicy operation: Access Denied\n```\n\nこのエラーは、「アクセス拒否」を意味しています。つまり、現在のAWS認証情報では、指定されたS3バケット「ai-1-bucket」のバケットポリシーを取得する権限がないようです。\n\nこの問題を解決するためには、以下のような対策が考えられます：\n\n1. AWS認証情報が正しく設定されているか確認する。\n2. 使用しているIAMユーザーまたはロールに、S3バケットポリシーを読み取る権限があるか確認する。\n3. バケット名が正しいか確認する。「ai-1-bucket」が実際に存在し、アクセス可能なバケットであることを確認してください。\n\n権限が適切に設定されていることを確認した後、再度コマンドを実行してみてください。それでも問題が解決しない場合は、AWS管理者に連絡して、必要な権限の付与を依頼することをお勧めします。', additional_kwargs={'usage': {'prompt_tokens': 620, 'completion_tokens': 361, 'total_tokens': 981}, 'stop_reason': 'end_turn', 'model_id': 'anthropic.claude-3-5-sonnet-20240620-v1:0'}, response_metadata={'usage': {'prompt_tokens': 620, 'completion_tokens': 361, 'total_tokens': 981}, 'stop_reason': 'end_turn', 'model_id': 'anthropic.claude-3-5-sonnet-20240620-v1:0'}, id='run-b3f22253-a33e-4b4e-aafd-a34ef397df2e-0', usage_metadata={'input_tokens': 620, 'output_tokens': 361, 'total_tokens': 981})]}
