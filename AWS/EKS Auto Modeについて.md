@@ -176,7 +176,7 @@
 ## LokiのHelmチャートでのインストールについて
 - LokiをDistributedモードでHelmチャートからデプロイする場合、gatewayというNginxのPodが立ち上がる。**その中で`kube-system` Namespace上の`kube-dns`のServiceを`kube-dns.kube-system.svc.cluster.local.`として指定している。**  
   しかし、**EKS Auto Modeでは`kube-system` Namespace上にCoreDNSは作成されないため、デプロイが失敗する。**  
-  回避策として、**以下の`kube-dns` Serviceだけデプロイしておけば解消される（CoreDNSのPod事態は不要）**
+  回避策として、**以下の`kube-dns` Serviceだけデプロイしておけば解消される（CoreDNSのPod自体は不要）**
 - `kube-dns` Serviceのマニフェストファイル  
   ```yaml
   apiVersion: v1
