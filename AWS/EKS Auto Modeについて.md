@@ -172,3 +172,35 @@
   - https://github.com/aws/containers-roadmap/issues/2498
 - なのでPod Identityを使う必要がある（Pod Identityを使うとIMDSを使わないため）
   - https://docs.aws.amazon.com/ja_jp/eks/latest/userguide/pod-id-association.html
+
+## LokiのHelmチャートでのインストールについて
+- LokiをDistributedモードでHelmチャートからデプロイする場合、gatewayというNginxのPodが立ち上がる。**その中で`kube-system` Namespace上の`kube-dns`のServiceを`kube-dns.kube-system.svc.cluster.local.`として指定している。**  
+  しかし、**EKS Auto Modeでは`kube-system` Namespace上にCoreDNSは作成されないため、デプロイが失敗する。**  
+  回避策として、**以下の`kube-dns` Serviceだけデプロイしておけば解消される（CoreDNSのPod事態は不要）**
+- `kube-dns` Serviceのマニフェストファイル  
+  ```yaml
+  apiVersion: v1
+  kind: Service
+  metadata:
+    name: kube-dns
+    namespace: kube-system
+    labels:
+      k8s-app: kube-dns
+      kubernetes.io/cluster-service: "true"
+      kubernetes.io/name: "CoreDNS"
+      eks.amazonaws.com/component: kube-dns
+  spec:
+    selector:
+      k8s-app: kube-dns
+    clusterIP: 172.20.0.10
+    ports:
+    - name: dns
+      port: 53
+      protocol: UDP
+    - name: dns-tcp
+      port: 53
+      protocol: TCP
+    - name: metrics
+      port: 9153
+      protocol: TCP
+  ```
