@@ -55,3 +55,12 @@
   ```shell
   aws eks create-pod-identity-association --cluster-name my-cluster --role-arn arn:aws:iam::111122223333:role/my-role --namespace default --service-account my-service-account
   ```
+## 関連づけたPod identity association確認方法
+- Pod identity association 一覧確認  
+  ```shell
+  aws eks list-pod-identity-associations --cluster-name <EKSクラスター名>
+  ```
+- associationごとの付いているIAM Roleなどの確認  
+  ```shell
+  aws eks describe-pod-identity-association --cluster-name <クラスター名> --association-id <アソシエーションID>
+  ```
