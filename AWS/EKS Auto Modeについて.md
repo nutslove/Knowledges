@@ -121,19 +121,10 @@
 
 ## `TargetGroupBinding`
 - すでに作成されているALB、ターゲットグループとk8sの`Service`を紐づけるリソース
-- EKS Auto Modeでは、リスナーとターゲットグループに以下のタグが設定されている必要がある
-  - **リスナー**
-    - `eks:eks-cluster-name`
-      - EKSクラスター名
-    - `ingress.eks.amazonaws.com/resource`
-      - ターゲットグループのポート？要確認
-    - `ingress.eks.amazonaws.com/stack`
-      - "<Ingressのnamespace>/<Ingress名>"？要確認
+- EKS Auto Modeでは、リスナーとターゲットグループに以下のタグが設定されている必要がある（https://github.com/aws/containers-roadmap/issues/2508）
   - **ターゲットグループ**
     - `eks:eks-cluster-name`
       - EKSクラスター名
-    - `ingress.eks.amazonaws.com/resource`
-      - "<Ingressのnamespace>/<Ingress名>-<ターゲットService名>:<ターゲットServiceのport>"？要確認
 - ターゲットはPodのIPでマッピングされる
   - Podが再作成されたりしてPodのIPが変わると、自動的にターゲットグループのターゲットのマッピングも変更される
 - 参考URL
@@ -156,7 +147,7 @@
         - securityGroup:
             groupID: sg-0542a085asdasa # ターゲットグループへのアクセスを許可するセキュリティグループ（ロードバランサーに設定されているSGを指定）
         ports:
-        - port: 8080 # Target ServiceのtargetPort？
+        - port: 8080 # Target ServiceのtargetPort
           protocol: TCP
     serviceRef:
       name: argocd-server # route traffic to the awesome-service
