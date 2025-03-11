@@ -16,7 +16,7 @@
 
 3. **安全な実験**
    - **ストップ条件（Stop Condition）** を設定できるため、障害試験がシステム全体に影響を与えすぎないよう制御可能。
-     - Amazon CloudWatchアラームとして定義したしきい値に達した場合に実験を停止する仕組み（https://docs.aws.amazon.com/ja_jp/fis/latest/userguide/stop-conditions.html）
+     - Amazon CloudWatchアラームとして定義したしきい値に達した場合に実験を停止する仕組み
 
 4. **可視化とモニタリング**
    - **Amazon CloudWatchやAWS X-Rayとの統合** により、試験中のシステムの挙動を可視化可能。
