@@ -611,6 +611,8 @@ func main() {
   }
   ```
 
+---
+
 # Metric
 - 参考URL
   - https://opentelemetry.io/docs/languages/go/instrumentation/#metrics  
@@ -715,6 +717,8 @@ func main() {
 ## exemplars
 - **実装できるか確認**
 - https://pkg.go.dev/go.opentelemetry.io/otel/sdk/metric/exemplar
+
+---
 
 # Log
 - 参照URL
