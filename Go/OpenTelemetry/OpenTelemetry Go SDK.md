@@ -1,8 +1,5 @@
-# 目次 <!-- omit in toc -->
-<!-- TOC -->
+# Trace
 
-
-<!-- /TOC -->
 ## 設定の流れ
 1. `otlptracehttp.New`もしくは`otlptracegrpc.New`でexporter(トレースの送り先)を設定し、接続を確立する  
    - debug/開発環境でバックエンドにトレースを送らずに標準出力にトレース情報を出力する`"go.opentelemetry.io/otel/exporters/stdout/stdouttrace"`もある
@@ -171,7 +168,7 @@
    }
    ```
 
-## ■ `NewTracerProvider`について
+## ■ NewTracerProviderについていて
 - OpenTelemetry Go SDKの`trace.NewTracerProvider`は、traceを生成および管理するための `TracerProvider` を作成する(返す)
 - `NewTracerProvider`の引数の`trace.WithResource`で指定するResourceは`resource.New()`メソッドと`resource.NewWithAttributes()`メソッド２つの設定方法がある
   - `resource.New()`メソッド  
@@ -228,7 +225,7 @@
     }
     ```
 
-## ■ `SetTracerProvider`について
+## ■ SetTracerProviderについていて
 - **`SetTracerProvider`はグローバルな`TracerProvider`を設定するための関数であり、この設定によって`otel.Tracer`を通じて取得される`Tracer`が自動的にその`TracerProvider`に紐づく**
   - `otel.SetTracerProvider(tp)`が呼ばれると[global.SetTracerProvider(tp)](https://github.com/open-telemetry/opentelemetry-go/blob/main/trace.go)が実行され、`global.SetTracerProvider(tp)`メソッド内の`globalTracer.Store(tracerProviderHolder{tp: tp})`でグローバル変数`globalTracer`に`TracerProvider`が保持される。  
     その後、`otel.Tracer()`の内部で`GetTracerProvider()`が呼ばれ、さらに`GetTracerProvider()`から`global.TracerProvider()`が呼ばれ、`global.TracerProvider()`内の`globalTracer.Load().(tracerProviderHolder).tp`で上で格納した`TracerProvider`が返される。
@@ -238,7 +235,7 @@
     - **1. 同じGoランタイム上で実行されている**
     - **2. 同じバイナリとしてコンパイルされ、同一のmain関数（およびその呼び出し範囲）内で実行されているコード全てを指す**
 
-### `TracerProvider`の構成オプション
+### TracerProviderの構成オプションョン
 - **`trace.WithBatcher`**
   - トレースをバッチでエクスポートするexporterを指定
   - バッチExporterは効率的にトレースデータを収集し、一定の間隔でまとめて送信する
@@ -250,17 +247,17 @@
 - **`trace.WithResource`**
   - トレースデータに付加情報（例: サービス名、バージョンなど）を追加するためのリソースを指定
 
-### `TracerProvider`の主なメソッド
+### TracerProviderの主なメソッドッド
 - **`Tracer(name string, opts ...trace.TracerOption) trace.Tracer`**:
   - 指定された名前とオプションで`Tracer`を取得する。`Tracer`は、Spanの作成やTraceの開始に使用される。
 
 - **`Shutdown(ctx context.Context) error`**:
   - `TracerProvider`をシャットダウンし、すべてのスパンをエクスポートする。アプリケーション終了時に呼び出して、未送信のトレースデータを確実にエクスポートするために使用する。
 
-## ■ `otel.Tracer`について
+## ■ otel.Tracerについていて
 - `otel.Tracer`は、指定された名前とオプションのバージョンを持つ`Tracer`を返す。この`Tracer`は、Spanを開始し、それらのSpanを終了するためのメソッドを提供する。`Tracer`は、`TracerProvider`によって管理されるインスタンスであり、トレースの開始点となる。
 
-### `Tracer`の具体的な役割
+### Tracerの具体的な役割役割
 1. **Spanの作成**:
    - `Tracer`は、アプリケーション内でSpanを作成するためのメソッドを提供する。Spanは、`Tracer`の一部を構成する個々の操作やイベントを表す。
 
@@ -270,7 +267,7 @@
 3. **メタデータの付加**:
    - `Tracer`は、Spanに属性、イベント、およびステータスなどのメタデータを追加するためのメソッドを提供する。
 
-### `otel.Tracer`の使用例
+### otel.Tracerの使用例用例
 ```go
 import (
     "context"
@@ -332,7 +329,7 @@ func doMoreWork(ctx context.Context) {
 }
 ```
 
-## ■ `otel.SetTextMapPropagator`について
+## ■ otel.SetTextMapPropagatorについていて
 - `otel.SetTextMapPropagator`は、グローバルなテキストマッププロパゲータを設定するために使用される。
 - プロパゲータは、トレースコンテキスト（スパンコンテキストやバゲージなど）をHTTPヘッダやメッセージのプロパティとしてエンコードおよびデコードする役割を担う。伝播されるコンテキストのフォーマットを決定し、アプリケーション全体でそのフォーマットを使用するように設定するためのもの。
 
@@ -346,7 +343,7 @@ func doMoreWork(ctx context.Context) {
 3. **Composite Propagator**:
    - 複数のプロパゲータを組み合わせて使用することができる
 
-### `otel.SetTextMapPropagator`の使用方法
+### otel.SetTextMapPropagatorの使用方法方法
 ```go
 import (
     "go.opentelemetry.io/otel"
@@ -404,6 +401,7 @@ func main() {
 ## gRPCでのトレース連携
 - **コンテキストを伝播するためには、Server側では`grpc.NewServer()`で、Client側では`grpc.Dial()`で、両方でInterceptorを設定する必要がある**
 - **Client側でメソッドを呼び出す時に`tr.Start()`で生成された`context`を引数で渡して、Server側で`tr.Start()`メソッドの引数にその`context`を指定することでトレースが繋がる**
+
 ### Server側
 - `grpc.NewServer()`の引数として`grpc.UnaryInterceptor(otelgrpc.UnaryServerInterceptor())`と`grpc.StreamInterceptor(otelgrpc.StreamServerInterceptor())`を指定
 - 例  
@@ -618,6 +616,7 @@ func main() {
   - https://opentelemetry.io/docs/languages/go/instrumentation/#metrics  
       > you’ll need to have an initialized `MeterProvider` that lets you create a `Meter`. Meters let you create instruments that you can use to create different kinds of metrics.
   - https://mackerel.io/ja/blog/entry/2023/12/21/192203
+
 ## 設定の流れ
 - 基本的にTraceの時と同じ
 1. `otlpmetrichttp.New`もしくは`otlpmetricgrpc.New`でexporter(メトリクスの送り先)を設定し、Exporterインスタンスを初期化する  
@@ -632,6 +631,7 @@ func main() {
    - メトリクスのDataタイプごとにメソッドが異なる
 6. 初期化したメトリクスのメソッドでメトリクスを生成
    - メトリクス生成時`metric.WithAttributes()`の中で`attribute.String`や`attribute.Int`などでメトリクスにラベルを追加することができる
+
 ### 設定例
 ```go
 import (
@@ -711,6 +711,7 @@ func main() {
       attribute.Int("attr2", 200),
    ))
    ```
+
 ## exemplars
 - **実装できるか確認**
 - https://pkg.go.dev/go.opentelemetry.io/otel/sdk/metric/exemplar
@@ -942,4 +943,79 @@ func main() {
 		time.Sleep(300 * time.Second)
 	}
 }
-```
+```<!-- TOC -->
+
+- [目次](#%E7%9B%AE%E6%AC%A1)
+  - [設定の流れ](#%E8%A8%AD%E5%AE%9A%E3%81%AE%E6%B5%81%E3%82%8C)
+  - [■ NewTracerProviderについて](#%E2%96%A0-newtracerprovider%E3%81%AB%E3%81%A4%E3%81%84%E3%81%A6)
+  - [■ SetTracerProviderについて](#%E2%96%A0-settracerprovider%E3%81%AB%E3%81%A4%E3%81%84%E3%81%A6)
+    - [TracerProviderの構成オプション](#tracerprovider%E3%81%AE%E6%A7%8B%E6%88%90%E3%82%AA%E3%83%97%E3%82%B7%E3%83%A7%E3%83%B3)
+    - [TracerProviderの主なメソッド](#tracerprovider%E3%81%AE%E4%B8%BB%E3%81%AA%E3%83%A1%E3%82%BD%E3%83%83%E3%83%89)
+  - [■ otel.Tracerについて](#%E2%96%A0-oteltracer%E3%81%AB%E3%81%A4%E3%81%84%E3%81%A6)
+    - [Tracerの具体的な役割](#tracer%E3%81%AE%E5%85%B7%E4%BD%93%E7%9A%84%E3%81%AA%E5%BD%B9%E5%89%B2)
+    - [otel.Tracerの使用例](#oteltracer%E3%81%AE%E4%BD%BF%E7%94%A8%E4%BE%8B)
+  - [■ otel.SetTextMapPropagatorについて](#%E2%96%A0-otelsettextmappropagator%E3%81%AB%E3%81%A4%E3%81%84%E3%81%A6)
+    - [プロパゲータの種類](#%E3%83%97%E3%83%AD%E3%83%91%E3%82%B2%E3%83%BC%E3%82%BF%E3%81%AE%E7%A8%AE%E9%A1%9E)
+    - [otel.SetTextMapPropagatorの使用方法](#otelsettextmappropagator%E3%81%AE%E4%BD%BF%E7%94%A8%E6%96%B9%E6%B3%95)
+  - [gRPCでのトレース連携](#grpc%E3%81%A7%E3%81%AE%E3%83%88%E3%83%AC%E3%83%BC%E3%82%B9%E9%80%A3%E6%90%BA)
+    - [Server側](#server%E5%81%B4)
+    - [Client側](#client%E5%81%B4)
+- [Metric](#metric)
+  - [設定の流れ](#%E8%A8%AD%E5%AE%9A%E3%81%AE%E6%B5%81%E3%82%8C)
+    - [設定例](#%E8%A8%AD%E5%AE%9A%E4%BE%8B)
+  - [exemplars](#exemplars)
+- [Log](#log)
+  - [設定の流れ](#%E8%A8%AD%E5%AE%9A%E3%81%AE%E6%B5%81%E3%82%8C)
+    - [設定例（LokiのOTLP HTTPエンドポイントに送る設定例）](#%E8%A8%AD%E5%AE%9A%E4%BE%8Bloki%E3%81%AEotlp-http%E3%82%A8%E3%83%B3%E3%83%89%E3%83%9D%E3%82%A4%E3%83%B3%E3%83%88%E3%81%AB%E9%80%81%E3%82%8B%E8%A8%AD%E5%AE%9A%E4%BE%8B)
+
+<!-- /TOC --><!-- TOC -->
+
+- [目次](#%E7%9B%AE%E6%AC%A1)
+  - [設定の流れ](#%E8%A8%AD%E5%AE%9A%E3%81%AE%E6%B5%81%E3%82%8C)
+  - [■ NewTracerProviderについていて](#%E2%96%A0-newtracerprovider%E3%81%AB%E3%81%A4%E3%81%84%E3%81%A6%E3%81%84%E3%81%A6)
+  - [■ SetTracerProviderについていて](#%E2%96%A0-settracerprovider%E3%81%AB%E3%81%A4%E3%81%84%E3%81%A6%E3%81%84%E3%81%A6)
+    - [TracerProviderの構成オプションョン](#tracerprovider%E3%81%AE%E6%A7%8B%E6%88%90%E3%82%AA%E3%83%97%E3%82%B7%E3%83%A7%E3%83%B3%E3%83%A7%E3%83%B3)
+    - [TracerProviderの主なメソッドッド](#tracerprovider%E3%81%AE%E4%B8%BB%E3%81%AA%E3%83%A1%E3%82%BD%E3%83%83%E3%83%89%E3%83%83%E3%83%89)
+  - [■ otel.Tracerについていて](#%E2%96%A0-oteltracer%E3%81%AB%E3%81%A4%E3%81%84%E3%81%A6%E3%81%84%E3%81%A6)
+    - [Tracerの具体的な役割役割](#tracer%E3%81%AE%E5%85%B7%E4%BD%93%E7%9A%84%E3%81%AA%E5%BD%B9%E5%89%B2%E5%BD%B9%E5%89%B2)
+    - [otel.Tracerの使用例用例](#oteltracer%E3%81%AE%E4%BD%BF%E7%94%A8%E4%BE%8B%E7%94%A8%E4%BE%8B)
+  - [■ otel.SetTextMapPropagatorについていて](#%E2%96%A0-otelsettextmappropagator%E3%81%AB%E3%81%A4%E3%81%84%E3%81%A6%E3%81%84%E3%81%A6)
+    - [プロパゲータの種類](#%E3%83%97%E3%83%AD%E3%83%91%E3%82%B2%E3%83%BC%E3%82%BF%E3%81%AE%E7%A8%AE%E9%A1%9E)
+    - [otel.SetTextMapPropagatorの使用方法方法](#otelsettextmappropagator%E3%81%AE%E4%BD%BF%E7%94%A8%E6%96%B9%E6%B3%95%E6%96%B9%E6%B3%95)
+  - [gRPCでのトレース連携](#grpc%E3%81%A7%E3%81%AE%E3%83%88%E3%83%AC%E3%83%BC%E3%82%B9%E9%80%A3%E6%90%BA)
+    - [Server側](#server%E5%81%B4)
+    - [Client側](#client%E5%81%B4)
+- [Metric](#metric)
+  - [設定の流れ](#%E8%A8%AD%E5%AE%9A%E3%81%AE%E6%B5%81%E3%82%8C)
+    - [設定例](#%E8%A8%AD%E5%AE%9A%E4%BE%8B)
+  - [exemplars](#exemplars)
+- [Log](#log)
+  - [設定の流れ](#%E8%A8%AD%E5%AE%9A%E3%81%AE%E6%B5%81%E3%82%8C)
+    - [設定例（LokiのOTLP HTTPエンドポイントに送る設定例）](#%E8%A8%AD%E5%AE%9A%E4%BE%8Bloki%E3%81%AEotlp-http%E3%82%A8%E3%83%B3%E3%83%89%E3%83%9D%E3%82%A4%E3%83%B3%E3%83%88%E3%81%AB%E9%80%81%E3%82%8B%E8%A8%AD%E5%AE%9A%E4%BE%8B)
+
+<!-- /TOC --><!-- TOC -->
+
+- [目次](#%E7%9B%AE%E6%AC%A1)
+  - [設定の流れ](#%E8%A8%AD%E5%AE%9A%E3%81%AE%E6%B5%81%E3%82%8C)
+  - [■ NewTracerProviderについていて](#%E2%96%A0-newtracerprovider%E3%81%AB%E3%81%A4%E3%81%84%E3%81%A6%E3%81%84%E3%81%A6)
+  - [■ SetTracerProviderについていて](#%E2%96%A0-settracerprovider%E3%81%AB%E3%81%A4%E3%81%84%E3%81%A6%E3%81%84%E3%81%A6)
+    - [TracerProviderの構成オプションョン](#tracerprovider%E3%81%AE%E6%A7%8B%E6%88%90%E3%82%AA%E3%83%97%E3%82%B7%E3%83%A7%E3%83%B3%E3%83%A7%E3%83%B3)
+    - [TracerProviderの主なメソッドッド](#tracerprovider%E3%81%AE%E4%B8%BB%E3%81%AA%E3%83%A1%E3%82%BD%E3%83%83%E3%83%89%E3%83%83%E3%83%89)
+  - [■ otel.Tracerについていて](#%E2%96%A0-oteltracer%E3%81%AB%E3%81%A4%E3%81%84%E3%81%A6%E3%81%84%E3%81%A6)
+    - [Tracerの具体的な役割役割](#tracer%E3%81%AE%E5%85%B7%E4%BD%93%E7%9A%84%E3%81%AA%E5%BD%B9%E5%89%B2%E5%BD%B9%E5%89%B2)
+    - [otel.Tracerの使用例用例](#oteltracer%E3%81%AE%E4%BD%BF%E7%94%A8%E4%BE%8B%E7%94%A8%E4%BE%8B)
+  - [■ otel.SetTextMapPropagatorについていて](#%E2%96%A0-otelsettextmappropagator%E3%81%AB%E3%81%A4%E3%81%84%E3%81%A6%E3%81%84%E3%81%A6)
+    - [プロパゲータの種類](#%E3%83%97%E3%83%AD%E3%83%91%E3%82%B2%E3%83%BC%E3%82%BF%E3%81%AE%E7%A8%AE%E9%A1%9E)
+    - [otel.SetTextMapPropagatorの使用方法方法](#otelsettextmappropagator%E3%81%AE%E4%BD%BF%E7%94%A8%E6%96%B9%E6%B3%95%E6%96%B9%E6%B3%95)
+  - [gRPCでのトレース連携](#grpc%E3%81%A7%E3%81%AE%E3%83%88%E3%83%AC%E3%83%BC%E3%82%B9%E9%80%A3%E6%90%BA)
+    - [Server側](#server%E5%81%B4)
+    - [Client側](#client%E5%81%B4)
+- [Metric](#metric)
+  - [設定の流れ](#%E8%A8%AD%E5%AE%9A%E3%81%AE%E6%B5%81%E3%82%8C)
+    - [設定例](#%E8%A8%AD%E5%AE%9A%E4%BE%8B)
+  - [exemplars](#exemplars)
+- [Log](#log)
+  - [設定の流れ](#%E8%A8%AD%E5%AE%9A%E3%81%AE%E6%B5%81%E3%82%8C)
+    - [設定例（LokiのOTLP HTTPエンドポイントに送る設定例）](#%E8%A8%AD%E5%AE%9A%E4%BE%8Bloki%E3%81%AEotlp-http%E3%82%A8%E3%83%B3%E3%83%89%E3%83%9D%E3%82%A4%E3%83%B3%E3%83%88%E3%81%AB%E9%80%81%E3%82%8B%E8%A8%AD%E5%AE%9A%E4%BE%8B)
+
+<!-- /TOC -->
