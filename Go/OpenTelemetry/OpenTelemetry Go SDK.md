@@ -1,7 +1,7 @@
 # Trace
 
 ## 設定の流れ
-1. `otlptracehttp.New`もしくは`otlptracegrpc.New`でexporter(トレースの送り先)を設定し、接続を確立する  
+1. `otlptracehttp.New`もしくは`otlptracegrpc.New`でexporter(トレースの送り先)を設定し、Exporterインスタンスを初期化する  
    - debug/開発環境でバックエンドにトレースを送らずに標準出力にトレース情報を出力する`"go.opentelemetry.io/otel/exporters/stdout/stdouttrace"`もある
 2. `NewTracerProvider`で作成したexporterとSevice名などを渡してTraceProviderを設定する
 3. `otel.SetTracerProvider`でアプリ全体でTracerProviderを使用するようにする
