@@ -3542,6 +3542,30 @@ func main() {
   }
   ```
 
+### 文字列の最後にある特定の文字列（サフィックス）を削除
+- `TrimSuffix`関数を使う  
+  ```go
+  package main
+
+  import (
+  	"fmt"
+  	"strings"
+  )
+
+  func main() {
+  	filename := "E2Y2JUMB1NPG6B.2024-03-18-10.1750da26.gz"
+  	
+  	// .gz サフィックスを削除
+  	filenameWithoutGz := strings.TrimSuffix(filename, ".gz")
+  	
+  	fmt.Println("元のファイル名:", filename)
+  	fmt.Println("処理後のファイル名:", filenameWithoutGz)
+  }
+
+  // 元のファイル名: E2Y2JUMB1NPG6B.2024-03-18-10.1750da26.gz
+  // 処理後のファイル名: E2Y2JUMB1NPG6B.2024-03-18-10.1750da26
+  ```
+
 ### 小文字 ⇔ 大文字変換
 1. `strings.ToUpper()` と `strings.ToLower()` 関数を使う方法  
   - 引数と戻り値ともに`string`型  
