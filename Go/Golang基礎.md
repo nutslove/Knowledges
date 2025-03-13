@@ -3486,6 +3486,76 @@ fmt.Println(x)  // 10が出力される
     ```
 
 ## 文字列操作
+### 正規表現で、`regexp.MatchString` と `regexp.MustCompile().MatchString()` の違い
+#### 1. `regexp.MatchString`
+- `regexp.MatchString` は `regexp` パッケージの関数で、指定した正規表現と文字列がマッチするかどうかをチェックする。
+- 毎回正規表現を解析するため、頻繁に呼び出す場合は効率が悪い。
+- `func MatchString(pattern string, s string) (bool, error)` のように `error` を返すため、誤った正規表現を指定するとエラーを処理する必要がある。
+
+- 例  
+  ```go
+  package main
+
+  import (
+  	"fmt"
+  	"regexp"
+  )
+
+  func main() {
+  	pattern := `^hello`
+  	str := "hello world"
+
+  	match, err := regexp.MatchString(pattern, str)
+  	if err != nil {
+  		fmt.Println("エラー:", err)
+  		return
+  	}
+  	fmt.Println("Match:", match) // true
+  }
+  ```
+
+---
+
+#### 2. `regexp.MustCompile().MatchString()`
+- `regexp.MustCompile()` は `regexp.Compile()` と異なり、正規表現のコンパイルに失敗すると `panic` を発生させる。
+- `MustCompile` でコンパイルした `*regexp.Regexp` 型のオブジェクトは再利用できるため、パフォーマンスが向上する。
+- `MatchString()` メソッドを使って、対象の文字列が正規表現にマッチするかどうかをチェックできる。
+
+- 例  
+  ```go
+  package main
+
+  import (
+  	"fmt"
+  	"regexp"
+  )
+
+  func main() {
+  	re := regexp.MustCompile(`^hello`)
+  	str := "hello world"
+
+  	match := re.MatchString(str)
+  	fmt.Println("Match:", match) // true
+  }
+  ```
+
+---
+
+#### 違いのまとめ
+| 特性 | `regexp.MatchString` | `regexp.MustCompile().MatchString()` |
+|------|----------------------|--------------------------------|
+| 正規表現のコンパイル | 毎回解析する（非効率） | 一度コンパイルし再利用（効率的） |
+| エラーハンドリング | `error` を返す | 無効な正規表現なら `panic` |
+| 使用用途 | 単発のマッチング | 繰り返し使う場合に適している |
+
+---
+
+#### どちらを使うべきか？
+- **頻繁に同じ正規表現を使うなら `MustCompile().MatchString()` が適している。**
+- **一度しか使わないなら `MatchString()` でも問題ないが、エラー処理が必要になる。**
+
+どちらを使うかはケースバイケースだが、パフォーマンスと安全性を考慮すると `MustCompile()` を使うことが多い。
+
 ### 文字列検索
 - `strings`パッケージの`Contains`関数である文字列(変数)の中に特定の文字列が含まれているか確認することができる
   - `Contains`関数の戻り値は`bool`型で含まれているときは`true`、含まれてないときは`false`が返される
