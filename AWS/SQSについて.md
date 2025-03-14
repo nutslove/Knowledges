@@ -14,7 +14,11 @@
 
 ## 使用上の注意
 - consumer側でメッセージを受信し、正常に処理した後はキューからメッセージを削除する必要がある。(受信だけではメッセージはキューから削除されない)
-- `WaitTimeSeconds`は１回のポーリングのtimeout秒数。**キュー内に利用可能なメッセージがある場合は待たずに受信する**  
+- `WaitTimeSeconds`は１回のポーリングのtimeout秒数。
+- Long Polling
+  - `WaitTimeSeconds`を最大20秒まで設定できる
+  - SQSはリクエスト数の従量課金なので、Long Pollingでリクエスト数を減らした方が良い
+  - Long Pollingを使っても**キュー内に利用可能なメッセージがある場合は待たずにすぐに受信する**  
   - https://docs.aws.amazon.com/ja_jp/AWSSimpleQueueService/latest/APIReference/API_ReceiveMessage.html#SQS-ReceiveMessage-request-WaitTimeSeconds
     > The duration (in seconds) for which the call waits for a message to arrive in the queue before returning. If a message is available, the call returns sooner than WaitTimeSeconds. If no messages are available and the wait time expires, the call returns successfully with an empty list of messages.
   - **キュー内にメッセージがある場合でも一定間隔でポーリングしたい場合は、アプリのロジックで`ReceiveMessage`を呼び出す間隔を調整する必要がある**
