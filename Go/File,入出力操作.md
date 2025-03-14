@@ -54,9 +54,68 @@
       }
   }
   ```
+### `io.Copy`の注意点
+- **`io.Copy`関数はファイルに書き込んだ後、ファイルポインタがファイルの終端になる。なので、その状態で`bufio.NewScanner`でファイルを読み込むと何も読み込まれない。そのため、ファイルを読み込む前に`Seek`メソッドでファイルポインタを最初に戻す必要がある。**  
+  ```go
+  // 解凍したデータを出力ファイルにコピー
+  _, err = io.Copy(outputFile, gzipReader)
+  if err != nil {
+      log.Printf("Could not copy data to output file: %v\n", err)
+      return
+  }
+  fmt.Println("Decompressed file:", outputFile.Name())
 
-## `os.Open` と `os.Create`
+  // ファイルポインタを先頭に戻す
+  _, err = outputFile.Seek(0, 0)
+  if err != nil {
+      log.Printf("Could not reset file pointer: %v\n", err)
+      return
+  }
+
+  scanner := bufio.NewScanner(outputFile) // ファイルを行ごとに読み込む
+  ```
+
+#### `Seek`メソッド
+- ファイルポインタを移動させる
+- `Seek`メソッドは次の2つの引数を取る
+  1. **第1引数（offset）**: ファイル内の位置をバイト単位で指定。これは整数値（通常は`int64`型）。
+  2. **第2引数（whence）**: 基準点を指定する定数で、以下の3つの値のいずれかを使用
+     - `0` または `io.SeekStart`: ファイルの先頭からのオフセット
+     - `1` または `io.SeekCurrent`: 現在の位置からのオフセット
+     - `2` または `io.SeekEnd`: ファイルの末尾からのオフセット
+- 例  
+  ```go
+  // ファイルの先頭に移動
+  file.Seek(0, 0)  // または file.Seek(0, io.SeekStart)
+
+  // 現在位置から10バイト進む
+  file.Seek(10, 1)  // または file.Seek(10, io.SeekCurrent)
+
+  // ファイルの末尾から5バイト戻る
+  file.Seek(-5, 2)  // または file.Seek(-5, io.SeekEnd)
+  ```
+
+## `os.Open` と `os.Create`、`os.Remove`、`os.RemoveAll`
 - ファイルの新規作成は`os.Create`、既存のファイルを開くときは`os.Open`  
+- `os.Remove`はファイル削除  
+  ```go
+  import "os"
+
+  // ファイルを削除
+  err := os.Remove("filename.txt")
+  if err != nil {
+      // エラー処理
+      fmt.Println("ファイル削除エラー:", err)
+  }
+  ```
+- ディレクトリの再帰的削除は`os.RemoveAll()`  
+  ```go
+  // ディレクトリとその中身を全て削除
+  err := os.RemoveAll("directory")
+  if err != nil {
+      fmt.Println("削除エラー:", err)
+  }
+  ```
 
 ## `bufio.Scanner`
 - **方法**: この方法では `bufio.Scanner` を使ってファイルの内容を行単位で読み込みます。一度に一行ずつ読み込むため、メモリ使用量が少なく済みます。
