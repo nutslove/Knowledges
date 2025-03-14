@@ -37,5 +37,5 @@
       index_gateway_client:
         server_address: tsdb-loki-distributed-index-gateway-headless.monitoring.svc.cluster.local:9095 ## initial char(in this case "tsdb") must match helm resource name
     ~~~
-    > **Warning**
-    > `loki-distributed-index-gateway-headless`(Headless)と`loki-distributed-index-gateway`(ClusterIP)の２つがあるのでHeadlessであってるか確認！(一応検証ではHeadlessで特に問題は見られなかった)
+> **Warning**
+> `loki-distributed-index-gateway-headless`(Headless)と`loki-distributed-index-gateway`(ClusterIP)の２つがあるのでHeadlessであってるか確認！(一応検証ではHeadlessで特に問題は見られなかった)
