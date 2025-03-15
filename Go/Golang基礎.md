@@ -2335,6 +2335,7 @@ func main() {
 - ChannelsはGoroutine間でデータを共有(送受信)する方法/仕組み
 - Dataを送受信できる空間(Pipe)
   - ブロッキング付きのキューみたいなもの
+- **channel（チャネル）は「スレッドセーフ」であり、複数のgoroutineが同じchannelに対して同時に 送信（`c <- value`）や受信（`<- c`）を行っても安全に動作する（競合状態（race condition）が発生しない）ように設計されている**
 - Channelは使った後に必ず`close(<channel名>)`で閉じなければならない  
   → closeしないとResource Leakが発生する恐れがある
   > Once you're done with a channel, you must close it !
