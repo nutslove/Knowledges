@@ -2729,11 +2729,11 @@ func main() {
 |---|---|---|
 |読み込み|`nil`|ブロック|
 ||Openで空でない|channel内の値を取得|
-||Openで空|ブロック|
+||Openで空|ブロック（そのchannelに書込みが発生するまでブロック）|
 ||Close|<型のデフォルト値>,`false`|
 ||読み込み専用channel|コンパイルエラー|
 |書込み|`nil`|ブロック|
-||Openで満杯|ブロック|
+||Openで満杯|ブロック（そのchannelから値を読み込むgoroutineがあり、空が出るまでブロック）|
 ||Openで満杯でない|channelに値を書込み|
 ||Close|panic|
 ||読み込み専用channel|コンパイルエラー|
