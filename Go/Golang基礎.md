@@ -2724,6 +2724,25 @@ func main() {
   wg.Wait()
   ```
 
+### channelの各状態に対するchannelへの各操作の結果
+|操作|channelの状態|結果|
+|---|---|---|
+|読み込み|`nil`|ブロック|
+||Openで空でない|channel内の値を取得|
+||Openで空|ブロック|
+||Close|<型のデフォルト値>,`false`|
+||読み込み専用channel|コンパイルエラー|
+|書込み|`nil`|ブロック|
+||Openで満杯|ブロック|
+||Openで満杯でない|channelに値を書込み|
+||Close|panic|
+||読み込み専用channel|コンパイルエラー|
+|close|`nil`|panic|
+||Openで空でない|channelを閉じる。読み込みはchannelの中身がなくなるまで成功する。その後の読み込みはデフォルト値を読み込む。
+||Openで空|channelを閉じる。デフォルト値を読み込む|
+||Closed channel|panic|
+||受信専用channel|コンパイルエラー|
+
 ## select
 - selectはChannelでしか使えない。文法は`switch`とほぼ一緒。
 - *Select statements pull the value from whatever channel has a value ready to be pulled.*
