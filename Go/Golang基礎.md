@@ -2515,195 +2515,213 @@ func main() {
     }    
     ~~~
 
-  #### 単方向(受信だけ or 送信だけ)のChannelも作成できる
-  - 例
-    ~~~go
-    func main() {
-    	c := make(chan int)
-    	cr := make(<-chan int) // receive (Channelから値を取り出す)
-    	cs := make(chan<- int) // send (Channelに値を入れる)
+### 単方向(受信だけ or 送信だけ)のChannelも作成できる
+- 例
+  ~~~go
+  func main() {
+  	c := make(chan int)
+  	cr := make(<-chan int) // receive (Channelから値を取り出す)
+  	cs := make(chan<- int) // send (Channelに値を入れる)
 
-    	fmt.Println("-----")
-    	fmt.Printf("%T\n", c) ------> "chan int"と出力される
-    	fmt.Printf("%T\n", cr) -----> "<-chan int"と出力される
-    	fmt.Printf("%T\n", cs) -----> "chan<- int"と出力される
-    }    
-    ~~~
-  - NG例（送信用Channelに対して受信しようとした場合）  
-    → `invalid operation: cannot receive from send-only channel cs (variable of type chan<- int)`エラーが出る
-    ~~~go
-    func main() {
-      cs := make(chan<- int)
+  	fmt.Println("-----")
+  	fmt.Printf("%T\n", c) ------> "chan int"と出力される
+  	fmt.Printf("%T\n", cr) -----> "<-chan int"と出力される
+  	fmt.Printf("%T\n", cs) -----> "chan<- int"と出力される
+  }    
+  ~~~
+- NG例（送信用Channelに対して受信しようとした場合）  
+  → `invalid operation: cannot receive from send-only channel cs (variable of type chan<- int)`エラーが出る
+  ~~~go
+  func main() {
+    cs := make(chan<- int)
 
-      go func() {
-        cs <- 42
-      }()
-      fmt.Println(<-cs) ---> ここがNG(取り出そうとしている)
+    go func() {
+      cs <- 42
+    }()
+    fmt.Println(<-cs) ---> ここがNG(取り出そうとしている)
 
-      fmt.Printf("------\n")
-      fmt.Printf("cs\t%T\n", cs)
-    }
-    ~~~
-  - NG例（受信用Channelに対して送信しようとした場合）  
-    → `invalid operation: cannot send to receive-only channel cr (variable of type <-chan int)`エラーが出る
-    ~~~go
-    func main() {
-      cr := make(<-chan int)
+    fmt.Printf("------\n")
+    fmt.Printf("cs\t%T\n", cs)
+  }
+  ~~~
+- NG例（受信用Channelに対して送信しようとした場合）  
+  → `invalid operation: cannot send to receive-only channel cr (variable of type <-chan int)`エラーが出る
+  ~~~go
+  func main() {
+    cr := make(<-chan int)
 
-      go func() {
-        cr <- 42 -------> ここがNG(値を入れようとしている)
-      }()
-      fmt.Println(<-cr)
+    go func() {
+      cr <- 42 -------> ここがNG(値を入れようとしている)
+    }()
+    fmt.Println(<-cr)
 
-      fmt.Printf("------\n")
-      fmt.Printf("cr\t%T\n", cr)
-    }
-    ~~~
+    fmt.Printf("------\n")
+    fmt.Printf("cr\t%T\n", cr)
+  }
+  ~~~
 
-  #### Channelの`for`&`range`によるLoopと`close`について
-  - Goroutineの中で1つのChannelに複数の値を入れる場合、Channelから受け取る処理も複数行う必要がある。  
-    例えば以下のような例では`fmt.Println(x)`で最初にChannelに入れた値"1"しか出力されない
-    ~~~go
-    package main
+### Channelの`for`&`range`によるLoopと`close`について
+- Goroutineの中で1つのChannelに複数の値を入れる場合、Channelから受け取る処理も複数行う必要がある。  
+  例えば以下のような例では`fmt.Println(x)`で最初にChannelに入れた値"1"しか出力されない
+  ~~~go
+  package main
 
-    import "fmt"
+  import "fmt"
 
-    func goroutine1(s []int, c chan int) {
-        sum := 0
-        for _, v := range s {
-            sum += v
-            c <- sum
-        }
-    }
+  func goroutine1(s []int, c chan int) {
+      sum := 0
+      for _, v := range s {
+          sum += v
+          c <- sum
+      }
+  }
 
-    func main() {
-        s := []int{1, 2, 3, 4, 5}
-        c := make(chan int)
+  func main() {
+      s := []int{1, 2, 3, 4, 5}
+      c := make(chan int)
 
-        go goroutine1(s, c)
-        x := <-c
-        fmt.Println(x) ==> 1
-    }
-    ~~~
-  - Channel内のすべての値を引き出すためにfor文を使わずにやる場合は値の数の分処理が増える
-    ~~~go
-      　　・
-      　　・
-      　　・
-    
-    func main() {
-        s := []int{1, 2, 3, 4, 5}
-        c := make(chan int)
+      go goroutine1(s, c)
+      x := <-c
+      fmt.Println(x) ==> 1
+  }
+  ~~~
+- Channel内のすべての値を引き出すためにfor文を使わずにやる場合は値の数の分処理が増える
+  ~~~go
+    　　・
+    　　・
+    　　・
+  
+  func main() {
+      s := []int{1, 2, 3, 4, 5}
+      c := make(chan int)
 
-        go goroutine1(s, c)
-        x := <-c
-        x2 := <-c
-        x3 := <-c
-        x4 := <-c
-        x5 := <-c
-        fmt.Println(x) ===> 1
-        fmt.Println(x2) ==> 3
-        fmt.Println(x3) ==> 6
-        fmt.Println(x4) ==> 10
-        fmt.Println(x5) ==> 15
-    }
-    ~~~
-  - そこでfor文を使ってChannel内の値の数の分、処理を回すことができる
-    > **Note**  
-    > これでうまくいくように見えるがエラーになる
-    ~~~go
-    package main
+      go goroutine1(s, c)
+      x := <-c
+      x2 := <-c
+      x3 := <-c
+      x4 := <-c
+      x5 := <-c
+      fmt.Println(x) ===> 1
+      fmt.Println(x2) ==> 3
+      fmt.Println(x3) ==> 6
+      fmt.Println(x4) ==> 10
+      fmt.Println(x5) ==> 15
+  }
+  ~~~
+- そこでfor文を使ってChannel内の値の数の分、処理を回すことができる
+  > **Note**  
+  > これでうまくいくように見えるがエラーになる
+  ~~~go
+  package main
 
-    import "fmt"
+  import "fmt"
 
-    func goroutine1(s []int, c chan int) {
-        sum := 0
-        for _, v := range s {
-            sum += v
-            c <- sum
-        }
-    }
+  func goroutine1(s []int, c chan int) {
+      sum := 0
+      for _, v := range s {
+          sum += v
+          c <- sum
+      }
+  }
 
-    func main() {
-        s := []int{1, 2, 3, 4, 5}
-        c := make(chan int)
+  func main() {
+      s := []int{1, 2, 3, 4, 5}
+      c := make(chan int)
 
-        go goroutine1(s, c)
+      go goroutine1(s, c)
 
-        for ch := range c {
-            fmt.Println(ch)
-        }
-    }
-    ~~~
-  - 上記では`goroutine1`関数は5までchannelに値を入れた後完了するが、main関数内のfor文はChannelから最後(5番目)の値を取り出した後もChannelがcloseされてないため、channelに新しい値が入ってくることを待っている。しかし、`goroutine1`関数は終了しており、新しい値が入ってくることはないため、main関数内のfor文は永遠に待ち続ける。これはDeadlockの状態と言えるので以下のように`all goroutines are asleep - deadlock!`エラーが出る  
-    ~~~
-    1
-    3
-    6
-    10
-    15
-    fatal error: all goroutines are asleep - deadlock!
+      for ch := range c {
+          fmt.Println(ch)
+      }
+  }
+  ~~~
+- 上記では`goroutine1`関数は5までchannelに値を入れた後完了するが、main関数内のfor文はChannelから最後(5番目)の値を取り出した後もChannelがcloseされてないため、channelに新しい値が入ってくることを待っている。しかし、`goroutine1`関数は終了しており、新しい値が入ってくることはないため、main関数内のfor文は永遠に待ち続ける。これはDeadlockの状態と言えるので以下のように`all goroutines are asleep - deadlock!`エラーが出る  
+  ~~~
+  1
+  3
+  6
+  10
+  15
+  fatal error: all goroutines are asleep - deadlock!
 
-    goroutine 1 [chan receive]:
-    main.main()
-        /opt/go/concurrency/test2.go:20 +0x125
-    exit status 2
-    ~~~
-    これを防ぐためにChannelにすべての値を入れた後に明示的に`close(<Channel名>)`でChannelをCloseする必要がある
-    ~~~go
-    package main
+  goroutine 1 [chan receive]:
+  main.main()
+      /opt/go/concurrency/test2.go:20 +0x125
+  exit status 2
+  ~~~
+  これを防ぐためにChannelにすべての値を入れた後に明示的に`close(<Channel名>)`でChannelをCloseする必要がある
+  ~~~go
+  package main
 
-    import "fmt"
+  import "fmt"
 
-    func goroutine1(s []int, c chan int) {
-        sum := 0
-        for _, v := range s {
-            sum += v
-            c <- sum
-        }
-        close(c) ========> ここ！
-    }
+  func goroutine1(s []int, c chan int) {
+      sum := 0
+      for _, v := range s {
+          sum += v
+          c <- sum
+      }
+      close(c) ========> ここ！
+  }
 
-    func main() {
-        s := []int{1, 2, 3, 4, 5}
-        c := make(chan int)
+  func main() {
+      s := []int{1, 2, 3, 4, 5}
+      c := make(chan int)
 
-        go goroutine1(s, c)
+      go goroutine1(s, c)
 
-        for ch := range c {
-            fmt.Println(ch)
-        }
-    }
-    ~~~
-  - 以下Chat-GPTからの回答
-    > for文は、channelから値が利用可能になるまで待機します。この期間、forループはブロックされ、新しい値がchannelに送信されるまで進行しません。
-    > channelがcloseされると、forループは終了します。closeされたchannelからの読み取りは常に可能で、それ以降の読み取りではゼロ値（型に応じたゼロ値）が返されます。
-  - **for文はchannelから値が利用可能になるまで待ち続けるため、channelをcloseしない場合、forより下にあるコードは実行されない**
+      for ch := range c {
+          fmt.Println(ch)
+      }
+  }
+  ~~~
+- 以下Chat-GPTからの回答
+  > for文は、channelから値が利用可能になるまで待機します。この期間、forループはブロックされ、新しい値がchannelに送信されるまで進行しません。
+  > channelがcloseされると、forループは終了します。closeされたchannelからの読み取りは常に可能で、それ以降の読み取りではゼロ値（型に応じたゼロ値）が返されます。
+- **for文はchannelから値が利用可能になるまで待ち続けるため、channelをcloseしない場合、forより下にあるコードは実行されない**
 
-  #### `chan error`について
-  - `error`型のzero valueは`nil`  
-    なのでcloseされた`error`型のchannelから値を取り出そうとすると`nil`が返ってくる  
-    ~~~go
-    func main() {
-    	ch := make(chan error)
-    	close(ch)
+### `chan error`について
+- `error`型のzero valueは`nil`  
+  なのでcloseされた`error`型のchannelから値を取り出そうとすると`nil`が返ってくる  
+  ~~~go
+  func main() {
+  	ch := make(chan error)
+  	close(ch)
 
-    	val, ok := <-ch
-    	fmt.Println(val, ok) // 出力: <nil> false
-    }
-    ~~~
+  	val, ok := <-ch
+  	fmt.Println(val, ok) // 出力: <nil> false
+  }
+  ~~~
 
-  #### `time.After()`を使ったtimeout設定
-  - `time.After(d)`は指定した期間`d`が経過すると、現在の時刻を送信する新しいchannelを返す。
-  - `select`と組み合わせて使うことで複数のchannel操作を同時に待機する際に便利  
-    ~~~go
-    select {
-    case <-time.After(1 * time.Second):
-        fmt.Println("Timed out")
-    case msg := <-ch:
-        fmt.Println("Received message:", msg)
-    }
-    ~~~
+### `time.After()`を使ったtimeout設定
+- `time.After(d)`は指定した期間`d`が経過すると、現在の時刻を送信する新しいchannelを返す。
+- `select`と組み合わせて使うことで複数のchannel操作を同時に待機する際に便利  
+  ~~~go
+  select {
+  case <-time.After(1 * time.Second):
+      fmt.Println("Timed out")
+  case msg := <-ch:
+      fmt.Println("Received message:", msg)
+  }
+  ~~~
+
+### channelを閉じることで複数のgoroutineに同時にシグナルを送る
+- channelを閉じることで、それを読み込んでいる複数のgoroutineを一度に解放することができる  
+  ```go
+  begin := make(chan interface{})
+  var wg sync.WaitGroup
+  for i :=0; i < 4; i++ {
+    wg.Add(1)
+    go func(i int) {
+      defer wg.Done()
+      <-begin
+      fmt.Printf("%v has begun\n", i)
+    }(i)
+  }
+  fmt.Println("Unblocking goroutines...")
+  close(begin)
+  wg.Wait()
+  ```
 
 ## select
 - selectはChannelでしか使えない。文法は`switch`とほぼ一緒。
