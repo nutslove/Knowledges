@@ -2608,7 +2608,8 @@ func main() {
       fmt.Println(x5) ==> 15
   }
   ~~~
-- そこでfor文を使ってChannel内の値の数の分、処理を回すことができる
+- そこでfor文を使ってChannel内の値の数の分、処理を回すことができる  
+  - **forが閉じたChannelかどうかを判断して、`range`で指定したChannelが閉じられたらfor文を抜ける** 
   > **Note**  
   > これでうまくいくように見えるがエラーになる
   ~~~go
@@ -2649,7 +2650,7 @@ func main() {
       /opt/go/concurrency/test2.go:20 +0x125
   exit status 2
   ~~~
-  これを防ぐためにChannelにすべての値を入れた後に明示的に`close(<Channel名>)`でChannelをCloseする必要がある
+  **これを防ぐためにChannelにすべての値を入れた後に明示的に`close(<Channel名>)`でChannelをCloseする必要がある**
   ~~~go
   package main
 
