@@ -51,9 +51,9 @@ kubectl apply -f https://raw.githubusercontent.com/flux-iac/tofu-controller/main
 
 > [!CAUTION]
 > 2025/03/18 k8s 1.31 ver
-> 上記のマニフェストファイルのリソースのAPI versionが古くて警告が出るし、デプロイしても`flux-system` namespaceにtofu-controller PODは起動しない。
-> [Getting Started](https://flux-iac.github.io/tofu-controller/getting_started/)の「Manual installation」のHelmでのインストール手順と https://github.com/flux-iac/tofu-controller/tree/main/charts/tofu-controller の手順も、`helm repo add tofu-controller https://flux-iac.github.io/tofu-controller`は合ってるけど、Chart名が`tofu-controller/tofu-controller`ではなく、**`tofu-controller/tf-controller`が正しい**
-> 以下でインストールした
+> 上記のマニフェストファイルは、リソースのAPI versionが古くて警告が出るし、デプロイしても`flux-system` namespaceにtofu-controller PODは起動しない。
+> [Getting Started](https://flux-iac.github.io/tofu-controller/getting_started/)の「Manual installation」のHelmでのインストール手順と https://github.com/flux-iac/tofu-controller/tree/main/charts/tofu-controller の手順も、`helm repo add tofu-controller https://flux-iac.github.io/tofu-controller`は合ってるけど、Chart名が`tofu-controller/tofu-controller`ではなく、**`tofu-controller/tf-controller`が正しい**  
+> - 以下でインストールした
 > ```shell
 > helm repo add tofu-controller https://flux-iac.github.io/tofu-controller
 > helm repo update
