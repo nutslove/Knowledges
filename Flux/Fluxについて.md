@@ -11,14 +11,14 @@ curl -s https://fluxcd.io/install.sh | sudo bash
 
 ```shell
 export GITHUB_TOKEN=<your-token>
-export GITHUB_USER=<your-username>
+export GITHUB_USER=<your-username> # https://github.com/<ここに入るもの>
 
 flux bootstrap github \
   --owner=$GITHUB_USER \
   --repository=<fluxマニフェストファイルを置くGitリポジトリ> \
   --branch=main \
   --path=./<fluxマニフェストファイルを置くディレクトリ> \
-  --personal
+  --personal --token-auth --verbose
 ```
 - **`--repository`で指定したGitリポジトリの`--path`で指定したディレクトリに`flux-system`というディレクトリが作成され、その配下に以下のファイルが生成される**
   - `gotk-components.yaml`
@@ -29,7 +29,7 @@ flux bootstrap github \
   ```shell
   flux bootstrap github --owner=$GITHUB_USER \
   --repository=IaC --branch=main \
-  --path=./AWS/k8s/flux --personal
+  --path=./AWS/k8s/flux --personal --token-auth --verbose
   ```
 
 - 以下のDeployment（Pod）が`flux-system` namespace上に作成される
@@ -48,6 +48,17 @@ kubectl apply -f https://raw.githubusercontent.com/flux-iac/tofu-controller/main
   ```shell
   kubectl apply -f https://raw.githubusercontent.com/flux-iac/tofu-controller/main/docs/branch-planner/release.yaml
   ```
+
+> [!CAUTION]
+> 2025/03/18 k8s 1.31 ver
+> 上記のマニフェストファイルのリソースのAPI versionが古くて警告が出るし、デプロイしても`flux-system` namespaceにtofu-controller PODは起動しない。
+> [Getting Started](https://flux-iac.github.io/tofu-controller/getting_started/)の「Manual installation」のHelmでのインストール手順と https://github.com/flux-iac/tofu-controller/tree/main/charts/tofu-controller の手順も、`helm repo add tofu-controller https://flux-iac.github.io/tofu-controller`は合ってるけど、Chart名が`tofu-controller/tofu-controller`ではなく、**`tofu-controller/tf-controller`が正しい**
+> 以下でインストールした
+> ```shell
+> helm repo add tofu-controller https://flux-iac.github.io/tofu-controller
+> helm repo update
+> helm install tofu-controller tofu-controller/tf-controller --namespace flux-system
+> ```
 
 ### `Terraform`リソースを強制削除する方法
 - https://flux-iac.github.io/tofu-controller/use-tf-controller/resource-deletion/
