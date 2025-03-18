@@ -85,9 +85,9 @@ kubectl apply -f https://raw.githubusercontent.com/flux-iac/tofu-controller/main
   - https://github.com/flux-iac/tofu-controller/blob/main/charts/tofu-controller/values.yaml
 
 > [!IMPORTANT]
-> Terraformコードがデカいとtf-runnerのGRPC message limitに引っかかってエラーが出る。
-> https://github.com/flux-iac/tofu-controller/issues/511
-> 回避策として以下`values.yml`の`runner.grpc.maxMessageSize`を増やすことで解決可能
+> Terraformコードがデカいとtf-runnerのGRPC message limitに引っかかってエラーが出る。  
+> https://github.com/flux-iac/tofu-controller/issues/511  
+> 回避策として以下`values.yml`の`runner.grpc.maxMessageSize`を増やすことで解決可能  
 > https://github.com/flux-iac/tofu-controller/blob/main/charts/tofu-controller/values.yaml
 
 ### TF Controllerの各種CR(Custom Resource)と各CRのConfiguration項目
