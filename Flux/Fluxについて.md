@@ -87,6 +87,35 @@ kubectl apply -f https://raw.githubusercontent.com/flux-iac/tofu-controller/main
 ## `Terraform`リソース
 - https://github.com/flux-iac/tofu-controller/blob/main/docs/References/terraform.md#terraform
 
+### Planだけ自動に実行してApplyは手動で実行する方法
+- https://flux-iac.github.io/tofu-controller/use-tf-controller/plan-and-manually-apply-terraform-resources/
+- `Terraform`リソースの`spec.approvePlan`を`""`にするか`spec.approvePlan`フィールド自体を省略する  
+  ```yaml
+  apiVersion: infra.contrib.fluxcd.io/v1alpha2
+  kind: Terraform
+  metadata:
+    name: helloworld
+    namespace: flux-system
+  spec:
+    approvePlan: "" # or you can omit this field
+    interval: 1m
+    path: ./
+    sourceRef:
+      kind: GitRepository
+      name: helloworld
+      namespace: flux-system
+  ```
+- Terraformコードの更新などでPlanが自動で実行されたら`kubectl get terraform -n flux-system` で以下のように出力される。その中で`STATUS`の部分の`""`の中の値を`Terraform`リソースの空欄にしていた`spec.approvePlan`に入れてapplyするとTerraform Applyが実行される  
+  ```shell
+  NAME             READY     STATUS                                                                                   AGE
+  test-terraform   Unknown   Plan generated: set approvePlan: "plan-lee-flux-test-cf785c754e" to approve this plan.   36m
+  ```
+- Planの結果は`Secret`として保存される
+
+### Terraform Plan/Apply実行元
+> [!IMPORTANT]
+> ESK Auto Modeを使うときは`flux-system` namespace上の `tf-runner` ServiceAccountに Pod IdentityでTerraformが管理するAWSリソースの権限を付与する必要がある
+
 ### `Terraform`リソースを強制削除する方法
 - https://flux-iac.github.io/tofu-controller/use-tf-controller/resource-deletion/
 - コマンド例  
