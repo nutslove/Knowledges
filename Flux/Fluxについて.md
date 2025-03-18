@@ -38,6 +38,27 @@ flux bootstrap github \
   - `notification-controller`
   - `source-controller`
 
+> [!NOTE]
+> Github token情報は`flux-system` namespace上に`flux-system`という名前で作成される
+
+## `GitRepository`リソース
+- https://fluxcd.io/flux/components/source/gitrepositories/
+- Gitリポジトリの接続に使うTokenは`spec.secretRef.name`で明示的にSecretリソースを指定できる
+  ```yaml
+  apiVersion: source.toolkit.fluxcd.io/v1
+  kind: GitRepository
+  metadata:
+    name: pack-local-test
+    namespace: flux-system
+  spec:
+    interval: 30s
+    url: https://github.com/xxx/xxx.git
+    secretRef:
+      name: flux-system # ここ
+    ref:
+      branch: lee-flux-test
+  ```
+
 ## Terraform / Open Tofu Controller for Flux install
 - https://flux-iac.github.io/tofu-controller/getting_started/
 
@@ -59,6 +80,12 @@ kubectl apply -f https://raw.githubusercontent.com/flux-iac/tofu-controller/main
 > helm repo update
 > helm install tofu-controller tofu-controller/tf-controller --namespace flux-system
 > ```
+
+### TF Controllerの各種CR(Custom Resource)と各CRのConfiguration項目
+- https://github.com/flux-iac/tofu-controller/blob/main/docs/References/terraform.md
+
+## `Terraform`リソース
+- https://github.com/flux-iac/tofu-controller/blob/main/docs/References/terraform.md#terraform
 
 ### `Terraform`リソースを強制削除する方法
 - https://flux-iac.github.io/tofu-controller/use-tf-controller/resource-deletion/
