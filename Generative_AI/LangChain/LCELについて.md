@@ -4,7 +4,7 @@
 - 参考URL
   - https://python.langchain.com/docs/concepts/runnables/
   - https://python.langchain.com/api_reference/core/runnables/langchain_core.runnables.base.Runnable.html
-- Prompt Template、Chat Model、Output Parser、Retrieverなどはすべて「**Runnable**」という抽象基底クラスを継承していて、**RunnableクラスはRunnableの実行方法として`invoke`、`stream`、`batch`メソッドを持つ**
+- Prompt Template、Chat Model、Output Parser、Retrieverなどのモジュールは「**Runnable**」という抽象基底クラスを継承していて、**RunnableクラスはRunnableの実行方法として`invoke`、`stream`、`batch`メソッドを持つ**
 - **Runnableを`|`でつなぐと**「**RunnableSequence**」となる
   - RunnableSequenceもRunnableの一種
 - **RunnableSequenceをinvokeすると連結したRunnableが順にinvokeされる**
