@@ -703,6 +703,8 @@ updates go.mod to require those versions, and downloads source code into the mod
   }
   ~~~
 
+---
+
 ## Struct (構造体)
 - 色んな型をひとまとめにしたもの
 - 他の言語のClassのような感じで、1つのstructに対して (下のp1とp2のように) 何回でも変数宣言できる
@@ -900,6 +902,8 @@ updates go.mod to require those versions, and downloads source code into the mod
   	sa2.speak() ---→ "I am Miss Moneypenny"と出力される
   }
   ~~~
+
+---
 
 ## Interfaces
 - InterfaceはMethodの集合であり、Typeである
@@ -1338,6 +1342,8 @@ func checkType(arg interface{}) {
     }
     ~~~
 
+---
+
 ## Pointer(ポインタ)
 - > All values are stored in memory. Every location in memory has an address. A **pointer is a memory address**.
 - 値が保管されたメモリのアドレスを指しているもの
@@ -1520,6 +1526,8 @@ func main() {
   - 論理型（bool）
   - 文字列型（string）
   - 配列型（固定長）
+
+---
 
 ## Goroutine
 - GoroutineはGoで実行できる一番小さい単位
