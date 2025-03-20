@@ -1,5 +1,14 @@
 - Chainに独自の関数を挟んだり、複数のChainを並列につないで実行することもできる
 
+## Runnable / RunnableSequence
+- 参考URL
+  - https://python.langchain.com/docs/concepts/runnables/
+  - https://python.langchain.com/api_reference/core/runnables/langchain_core.runnables.base.Runnable.html
+- Prompt Template、Chat Model、Output Parser、Retrieverなどはすべて「**Runnable**」という抽象基底クラスを継承していて、**RunnableクラスはRunnableの実行方法として`invoke`、`stream`、`batch`メソッドを持つ**
+- **Runnableを`|`でつなぐと**「**RunnableSequence**」となる
+  - RunnableSequenceもRunnableの一種
+- **RunnableSequenceをinvokeすると連結したRunnableが順にinvokeされる**
+
 ### LCELを使ったRAGのChainの実装例
 - `{"context": retriever, "question": RunnablePassthrough()}`は入力が`retriever`に渡されつつ、`prompt`にも渡されるイメージ  
   ```python
@@ -30,3 +39,5 @@
   output = chain.invoke(query)
   print(output)
   ```
+
+### `RunnablePassthrough`について
