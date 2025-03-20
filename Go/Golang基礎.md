@@ -855,6 +855,8 @@ updates go.mod to require those versions, and downloads source code into the mod
   }
   ~~~
 
+---
+
 ## Methods（メソッド）
 - *a method is just a function with a receiver argument.*
   - つまり、MethodはStructをReceiver引数として持つ関数
@@ -1858,6 +1860,202 @@ func main() {
   }
   ~~~
 
+### `context.WithCancel()`を使ったgoroutineの安全な終了のやり方
+#### `context.WithCancel()`の役割
+- 親goroutineで `cancel()` を呼ぶと、派生したすべての goroutine で `ctx.Done()` が通知され、確実に終了できる。
+- main goroutine が複数の goroutine を生成し、それらがさらに goroutine を呼ぶような場合、すべての goroutine を確実に終了させるために `context.WithCancel()` を使う。
+- goroutine のリーク（不要になった goroutine が残り続ける現象）を防ぐのが主な目的。
+#### 例
+1. 単純な例  
+   ```go
+   func worker(ctx context.Context, ch <-chan int) {
+       for {
+           select {
+           case <-ch:
+               fmt.Println("処理を実行")
+           case <-ctx.Done(): // キャンセル時に抜ける
+               fmt.Println("終了")
+               return
+           }
+       }
+   }
+
+   func main() {
+       ctx, cancel := context.WithCancel(context.Background())
+       ch := make(chan int)
+
+       go worker(ctx, ch)
+
+       time.Sleep(time.Second * 2)
+       cancel() // goroutineを終了させる
+       time.Sleep(time.Second * 1)
+   }
+   ```
+2. `context.WithCancel()` を使った並列処理  
+   ```go
+   package main
+
+   import (
+   	"context"
+   	"fmt"
+   	"math/rand"
+   	"sync"
+   	"time"
+   )
+
+   // Workerの処理
+   func worker(ctx context.Context, id int, wg *sync.WaitGroup) {
+   	defer wg.Done()
+   	for {
+   		select {
+   		case <-ctx.Done(): // 親からキャンセルが通知されたら終了
+   			fmt.Printf("Worker %d: Stopping\n", id)
+   			return
+   		default:
+   			// 仮の処理（ランダムに待機して作業する）
+   			fmt.Printf("Worker %d: Working...\n", id)
+   			time.Sleep(time.Duration(rand.Intn(1000)) * time.Millisecond)
+   		}
+   	}
+   }
+
+   func main() {
+   	ctx, cancel := context.WithCancel(context.Background())
+   	var wg sync.WaitGroup
+
+   	// 3つのworkerを起動
+   	for i := 1; i <= 3; i++ {
+   		wg.Add(1)
+   		go worker(ctx, i, &wg)
+   	}
+
+   	// 5秒後にすべてのworkerを停止
+   	time.Sleep(5 * time.Second)
+   	fmt.Println("Stopping all workers...")
+   	cancel() // すべてのworkerに終了を通知
+
+   	// すべてのworkerが終了するのを待つ
+   	wg.Wait()
+   	fmt.Println("All workers stopped.")
+   }
+   ```
+3. 複雑な処理での `context.WithCancel()` の使用例  
+   ```go
+   func main() {
+       // キャンセル可能なコンテキストを作成
+       ctx, cancel := context.WithCancel(context.Background())
+       defer cancel() // main関数終了時に確実にキャンセルを呼び出す
+       
+       // 親goroutineを開始
+       go parentTask(ctx)
+       
+       // 何らかの条件でキャンセルを呼び出す（例：シグナル受信時）
+       sigCh := make(chan os.Signal, 1)
+       signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
+       <-sigCh
+       
+       fmt.Println("キャンセル信号を送信します")
+       cancel() // これにより親と全ての子goroutineに伝播する
+       
+       // 少し待ってgoroutineが終了するのを待つ
+       time.Sleep(time.Second)
+       fmt.Println("プログラム終了")
+   }
+
+   func parentTask(ctx context.Context) {
+       fmt.Println("親タスク開始")
+       
+       // いくつかの子goroutineを開始
+       for i := 0; i < 3; i++ {
+           go childTask(ctx, i)
+       }
+       
+       // コンテキストがキャンセルされるまで実行し続ける
+       select {
+       case <-ctx.Done():
+           fmt.Println("親タスク: キャンセルを検知")
+           return
+       case <-time.After(10 * time.Second):
+           fmt.Println("親タスク: タイムアウト")
+           return
+       }
+   }
+
+   func childTask(ctx context.Context, id int) {
+       fmt.Printf("子タスク %d: 開始\n", id)
+       
+       // 孫goroutineを開始
+       go grandChildTask(ctx, id)
+       
+       // キャンセルを監視
+       select {
+       case <-ctx.Done():
+           fmt.Printf("子タスク %d: キャンセルを検知\n", id)
+           return
+       case <-time.After(5 * time.Second):
+           fmt.Printf("子タスク %d: 処理完了\n", id)
+           return
+       }
+   }
+
+   func grandChildTask(ctx context.Context, parentID int) {
+       fmt.Printf("孫タスク (親=%d): 開始\n", parentID)
+       
+       // キャンセルを監視
+       select {
+       case <-ctx.Done():
+           fmt.Printf("孫タスク (親=%d): キャンセルを検知\n", parentID)
+           return
+       case <-time.After(8 * time.Second):
+           fmt.Printf("孫タスク (親=%d): 処理完了\n", parentID)
+           return
+       }
+   }
+   ```
+4. タイムアウト付きの例  
+   ```go
+   func fetchDataWithTimeout(url string) ([]byte, error) {
+       // 5秒のタイムアウト付きコンテキスト
+       ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+       defer cancel()
+       
+       // 結果を受け取るチャネル
+       resultCh := make(chan []byte)
+       errCh := make(chan error)
+       
+       // データ取得goroutine
+       go func() {
+           // ここでHTTPリクエストなどの時間のかかる処理を実行
+           resp, err := http.Get(url)
+           if err != nil {
+               errCh <- err
+               return
+           }
+           defer resp.Body.Close()
+           
+           data, err := io.ReadAll(resp.Body)
+           if err != nil {
+               errCh <- err
+               return
+           }
+           
+           resultCh <- data
+       }()
+       
+       // コンテキストのキャンセルとgoroutineの結果を待つ
+       select {
+       case <-ctx.Done():
+           return nil, fmt.Errorf("リクエストがタイムアウトしました: %w", ctx.Err())
+       case err := <-errCh:
+           return nil, err
+       case data := <-resultCh:
+           return data, nil
+       }
+   }
+   ```
+
+---
+
 ## WaitGroup
 - Goroutineで実行した処理はデフォルトでは待ってもらえず、main関数が終了すればGoroutine処理が終わってなくてもプログラムは終了してしまう
 - ProcessがkillされるとすべてのGoroutineもcancelされる
@@ -2337,6 +2535,8 @@ func main() {
   	// main関数内のwg.Wait()とここにあるwg.Wait()の2つのwg.Wait()がお互いを待ち合うことになり、デッドロックが発生する。
   }
   ~~~
+
+---
 
 ## Channels
 - Channels are the pipes that connect concurrent goroutines. You can send values into channels from one goroutine and receive those values into another goroutine.
