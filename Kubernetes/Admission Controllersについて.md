@@ -1,5 +1,8 @@
 ## Admission Controllerとは
-- https://kubernetes.io/docs/reference/access-authn-authz/admission-controllers/
+- https://kubernetes.io/docs/reference/access-authn-authz/admission-controllers/  
+  ![](./image/admission_controller.jpg)
+- https://sysdig.jp/blog/kubernetes-admission-controllers/  
+  ![](./image/admission_controller_2.jpg)
 - API Serverへのリクエストをinterceptして、オブジェクト(e.g. Pod, Deployments)をetcdに登録する前に、そのリクエストを**検証** (検証で通らなかったらリクエストがrejectされる) および**変更** (リクエスト内容を変える) する仕組み
   - Authentication、Authorizationの次に行われる
 - Admission Conrollerで次のようなことができる
@@ -11,7 +14,7 @@
   - e.g. `--enable-admission-plugins=NamespaceLifecycle,LimitRanger,ImagePolicyWebhook`
 
 ### Admission ControllerのType
-- Admission Controllerには`Validating Admission Controller`と`Mutating Admission Controller`２つのTypeがある
+- Admission Controllerには[`Validating Admission Webhook`](https://kubernetes.io/docs/reference/access-authn-authz/admission-controllers/#validatingadmissionwebhook)と[`Mutating Admission Webhook`](https://kubernetes.io/docs/reference/access-authn-authz/admission-controllers/#mutatingadmissionwebhook)２つのTypeがある
   - `Mutating`と`Validating`両方を持つものもある
     - `Mutating`と`Validating`両方を持つTypeは、先に`Mutating`をした後に`Validating`をする
 
