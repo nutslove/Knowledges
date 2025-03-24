@@ -37,4 +37,9 @@
     ~~~
 
 ## Lambdaの並列実行について
-- 
+- **https://docs.aws.amazon.com/ja_jp/lambda/latest/dg/lambda-concurrency.html**
+- Lambdaは、１つのインスタンス(実行環境)で同時に複数のリクエストが処理されることはない
+- 各インスタンスは一度に１つのリクエストを処理し、処理が終了した後に次のリクエストがあれば再利用される
+- 並行して複数のリクエストが来た場合、新しいインスタンスが起動されて、新しいインスタンスで処理される
+![](./image/Lambda_concurrency_1.jpg)
+![](./image/Lambda_concurrency_2.jpg)
