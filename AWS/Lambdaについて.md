@@ -1,6 +1,9 @@
+## VPC Lambda
 - LambdaをVPC内に作成する時Lambda関数にアタッチするセキュリティグループはLambdaがVPC内のリソースと連携する時に経由するもの
   - 例
     - ALB → Lambda → (Lambdaのセキュリティグループ) → VPC内リソース
+
+## ALBのターゲットとしてLambda設定
 - ALBのターゲットでLambdaが設定されている場合、ALBがLambdaを実行できるようにするためにはLambdaの`設定`-`アクセス権限`タブの`リソースベースのポリシーステートメント`で許可する必要がある
 
 ## DockerコンテナimageでLambda関数をデプロイ（Pythonの場合）
@@ -32,3 +35,6 @@
     ~~~
     aws lambda create-function --function-name <作成するLambda関数名> --package-type Image --code ImageUri=＜<AWSアカウントID>.dkr.ecr.<リージョン識別子>.amazonaws.com/<ECRリポジトリ名>:<image名>＞ --role <LambdaにアタッチするIAMロール> --region <AWSリージョン>
     ~~~
+
+## Lambdaの並列実行について
+- 
