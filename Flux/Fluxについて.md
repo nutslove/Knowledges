@@ -41,6 +41,11 @@ flux bootstrap github \
 > [!NOTE]
 > Github token情報は`flux-system` namespace上に`flux-system`という名前で作成される
 
+### Flux uninstall
+```
+flux uninstall
+```
+
 ## `GitRepository`リソース
 - https://fluxcd.io/flux/components/source/gitrepositories/
 - Gitリポジトリの接続に使うTokenは`spec.secretRef.name`で明示的にSecretリソースを指定できる
