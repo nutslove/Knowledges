@@ -13,7 +13,10 @@
   - メッセージを受信する側で`ReceiveMessage` APIを呼び出したけどキュー内にメッセージが存在しなかった回数
 
 ## 使用上の注意
+### 処理後メッセージ削除
 - consumer側でメッセージを受信し、正常に処理した後はキューからメッセージを削除する必要がある。(受信だけではメッセージはキューから削除されない)
+
+### `WaitTimeSeconds`について
 - `WaitTimeSeconds`は１回のポーリングのtimeout秒数。
 - Long Polling
   - `WaitTimeSeconds`を最大20秒まで設定できる
@@ -22,3 +25,6 @@
   - https://docs.aws.amazon.com/ja_jp/AWSSimpleQueueService/latest/APIReference/API_ReceiveMessage.html#SQS-ReceiveMessage-request-WaitTimeSeconds
     > The duration (in seconds) for which the call waits for a message to arrive in the queue before returning. If a message is available, the call returns sooner than WaitTimeSeconds. If no messages are available and the wait time expires, the call returns successfully with an empty list of messages.
   - **キュー内にメッセージがある場合でも一定間隔でポーリングしたい場合は、アプリのロジックで`ReceiveMessage`を呼び出す間隔を調整する必要がある**
+
+### `MessageGroupId`について
+- FIFOキューの場合、`MessageGroupId`単位でIn/Outされる。例えば同じ`MessageGroupId`のキューが複数ある場合、前のキューが何らかの理由(そのキューを扱って処理するLambdaが処理に失敗しているとか)で詰まっている場合、その後のキューも取得できなくなる
