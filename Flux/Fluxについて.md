@@ -100,6 +100,9 @@ kubectl apply -f https://raw.githubusercontent.com/flux-iac/tofu-controller/main
 
 ## `Terraform`リソース
 - https://github.com/flux-iac/tofu-controller/blob/main/docs/References/terraform.md#terraform
+- `Terraform`リソースをデプロイするとrunnerのPodが起動されて、Plan/Applyを実行し、完了したらPodも削除される。  
+  ![](./image/tf_runner.jpg)
+  - Plan/Applyの結果はSecretとして保存される
 
 ### Planだけ自動に実行してApplyは手動で実行する方法
 - https://flux-iac.github.io/tofu-controller/use-tf-controller/plan-and-manually-apply-terraform-resources/
