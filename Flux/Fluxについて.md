@@ -108,6 +108,57 @@ kubectl apply -f https://raw.githubusercontent.com/flux-iac/tofu-controller/main
 - https://flux-iac.github.io/tofu-controller/References/terraform/
 
 #### `backendConfig`
+- tfstateはデフォルトでは`tfstate-${workspace}-${secretSuffix}`という名前の`Secret`に保存されるけど、S3などに保存するように指定することができる
+- https://flux-iac.github.io/tofu-controller/use-tf-controller/with-a-custom-backend/  
+  ```yaml
+  apiVersion: v1
+  kind: Secret
+  metadata:
+    name: terraform-s3-backend
+    namespace: flux-system
+  type: Opaque
+  data:
+    access_key: <base64 encoded key>
+    secret_key: <base64 encoded key>
+  ---
+  apiVersion: infra.contrib.fluxcd.io/v1alpha2
+  kind: Terraform
+  metadata:
+    name: helloworld
+    namespace: flux-system
+  spec:
+    approvePlan: auto
+    backendConfig:
+      customConfiguration: |
+        backend "s3" {
+          bucket                      = "s3-terraform-state1"
+          key                         = "dev/terraform.tfstate"
+          region                      = "us-east-1"
+          endpoint                    = "http://localhost:4566"
+          skip_credentials_validation = true
+          skip_metadata_api_check     = true
+          force_path_style            = true
+          dynamodb_table              = "terraformlock"
+          dynamodb_endpoint           = "http://localhost:4566"
+          encrypt                     = true
+        }
+    backendConfigsFrom:
+      - kind: Secret
+        name: terraform-s3-backend
+        keys:
+        - access_key
+        - secret_key
+        optional: false
+    interval: 1m
+    path: ./
+    sourceRef:
+      kind: GitRepository
+      name: helloworld
+      namespace: flux-system
+    runnerPodTemplate:
+      spec:
+        image: registry.io/tf-runner:xyz
+  ```
 
 #### `storeReadablePlan`
 - **`storeReadablePlan:`を`human`に設定することで、Planの結果が`Secret`だけではなく、`ConfigMap`としても作成され、`ConfigMap`からプレーンテキストとしてplan結果が確認できる**
