@@ -110,6 +110,37 @@ kubectl apply -f https://raw.githubusercontent.com/flux-iac/tofu-controller/main
 #### `backendConfig`
 
 #### `storeReadablePlan`
+- **`storeReadablePlan:`を`human`に設定することで、Planの結果が`Secret`だけではなく、`ConfigMap`としても作成され、`ConfigMap`からプレーンテキストとしてplan結果が確認できる**
+  - `tfplan-default-<Terraformリソース名>`という名前の`Secret`と`ConfigMap`にplan結果が格納される
+    - `data.tfplan`に格納されてて、以下のコマンドで確認できる  
+      ```shell
+      kubectl get cm tfplan-default-<Terraformリソース名> -n flux-system -o jsonpath='{.data.tfplan}'
+      ```
+- **`storeReadablePlan:`を指定しなかったり、`json`を指定したりすると、`ConfigMap`は生成されず、`Secret`だけ生成されてプレーンテキストとして確認することはできない**
+
+#### `RunnerPodTemplate`
+- `RunnerPodTemplate`フィールドで`tf-runner` Podの`nodeSelector`などの設定ができる  
+  ```yaml
+  apiVersion: infra.contrib.fluxcd.io/v1alpha2
+  kind: Terraform
+  metadata:
+    name: test-terraform
+    namespace: flux-system
+  spec:
+    interval: 1m
+    approvePlan: ""
+    storeReadablePlan: human # plan結果を人間が読める形にする
+    path: ./iac/terraform/platform-group/sandbox/lee
+    sourceRef:
+      kind: GitRepository
+      name: pack-local-test
+      namespace: flux-system
+    runnerPodTemplate:
+      spec:
+        nodeSelector:
+          kubernetes.io/os: linux
+          kubernetes.io/arch: amd64
+  ```
 
 ### Planだけ自動に実行してApplyは手動で実行する方法
 - https://flux-iac.github.io/tofu-controller/use-tf-controller/plan-and-manually-apply-terraform-resources/
