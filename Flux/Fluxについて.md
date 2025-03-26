@@ -162,10 +162,10 @@ kubectl apply -f https://raw.githubusercontent.com/flux-iac/tofu-controller/main
 
 #### `storeReadablePlan`
 - **`storeReadablePlan:`を`human`に設定することで、Planの結果が`Secret`だけではなく、`ConfigMap`としても作成され、`ConfigMap`からプレーンテキストとしてplan結果が確認できる**
-  - `tfplan-default-<Terraformリソース名>`という名前の`Secret`と`ConfigMap`にplan結果が格納される
+  - `tfplan-${workspace}-${secretSuffix}`という名前の`Secret`と`ConfigMap`にplan結果が格納される
     - `data.tfplan`に格納されてて、以下のコマンドで確認できる  
       ```shell
-      kubectl get cm tfplan-default-<Terraformリソース名> -n flux-system -o jsonpath='{.data.tfplan}'
+      kubectl get cm tfplan-${workspace}-${secretSuffix} -n flux-system -o jsonpath='{.data.tfplan}'
       ```
 - **`storeReadablePlan:`を指定しなかったり、`json`を指定したりすると、`ConfigMap`は生成されず、`Secret`だけ生成されてプレーンテキストとして確認することはできない**
 
