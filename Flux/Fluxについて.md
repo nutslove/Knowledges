@@ -104,6 +104,13 @@ kubectl apply -f https://raw.githubusercontent.com/flux-iac/tofu-controller/main
   ![](./image/tf_runner.jpg)
   - Plan/Applyの結果はSecretとして保存される
 
+### `Terraform`リソース References
+- https://flux-iac.github.io/tofu-controller/References/terraform/
+
+#### `backendConfig`
+
+#### `storeReadablePlan`
+
 ### Planだけ自動に実行してApplyは手動で実行する方法
 - https://flux-iac.github.io/tofu-controller/use-tf-controller/plan-and-manually-apply-terraform-resources/
 - `Terraform`リソースの`spec.approvePlan`を`""`にするか`spec.approvePlan`フィールド自体を省略する  
