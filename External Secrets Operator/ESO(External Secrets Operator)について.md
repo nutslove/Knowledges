@@ -1,6 +1,7 @@
-## External Secrets Operatorとは
+## External Secrets Operator（ESO）とは
 - https://external-secrets.io/latest/  
   ![](./image/introduction.jpg)
+- **`ExternalSecret`というESOのCRを作成すると、ESOが`ExternalSecret`で指定している外部のSecret Store (e.g. AWS SecretManager、Hashicorp Vaultなど) に保存されているシークレットをk8sの`Secret`リソースに変換してくれる**
 
 ## install
 - https://external-secrets.io/latest/introduction/getting-started/
