@@ -12,6 +12,7 @@
 - Admission controllers do not (and cannot) block requests to read (get, watch or list) objects.
 - kube-apiserverの`--enable-admission-plugins`フラグに有効化するAdmission Controllerをコンマ区切りで指定する
   - e.g. `--enable-admission-plugins=NamespaceLifecycle,LimitRanger,ImagePolicyWebhook`
+- **プラグイン型のAdmission Controllerは上記のようにkube-apiserver内に組み込まれていてkube-apiserver起動時に指定しないといけないため、拡張性や柔軟性に欠ける。そこでk8s v1.9で _Admission Webhook_ というkube-apiserver外部で動作し、WebhookでMutattingとValidatingを行えるものが追加され、kube-apiserverの再起動なしに、動的かつ柔軟にAdmission Controlの追加/修正が可能になった**
 
 ### Admission ControllerのType
 - Admission Controllerには[`Validating Admission Webhook`](https://kubernetes.io/docs/reference/access-authn-authz/admission-controllers/#validatingadmissionwebhook)と[`Mutating Admission Webhook`](https://kubernetes.io/docs/reference/access-authn-authz/admission-controllers/#mutatingadmissionwebhook)２つのTypeがある
