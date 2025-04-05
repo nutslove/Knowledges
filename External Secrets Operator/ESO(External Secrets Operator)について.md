@@ -24,12 +24,13 @@
   helm install external-secrets --values=values.yml external-secrets/external-secrets -n external-secrets --create-namespace
   ```
 
+---
+
 ## Components
 - https://external-secrets.io/latest/api/components/  
   ![](./image/components.jpg)
 
 ## CR（Custom Resource）
-- https://external-secrets.io/latest/api/components/
 - 以下の4つの主要なCRが作成できる
   - **`ExternalSecret`**
     - 外部のシークレットストアから特定のシークレットを取得し、Kubernetesの`Secret`リソースとして同期するための設定を定義
@@ -47,6 +48,8 @@
   - **`ClusterSecretStore`**
     - 外部シークレットストアの接続情報を定義
     - クラスタ全体で使用可能
+
+---
 
 ## AWS Secrets Managerとの連携例
 - 参照URL
@@ -157,6 +160,7 @@ spec:
               name: http-grafana
               protocol: TCP
 ```
+---
 
 ## Template機能
 - https://external-secrets.io/v0.15.1/guides/templating/
