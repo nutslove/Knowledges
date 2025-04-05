@@ -28,15 +28,23 @@
 - https://external-secrets.io/latest/api/components/  
   ![](./image/components.jpg)
 
-## CRD
-- 以下の３つのCRDが作成される
-  - `ExternalSecret`
+## CR（Custom Resource）
+- https://external-secrets.io/latest/api/components/
+- 以下の4つの主要なCRが作成できる
+  - **`ExternalSecret`**
     - 外部のシークレットストアから特定のシークレットを取得し、Kubernetesの`Secret`リソースとして同期するための設定を定義
     - `ExternalSecret`リソースを作成すると、`Secret`リソースが作成される
-  - `SecretStore`
+  - **`ClusterExternalSecret`**
+    - 複数のnamespaceで使える`ExternalSecret`
+    - `namespaceSelectors`で作成するnamespaceを指定(リスト)
+    - https://external-secrets.io/latest/api/clusterexternalsecret/  
+      > The `ClusterExternalSecret` is a cluster scoped resource that can be used to manage `ExternalSecret` resources in specific namespaces.
+      >
+      > With `namespaceSelectors` you can select namespaces in which the ExternalSecret should be created. If there is a conflict with an existing resource the controller will error out.
+  - **`SecretStore`**
     - 外部シークレットストアの接続情報を定義
     - 特定の`namespace`でのみ使用可能
-  - `ClusterSecretStore`
+  - **`ClusterSecretStore`**
     - 外部シークレットストアの接続情報を定義
     - クラスタ全体で使用可能
 
@@ -149,3 +157,47 @@ spec:
               name: http-grafana
               protocol: TCP
 ```
+
+## Template機能
+- https://external-secrets.io/v0.15.1/guides/templating/
+- 以下の場合はTemplate機能を使えば解決できる
+  - `ExternalSecret`（変換される`Secret`）の一部のデータは外部のSecretStore（e.g. AWS SecretManager）から取得するのではなく直接記述したい場合
+  - 変換される`Secret`のAnnotationやLabelに任意の値を設定したい場合
+- 例
+  - `url`や`insecure`などの項目は別に秘密性はなく、べた書きしても良いのでべた書きして、秘密性が高い`password`などは外部SecretStoreから取得して設定する。
+  - 変換される`Secret`に設定したいLabelやAnnotationは`spec.target.template.templateFrom`フィールドに、Labelの場合は`- target: Labels`で、Annotationの場合は`- target: Annotations`で設定する
+  ```yaml
+  apiVersion: external-secrets.io/v1beta1
+  kind: ExternalSecret
+  metadata:
+    name: lee-repo
+    namespace: argocd
+  spec:
+    refreshInterval: 1h
+    secretStoreRef:
+      name: aws-secrets-manager
+      kind: ClusterSecretStore
+    target:
+      name: lee-repo
+      creationPolicy: Owner
+      template:
+        engineVersion: v2
+        templateFrom:
+      # - target: Annotations
+        - target: Labels
+          literal: "argocd.argoproj.io/secret-type: repository"
+        data:
+          url: https://github.com/nutslove/IaC.git
+          insecure: "false"
+          username: "{{ .username }}"
+          password: "{{ .password }}"
+    data:
+    - secretKey: username
+      remoteRef:
+        key: argocd-repo-creds
+        property: username
+    - secretKey: password
+      remoteRef:
+        key: argocd-repo-creds
+        property: password
+  ```

@@ -89,3 +89,40 @@
       type: git
       url: https://github.com/argocd-example-apps.git
     ```
+
+## ESOの`ExternalSecrets`でも登録できる
+- 例  
+  ```yaml
+  apiVersion: external-secrets.io/v1beta1
+  kind: ExternalSecret
+  metadata:
+    name: lee-repo
+    namespace: argocd
+  spec:
+    refreshInterval: 1h
+    secretStoreRef:
+      name: aws-secrets-manager
+      kind: ClusterSecretStore
+    target:
+      name: lee-repo
+      creationPolicy: Owner
+      template:
+        engineVersion: v2
+        templateFrom:
+        - target: Labels
+          literal: "argocd.argoproj.io/secret-type: repository"
+        data:
+          url: https://github.com/nutslove/IaC.git
+          insecure: "false"
+          username: "{{ .username }}"
+          password: "{{ .password }}"
+    data:
+    - secretKey: username
+      remoteRef:
+        key: argocd-repo-creds
+        property: username
+    - secretKey: password
+      remoteRef:
+        key: argocd-repo-creds
+        property: password
+  ```
