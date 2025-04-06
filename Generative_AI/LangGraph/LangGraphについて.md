@@ -101,8 +101,11 @@
      ```
   2. ビルトインNodeの`START`を利用  
      ```python
+     from langgraph.graph import START, END
+
      workflow = StateGraph(State)
      workflow.add_edge(START, "<Node名>")
+     workflow.add_edge("<Node名>", END)
      ```
 
 ### 条件付きエッジ
