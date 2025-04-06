@@ -292,6 +292,31 @@
 
 ---
 
+# Function calling（Tool calling / Tool use）
+- **https://python.langchain.com/docs/how_to/tool_calling/**
+- Chat Completions APIの機能で、利用可能な関数をLLMに伝えておいて、LLMに「関数を使いたい」と判断させる機能
+  - LLMが関数を実行するわけではなく、実行したい関数を回答として返すだけ
+- **LLMが関数を実行したいと判断した場合はLLMからのResponseに`tool_calls`の項目(パラメータ)が含まれている**
+  - `tool_calls`の中の`name`に使いたい関数名が、`args`に引数が入っている
+## `tool_choice`パラメータ
+- **`tool_choice`というパラメータがあり、`"none"`を指定するとLLMは関数を使いたいと回答せず、通常の回答を返す。**  
+  **`"auto"`を指定するとLLMは入力に応じて実行したいと判断した場合、その関数名と引数を返す。**
+- `tool_choice`のデフォルトの動作はToolを与えなかった場合は`"none"`、Toolを与えた場合は`"auto"`
+- `{"type": "function", "function": {"name": "<関数名>"}}`のように指定してある関数の呼び出しを強制することもできる
+- 下の[「tool callingするagentにstructured outputさせる方法」](https://langchain-ai.github.io/langgraph/how-tos/react-agent-structured-output/)では関数(tool)の実行を強制するために以下のように`tool_choice="any"`を指定している  
+  ```python
+  llm_with_tools = ChatBedrock(
+      model_id=model_id,
+      region_name=llm_region,
+      provider="anthropic",
+      model_kwargs={"temperature": 0.1}
+  ).bind_tools(command_tools, tool_choice="any")
+  ```
+  https://python.langchain.com/v0.1/docs/modules/model_io/chat/function_calling/  
+  >  Or you can pass in `tool_choice="any"` to force the model to call at least one tool, without specifying which tool specifically.
+
+---
+
 # Tool
 ## `tool`
 - https://python.langchain.com/docs/concepts/tools/
