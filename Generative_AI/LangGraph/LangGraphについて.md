@@ -42,26 +42,38 @@
   ```  
 ### ノードの実装方法
 #### 関数の場合
-- **ステートオブジェクトを引数にとり、更新差分を表す辞書型のオブジェクトを返す**  
-  ```python
-  def answering_node(state: State) -> dict[str, Any]:
-      query = state.query
-      role = state.current_role
-      role_details = "\n".join([f"- {v['name']}: {v['details']}" for v in ROLES.values()])
-      prompt = ChatPromptTemplate.from_template(
-  """あなたは{role}として回答してください。以下の質問に対して、あなたの役割に基づいた適切な回答を提供してください。
+- **ステート(`State`)オブジェクトを引数にとり、更新差分を表す辞書型のオブジェクトを返す**  
+  1. 1つのフィールドを更新  
+     ```python
+     def answering_node(state: State) -> dict[str, Any]:
+         query = state.query
+         role = state.current_role
+         role_details = "\n".join([f"- {v['name']}: {v['details']}" for v in ROLES.values()])
+         prompt = ChatPromptTemplate.from_template(
+     """あなたは{role}として回答してください。以下の質問に対して、あなたの役割に基づいた適切な回答を提供してください。
 
-  役割の詳細:
-  {role_details}
+     役割の詳細:
+     {role_details}
 
-  質問: {query}
+     質問: {query}
 
-  回答:""".strip()
-      )
-      chain = prompt | llm | StrOutputParser()
-      answer = chain.invoke({"role": role, "role_details": role_details, "query": query})
-      return {"messages": [answer]} # messagesフィールドのリストに要素を追加するため、リスト型で返す
-  ```
+     回答:""".strip()
+         )
+         chain = prompt | llm | StrOutputParser()
+         answer = chain.invoke({"role": role, "role_details": role_details, "query": query})
+         return {"messages": [answer]} # messagesフィールドのリストに要素を追加するため、リスト型で返す
+     ```
+  2. 複数のフィールドを更新  
+     ```python
+     def check_node(state: State) -> dict[str, Any]:
+       query = state.query
+       message = state.messages[-1]
+
+       judge = # ...判定結果...
+       reason = # ...判定理由...
+
+       return {"current_judge": judge, "judgement_reason": reason}
+     ```
 - もしくは、**ノードの中でステートを更新して、State全体を返しても良い**  
   ```python
   from langgraph.graph import MessagesState
@@ -108,6 +120,19 @@
      workflow.add_edge("<Node名>", END)
      ```
 
+## Compile済みGraph
+- `compile()`メソッドで実行可能な`CompiledGraph`クラスのインスタンスに変換される
+  - https://langchain-ai.github.io/langgraph/reference/graphs/#langgraph.graph.graph.CompiledGraph    
+  ```python
+  from langgraph.graph import START, END
+
+  workflow = StateGraph(State)
+  workflow.add_edge(START, "<Node名>")
+  workflow.add_edge("<Node名>", END)
+  compiled_graph = workflow.compile()
+  ```
+  - `CompiledGraph`クラスのインスタンスはRunnableとして実行することができ、`invoke`、`stream`メソッドが使える
+
 ### 条件付きエッジ
 - `add_conditional_edges`関数を使用
 - 第１引数に遷移元ノード名を指定し、第２引数に何らかの値を返す関数を設定する。
@@ -136,6 +161,8 @@
 
 ### チェックポイントのデータ構造
 - LangGraphの処理ステップごとに`CheckpointTuple`というデータ構造で保存される
+
+---
 
 # LangGraphの特徴
 ## 1. 明示的なステート管理
@@ -263,6 +290,8 @@
       graph = builder.compile()
       ```
 
+---
+
 # Tool
 ## `tool`
 - https://python.langchain.com/docs/concepts/tools/
@@ -389,6 +418,8 @@
 
 ## 複数のToolを並列で実行させる方法
 - 要確認（https://python.langchain.com/docs/how_to/tool_calling_parallel/）
+
+---
 
 # `create_react_agent`関数
 - *参考URL*
@@ -592,6 +623,8 @@ If provided, output will be formatted to match the given schema and returned in 
   ```  
   - `validate`メソッドはベースClassの[`Pregel`](https://github.com/langchain-ai/langgraph/blob/main/libs/langgraph/langgraph/pregel/__init__.py#L199C7-L199C13)にあって、[`Self`を返している](https://github.com/langchain-ai/langgraph/blob/main/libs/langgraph/langgraph/pregel/__init__.py#L304)ので、`CompiledStateGraph`クラスのまま。
 
+---
+
 # `MessagesState`
 - https://langchain-ai.github.io/langgraph/concepts/low_level/#messagesstate
 - Since having a list of messages in your state is so common, there exists a prebuilt state called `MessagesState` which makes it easy to use messages. `MessagesState` is defined with a single `messages` key which is a list of `AnyMessage` objects and uses the `add_messages` reducer. Typically, there is more state to track than just messages, so we see people subclass this state and add more fields, like:  
@@ -632,6 +665,8 @@ If provided, output will be formatted to match the given schema and returned in 
   class GraphState(TypedDict):
       messages: Annotated[list[AnyMessage], add_messages]
   ```
+
+---
 
 # `state.update()`メソッド
 - Stateの更新を行うメソッドで、引数には辞書や `(key, value)` のペアのイテラブルが必要
