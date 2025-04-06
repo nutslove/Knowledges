@@ -1,5 +1,6 @@
 - https://langchain-ai.github.io/langgraph/concepts/agentic_concepts/
 - https://www.anthropic.com/research/building-effective-agents
+- **https://langchain-ai.github.io/langgraph/tutorials/#agent-architectures**
 
 ## ReAct（Reasoning and Acting）Pattern
 - CoTなど行動計画の作成や調整等を行う推論(Reasoning)と、Web検索などを行う行動(Acting)を組み合わせて、精度を上げる手法
@@ -10,7 +11,7 @@
 
 ---
 
-## Reflection Pattern
+## Reflection (Reflexion) Pattern
 - 参考URL
   - https://www.issoh.co.jp/tech/details/4055/
   - https://blog.langchain.dev/reflection-agents/
