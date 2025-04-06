@@ -91,6 +91,20 @@
 
 ## エッジ
 - 各ノードの処理間のつながりや関係性を表現
+### EntryPoint
+- Graphの開始ノードを指定
+- 2つのやり方がある  
+  1. `set_entry_point`メソッドを利用  
+     ```python
+     workflow = StateGraph(State)
+     workflow.set_entry_point("<Node名>")
+     ```
+  2. ビルトインNodeの`START`を利用  
+     ```python
+     workflow = StateGraph(State)
+     workflow.add_edge(START, "<Node名>")
+     ```
+
 ### 条件付きエッジ
 - `add_conditional_edges`関数を使用
 - 第１引数に遷移元ノード名を指定し、第２引数に何らかの値を返す関数を設定する。
