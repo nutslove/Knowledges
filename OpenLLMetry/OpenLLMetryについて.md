@@ -51,6 +51,12 @@
   - `Traceloop`クラスの`init`メソッドのソースコード
     - https://github.com/traceloop/openllmetry/blob/main/packages/traceloop-sdk/traceloop/sdk/__init__.py
 
+## Metric
+- `gen_ai_client_` prefixのメトリクス名でメトリクスが生成される
+  - 使用Token数(`gen_ai_client_token_usage_*`)、処理時間(`gen_ai_client_operation_duration_seconds_*`)の2つのメトリクスが生成される
+- 関連ソースコード
+  - https://github.com/traceloop/openllmetry/blob/main/packages/opentelemetry-instrumentation-langchain/opentelemetry/instrumentation/langchain/__init__.py
+
 ---
 
 # 注意点
