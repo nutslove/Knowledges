@@ -84,7 +84,7 @@
       logging_headers={"X-Scope-OrgID": "rca"}
   )
   ```
-- **環境変数`TRACELOOP_LOGGING_ENABLED="true"`と`Traceloop.init`メソッドで`logging_exporter`を設定したしてもMetricとTraceのように自動でログを生成してexpoterしてくれるわけではなく。`Logger`だけ設定してくれるので、その`Logger`を使って自分でログを生成・送信しばければならない**  
+- **環境変数`TRACELOOP_LOGGING_ENABLED="true"`と`Traceloop.init`メソッドで`logging_exporter`を設定したとしてもMetricとTraceのように自動でログを生成してexpoterしてくれるわけではない。`Logger`だけ設定してくれるので、その`Logger`を使って自分でログを生成・送信しばければならない**  
   - 例  
     ```python
     import logging
