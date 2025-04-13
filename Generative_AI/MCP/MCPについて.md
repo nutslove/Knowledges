@@ -5,6 +5,7 @@
 
 ## MCP Server
 - https://modelcontextprotocol.io/quickstart/server
+![](./image/mcp_server_1.jpg)
 
 ## MCP Client
 - MCP ClientはMCP Hostの内部に存在する
