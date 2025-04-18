@@ -17,6 +17,8 @@
       url: https://github.com/argoproj/argocd-example-apps
       password: my-password
       username: my-username
+      name: "argocd-example-apps"
+      project: "default"
       insecure: "true" # Ignore validity of server's TLS certificate. Defaults to "false"
       forceHttpBasicAuth: "true" # Skip auth method negotiation and force usage of HTTP basic auth. Defaults to "false"
       enableLfs: "true" # Enable git-lfs for this repository. Defaults to "false"
@@ -85,6 +87,8 @@
     stringData:
       password: my-password
       username: my-username
+      name: "argocd-example-apps"
+      project: "default"
       proxy: http://10.10.10.10:3128
       type: git
       url: https://github.com/argocd-example-apps.git
