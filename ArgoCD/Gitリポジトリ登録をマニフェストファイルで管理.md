@@ -116,6 +116,8 @@
           insecure: "false"
           username: "{{ .username }}"
           password: "{{ .password }}"
+          name: "nutslove-IaC"
+          project: "default"
     data:
     - secretKey: username
       remoteRef:
