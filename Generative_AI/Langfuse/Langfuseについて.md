@@ -2,6 +2,10 @@
 ## Docker Compose
 - https://langfuse.com/self-hosting/docker-compose
 
+## Helm（k8s）
+- https://github.com/langfuse/langfuse-k8s
+- `langfuse.nextauth.secret.value`には`openssl rand -hex 32`で生成された値を入れる
+
 # LangGraphとLangfuseの連携
 - https://langfuse.com/docs/integrations/langchain/example-python-langgraph
 
