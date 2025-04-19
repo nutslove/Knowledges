@@ -440,6 +440,7 @@
 - **https://langchain-ai.github.io/langgraph/how-tos/react-agent-structured-output/**
 - LLMモデルとtoolを紐づける`bind_tools`メソッドと、LLMに構造化されたoutputを強制する`with_structured_output`メソッドを併用することはできない。
 - なのでtoolを使うagentに構造化されたoutputを出させるためには別のやり方が必要。詳細は上記URLを参照！
+- **Option2の方が安定性がありそう（両方試した結果）**
 
 ## 複数のToolを並列で実行させる方法
 - 要確認（https://python.langchain.com/docs/how_to/tool_calling_parallel/）
