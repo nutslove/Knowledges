@@ -1,0 +1,4 @@
+- https://langchain-ai.github.io/langgraph/agents/mcp/#custom-mcp-servers
+- https://github.com/langchain-ai/langchain-mcp-adapters
+- https://changelog.langchain.com/announcements/mcp-adapters-for-langchain-and-langgraph
+- https://zenn.dev/masato13/articles/77744aec98f54f
