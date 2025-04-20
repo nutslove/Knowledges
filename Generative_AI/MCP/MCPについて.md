@@ -22,5 +22,20 @@
 
 # MCP Client
 - MCP ClientはMCP Hostの内部に存在する
-- MCP ClientとMCP Serverは１対１の関係
-  - １つのMCP Clientで複数のMCP Serverとやりとりすることはできない
+- MCP Serverと1対1の接続を行うプロトコルクライアント
+  - MCP ClientとMCP Serverは１対１の関係
+    - １つのMCP Clientで複数のMCP Serverとやりとりすることはできない
+
+# `llms.txt`、`llms-full.txt`について
+- https://llmstxt.org/
+- langchain-ai.github.io/langgraph/llms-txt-overview/
+## 概要
+- A standard file which is designed to help LLMs and AI agents to better understand and process web site content.
+- These files allow large language models (LLMs) and agents to access programming documentation and APIs, particularly useful within integrated development environments (IDEs).
+- `llms.txt` is a website index for LLMs, providing background information, guidance, and links to detailed markdown files. IDEs like Cursor and Windsurf or apps like Claude Code/Desktop can use `llms.txt` to retrieve context for tasks.
+- このファイルは一般的にWebサイトのルートディレクトリに配置されるケースが多い(らしい)
+  - provides a concise summary of the site's most important content and structure in a machine readable markdown format.
+  - It will improve the AI accuracy when extracting the information from the website.
+
+## mcpdoc
+- https://github.com/langchain-ai/mcpdoc
