@@ -65,7 +65,7 @@
 
 # 各種Exporter
 ## PrometheusRemoteWrite Exporter
-#### Amazon Prometheusにメトリクスを送る方法
+### Amazon Prometheusにメトリクスを送る方法
 - https://aws-otel.github.io/docs/getting-started/prometheus-remote-write-exporter
 - `sigv4auth`の`extensions`を使う
   - `service`は`"aps"`固定
@@ -82,6 +82,11 @@
       auth:
         authenticator: sigv4auth
   ```
+
+## ExporterのRetry(リトライ)
+- exporterのリトライ処理はデフォルトで組み込まれている
+  - https://github.com/open-telemetry/opentelemetry-collector/blob/main/exporter/exporterhelper/README.md
+  - https://opentelemetry.io/docs/specs/otel/protocol/exporter/#retry
 
 # Opentelemetry Collectorの`receivers`と`exporters`、`extensions`について
 - デフォルトで使える`receivers`と`exporters`、`extensions`は以下から確認できる
