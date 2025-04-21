@@ -13,3 +13,6 @@
   ![](./image/azure_entraid_user_and_group_2.jpg)
   - このObject IDを`ConfigMap`の`argocd-rbac-cm`で指定する
     - Groupの場合は`argocd-rbac-cm`の第1フィールドは`g`
+- Azure EntraIDの該当Enterprise applicationsの中で、「Manage」→「Certificates & secrets」でClient secretsのValueを確認する  
+  ![](./image/azure_entraid_secret.jpg)
+  - この値をbase64でエンコーディングした値を`Secret`の`argocd-secret`の`data.oidc.azure.clientSecret`sectionで指定する
