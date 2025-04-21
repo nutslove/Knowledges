@@ -2,6 +2,7 @@
 - TLSの終端はALB側でして、ArgoCD側は80のHTTPで受信する
 
 ## ArgoCD側設定
+- https://techstep.hatenablog.com/entry/2020/11/15/121503
 - ArgoCD serverを`--insecure`で起動する必要がある  
   ```yaml
   apiVersion: apps/v1
