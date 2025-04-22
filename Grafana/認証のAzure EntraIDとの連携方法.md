@@ -9,7 +9,7 @@
 - 認証方法として「__*Client secrets*__」と「__*Federated credentials*__」の2つがある
   - 本手順は「__*Client secrets*__」方式の設定手順
 - `Admin`RoleにアサインされているユーザにAdmin権限を与えるためには`[auth.azuread]`フィールドの`allow_assign_grafana_admin`は`true`に設定する必要がある  
-  > The setting allow_assign_grafana_admin under [auth.azuread] must be set to true for this to work. If the setting is set to false, the user is assigned the role of Admin of the default organization, but not server administrator privileges.
+  > The setting `allow_assign_grafana_admin` under `[auth.azuread]` must be set to `true` for this to work. If the setting is set to `false`, the user is assigned the role of `Admin` of the default organization, but not server administrator privileges.
 > [!NOTE]  
 > これを設定してもAzure EntraIDのアカウントでGrafanaのAdminにならない。設定合っているか確認！
 
