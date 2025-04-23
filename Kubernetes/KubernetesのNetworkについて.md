@@ -84,15 +84,29 @@
 ### `ClusterIP`タイプの`Service`
 `ClusterIP`タイプの`Service`が作成されると、kube-proxyは以下のようなiptablesルールを作成する
 
-- **KUBE-SERVICES**チェーンにルール追加：  
+- **KUBE-SERVICES** チェーンにルール追加：  
   `Service`の`ClusterIP`宛てのトラフィックを **KUBE-SVC-XXX** チェーン（`Service`固有のチェーン）にリダイレクト
 
-- **KUBE-SVC-XXX**チェーン（ロードバランシング用）：  
+- **KUBE-SVC-XXX** チェーン（ロードバランシング用）：  
   複数のPodがある場合、確率的に各Podに振り分けるためのルール  
   例えば3つのPodがある場合、各Podに33%の確率でトラフィックを送るルール  
-  各Podのルールは **KUBE-SEP-XXX** チェーンにリダイレクト
+  各Podのルールは **KUBE-SEP-XXX** チェーンにリダイレクト  
 
-- **KUBE-SEP-XXX**チェーン（各`Endpoint`用）：  
+  **このルールは特殊な確率ベースのルールを含んでいる**  
+  以下は３つのPodがある場合の実際の例で、これらのルールはトラフィックを統計的に分散させる
+  - 最初のルールは33.33%の確率で最初のPod（KUBE-SEP-MX23SORTH2LOBGTI）にトラフィックを送る  
+  - 残りの66.67%のトラフィックのうち、50%（全体の33.33%）が2番目のPod（KUBE-SEP-EN5RZLZH5CFD7WTB）に送られる  
+  - 残りのトラフィック（全体の33.33%）が3番目のPod（KUBE-SEP-I6WUMIMMYPOHWED7）に送られる  
+    ```bash
+    root@workernode01:~# iptables -t nat -L KUBE-SVC-DNGND57GJIDW2NIJ -n
+    Chain KUBE-SVC-DNGND57GJIDW2NIJ (1 references)
+    target     prot opt source               destination
+    KUBE-SEP-MX23SORTH2LOBGTI  0    --  0.0.0.0/0            0.0.0.0/0            /* monitoring/loki-distributor:http-metrics -> 172.16.246.240:3100 */ statistic mode random probability 0.33333333349
+    KUBE-SEP-EN5RZLZH5CFD7WTB  0    --  0.0.0.0/0            0.0.0.0/0            /* monitoring/loki-distributor:http-metrics -> 172.16.52.171:3100 */ statistic mode random probability 0.50000000000
+    KUBE-SEP-I6WUMIMMYPOHWED7  0    --  0.0.0.0/0            0.0.0.0/0            /* monitoring/loki-distributor:http-metrics -> 172.16.52.177:3100 */
+    ```
+
+- **KUBE-SEP-XXX** チェーン（各`Endpoint`用）：  
   特定のPod IPに対するDNATルールを設定
   送信元アドレスを保持しつつ、宛先をServiceのIPからPodの実際のIPに変換
 
@@ -116,13 +130,13 @@ sudo iptables -t nat -L KUBE-SEP-XXXXXXXX -n  # XXXXXXXXは実際のハッシュ
 ### `NodePort`タイプの`Service`
 `NodePort`タイプの`Service`は、`ClusterIP`の機能すべてを含み、さらに以下のルールが追加される
 
-- **KUBE-NODEPORTS**チェーンにルール追加：  
-  指定された`NodePort`（例：30000-32767の範囲内のポート）宛てのトラフィックを**KUBE-SVC-XXX**チェーンにリダイレクト
+- **KUBE-NODEPORTS** チェーンにルール追加：  
+  指定された`NodePort`（例：30000-32767の範囲内のポート）宛てのトラフィックを **KUBE-SVC-XXX** チェーンにリダイレクト
 
-- `ClusterIP`の場合と同様に、**KUBE-SVC-XXX**と**KUBE-SEP-XXX**チェーンを作成  
+- `ClusterIP`の場合と同様に、**KUBE-SVC-XXX** と **KUBE-SEP-XXX** チェーンを作成  
   ただし、ノード上の特定ポートに到着したトラフィックも処理対象になる
 
-- **KUBE-MARK-MASQ**チェーンでのマーキング：  
+- **KUBE-MARK-MASQ** チェーンでのマーキング：  
   外部からのトラフィックに対してソースNATを行うためのマーキング  
   これにより、Podからの応答が正しく外部クライアントに戻る
 
