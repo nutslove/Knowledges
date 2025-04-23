@@ -5,13 +5,13 @@
   - https://github.com/containernetworking/cni/blob/main/SPEC.md
   - https://blog.devops.dev/networking-in-kubernetes-55dcf794b9cd
 
-### 概要
+# 概要
 - すべてのPodはそれぞれ異なるIPアドレスが割り当てられる
 - 同じPod内のコンテナ間は(IPアドレスを共有し)`localhost`で通信できる
 - すべてのPodはクラスタ内のすべてのPodとNATなしで通信できる
 - Node上のすべてのAgent(e.g. kubelet)は同じNode上のすべてのPodと通信できる
 
-### CNI (Container Network Interface)
+# CNI (Container Network Interface)
 - Podが通信できる状態にするためのInterface
 - Add-onでPodとして作成される
   - EKSでは`aws-node`という名前でDaemonSetのPodとして作成される
@@ -32,16 +32,16 @@
 - Podごとにveth(VNIC)を割り当てられるのはLinuxのNetwork namespaceのおかげ
 - 代表的なCNI PluginにはAWSのVPC CNIやCilium、Flannelなどがある
 
-### vethについて
+# vethについて
 - veth(Virtual Ethernet Device)はVNICのこと
 - vethは必ずペアで作成され、2つのnetwork namespace同士にそれぞれを片方ずつvethを配置することで、２つのnetwork間で通信することができるようになる。
 - ２つのNICをそれぞれ２つの異なる端末に取り付けて、LANケーブルでそれぞれの端子を接続して直接通信しているような感じ
 
-### 同一Node上のPod間の通信
+# 同一Node上のPod間の通信
 - Bridge方式とNode上ルートテーブルを使ったL3ルーティング方式がある
   - Bridge方式はDockerのBridgeと同様
 
-### 異なるNode上のPod間の通信
+# 異なるNode上のPod間の通信
 - 3つのTypeが存在する
   ![CNI_MODE](image/k8s_CNI_mode.jpg)
   https://www.netstars.co.jp/kubestarblog/k8s-3/#:~:text=CNI%E3%81%AF%E3%80%81%E3%82%B3%E3%83%B3%E3%83%86%E3%83%8A%E3%81%8C%E4%BD%9C%E6%88%90,%E3%82%A4%E3%83%B3%E3%82%BF%E3%83%BC%E3%83%95%E3%82%A7%E3%83%BC%E3%82%B9%E3%82%92%E6%84%8F%E5%91%B3%E3%81%97%E3%81%BE%E3%81%99%E3%80%82
@@ -67,14 +67,100 @@
      4. これにより、ワーカーノードに到達したパケットは、ルーティングテーブルに基づいて適切な veth インターフェースへ転送され、最終的に目的のPodに到達する。
    - https://zenn.dev/taisho6339/books/fc6facfb640d242dc7ec/viewer/0d112c#calico%E6%96%B9%E5%BC%8F
 
-### Podと外部との通信
+# Podと外部との通信、Pod間通信
 - 2つのProxy modeがある
   - iptablesプロキシモード
   - IPVSプロキシモード
-#### ■ kube-proxy
+## ■ kube-proxy
 - `Service`リソースを監視し、`NodePort`など外部通信のためのTypeが作成されたら(iptablesプロキシモードの場合)、iptablesのIPマスカレードのルールを作成する。
 - `ClusterIP`の場合もkube-proxyによるiptablesのルールは作成される
-  ![kube-proxy1](image/kube-proxy1.jpg)
+  ![kube-proxy1](image/kube-proxy1.jpg)  
+  - `Service`リソースが作成されると自動的に`Endpoints`リソースが作成され、kube-proxyが`Endpoints`に合わせてiptablesのルールを作成してくれる
+
   ![kube-proxy2](image/kube-proxy2.jpg)
   https://speakerdeck.com/hhiroshell/kubernetes-network-fundamentals-69d5c596-4b7d-43c0-aac8-8b0e5a633fc2?slide=39
   https://speakerdeck.com/hhiroshell/kubernetes-network-fundamentals-69d5c596-4b7d-43c0-aac8-8b0e5a633fc2?slide=40
+
+### `ClusterIP`タイプの`Service`
+`ClusterIP`タイプの`Service`が作成されると、kube-proxyは以下のようなiptablesルールを作成する
+
+- **KUBE-SERVICES**チェーンにルール追加：  
+  `Service`の`ClusterIP`宛てのトラフィックを **KUBE-SVC-XXX** チェーン（`Service`固有のチェーン）にリダイレクト
+
+- **KUBE-SVC-XXX**チェーン（ロードバランシング用）：  
+  複数のPodがある場合、確率的に各Podに振り分けるためのルール  
+  例えば3つのPodがある場合、各Podに33%の確率でトラフィックを送るルール  
+  各Podのルールは **KUBE-SEP-XXX** チェーンにリダイレクト
+
+- **KUBE-SEP-XXX**チェーン（各`Endpoint`用）：  
+  特定のPod IPに対するDNATルールを設定
+  送信元アドレスを保持しつつ、宛先をServiceのIPからPodの実際のIPに変換
+
+#### 確認方法
+```bash
+# KUBE-SERVICES チェーンを確認
+sudo iptables -t nat -L KUBE-SERVICES -n
+
+# 特定のServiceに関連するルールを確認（例：my-service）
+MY_SERVICE_IP=$(kubectl get svc my-service -o jsonpath='{.spec.clusterIP}')
+sudo iptables -t nat -L KUBE-SERVICES -n | grep $MY_SERVICE_IP
+
+# Service固有のチェーン（KUBE-SVC-XXX）を確認
+# 上記の出力から特定のKUBE-SVC-XXXチェーン名を見つけて確認
+sudo iptables -t nat -L KUBE-SVC-XXXXXXXX -n  # XXXXXXXXは実際のハッシュ値に置き換え
+
+# Endpointごとの処理チェーン（KUBE-SEP-XXX）を確認
+sudo iptables -t nat -L KUBE-SEP-XXXXXXXX -n  # XXXXXXXXは実際のハッシュ値に置き換え
+```
+
+### `NodePort`タイプの`Service`
+`NodePort`タイプの`Service`は、`ClusterIP`の機能すべてを含み、さらに以下のルールが追加される
+
+- **KUBE-NODEPORTS**チェーンにルール追加：  
+  指定された`NodePort`（例：30000-32767の範囲内のポート）宛てのトラフィックを**KUBE-SVC-XXX**チェーンにリダイレクト
+
+- `ClusterIP`の場合と同様に、**KUBE-SVC-XXX**と**KUBE-SEP-XXX**チェーンを作成  
+  ただし、ノード上の特定ポートに到着したトラフィックも処理対象になる
+
+- **KUBE-MARK-MASQ**チェーンでのマーキング：  
+  外部からのトラフィックに対してソースNATを行うためのマーキング  
+  これにより、Podからの応答が正しく外部クライアントに戻る
+
+#### 確認方法
+```bash
+# NodePortsのルールを確認
+sudo iptables -t nat -L KUBE-NODEPORTS -n
+
+# 特定のNodePortに関連するルールを確認（例：my-nodeport-service）
+NODE_PORT=$(kubectl get svc my-nodeport-service -o jsonpath='{.spec.ports[0].nodePort}')
+sudo iptables -t nat -L KUBE-NODEPORTS -n | grep $NODE_PORT
+
+# NodePortサービスのマスカレードルールを確認
+sudo iptables -t nat -L KUBE-MARK-MASQ -n
+```
+
+## iptablesの基礎
+- 参考URL
+  - **https://christina04.hatenablog.com/entry/iptables-outline?utm_source=pocket_saves**
+  - https://zenn.dev/kanehori/articles/4c1212c0ba477e
+- パケットフィルタリングとNATを実現するためのコマンドラインツール
+- `Chain` -> `Table` -> `Target`の順番に処理される
+- iptablesコマンドで良く使うパラメータ
+  - `-n`: Portなどを数字で表示
+  - `-L`: テーブル内のすべてのチェーンとそのルールの一覧を表示
+  - `-v`: 詳細な情報を表示
+
+### Table
+- ５つのテーブルがある（ほとんどのケースでは`filter`と`nat`のテーブル）
+- `iptables`コマンドの`-t`パラメータで指定
+
+
+|Table|用途|Chain|説明|
+|---|---|---|---|
+|`filter`|デフォルトのTableであり、フィルタリングに使用される|INPUT、FORWARD、OUTPUT|すべてのパケットが必ず通過し、主にパケットの許可または拒否を決定|
+|`nat`|ネットワークアドレス変換を行うためのTable|PREROUTING、OUTPUT、POSTROUTING|パケットの送信元または宛先アドレスを変更するために使用される。**PREROUTING**では**DNAT**を、**POSTROUTING**で**SNAT**を実施|
+mangle	パケットの変更（マーキングや変更）を行うためのテーブルです	PREROUTING、INPUT、FORWARD、OUTPUT、POSTROUTING	特殊なパケット処理（TOSフィールドの変更、マーキングなど）に使用されます
+raw	パケットをトラッキングする前に設定を行うためのテーブルです	PREROUTING、OUTPUT	パケットトラッキングの無効化など、特定の処理を行うために使用されます
+security	SELinuxのポリシーに基づいてパケットを処理するためのテーブルで、それ以外で有用ではありません。	INPUT、OUTPUT、FORWARD	セキュリティコンテキストの設定や変更に使用されます。通常は使用することはありません。
+
+### Chain
