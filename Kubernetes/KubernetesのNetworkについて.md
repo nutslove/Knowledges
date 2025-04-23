@@ -159,8 +159,8 @@ sudo iptables -t nat -L KUBE-MARK-MASQ -n
 |---|---|---|---|
 |`filter`|デフォルトのTableであり、フィルタリングに使用される|INPUT、FORWARD、OUTPUT|すべてのパケットが必ず通過し、主にパケットの許可または拒否を決定|
 |`nat`|ネットワークアドレス変換を行うためのTable|PREROUTING、OUTPUT、POSTROUTING|パケットの送信元または宛先アドレスを変更するために使用される。**PREROUTING**では**DNAT**を、**POSTROUTING**で**SNAT**を実施|
-mangle	パケットの変更（マーキングや変更）を行うためのテーブルです	PREROUTING、INPUT、FORWARD、OUTPUT、POSTROUTING	特殊なパケット処理（TOSフィールドの変更、マーキングなど）に使用されます
-raw	パケットをトラッキングする前に設定を行うためのテーブルです	PREROUTING、OUTPUT	パケットトラッキングの無効化など、特定の処理を行うために使用されます
-security	SELinuxのポリシーに基づいてパケットを処理するためのテーブルで、それ以外で有用ではありません。	INPUT、OUTPUT、FORWARD	セキュリティコンテキストの設定や変更に使用されます。通常は使用することはありません。
+|`mangle`|パケットの変更（マーキングや変更）を行うためのTable|PREROUTING、INPUT、FORWARD、OUTPUT、POSTROUTING|特殊なパケット処理（TOSフィールドの変更、マーキングなど）に使用される|
+|`raw`|パケットをトラッキングする前に設定を行うためのTable|PREROUTING、OUTPUT|パケットトラッキングの無効化など、特定の処理を行うために使用される|
+|`security`|SELinuxのポリシーに基づいてパケットを処理するためのTable|INPUT、OUTPUT、FORWARD|セキュリティコンテキストの設定や変更に使用される|
 
 ### Chain
