@@ -132,7 +132,9 @@ sudo iptables -t nat -L KUBE-SEP-XXXXXXXX -n  # XXXXXXXXは実際のハッシュ
 `NodePort`タイプの`Service`は、`ClusterIP`の機能すべてを含み、さらに以下のルールが追加される
 
 - **KUBE-NODEPORTS** チェーンにルール追加：  
-  指定された`NodePort`（例：30000-32767の範囲内のポート）宛てのトラフィックを **KUBE-SVC-XXX** チェーンにリダイレクト
+  指定された`NodePort`（例：30000-32767の範囲内のポート）宛てのトラフィックを **KUBE-EXT-XXX** チェーンにリダイレクト
+  - **KUBE-EXT-XXX** チェーンから **KUBE-SVC-XXX** チェーンにリダイレクト（以降はClusterIPタイプと同様）
+  - **KUBE-EXT-XXX** チェーンには **KUBE-MARK-MASQ** チェーンもある
 
 - `ClusterIP`の場合と同様に、**KUBE-SVC-XXX** と **KUBE-SEP-XXX** チェーンを作成  
   ただし、ノード上の特定ポートに到着したトラフィックも処理対象になる
@@ -149,6 +151,15 @@ sudo iptables -t nat -L KUBE-NODEPORTS -n
 # 特定のNodePortに関連するルールを確認（例：my-nodeport-service）
 NODE_PORT=$(kubectl get svc my-nodeport-service -o jsonpath='{.spec.ports[0].nodePort}')
 sudo iptables -t nat -L KUBE-NODEPORTS -n | grep $NODE_PORT
+
+sudo iptables -t nat -L KUBE-EXT-XXXXXXXX -n
+
+# Service固有のチェーン（KUBE-SVC-XXX）を確認
+# 上記の出力から特定のKUBE-SVC-XXXチェーン名を見つけて確認
+sudo iptables -t nat -L KUBE-SVC-XXXXXXXX -n  # XXXXXXXXは実際のハッシュ値に置き換え
+
+# Endpointごとの処理チェーン（KUBE-SEP-XXX）を確認
+sudo iptables -t nat -L KUBE-SEP-XXXXXXXX -n  # XXXXXXXXは実際のハッシュ値に置き換え
 
 # NodePortサービスのマスカレードルールを確認
 sudo iptables -t nat -L KUBE-MARK-MASQ -n
