@@ -165,21 +165,26 @@ sudo iptables -t nat -L KUBE-SEP-XXXXXXXX -n  # XXXXXXXXは実際のハッシュ
 sudo iptables -t nat -L KUBE-MARK-MASQ -n
 ```
 
+### Headless Serviceはどうなのか
+- Headless ServiceはCluster IPを持たないため、iptablesのKUBE-SVC-XXX チェーンも作成されない
+- Headless Serviceのルーティングはiptablesではなく、主にDNSによって処理される
+  - CoreDNSがHeadless Service用に各Podの個別のAレコードを返す
+
 ## iptablesの基礎
 - 参考URL
   - **https://christina04.hatenablog.com/entry/iptables-outline?utm_source=pocket_saves**
   - https://zenn.dev/kanehori/articles/4c1212c0ba477e
 - パケットフィルタリングとNATを実現するためのコマンドラインツール
-- `Chain` -> `Table` -> `Target`の順番に処理される
+- `Chain` -> `Table` -> `Target（Rule）`の順番に処理される  
+  ![](./image/iptables_1.jpg)
 - iptablesコマンドで良く使うパラメータ
   - `-n`: Portなどを数字で表示
   - `-L`: テーブル内のすべてのチェーンとそのルールの一覧を表示
   - `-v`: 詳細な情報を表示
 
 ### Table
-- ５つのテーブルがある（ほとんどのケースでは`filter`と`nat`のテーブル）
-- `iptables`コマンドの`-t`パラメータで指定
-
+- 以下のテーブルがある（ほとんどのケースでは`filter`と`nat`のテーブル）
+- `iptables`コマンドの`-t`パラメータでTableのタイプを指定
 
 |Table|用途|Chain|説明|
 |---|---|---|---|
@@ -187,6 +192,19 @@ sudo iptables -t nat -L KUBE-MARK-MASQ -n
 |`nat`|ネットワークアドレス変換を行うためのTable|PREROUTING、OUTPUT、POSTROUTING|パケットの送信元または宛先アドレスを変更するために使用される。**PREROUTING**では**DNAT**を、**POSTROUTING**で**SNAT**を実施|
 |`mangle`|パケットの変更（マーキングや変更）を行うためのTable|PREROUTING、INPUT、FORWARD、OUTPUT、POSTROUTING|特殊なパケット処理（TOSフィールドの変更、マーキングなど）に使用される|
 |`raw`|パケットをトラッキングする前に設定を行うためのTable|PREROUTING、OUTPUT|パケットトラッキングの無効化など、特定の処理を行うために使用される|
-|`security`|SELinuxのポリシーに基づいてパケットを処理するためのTable|INPUT、OUTPUT、FORWARD|セキュリティコンテキストの設定や変更に使用される|
+
+![](./image/iptables_3.jpg)
 
 ### Chain
+- TableはChainで構成され、Chainは順番に並べられたルールのリスト
+
+|チェーン|用途|
+|---|---|
+|INPUT|OSプロセスに入ってくるすべてのパケットを処理|
+|FORWARD|他のネットワークに転送されるパケットを処理|
+|OUTPUT|システムから外に出ていくパケットを処理|
+|PREROUTING|パケットがルーティングされる前に処理を行う|
+|POSTROUTING|パケットがルーティングされた後に処理を行う|
+
+- 各Chainが処理されるタイミング  
+  ![](./image/iptables_2.jpg)
