@@ -36,6 +36,14 @@
     aws lambda create-function --function-name <作成するLambda関数名> --package-type Image --code ImageUri=＜<AWSアカウントID>.dkr.ecr.<リージョン識別子>.amazonaws.com/<ECRリポジトリ名>:<image名>＞ --role <LambdaにアタッチするIAMロール> --region <AWSリージョン>
     ~~~
 
+## Lambda用としてAWSから提供されるBase Image
+- https://github.com/aws/aws-lambda-base-images
+  - 言語やOS (Amazon Linux) ごとにブランチが作成されている
+- Lambdaをコンテナイメージを使ってデプロイする場合、Lambda用としてAWSが作成したBase Imageを使った方が良い
+- デフォルトユーザをすでにAWS側でセキュリティのベストプラクティスに沿って設定しているので、`Dockerfile`の中で`USER`でユーザを設定しなくて(変えなくて)良い。
+  - https://docs.aws.amazon.com/lambda/latest/dg/images-create.html  
+    > The default Lambda user must be able to read all the files required to run your function code. Lambda follows security best practices by defining a default Linux user with least-privileged permissions. This means that you don't need to specify a USER in your Dockerfile. Verify that your application code does not rely on files that other Linux users are restricted from running.
+
 ## Lambdaの並列実行について
 - **https://docs.aws.amazon.com/ja_jp/lambda/latest/dg/lambda-concurrency.html**
 - Lambdaは、１つのインスタンス(実行環境)で同時に複数のリクエストが処理されることはない
