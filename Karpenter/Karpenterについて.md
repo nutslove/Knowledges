@@ -1,0 +1,3 @@
+- `NodePool`、`EC2NodeClass`
+- EKS Auto Modeでは`EC2NodeClass`ではなく、`NodeClass`を使う
+- `default` `NodeClass`は予約されているため、追加の`NodeClass`を作成する際は`default`以外の名前で作成すること
