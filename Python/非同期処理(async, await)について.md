@@ -127,7 +127,7 @@ async def main():
 # 実行
 asyncio.run(main())
 ```
-> [!TIP]
+> [!NOTE]
 > `*`はPythonのアンパック演算子（unpacking operator）と呼ばれるもので、リストやタプルなどのイテラブルをアンパック（展開）する  
 >  ```python
 >  def add(a, b, c):
@@ -137,7 +137,7 @@ asyncio.run(main())
 >  result = add(*numbers)  # add(1, 2, 3) と同等
 >  ```
 
-> [!TIP]
+> [!NOTE]
 > `async with`は通常の`with`文の非同期版で、非同期コンテキストマネージャを扱うために使用する。これにより、リソースの初期化と解放を非同期的に行える。
 > 例えば`async with session.get(url) as response`の部分では、
 > 1. `session.get(url)`は非同期操作で、HTTPリクエストを開始
