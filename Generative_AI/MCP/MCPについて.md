@@ -19,12 +19,14 @@
 ## SSE（Server Sent Events）
 - MCP Serverがリモート（Host/Clientと異なるマシン上）で動いている場合のClientとServerとの通信方式
 - HTTPベースの一方向通信を使用
+> [!CAUTION]
+> SSEは **_Streamable HTTP_** に置き換わる予定
 
 # MCP Client
 - MCP ClientはMCP Hostの内部に存在する
 - MCP Serverと1対1の接続を行うプロトコルクライアント
-  - MCP ClientとMCP Serverは１対１の関係
-    - １つのMCP Clientで複数のMCP Serverとやりとりすることはできない
+  - **MCP ClientとMCP Serverは１対１の関係**
+    - **１つのMCP Clientで複数のMCP Serverとやりとりすることはできない**
 
 # `llms.txt`、`llms-full.txt`について
 - https://llmstxt.org/
