@@ -141,8 +141,9 @@ asyncio.run(main())
 > `async with`は通常の`with`文の非同期版で、非同期コンテキストマネージャを扱うために使用する。これにより、リソースの初期化と解放を非同期的に行える。
 > 例えば`async with session.get(url) as response`の部分では、
 > 1. `session.get(url)`は非同期操作で、HTTPリクエストを開始
+>     - この操作が完了するまでの間、CPUをブロックせず、他のコルーチンや処理がCPUを使えるようにする 
 > 2. `async with`はこの操作の完了を待ち、結果を`response`に代入
-> 3. ブロックが終了すると、`response`オブジェクトの`__aexit__`メソッドが非同期的に呼び出され、リソース（接続など）が適切に解放される
+> 3. ブロック（`async with`の下のコード）が終了すると、`response`オブジェクトの`__aexit__`メソッドが非同期的に呼び出され、リソース（接続など）が適切に解放される
 
 ## 非同期でのファイル操作
 ```python
@@ -175,4 +176,66 @@ async def process_files():
 
 # 実行
 asyncio.run(process_files())
+```
+
+# その他
+## エラーハンドリング
+- `asyncio.gather()`には`return_exceptions=True`オプションがあり、これを指定するといずれかのタスクが例外を発生させても他のタスクは続行され、例外オブジェクトが結果リストに含まれる。指定しない場合は最初の例外で全体が中断される。
+```python
+async def main():
+    # 3つのタスクを作成して並行実行
+    task1 = asyncio.create_task(fetch_data())
+    task2 = asyncio.create_task(fetch_data())
+    task3 = asyncio.create_task(fetch_data())
+    
+    # 全てのタスクが完了するまで待機
+    results = await asyncio.gather(task1, task2, task3, return_exceptions=True)
+    print(results)
+```
+
+## タイムアウト処理
+- 長時間実行されるタスクに対して`asyncio.wait_for()`を使ってタイムアウトを設定できる
+```python
+try:
+    result = await asyncio.wait_for(long_running_task(), timeout=5.0)  # 5秒でタイムアウト
+except asyncio.TimeoutError:
+    print("処理がタイムアウトしました")
+```
+
+## キャンセル処理
+```python
+task = asyncio.create_task(some_coroutine())
+# 何らかの条件でキャンセルしたい場合
+task.cancel()
+try:
+    await task  # キャンセルされたタスクを待機するとCancelledErrorが発生
+except asyncio.CancelledError:
+    print("タスクがキャンセルされました")
+```
+
+## セマフォを使った並行処理の制限
+```python
+# 最大5つのタスクを同時実行
+semaphore = asyncio.Semaphore(5)
+
+async def limited_task(n):
+    async with semaphore:  # セマフォを獲得
+        await some_heavy_task(n)  # リソースを消費する処理
+```
+
+## 非同期ジェネレータ
+- `async for`を使った非同期イテレーション
+```python
+import asyncio
+
+async def async_generator():
+    for i in range(10):
+        await asyncio.sleep(0.1)
+        yield i
+
+async def main():
+    async for value in async_generator():
+        print(value)
+
+asyncio.run(main())
 ```
