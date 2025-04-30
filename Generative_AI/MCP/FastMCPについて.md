@@ -10,8 +10,8 @@
     curl -LsSf https://astral.sh/uv/install.sh | sh
     ```
 
-> ![NOTE]
-> uvはRustで開発されたPythonのパッケージ & Project Manager
+> [!NOTE]  
+> uvはRustで開発されたPythonのパッケージ & Project Manager  
 > https://docs.astral.sh/uv/
 
 - uvでFastMCPをインストール  
