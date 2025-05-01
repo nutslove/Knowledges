@@ -1,6 +1,6 @@
 # Langfuseのアーキテクチャ
 - https://langfuse.com/self-hosting  
-![](./langfuse_arch_1.jpg)
+![](./image/langfuse_arch_1.jpg)
 
 
 # Install（Self Hosting）
