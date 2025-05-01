@@ -1,3 +1,8 @@
+# Langfuseのアーキテクチャ
+- https://langfuse.com/self-hosting  
+![](./langfuse_arch_1.jpg)
+
+
 # Install（Self Hosting）
 ## Docker Compose
 - https://langfuse.com/self-hosting/docker-compose
