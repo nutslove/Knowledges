@@ -27,7 +27,7 @@
   		total_tokens: 46619
   	}
   	stop_reason: "max_tokens"
-  	model_id: "arn:aws:bedrock:us-west-2:637423497892:inference-profile/us.anthropic.claude-3-7-sonnet-20250219-v1:0"
+  	model_id: "arn:aws:bedrock:us-west-2:123456789:inference-profile/us.anthropic.claude-3-7-sonnet-20250219-v1:0"
   }
   ```
 - LangChainの`ChatBedrock`で、`max_tokens`で変更できる
