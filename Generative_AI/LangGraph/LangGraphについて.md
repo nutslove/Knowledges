@@ -744,8 +744,12 @@ If provided, output will be formatted to match the given schema and returned in 
   {'messages': [HumanMessage(content='aws s3api get-bucket-policy --bucket ai-1-bucket', additional_kwargs={}, response_metadata={}, id='cee2be20-dd27-4d26-91c6-7fcbbb67870d'), AIMessage(content='', additional_kwargs={'usage': {'prompt_tokens': 505, 'completion_tokens': 124, 'total_tokens': 629}, 'stop_reason': 'tool_use', 'model_id': 'anthropic.claude-3-5-sonnet-20240620-v1:0'}, response_metadata={'usage': {'prompt_tokens': 505, 'completion_tokens': 124, 'total_tokens': 629}, 'stop_reason': 'tool_use', 'model_id': 'anthropic.claude-3-5-sonnet-20240620-v1:0'}, id='run-63c6cbcb-6f87-4eae-98d7-73bc537f4711-0', tool_calls=[{'name': 'shell_tool', 'args': {'command': 'aws s3api get-bucket-policy --bucket ai-1-bucket'}, 'id': 'toolu_bdrk_01E3eqNam9zFWUGPs8VBBRcy', 'type': 'tool_call'}], usage_metadata={'input_tokens': 505, 'output_tokens': 124, 'total_tokens': 629}), ToolMessage(content='{"stdout": "", "stderr": "\\nAn error occurred (AccessDenied) when calling the GetBucketPolicy operation: Access Denied\\n"}', name='shell_tool', id='4cf79f46-9c0d-44d7-8c89-e37cfe622c25', tool_call_id='toolu_bdrk_01E3eqNam9zFWUGPs8VBBRcy'), AIMessage(content='申し訳ありませんが、コマンドの実行中にエラーが発生しました。エラーメッセージは以下の通りです：\n\n```\nAn error occurred (AccessDenied) when calling the GetBucketPolicy operation: Access Denied\n```\n\nこのエラーは、「アクセス拒否」を意味しています。つまり、現在のAWS認証情報では、指定されたS3バケット「ai-1-bucket」のバケットポリシーを取得する権限がないようです。\n\nこの問題を解決するためには、以下のような対策が考えられます：\n\n1. AWS認証情報が正しく設定されているか確認する。\n2. 使用しているIAMユーザーまたはロールに、S3バケットポリシーを読み取る権限があるか確認する。\n3. バケット名が正しいか確認する。「ai-1-bucket」が実際に存在し、アクセス可能なバケットであることを確認してください。\n\n権限が適切に設定されていることを確認した後、再度コマンドを実行してみてください。それでも問題が解決しない場合は、AWS管理者に連絡して、必要な権限の付与を依頼することをお勧めします。', additional_kwargs={'usage': {'prompt_tokens': 620, 'completion_tokens': 361, 'total_tokens': 981}, 'stop_reason': 'end_turn', 'model_id': 'anthropic.claude-3-5-sonnet-20240620-v1:0'}, response_metadata={'usage': {'prompt_tokens': 620, 'completion_tokens': 361, 'total_tokens': 981}, 'stop_reason': 'end_turn', 'model_id': 'anthropic.claude-3-5-sonnet-20240620-v1:0'}, id='run-b3f22253-a33e-4b4e-aafd-a34ef397df2e-0', usage_metadata={'input_tokens': 620, 'output_tokens': 361, 'total_tokens': 981})]}
   ```
 
+---
+
 # LangGraphとLangfuseの連携
 - https://langfuse.com/docs/integrations/langchain/example-python-langgraph
+
+---
 
 # 注意事項
 ## Node名とStateのKey名は同じものを使えない
