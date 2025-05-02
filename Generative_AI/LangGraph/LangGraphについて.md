@@ -460,6 +460,7 @@
 - **ソースコード**
   - https://github.com/langchain-ai/langgraph/blob/main/libs/langgraph/langgraph/prebuilt/chat_agent_executor.py#L237
 - **関数内で`ToolNode`でToolをNode化したり、`bind_tools`でmodelとtoolをバインドしたり、`add_node`・`add_edge`した後、`CompiledStateGraph`型を返す。**
+  - `add_node`で指定するNode名は`State`内のKey名と重複するとエラーになるっぽい
 
 ## `create_react_agent`関数の引数
 - https://langchain-ai.github.io/langgraph/reference/prebuilt/#langgraph.prebuilt.chat_agent_executor.create_react_agent
