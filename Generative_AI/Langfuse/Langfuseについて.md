@@ -14,6 +14,28 @@
   helm install langfuse langfuse/langfuse -n langfuse -f values.yaml
   ```
 
+# Redisについて
+- Redisが再起動されてもeventが消失されることはないらしい（以下LangfuseのAsk AIの回答）
+  > Redis/Valkey serves as a caching layer and queue in Langfuse's architecture [(1)](https://langfuse.com/self-hosting/infrastructure/cache). It has several key roles:
+  >
+  > 1. Event Processing:
+  >     - Accepts new events quickly on the API [(1)](https://langfuse.com/self-hosting/infrastructure/cache)
+  >     - Defers processing and insertion of these events [(1)](https://langfuse.com/self-hosting/infrastructure/cache)
+  >     - Helps handle request peaks gracefully [(1)](https://langfuse.com/self-hosting/infrastructure/cache)
+  >
+  > 2. Performance Optimization:
+  >     - Caches API keys in-memory to reduce database load [(2)](https://langfuse.com/self-hosting)
+  >     - Provides caching for prompts, allowing fast retrieval without hitting the database [(2)](https://langfuse.com/self-hosting)
+  >     - Acts as a read-through cache for prompts [(2)](https://langfuse.com/self-hosting)
+  >
+  > 3. Queue Management:
+  >     - Used for queuing event metadata for worker processing [(3)](https://github.com/orgs/langfuse/discussions/5924)
+  >
+  > Regarding cache loss during restart:
+Langfuse is designed to handle this scenario safely. The system uses S3/Blob Storage to persist all incoming events first, and only after successful processing are they written to the database [(2)](https://langfuse.com/self-hosting). This ensures that even if Redis becomes temporarily unavailable, events are not lost and can be processed later [(2)](https://langfuse.com/self-hosting).
+  >
+  > For optimal operation, Redis should be configured with `maxmemory-policy=noeviction` to ensure queue jobs are not evicted from the cache [(1)](https://langfuse.com/self-hosting/infrastructure/cache). 
+
 # LangGraphとLangfuseの連携
 - https://langfuse.com/docs/integrations/langchain/example-python-langgraph
 
