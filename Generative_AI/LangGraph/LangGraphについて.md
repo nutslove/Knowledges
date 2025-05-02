@@ -777,5 +777,5 @@ If provided, output will be formatted to match the given schema and returned in 
   ```
   - その時は以下のようにMessageステートから最後のメッセージを除外すればうまくいったりする  
     ```python
-    essages = state["messages"][:-1]
+    history_messages = state["messages"][:-1]
     ```
