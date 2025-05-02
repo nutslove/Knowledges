@@ -25,9 +25,9 @@
 
   postgresql:
     deploy: false
-    host: manual-aurora-pg-serverless.cluster-cjuskomqux27.ap-northeast-1.rds.amazonaws.com
+    host: manual-aurora-pg-serverless.cluster-xxxxxx.ap-northeast-1.rds.amazonaws.com
     auth:
-      database: postgres_langfuse # default database name for langfuse
+      database: postgres_langfuse # default database name for langfuse（事前にRDSに入って作成しておく必要がある）
       username: postgres
       existingSecret: langfuse-auth
       secretKeys:
