@@ -2,6 +2,12 @@
 - https://langfuse.com/self-hosting  
 ![](./image/langfuse_arch_1.jpg)
 
+## 各データの保存先
+- Traceは先にS3に保存されて、その後ClickHouseにロードされる
+  - https://github.com/orgs/langfuse/discussions/6133
+- PromptsはPostgreSQL内に保存される
+
+---
 
 # Install（Self Hosting）
 ## Docker Compose
@@ -13,6 +19,15 @@
   ```shell
   helm install langfuse langfuse/langfuse -n langfuse -f values.yaml
   ```
+- ClickHouse、RedisなどのHelmチャートはbitnamiのものを使っている
+  - ClickHouseのHelmチャート
+    - https://github.com/bitnami/charts/tree/main/bitnami/clickhouse
+  - Redis（ValKey）のHelmチャート
+    - https://github.com/bitnami/charts/tree/main/bitnami/redis
+- common(Podのresource設定など)もbitnamiのHelmチャートを使っている
+  - https://github.com/bitnami/charts/tree/main/bitnami/common
+
+---
 
 # Redisについて
 - Redisが再起動されてもeventが消失されることはないらしい（以下LangfuseのAsk AIの回答）
@@ -36,8 +51,12 @@ Langfuse is designed to handle this scenario safely. The system uses S3/Blob Sto
   >
   > For optimal operation, Redis should be configured with `maxmemory-policy=noeviction` to ensure queue jobs are not evicted from the cache [(1)](https://langfuse.com/self-hosting/infrastructure/cache). 
 
+---
+
 # LangGraphとLangfuseの連携
 - https://langfuse.com/docs/integrations/langchain/example-python-langgraph
+
+---
 
 # Trace IDの設定
 - UUIDを使って利用者側でTraceIDを指定することもできる
