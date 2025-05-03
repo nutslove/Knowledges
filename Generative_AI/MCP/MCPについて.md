@@ -4,6 +4,11 @@
   ![](./image/mcp_arch_2.jpg)
 - App/AgentはMCP ClientとServer両方になれる
 
+## MCPの仕様
+- https://modelcontextprotocol.io/specification/
+
+---
+
 # MCP Server
 - https://modelcontextprotocol.io/quickstart/server
 ![](./image/mcp_server_1.jpg)
@@ -22,11 +27,24 @@
 > [!CAUTION]
 > SSEは **_Streamable HTTP_** に置き換わる予定
 
+---
+
 # MCP Client
 - MCP ClientはMCP Hostの内部に存在する
 - MCP Serverと1対1の接続を行うプロトコルクライアント
   - **MCP ClientとMCP Serverは１対１の関係**
     - **１つのMCP Clientで複数のMCP Serverとやりとりすることはできない**
+
+---
+
+# MCP ServerとMCP Clientの通信
+- https://modelcontextprotocol.io/docs/concepts/transports
+
+## Server-Sent Events (SSE)
+- Streamable HTTPに置き換わる予定
+
+## Standard Input/Output (stdio)
+- MCP Client(Host)とMCP Serverが同じサーバ上にある場合の通信方式
 
 # `llms.txt`、`llms-full.txt`について
 - https://llmstxt.org/
