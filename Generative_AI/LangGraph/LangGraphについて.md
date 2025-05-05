@@ -28,6 +28,9 @@
       )
   ```
 
+### `TypedDict` vs Pydantic `BaseModel`
+- Stateは`typing`の`TypedDict`もしくは、`pydantic`の`BaseModel`を使って定義できる
+
 ## ノード
 - 各ノードが特定の処理や判断を担当
 ### ノードの指定
@@ -100,6 +103,9 @@
       state["metric_list"] = result_str["data"] # ステートを更新
       return state # 更新したステートを返す
   ```
+
+### Parallel Node Execution
+
 
 ## エッジ
 - 各ノードの処理間のつながりや関係性を表現
