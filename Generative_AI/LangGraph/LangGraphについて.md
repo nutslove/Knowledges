@@ -33,6 +33,7 @@
 
 ## ノード
 - 各ノードが特定の処理や判断を担当
+- ノードは`State`を引数として取って、`return`で`State`を更新する（更新した`State`を`return`する）
 ### ノードの指定
 - `StateGraph`クラスの`add_node`関数の引数に、ノードとして使う関数またはRunnable（LCELのオブジェクト）を指定
 - 例１：関数またはRunnable（LCELのオブジェクト）だけを指定  
@@ -45,7 +46,7 @@
   ```  
 ### ノードの実装方法
 #### 関数の場合
-- **ステート(`State`)オブジェクトを引数にとり、更新差分を表す辞書型のオブジェクトを返す**  
+- **ステート(`State`)オブジェクトを引数にとり、更新差分を表す`State`内の辞書型のオブジェクトを返す**  
   1. 1つのフィールドを更新  
      ```python
      def answering_node(state: State) -> dict[str, Any]:
@@ -138,6 +139,36 @@
   compiled_graph = workflow.compile()
   ```
   - `CompiledGraph`クラスのインスタンスはRunnableとして実行することができ、`invoke`、`stream`メソッドが使える
+- コンパイル済みgraphの実行時は、`State`(一部もしくは全部)を引数として指定する  
+  ```python
+  from typing import TypedDict
+  from langgraph.graph import END, START, StateGraph
+
+  class InputState(TypedDict):
+      string_value: str
+      numeric_value: int
+
+  def modify_state(input: InputState):
+      print(f"Current value: {input}")
+      return input
+
+  graph = StateGraph(InputState)
+  graph.add_node("branch_a", modify_state)
+  graph.add_node("branch_b", modify_state)
+  graph.add_edge("branch_a", "branch_b")
+  graph.add_edge("branch_b", END)
+  graph.set_entry_point("branch_a")
+
+  runnable = graph.compile()
+  ```
+  - 一部  
+    ```python
+    runnable.invoke({"string_value": "a"})
+    ```
+  - 全部  
+    ```python
+    runnable.invoke({"string_value": "a", "numeric_value": 1})
+    ```
 
 ### 条件付きエッジ
 - `add_conditional_edges`関数を使用
