@@ -17,6 +17,24 @@
   - https://www.geeksforgeeks.org/difference-between-java-threads-and-os-threads/
   - https://www.youtube.com/watch?v=x-Lp-h_pf9Q&t=918s
 
+### 各Threadで共有するもの、個別に持つもの
+#### 各Threadで共有するもの
+- **メモリ空間**
+  - ヒープ領域（動的に確保されるメモリ領域）、グローバル変数、静的変数などを共有
+- **ファイルハンドラ**
+  - プロセスが開いているファイルやソケットの情報を共有
+
+#### 各Threadごとに個別に持つもの
+- **スタック領域**（以下はスタック領域に格納されるもの）
+  - 関数のローカル変数の値
+  - 関数の戻りアドレス（呼び出し元の関数に戻るためのメモリ位置）
+  - 関数パラメータ（引数）の値
+  - etc.
+- **レジスタ**（CPU内の一時的なデータ格納場所）
+- **プログラムカウンタ**（次に実行する命令のアドレスを指すポインタ）
+
+---
+
 ## Hardware(CPU) ThreadとSoftware(Program) Threadについて
 - Hardware(CPU) Thread
   - CPUが命令を実行できる単位
