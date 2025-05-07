@@ -20,7 +20,7 @@ cursor .
 uv run mcp install server.py # claude_desktop_config.jsonが更新される
 ```
   - `server.py`の例  
-    ```python
+    ~~~python
     from mcp.server.fastmcp import FastMCP
 
     # Create an MCP server
@@ -535,7 +535,7 @@ uv run mcp install server.py # claude_desktop_config.jsonが更新される
     def get_greeting(name: str) -> str:
         """Get a personalized greeting"""
         return f"Hello, {name}!"
-    ```
+    ~~~
 
 - `claude_desktop_config.json`に`server.py`の`FastMCP("<任意の名前>")`の「任意の名前」の設定が反映されていることを確認
   - 例えば`server.py`で`FastMCP("Demo")`としている場合、`claude_desktop_config.json`に以下のような設定が追加される  
