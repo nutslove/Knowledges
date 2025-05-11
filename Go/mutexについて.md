@@ -1,4 +1,4 @@
-## Mutex
+# Mutex
 - Mutual Exclusion(排他制御)の略
 - Race Conditionを防ぐために用いられる
 - Mutexは作成直後はロックされていない（アンロックされている）状態
@@ -42,7 +42,7 @@
 
 ---
 
-## **Race Condition**とは  
+# **Race Condition**とは  
 - 競合状態のこと  
   > A race condition or race hazard is an undesirable condition of an electronics, software, or other system where the system's substantive behavior is dependent on the sequence or timing of other uncontrollable events. It becomes a bug when one or more of the possible behaviors is undesirable.
   > A race condition occurs when two Goroutine access a shared variable at the same time. 
@@ -54,7 +54,7 @@
 
 ---
 
-## グローバル(共通)の`mutex`、インスタンスごとの`mutex`
+# グローバル(共通)の`mutex`、インスタンスごとの`mutex`
 `mutex`（`sync.Mutex` や `sync.RWMutex`）の使い方は、**どの範囲で共有データを保護する必要があるか** による。
 
 ### 1. **インスタンスごとに `mutex` を用意するべきケース**
@@ -272,3 +272,38 @@ func main() {
 ### まとめ
 - **インスタンスごとのデータを保護する場合** → **インスタンスごとに `mutex` を持つ**
 - **複数のインスタンスが同じリソースを共有する場合** → **1つの `mutex` を共有する**
+
+---
+
+# 条件変数（Condition Variable）
+- 条件変数は、ある条件が満たされるまでスレッドを待機させるための同期プリミティブ。Goでは、`sync.Cond`を使用して実装されている。　　
+  ```go
+	type Cond
+		func NewCond(l Locker) *Cond
+		func (c *Cond) Wait()
+		func (c *Cond) Signal()
+		func (c *Cond) Broadcast()
+	```
+- 条件変数はMutexの上に追加の機能を提供する。ゴルーチン(Goroutine)が特定の条件が発生するのを待つ必要がある状況で使える。
+- Goで新たな条件変数(condition variable)を作成するには`Locker`が必要であり、`Locker`は以下の２つのメソッドを定義している。  
+  ```go
+  type Locker interface {
+  	Lock()
+  	Unlock()
+  }
+	```
+	- 条件変数を使うには上記の２つのメソッドを実装したものが必要であり、`Mutex`は`Locker`インターフェースを実装しているため、条件変数と組み合わせて使用することができる。
+- 作成例  
+	```go
+	var mu sync.Mutex
+	cond := sync.NewCond(&mu)
+	```
+
+## `sync.Cond`型
+- `sync.Cond`は、条件変数を表す型で、以下のメソッドを持つ。
+	- `Wait()`: 条件が満たされるまで待機する。呼び出し元はMutexをロックしている必要がある。
+  	- **`Wait()`メソッドは以下の２つの操作をあ値ミック（atomically）に行う。**
+    	- Mutexをアンロック(解放)する。
+    	- 現在の実行を一時停止し、ゴルーチン(goroutine)を待機状態にする。
+	- `Signal()`: 待機中のゴルーチンのうち1つを起こす。
+	- `Broadcast()`: 待機中のすべてのゴルーチンを起こす。
