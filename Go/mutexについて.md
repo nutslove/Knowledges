@@ -299,6 +299,12 @@ func main() {
 	cond := sync.NewCond(&mu)
 	```
 
+> [!IMPORTANT]
+> `Signal()`と`Broadcast()`メソッドを呼び出す時に、それを待っている他のゴルーチン(goroutine)があることを確認する必要がある。
+> そうしないと、`Signal()`や`Broadcast()`はどのゴルーチン(goroutine)にも受信されず、失われてしまう。
+> `Signal()`や`Broadcast()`が失われないことを保証するためには、Mutexと組み合わせて使う必要がある。
+> つまり、`Signal()`や`Broadcast()`を呼び出す前にMutexをロックし、条件変数を待機しているゴルーチン(goroutine)があることを確認する必要がある。
+
 ## `sync.Cond`型
 - `sync.Cond`は、条件変数を表す型で、以下のメソッドを持つ。
 	- `Wait()`: 条件が満たされるまで待機する。呼び出し元はMutexをロックしている必要がある。
