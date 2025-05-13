@@ -5,6 +5,21 @@
     > When configured with `auth_enabled: false`, Loki uses a single tenant. The `X-Scope-OrgID` header is not required in Loki API requests. The single tenant ID will be the string `fake`.
 - HTTPの`X-Scope-OrgID`ヘッダーの値でテナントを識別する
 
+---
+
+# Multi-tenant Queries
+- https://grafana.com/docs/loki/latest/operations/multi-tenancy/
+- 複数のテナントに渡ってクエリーを投げることができる
+- **そのためにはQuerierの設定で`multi_tenant_queries_enabled`を`true`(defaultは`false`)に設定する必要がある**
+- `multi_tenant_queries_enabled: true`にせずに、GrafanaでLokiデータセットで`X-Scope-OrgID: A|B`とか設定すると以下のようなエラーが出る  
+  ![](./image/multi_tenant_queries_1.jpg)
+  - Grafanaのログ  
+    ```shell
+    errorMessageID=plugin.requestFailureError error="client: failed to call resources: multiple org IDs present"
+    ```
+
+---
+
 # テナントごとのLimit設定
 - 1つのテナントがリソースを使いすぎるのを防ぐためにテナントごとにLimitを設定することができる
 ## `frontend`
