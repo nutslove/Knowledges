@@ -130,7 +130,7 @@
       → The total number of chunks in memory.
     - `loki_ingester_memory_streams`  
       → The total number of streams in memory.
-      → `loki_ingester_memory_chunks`と違い、TenantごとのStream数を把握できる
+      → `loki_ingester_memory_chunks`と違い、`tenant`ラベルでTenantごとのStream数を把握できる
       → Stream数が多すぎるとChunkサイスが小さくなり検索パフォーマンスが落ちる
   - __promtail__
     - `promtail_sent_entries_total` (counter)  
