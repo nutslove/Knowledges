@@ -120,6 +120,10 @@
       → WALで使っているストレージ(EBS等)の空き容量がなくなり、WALへの書き込みが失敗した場合  
       → WALへの書き込みが失敗してもLoki(Ingester)への書き込み自体は失敗しない  
         > In the event the underlying WAL disk is full, Loki will not fail incoming writes, but neither will it log them to the WAL. In this case, the persistence guarantees across process restarts will not hold.  
+    - `loki_ingester_wal_records_logged`  
+      → Counter for WAL records logged
+    - `loki_ingester_wal_logged_bytes_total` (counter)  
+      → Total bytes written to WAL
 
       → https://grafana.com/docs/loki/latest/operations/storage/wal/#disclaimer--wal-nuances
     - `loki_ingester_memory_chunks`  
