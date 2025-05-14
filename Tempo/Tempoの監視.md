@@ -4,7 +4,7 @@
 ## メトリクス一覧
 |Metrics名|メトリクス概要|Type|PromQL例|備考|
 |---|---|---|---|---|
-|`tempo_request_duration_seconds_count`|QPS|Histogram|`sum by(pod,status_code)(rate(tempo_request_duration_seconds_count[$__rate_interval]))`||
+|`tempo_request_duration_seconds_count`|QPS|Histogram|`sum by(pod,status_code)(rate(tempo_request_duration_seconds_count[$__rate_interval]))`|`status_code`ラベルの5xx/4xx系を監視|
 |`tempo_request_duration_seconds`|レイテンシー|Histogram|`sum by(pod)(rate(tempo_request_duration_seconds_sum[$__rate_interval]) / rate(tempo_request_duration_seconds_count[$__rate_interval]))`、`sum by(pod)(histogram_quantile(0.95, rate(tempo_request_duration_seconds_bucket[$__rate_interval])))`||
 |`tempo_distributor_spans_received_total`|Receiverから受信Span数|Counter|`sum(rate(tempo_distributor_spans_received_total[$__rate_interval]))`||
 |`tempo_receiver_accepted_spans`|Receiverから正常にパイプラインにプッシュされたSpan数。ReceiverでSpanが正常に処理されたことを示す。|||`transport`ラベル(e.g. `http`)でプロトコルを確認できる|
