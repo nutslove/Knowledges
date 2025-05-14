@@ -1,3 +1,4 @@
+- https://grafana.com/docs/alloy/latest/troubleshoot/controller_metrics/
 - Alloy自体は`12345`ポート番号、`/metrics`エンドポイントでメトリクスを開示する
 - 以下はPrometheusのConfigのサンプル  
   ```yaml
