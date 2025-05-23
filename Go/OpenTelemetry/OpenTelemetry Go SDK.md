@@ -947,79 +947,27 @@ func main() {
 		time.Sleep(300 * time.Second)
 	}
 }
-```<!-- TOC -->
+```
 
-- [目次](#%E7%9B%AE%E6%AC%A1)
-  - [設定の流れ](#%E8%A8%AD%E5%AE%9A%E3%81%AE%E6%B5%81%E3%82%8C)
-  - [■ NewTracerProviderについて](#%E2%96%A0-newtracerprovider%E3%81%AB%E3%81%A4%E3%81%84%E3%81%A6)
-  - [■ SetTracerProviderについて](#%E2%96%A0-settracerprovider%E3%81%AB%E3%81%A4%E3%81%84%E3%81%A6)
-    - [TracerProviderの構成オプション](#tracerprovider%E3%81%AE%E6%A7%8B%E6%88%90%E3%82%AA%E3%83%97%E3%82%B7%E3%83%A7%E3%83%B3)
-    - [TracerProviderの主なメソッド](#tracerprovider%E3%81%AE%E4%B8%BB%E3%81%AA%E3%83%A1%E3%82%BD%E3%83%83%E3%83%89)
-  - [■ otel.Tracerについて](#%E2%96%A0-oteltracer%E3%81%AB%E3%81%A4%E3%81%84%E3%81%A6)
-    - [Tracerの具体的な役割](#tracer%E3%81%AE%E5%85%B7%E4%BD%93%E7%9A%84%E3%81%AA%E5%BD%B9%E5%89%B2)
-    - [otel.Tracerの使用例](#oteltracer%E3%81%AE%E4%BD%BF%E7%94%A8%E4%BE%8B)
-  - [■ otel.SetTextMapPropagatorについて](#%E2%96%A0-otelsettextmappropagator%E3%81%AB%E3%81%A4%E3%81%84%E3%81%A6)
-    - [プロパゲータの種類](#%E3%83%97%E3%83%AD%E3%83%91%E3%82%B2%E3%83%BC%E3%82%BF%E3%81%AE%E7%A8%AE%E9%A1%9E)
-    - [otel.SetTextMapPropagatorの使用方法](#otelsettextmappropagator%E3%81%AE%E4%BD%BF%E7%94%A8%E6%96%B9%E6%B3%95)
-  - [gRPCでのトレース連携](#grpc%E3%81%A7%E3%81%AE%E3%83%88%E3%83%AC%E3%83%BC%E3%82%B9%E9%80%A3%E6%90%BA)
-    - [Server側](#server%E5%81%B4)
-    - [Client側](#client%E5%81%B4)
-- [Metric](#metric)
-  - [設定の流れ](#%E8%A8%AD%E5%AE%9A%E3%81%AE%E6%B5%81%E3%82%8C)
-    - [設定例](#%E8%A8%AD%E5%AE%9A%E4%BE%8B)
-  - [exemplars](#exemplars)
-- [Log](#log)
-  - [設定の流れ](#%E8%A8%AD%E5%AE%9A%E3%81%AE%E6%B5%81%E3%82%8C)
-    - [設定例（LokiのOTLP HTTPエンドポイントに送る設定例）](#%E8%A8%AD%E5%AE%9A%E4%BE%8Bloki%E3%81%AEotlp-http%E3%82%A8%E3%83%B3%E3%83%89%E3%83%9D%E3%82%A4%E3%83%B3%E3%83%88%E3%81%AB%E9%80%81%E3%82%8B%E8%A8%AD%E5%AE%9A%E4%BE%8B)
-
-<!-- /TOC --><!-- TOC -->
-
-- [目次](#%E7%9B%AE%E6%AC%A1)
-  - [設定の流れ](#%E8%A8%AD%E5%AE%9A%E3%81%AE%E6%B5%81%E3%82%8C)
-  - [■ NewTracerProviderについていて](#%E2%96%A0-newtracerprovider%E3%81%AB%E3%81%A4%E3%81%84%E3%81%A6%E3%81%84%E3%81%A6)
-  - [■ SetTracerProviderについていて](#%E2%96%A0-settracerprovider%E3%81%AB%E3%81%A4%E3%81%84%E3%81%A6%E3%81%84%E3%81%A6)
-    - [TracerProviderの構成オプションョン](#tracerprovider%E3%81%AE%E6%A7%8B%E6%88%90%E3%82%AA%E3%83%97%E3%82%B7%E3%83%A7%E3%83%B3%E3%83%A7%E3%83%B3)
-    - [TracerProviderの主なメソッドッド](#tracerprovider%E3%81%AE%E4%B8%BB%E3%81%AA%E3%83%A1%E3%82%BD%E3%83%83%E3%83%89%E3%83%83%E3%83%89)
-  - [■ otel.Tracerについていて](#%E2%96%A0-oteltracer%E3%81%AB%E3%81%A4%E3%81%84%E3%81%A6%E3%81%84%E3%81%A6)
-    - [Tracerの具体的な役割役割](#tracer%E3%81%AE%E5%85%B7%E4%BD%93%E7%9A%84%E3%81%AA%E5%BD%B9%E5%89%B2%E5%BD%B9%E5%89%B2)
-    - [otel.Tracerの使用例用例](#oteltracer%E3%81%AE%E4%BD%BF%E7%94%A8%E4%BE%8B%E7%94%A8%E4%BE%8B)
-  - [■ otel.SetTextMapPropagatorについていて](#%E2%96%A0-otelsettextmappropagator%E3%81%AB%E3%81%A4%E3%81%84%E3%81%A6%E3%81%84%E3%81%A6)
-    - [プロパゲータの種類](#%E3%83%97%E3%83%AD%E3%83%91%E3%82%B2%E3%83%BC%E3%82%BF%E3%81%AE%E7%A8%AE%E9%A1%9E)
-    - [otel.SetTextMapPropagatorの使用方法方法](#otelsettextmappropagator%E3%81%AE%E4%BD%BF%E7%94%A8%E6%96%B9%E6%B3%95%E6%96%B9%E6%B3%95)
-  - [gRPCでのトレース連携](#grpc%E3%81%A7%E3%81%AE%E3%83%88%E3%83%AC%E3%83%BC%E3%82%B9%E9%80%A3%E6%90%BA)
-    - [Server側](#server%E5%81%B4)
-    - [Client側](#client%E5%81%B4)
-- [Metric](#metric)
-  - [設定の流れ](#%E8%A8%AD%E5%AE%9A%E3%81%AE%E6%B5%81%E3%82%8C)
-    - [設定例](#%E8%A8%AD%E5%AE%9A%E4%BE%8B)
-  - [exemplars](#exemplars)
-- [Log](#log)
-  - [設定の流れ](#%E8%A8%AD%E5%AE%9A%E3%81%AE%E6%B5%81%E3%82%8C)
-    - [設定例（LokiのOTLP HTTPエンドポイントに送る設定例）](#%E8%A8%AD%E5%AE%9A%E4%BE%8Bloki%E3%81%AEotlp-http%E3%82%A8%E3%83%B3%E3%83%89%E3%83%9D%E3%82%A4%E3%83%B3%E3%83%88%E3%81%AB%E9%80%81%E3%82%8B%E8%A8%AD%E5%AE%9A%E4%BE%8B)
-
-<!-- /TOC --><!-- TOC -->
-
-- [目次](#%E7%9B%AE%E6%AC%A1)
-  - [設定の流れ](#%E8%A8%AD%E5%AE%9A%E3%81%AE%E6%B5%81%E3%82%8C)
-  - [■ NewTracerProviderについていて](#%E2%96%A0-newtracerprovider%E3%81%AB%E3%81%A4%E3%81%84%E3%81%A6%E3%81%84%E3%81%A6)
-  - [■ SetTracerProviderについていて](#%E2%96%A0-settracerprovider%E3%81%AB%E3%81%A4%E3%81%84%E3%81%A6%E3%81%84%E3%81%A6)
-    - [TracerProviderの構成オプションョン](#tracerprovider%E3%81%AE%E6%A7%8B%E6%88%90%E3%82%AA%E3%83%97%E3%82%B7%E3%83%A7%E3%83%B3%E3%83%A7%E3%83%B3)
-    - [TracerProviderの主なメソッドッド](#tracerprovider%E3%81%AE%E4%B8%BB%E3%81%AA%E3%83%A1%E3%82%BD%E3%83%83%E3%83%89%E3%83%83%E3%83%89)
-  - [■ otel.Tracerについていて](#%E2%96%A0-oteltracer%E3%81%AB%E3%81%A4%E3%81%84%E3%81%A6%E3%81%84%E3%81%A6)
-    - [Tracerの具体的な役割役割](#tracer%E3%81%AE%E5%85%B7%E4%BD%93%E7%9A%84%E3%81%AA%E5%BD%B9%E5%89%B2%E5%BD%B9%E5%89%B2)
-    - [otel.Tracerの使用例用例](#oteltracer%E3%81%AE%E4%BD%BF%E7%94%A8%E4%BE%8B%E7%94%A8%E4%BE%8B)
-  - [■ otel.SetTextMapPropagatorについていて](#%E2%96%A0-otelsettextmappropagator%E3%81%AB%E3%81%A4%E3%81%84%E3%81%A6%E3%81%84%E3%81%A6)
-    - [プロパゲータの種類](#%E3%83%97%E3%83%AD%E3%83%91%E3%82%B2%E3%83%BC%E3%82%BF%E3%81%AE%E7%A8%AE%E9%A1%9E)
-    - [otel.SetTextMapPropagatorの使用方法方法](#otelsettextmappropagator%E3%81%AE%E4%BD%BF%E7%94%A8%E6%96%B9%E6%B3%95%E6%96%B9%E6%B3%95)
-  - [gRPCでのトレース連携](#grpc%E3%81%A7%E3%81%AE%E3%83%88%E3%83%AC%E3%83%BC%E3%82%B9%E9%80%A3%E6%90%BA)
-    - [Server側](#server%E5%81%B4)
-    - [Client側](#client%E5%81%B4)
-- [Metric](#metric)
-  - [設定の流れ](#%E8%A8%AD%E5%AE%9A%E3%81%AE%E6%B5%81%E3%82%8C)
-    - [設定例](#%E8%A8%AD%E5%AE%9A%E4%BE%8B)
-  - [exemplars](#exemplars)
-- [Log](#log)
-  - [設定の流れ](#%E8%A8%AD%E5%AE%9A%E3%81%AE%E6%B5%81%E3%82%8C)
-    - [設定例（LokiのOTLP HTTPエンドポイントに送る設定例）](#%E8%A8%AD%E5%AE%9A%E4%BE%8Bloki%E3%81%AEotlp-http%E3%82%A8%E3%83%B3%E3%83%89%E3%83%9D%E3%82%A4%E3%83%B3%E3%83%88%E3%81%AB%E9%80%81%E3%82%8B%E8%A8%AD%E5%AE%9A%E4%BE%8B)
-
-<!-- /TOC -->
+## Retry処理
+- https://pkg.go.dev/go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploghttp@v0.11.0#WithRetry
+- Defaultで1分間4回に分けてRetryされるように設定されている
+  - https://pkg.go.dev/go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploghttp@v0.11.0/internal/retry#pkg-variables
+- `MaxElapsedTime`を変えることでRetry処理を試みる間隔(=回数)を延ばすことができる
+  - https://pkg.go.dev/go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploghttp@v0.11.0/internal/retry#pkg-variables
+  - `MaxInterval`（defaultは30s）も一緒に変えてもいいかも
+- 設定例  
+  ```go
+	opts := []otlploghttp.Option{
+		otlploghttp.WithEndpoint(url),
+		otlploghttp.WithURLPath("/otlp/v1/logs"),
+		otlploghttp.WithHeaders(map[string]string{
+			"X-Scope-OrgID": sid,
+		}),
+		otlploghttp.WithTimeout(30 * time.Second),
+                otlploghttp.WithRetry(otlploghttp.RetryConfig{
+		    MaxInterval:     60 * Time.Second,
+		    MaxElapsedTime:  10 * Time.Minute,
+	        })
+	}
+  ```
