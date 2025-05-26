@@ -63,7 +63,7 @@
       messages = state['messages']
       last_message = messages[-1]
 
-      if state["force_respond"] or last_message.usage_metadata["total_tokens"] > 50000: ## Claude3.7とClaude4の最大token数は200000なので、outputのToken(max_tokens=4096)と1回のLLM処理で1万くらいのTokenを使う可能性とかも考えて180000を超えたら強制的に回答を出すようにする
+      if state["force_respond"] or last_message.usage_metadata["total_tokens"] > 180000: ## Claude3.7とClaude4の最大token数は200000なので、outputのToken(max_tokens=4096)と1回のLLM処理で1万くらいのTokenを使う可能性とかも考えて180000を超えたら強制的に回答を出すようにする
           return "respond_forcibly"
       elif last_message.tool_calls:
           return "command_run_tools"
