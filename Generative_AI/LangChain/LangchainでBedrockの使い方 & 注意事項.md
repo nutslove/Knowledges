@@ -41,6 +41,33 @@
   Error processing messages: An error occurred (ValidationException) when calling the InvokeModel operation: Input is too long for requested model.
   ```
 - TokenがLLM ModelのLimitを超えたため出るエラー
+- **LangGraphでReact Agentを使っていて、Total Tokenで処理を分岐(制御)したい場合の設定方法**  
+  ```python
+  def force_respond(state: State):
+      system_prompt = """
+  You are a helpful assistant that specializes in system troubleshooting and root cause analysis. You analyze conversation histories to identify the underlying causes of technical issues and provide clear, actionable solutions.
+  """
+
+      if state["messages"][-1].tool_calls:
+          history_messages = state["messages"][:-1] # 最後のメッセージはLLMがtool callを行いたいというメッセージの場合、エラーになるため最後のメッセージを除外
+      else:
+          history_messages = state["messages"]
+
+      response = llm_with_structured_output.invoke(
+          [SystemMessage(content=system_prompt)] + history_messages + [HumanMessage(content="Based on the conversation history, generate the root cause of the alert in `analysis_results` and the command to resolve the issue in `final_command`.")]
+      )
+
+      return {"final_response": response}
+
+  def should_continue(state: State) -> Literal["command_run_tools", "respond", "respond_forcibly", "__end__"]:
+      messages = state['messages']
+      last_message = messages[-1]
+
+      if state["force_respond"] or last_message.usage_metadata["total_tokens"] > 50000: ## Claude3.7とClaude4の最大token数は200000なので、outputのToken(max_tokens=4096)と1回のLLM処理で1万くらいのTokenを使う可能性とかも考えて180000を超えたら強制的に回答を出すようにする
+          return "respond_forcibly"
+      elif last_message.tool_calls:
+          return "command_run_tools"
+  ```
 - 参考URL
   - https://repost.aws/questions/QUshd0uzCZRAy1TbudkUKhww/claude-on-bedrock-giving-input-is-too-long-for-requested-model-for-10k-token-inputs-edit-broken-in-eu-central-1-working-in-other-regions
 
@@ -50,3 +77,4 @@
   ValidationException('An error occurred (ValidationException) when calling the InvokeModel operation: input length and `max_tokens` exceed context limit: 201850 + 4096 > 204698, decrease input length or `max_tokens` and try again')Traceback (most recent call last):
   ```
 - TokenがLLM ModelのLimitを超えたため出るエラー
+- 対処方法は`Input is too long for requested model`エラーの時の場合を参照
