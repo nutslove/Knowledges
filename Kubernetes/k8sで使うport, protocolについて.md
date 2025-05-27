@@ -1,0 +1,1 @@
+- https://kubernetes.io/ja/docs/reference/networking/ports-and-protocols/
