@@ -32,10 +32,11 @@
 > 以下は`/flush`エンドポイントにPOSTを投げた時のingesterのログ
 > ![ingester_flush](image/ingester_flush.jpg)
 
-#### 2025/05/27 Update
-- https://grafana.com/docs/loki/latest/reference/loki-http-api/
-- `/flush`以外に`/ingester/prepare_shutdown`、`/ingester/shutdown`エンドポイントも追加されている
-  - ただ、Ingester内部のchunkをバックエンドにflushするだけなら、`/flush`エンドポイントで良い（と思う）
+> [!Note]  
+> 2025/05/27 Update  
+> - https://grafana.com/docs/loki/latest/reference/loki-http-api/
+> - `/flush`以外に`/ingester/prepare_shutdown`、`/ingester/shutdown`エンドポイントも追加されている
+>   - ただ、Ingester内部のchunkをバックエンドにflushするだけなら、`/flush`エンドポイントで良い（と思う）
 
 ### 上記の方法で起きたこと
 - 一部のログが表示されなくなった
