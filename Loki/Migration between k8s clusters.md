@@ -26,7 +26,7 @@
 6. 旧EKSクラスター上のLokiを削除
 ![migration_7](image/loki_migration_7.jpg)
 
-> **Note**  
+> [!Note]  
 > Ingesterにindexとchunkをflushするエンドポイント`/flush`がある  
 > https://grafana.com/docs/loki/latest/api/#flush-in-memory-chunks-to-backing-store  
 > 以下は`/flush`エンドポイントにPOSTを投げた時のingesterのログ
