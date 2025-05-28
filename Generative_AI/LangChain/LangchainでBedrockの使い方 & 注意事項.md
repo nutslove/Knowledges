@@ -17,6 +17,8 @@
    )
    ```
 
+---
+
 # BedrockのConfig設定方法
 - `ChatBedrock`初期化時に`config`に`Config(<Key>=<Value>)`形式で指定する  
   ```python
@@ -36,7 +38,46 @@
 - `config`に指定するのは`botocore.config.Config`のインスタンス
   - https://botocore.amazonaws.com/v1/documentation/api/latest/reference/config.html
 
-# `Input is too long for requested model`エラーについて
+# Bedrock Guardrails設定方法
+- 参考URL
+  - https://python.langchain.com/api_reference/aws/chat_models/langchain_aws.chat_models.bedrock.ChatBedrock.html#langchain_aws.chat_models.bedrock.ChatBedrock.guardrails
+  - https://medium.com/@vinayakdeshpande111/aws-guardrails-with-langchain-6554411d4d74
+  - https://python.langchain.com/api_reference/aws/llms/langchain_aws.llms.bedrock.BedrockLLM.html
+- コード例  
+  ```python
+  from langchain_aws import ChatBedrock
+
+  model_id = os.environ.get("LLM_MODEL_ID")
+  llm_region = os.environ.get("LLM_REGION")
+  bedrock_guardrail_id = os.environ.get("BEDROCK_GUARDRAIL_ID")
+  bedrock_guardrail_version = os.environ.get("BEDROCK_GUARDRAIL_VERSION")
+
+  llm = ChatBedrock(
+      model_id=model_id,
+      region_name=llm_region,
+      provider="anthropic",
+      model_kwargs={"temperature": 0.1},
+      max_tokens=4096, # default: 1024
+      config=Config(read_timeout=60),
+      guardrails={
+          "guardrailIdentifier": bedrock_guardrail_id,
+          "guardrailVersion": bedrock_guardrail_version,
+          "trace": True
+      }
+  )
+  ```
+- `guardrailIdentifier`にはGuardrailsのIDを指定  
+  ![](./image/bedrock_guardrail_1.png)
+- `guardrailVersion`にはVersionの後ろの数字の部分だけ(e.g. `"1"`)を指定  
+  ![](./image/bedrock_guardrail_2.png)
+- Guardrailsに引っかかった場合、Blocked messagingに設定したメッセージが返ってくる  
+  ![](./image/bedrock_guardrail_3.png)  
+  ![](./image/bedrock_guardrail_4.png)
+
+---
+
+# 不具合対応
+## `Input is too long for requested model`エラーについて
 - エラーメッセージ  
   ```shell
   Error processing messages: An error occurred (ValidationException) when calling the InvokeModel operation: Input is too long for requested model.
@@ -72,7 +113,7 @@
 - 参考URL
   - https://repost.aws/questions/QUshd0uzCZRAy1TbudkUKhww/claude-on-bedrock-giving-input-is-too-long-for-requested-model-for-10k-token-inputs-edit-broken-in-eu-central-1-working-in-other-regions
 
-# `input length and `max_tokens` exceed context limit` エラーについて
+## `input length and `max_tokens` exceed context limit` エラーについて
 - エラーメッセージ  
   ```shell
   ValidationException('An error occurred (ValidationException) when calling the InvokeModel operation: input length and `max_tokens` exceed context limit: 201850 + 4096 > 204698, decrease input length or `max_tokens` and try again')Traceback (most recent call last):
