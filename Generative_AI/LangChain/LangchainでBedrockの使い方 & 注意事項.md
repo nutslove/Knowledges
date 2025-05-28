@@ -32,6 +32,7 @@
       config=Config(read_timeout=60)
   ).bind_tools(tools)
   ```
+  - `max_tokens`はLLMが出力するoutputの最大Token数（inputとは関係ない）
 - `config`に指定するのは`botocore.config.Config`のインスタンス
   - https://botocore.amazonaws.com/v1/documentation/api/latest/reference/config.html
 
