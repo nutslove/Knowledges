@@ -81,7 +81,7 @@ if __name__ == '__main__':
     unittest.main(verbosity=2)
 ```
 
-## 使い方
+## 基本的な使い方
 - `import unittest`、テストケース記述後、`unittest.main()`で実行できる
 - testファイルは`test_<test対象ファイル>.py`にするのが一般的らしい
 - `unittest.TestCase`を継承するclassを定義し、メソッドとしてテスト関数を定義する
@@ -178,3 +178,59 @@ if __name__ == '__main__':
   if __name__ == '__main__':
       unittest.main()
   ```
+
+## テストのスキップとマーキング
+```python
+import unittest
+import sys
+import platform
+
+class TestSkipAndExpectedFail(unittest.TestCase):
+    
+    @unittest.skip("このテストは一時的にスキップします")
+    def test_skipped(self):
+        """スキップされるテスト"""
+        self.fail("このテストは実行されません")
+    
+    @unittest.skipIf(sys.version_info < (3, 8), "Python 3.8以上が必要")
+    def test_skip_if_old_python(self):
+        """条件付きスキップ"""
+        # Python 3.8以上でのみ実行される機能をテスト
+        self.assertTrue(True)
+    
+    @unittest.skipUnless(platform.system() == "Linux", "Linuxでのみ実行")
+    def test_linux_only(self):
+        """Linux環境でのみ実行されるテスト"""
+        self.assertTrue(True)
+    
+    @unittest.expectedFailure
+    def test_expected_to_fail(self):
+        """失敗が期待されるテスト（既知のバグなど）"""
+        self.assertEqual(1, 2)  # これは失敗する
+    
+    def test_conditional_skip(self):
+        """実行時の条件によるスキップ"""
+        try:
+            import requests
+        except ImportError:
+            self.skipTest("requestsライブラリが必要です")
+        
+        # requestsを使用したテストコード
+        self.assertTrue(True)
+
+class TestCustomSkipConditions(unittest.TestCase):
+    
+    def setUp(self):
+        # 環境変数やファイルの存在をチェック
+        import os
+        if not os.getenv('TEST_DATABASE_URL'):
+            self.skipTest("TEST_DATABASE_URL環境変数が設定されていません")
+    
+    def test_database_connection(self):
+        """データベース接続テスト"""
+        # データベース接続のテストコード
+        self.assertTrue(True)
+
+if __name__ == '__main__':
+    unittest.main(verbosity=2)
+```
