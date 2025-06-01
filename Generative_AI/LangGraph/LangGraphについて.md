@@ -1,3 +1,23 @@
+# LangGraphの特徴
+## 1. 明示的なステート管理
+- ステート(状態)を明示的に定義し、管理することができる
+- ステートは、会話履歴・収集した情報・中間結果などを含む構造化されたデータとして表現される
+- 各ノードはステートを入力として受け取り、処理を行ったあと、ステートを更新
+- これで各ステップ間の情報の受け渡しと更新ができる
+## 2. 条件分岐とループの自然な表現
+- グラフ構造を用いることで、条件分岐やループ処理を直観的に表現できる
+## 3. 段階的な拡張性
+- 新しい機能を追加したい場合、既存のグラフ構造に新しいノードを追加し、適切なエッジで接続するだけで済む
+## 4. デバックとテストの容易さ
+- 各ノードを独立してテストできるため、デバックとテストが容易になる
+- LangSmithとの連携も可能
+## 5. チェックポイントとリカバリ
+- ステートのチェックポイントを作成し、保存する機能がある
+- これにより、長時間実行されるタスクを中断し、あとで再開したり、エラーが発生した場合に特定のポイントから処理を再開したりすることが可能
+- 
+
+---
+
 # コンポーネント
 ## ステート
 - LangGraphのワークフローで実行される各ノードによって更新された値を保存するための仕組み
@@ -201,25 +221,6 @@
 
 ---
 
-# LangGraphの特徴
-## 1. 明示的なステート管理
-- ステート(状態)を明示的に定義し、管理することができる
-- ステートは、会話履歴・収集した情報・中間結果などを含む構造化されたデータとして表現される
-- 各ノードはステートを入力として受け取り、処理を行ったあと、ステートを更新
-- これで各ステップ間の情報の受け渡しと更新ができる
-## 2. 条件分岐とループの自然な表現
-- グラフ構造を用いることで、条件分岐やループ処理を直観的に表現できる
-## 3. 段階的な拡張性
-- 新しい機能を追加したい場合、既存のグラフ構造に新しいノードを追加し、適切なエッジで接続するだけで済む
-## 4. デバックとテストの容易さ
-- 各ノードを独立してテストできるため、デバックとテストが容易になる
-- LangSmithとの連携も可能
-## 5. チェックポイントとリカバリ
-- ステートのチェックポイントを作成し、保存する機能がある
-- これにより、長時間実行されるタスクを中断し、あとで再開したり、エラーが発生した場合に特定のポイントから処理を再開したりすることが可能
-
----
-
 # `Command`
 - 参考URL
   - https://zenn.dev/pharmax/articles/d91085d904657d
@@ -236,6 +237,9 @@
 
 > [!IMPORTANT]
 > You might have noticed that we used `Command` as a return type annotation, e.g. `Command[Literal["node_b", "node_c"]]`. This is necessary for the graph rendering and tells LangGraph that `node_a` can navigate to `node_b` and `node_c`.  
+
+> [!IMPORTANT]
+> When returning `Command` in your node functions, you must add return type annotations with the list of node names the node is routing to, e.g. `Command[Literal["my_other_node"]]`. This is necessary for the graph rendering and tells LangGraph that `my_node` can navigate to `my_other_node`. 
 
   - 以下の例でもnode Aとnode B・Cを`add_conditional_edges()`でつなげてないけど、Commandで指定しているため、グラフ上は以下のようにつながっている  
     ```python
@@ -326,6 +330,12 @@
       
       graph = builder.compile()
       ```
+
+## いつ`add_conditional_edges`の代わりに`Command`を使うべきか？
+- asd
+  > Use `Command` when you need to **both** update the graph state **and** route to a different node. For example, when implementing [multi-agent handoffs](https://langchain-ai.github.io/langgraph/concepts/multi_agent/#handoffs) where it's important to route to a different agent and pass some information to that agent.
+  >
+  > Use conditional edges to route between nodes conditionally without updating the state.
 
 ---
 
