@@ -13,8 +13,11 @@
 - LangSmithとの連携も可能
 ## 5. チェックポイントとリカバリ
 - ステートのチェックポイントを作成し、保存する機能がある
+- 保存先としては2025/06の時点では、Memory・SQLite・PostgreSQLがサポートされている
 - これにより、長時間実行されるタスクを中断し、あとで再開したり、エラーが発生した場合に特定のポイントから処理を再開したりすることが可能
-- 
+- https://langchain-ai.github.io/langgraph/tutorials/get-started/3-add-memory/
+  - graphをコンパイルする際に`checkpointer`と`thread_id`を指定することで、ステートを自動的に保存できる。それから、コンパイル時に指定した`thread_id`で再度呼び出すと、保存されたステートをロードして、LLMが前回の続きから処理を再開できるようになる
+    > If you provide a `checkpointer` when compiling the graph and a `thread_id` when calling your graph, LangGraph automatically saves the state after each step. When you invoke the graph again using the same `thread_id`, the graph loads its saved state, allowing the chatbot to pick up where it left off.
 
 ---
 
