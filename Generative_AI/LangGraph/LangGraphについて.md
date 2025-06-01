@@ -1,3 +1,14 @@
+# AI Agentの基本的な能力
+- https://langchain-ai.github.io/langgraph/concepts/agentic_concepts/
+- aasd  
+  > There are many ways that an LLM can control application:
+  >
+  > - **An LLM can route between two potential paths**
+  > - **An LLM can decide which of many tools to call**
+  > - **An LLM can decide whether the generated answer is sufficient or more work is needed**
+
+---
+
 # LangGraphの特徴
 ## 1. 明示的なステート管理
 - ステート(状態)を明示的に定義し、管理することができる
