@@ -88,5 +88,7 @@
       storageclass.kubernetes.io/is-default-class: "true"
   ```
 
-# IAM Roles for Service Accounts (IRSA) 
-- AWS IAM ロールとKubernetes Service Accountをマッピングする EKSの機能
+# EKSの監視
+- https://docs.aws.amazon.com/ja_jp/AmazonCloudWatch/latest/monitoring/Container-Insights-metrics-EKS.html
+- https://docs.aws.amazon.com/eks/latest/userguide/cloudwatch.html
+- https://aws-observability.github.io/observability-best-practices/guides/containers/oss/eks/best-practices-metrics-collection/
