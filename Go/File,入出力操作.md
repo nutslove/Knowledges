@@ -190,3 +190,45 @@ func main() {
 ## `os`パケットと`ioutil`パッケージ
 - **ioutilパッケージはgo1.16以降、非推奨になった。なので代わりに`os`パッケージを使うこと**
   - `ioutil.ReadFile`は **`os.ReadFile`** に、`ioutil.WriteFile`は **`os.WriteFile`** に置き換えられた。
+
+## ディレクトリ(directory)存在確認方法
+```go
+package main
+
+import (
+    "fmt"
+    "os"
+)
+
+func checkDirectory(path string) (bool, error) {
+    info, err := os.Stat(path)
+    if err != nil {
+        if os.IsNotExist(err) {
+            return false, nil // 存在しない
+        }
+        return false, err // その他のエラー
+    }
+    
+    if !info.IsDir() {
+        return false, fmt.Errorf("'%s' はディレクトリではありません", path)
+    }
+    
+    return true, nil
+}
+
+func main() {
+    dirPath := "./example"
+    
+    exists, err := checkDirectory(dirPath)
+    if err != nil {
+        fmt.Printf("エラー: %v\n", err)
+        return
+    }
+    
+    if exists {
+        fmt.Printf("ディレクトリ '%s' は存在します\n", dirPath)
+    } else {
+        fmt.Printf("ディレクトリ '%s' は存在しません\n", dirPath)
+    }
+}
+```
