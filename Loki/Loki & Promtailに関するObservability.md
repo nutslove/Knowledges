@@ -69,7 +69,7 @@
 
   　→ githubのソースコード[pkg/distributor/distributor.go](https://github.com/grafana/loki/blob/db3a9c961e65f186f910cc07e7f46b32779ca9a0/pkg/distributor/distributor.go)から確認できる  
     - **`sendStreamsErr`Methodの`d.ingesterAppendFailures.WithLabelValues(ingester.Addr).Inc()`で`loki_distributor_ingester_append_failures_total`Metricsをカウントしている  
-      `sendStreams`Methodのコメントに書いてある通り、`loki_distributor_ingester_append_failures_total`が発生しても必要最低限のingesterにpushできれば問題なさそう**
+      `sendStreams`Methodのコメントに書いてある通り、`loki_distributor_ingester_append_failures_total`が発生しても必要最低限のingesterにpushできれば問題なさそう**  
       ~~~go
       func (d *Distributor) sendStreams(ctx context.Context, ingester ring.InstanceDesc, streamTrackers []*streamTracker, pushTracker *pushTracker) {
           err := d.sendStreamsErr(ctx, ingester, streamTrackers)
@@ -123,6 +123,10 @@
           return err
       }
       ~~~
+- `loki_write_failures_logged_total`、`write_failures_discarded_total`  
+  > - "The total number of write failures logs successfully emitted for a tenant."
+  > - The total number of write failures logs discarded for a tenant.
+  - 具体的にどういうときに出すものか要確認
 
 ## Ingester
 - `loki_ingester_chunks_flushed_total` (counter)  
