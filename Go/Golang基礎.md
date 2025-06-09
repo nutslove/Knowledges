@@ -3073,6 +3073,22 @@ func main() {
   - https://www.spinute.org/go-by-example/select.html
   - https://go-tour-jp.appspot.com/concurrency/6
   - https://www.ardanlabs.com/blog/2013/11/label-breaks-in-go.html
+- `default`句
+  - `select`文の中で、どの`case`も実行されない場合（どの`case`も即座に実行できない場合）に実行される  
+    ```go
+    select {
+    case <-ctx.Done():
+        // ctx.Done()から即座に受信できる場合
+        // キャンセルされた場合の処理を行う
+        fmt.Println("Context cancelled")
+        return
+    default:
+        // ctx.Done()から即座に受信できない場合（ブロックしない）
+        // 通常の処理を続行
+        // キャンセルされていない場合の処理を行う
+        fmt.Println("Continuing normal processing")
+    }
+    ```
 
 ## パッケージ(import)
 - Format
