@@ -50,7 +50,7 @@
   → `status_code`5xx系のやつを注視
   - `auth_enabled: true`を設定したMulti-tenantモードのLokiにTenant ID(X-Scope-OrgID)が設定されてないデータが連携されると`status_code=401`がカウントされる。また、Client側では以下のような401エラーが出る。
     `server returned HTTP status 401 Unauthorized (401): no org id: errorString null`
-- `loki_discarded_samples_total` (counter)  
+- **`loki_discarded_samples_total`** (counter)  
   → rejected samples by reason  
   → distributorのRateLimitやvalidation checkで引っかかって破棄されたログ数  
   → `reason`ラベルに破棄された理由が入る  
@@ -62,6 +62,10 @@
     > その他の必要最低限数のIngesterにPushできていればLogは喪失されない  
     > 万が一必要最低限数のIngesterにPushできなかった場合はPromtailが再送する
     ![](image/loki_distributor_ingester_append_failures_total.jpg)
+> [!WARNING]  
+> 2025/06/09  
+> `loki_distributor_ingester_append_failures_total`メトリクスは、**`loki_distributor_ingester_append_timeouts_total`メトリクスに置き換わった**  
+> https://github.com/grafana/loki/pull/10456
 
   　→ githubのソースコード[pkg/distributor/distributor.go](https://github.com/grafana/loki/blob/db3a9c961e65f186f910cc07e7f46b32779ca9a0/pkg/distributor/distributor.go)から確認できる  
     - **`sendStreamsErr`Methodの`d.ingesterAppendFailures.WithLabelValues(ingester.Addr).Inc()`で`loki_distributor_ingester_append_failures_total`Metricsをカウントしている  
