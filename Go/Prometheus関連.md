@@ -1,5 +1,7 @@
 - Prometheus Go client library
 https://pkg.go.dev/github.com/prometheus/client_golang
+- **実装サンプルコード**
+  - https://github.com/prometheus/client_golang/tree/main/examples
 
 ### **`promhttp`Package**
   - *Sub-packages allow to expose the registered metrics via HTTP*
