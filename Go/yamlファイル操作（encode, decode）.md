@@ -1,5 +1,6 @@
 > [!CAUTION]
-> [`gopkg.in/yaml`パッケージ](https://github.com/go-yaml/yaml)はアーカイブされていて、メンテナンスされてないので、代わりに`"github.com/goccy/go-yaml"`（https://github.com/goccy/go-yaml）を使うこと
+> [`gopkg.in/yaml`パッケージ](https://github.com/go-yaml/yaml)はアーカイブされていて、メンテナンスされてないので、代わりに`"github.com/goccy/go-yaml"`を使うこと
+> https://github.com/goccy/go-yaml
 
 ## `"github.com/goccy/go-yaml"`パッケージの使い方
 - jsonと同様に、Goの構造体をYAMLにエンコードしたり、YAMLをGoの構造体にデコードすることができる
