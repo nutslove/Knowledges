@@ -963,7 +963,7 @@ updates go.mod to require those versions, and downloads source code into the mod
    fmt.Printf("%s\n", stringer.String())
   }
   ```
-1.  
+2.  
   ```go
   type person struct {
 	  first string
