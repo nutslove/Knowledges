@@ -934,36 +934,36 @@ updates go.mod to require those versions, and downloads source code into the mod
   ```
 - Structがある → そのStructをReceiver引数として持つMethodがある → そのMethodを持つInterfaceがある
 ### 例
-1.   
-   ```go
-   type Stringer interface {
-     String() string
+1.  
+  ```go
+  type Stringer interface {
+   String() string
+  }
+
+  type Student struct {
+   Name string
+   Age int
+  }
+
+  func (s Student) String() string {
+   return fmt.Sprintf("Hey! I am %d years old and my name is %s", s.Age, s.Name) // fmt.Sprintfはターミナルに出力せず、出力値を変数に保存したりする際に利用
+  }
+
+  func main() {
+   student := Student{
+     "Lee",
+     32
    }
 
-   type Student struct {
-     Name string
-     Age int
-   }
+   stringer := Stringer(student)
+   // 以下のようにinterface型の変数を定義し、structインスタンスを代入することもできるが、上記の書き方がより多く使われるらしい
+   // var stringer Stringer
+   // stringer = student
 
-   func (s Student) String() string {
-     return fmt.Sprintf("Hey! I am %d years old and my name is %s", s.Age, s.Name) // fmt.Sprintfはターミナルに出力せず、出力値を変数に保存したりする際に利用
-   }
-
-   func main() {
-     student := Student{
-       "Lee",
-       32
-     }
-
-     stringer := Stringer(student)
-     // 以下のようにinterface型の変数を定義し、structインスタンスを代入することもできるが、上記の書き方がより多く使われるらしい
-     // var stringer Stringer
-     // stringer = student
-
-     fmt.Printf("%s\n", stringer.String())
-   }
-   ```
-2.  
+   fmt.Printf("%s\n", stringer.String())
+  }
+  ```
+1.  
   ```go
   type person struct {
 	  first string
