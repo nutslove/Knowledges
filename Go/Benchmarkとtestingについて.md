@@ -20,6 +20,8 @@
 - 戻り値を持たない
 - テストファイル(`_test.go`)は、テスト対象のファイルと同じディレクトリに配置
 
+---
+
 # Benchmark
 - 性能測定時使う
 - Benchmark関数名は必ず`Benchmark`から始まる必要がある。
@@ -27,6 +29,8 @@
   - OK例: `Benchmark_someFunction`、`BenchmarkSomeFunction`
   - NG例: `BenchmarksomeFunction`
 - Benchmark関数は`*testing.B`引数のみを受け付ける
+
+---
 
 # `testing`
 - https://pkg.go.dev/testing

@@ -912,83 +912,59 @@ updates go.mod to require those versions, and downloads source code into the mod
 - Interfaceは具現しなければいけないMethodの集合を表した抽象Type
 - あるData TypeがInterfaceを満たすためには、そのInterfaceが求めるすべてのMethodを具現しなければいけない
 - Interfaceを通じて動作を定義できる
-  - 下記例の`GetArea() int`や`speak()`
-- InterfaceのTypeはInterfaceに指定したMethodを持つStructのTypeになれる（Interfaceは値が1つ以上のTypeになり得るようにする）
-  - Interfaceに指定したMethodを持つStructが複数ある場合はそのすべてのStructのTypeになれる
-  - 例えば例１の場合、`Figure`は`Circle`Typeにも`Square`Typeにもなり得る
+  - 下記例の`Speak()`
+- struct型の値は、**interface型の変数に代入できる**（条件：interfaceを満たしていれば）　　
+  ```go
+  type Speaker interface {
+      Speak() string
+  }
+
+  type Person struct{}
+
+  func (p Person) Speak() string {
+      return "Hello"
+  }
+
+  func main() {
+      var s Speaker
+      p := Person{}
+      s = p // OK, PersonはSpeakerを満たす
+      fmt.Println(s.Speak()) // "Hello"と出力される
+  }
+  ```
 - Structがある → そのStructをReceiver引数として持つMethodがある → そのMethodを持つInterfaceがある
-- Format
-  ~~~go
-  type <Interface名> interface {
-    <Method名([引数])> <Methodでreturnされる型>
-  }
-  ~~~
-- 例１
-  ~~~go
-  type Circle struct {
-	  Radius int
-  }
+### 例
+1.   
+   ```go
+   type Stringer interface {
+     String() string
+   }
 
-  func (c Circle) GetArea() int {
-	  return 3 * c.Radius * c.Radius
-  }
+   type Student struct {
+     Name string
+     Age int
+   }
 
-  type Square struct {
-	  Height int
-  }
+   func (s Student) String() string {
+     return fmt.Sprintf("Hey! I am %d years old and my name is %s", s.Age, s.Name) // fmt.Sprintfはターミナルに出力せず、出力値を変数に保存したりする際に利用
+   }
 
-  func (s Square) GetArea() int {
-	  return s.Height * s.Height
-  }
+   func main() {
+     student := Student{
+       "Lee",
+       32
+     }
 
-  type Figure interface {
-	  GetArea() int
-  }
+     stringer := Stringer(student)
+     // 以下のようにinterface型の変数を定義し、structインスタンスを代入することもできるが、上記の書き方がより多く使われるらしい
+     // var stringer Stringer
+     // stringer = student
 
-  func DisplayArea(f Figure) { ---> Figureのf変数(引数)にCircle structまたはSquare structの値が入る
-	  fmt.Printf("%T\n", f)
-	  fmt.Printf("面積は%vです\n", f.GetArea())
-  }
-
-  func main() {
-	  circle := Circle{Radius: 2}
-	  DisplayArea(circle) ------------→ 3*2*2で"面積は12です"と出力される
-
-	  square := Square{Height: 3}
-	  DisplayArea(square) ------------→ 3*3で"面積は9です"と出力される
-  }
-  ~~~
-- 例２  
-  ~~~go
-  type Stringer interface {
-    String() string
-  }
-
-  type Student struct {
-    Name string
-    Age int
-  }
-
-  func (s Student) String() string {
-    return fmt.Sprintf("Hey! I am %d years old and my name is %s", s.Age, s.Name) // fmt.Sprintfはターミナルに出力せず、出力値を変数に保存したりする際に利用
-  }
-
-  func main() {
-    student := Student{
-      "Lee",
-      32
-    }
-
-    stringer := Stringer(student)
-    // 以下のようにinterface型の変数を定義し、structインスタンスを代入することもできるが、上記の書き方がより多く使われるらしい
-    // var stringer Stringer
-    // stringer = student
-
-    fmt.Printf("%s\n", stringer.String())
-  }
-  ~~~
-- 例３
-  ~~~go
+     fmt.Printf("%s\n", stringer.String())
+   }
+   ```
+2.  
+  ```go
   type person struct {
 	  first string
 	  last  string
@@ -1049,10 +1025,10 @@ updates go.mod to require those versions, and downloads source code into the mod
 	bar(sa2)
 	bar(p1)
   }
-  ~~~
-- 例４ ([sortパッケージ(interface)](https://pkg.go.dev/sort#Interface))
-  - `sort.Sort`でsortするためには上のURLのInterfaceで定義している`Len() int`、`Less(i, j int) bool`、`Swap(i, j int)` Methodを具現する必要がある
-  ~~~go
+  ```
+3. [sortパッケージ(interface)](https://pkg.go.dev/sort#Interface)
+  - `sort.Sort`でsortするためには上のURLのInterfaceで定義している`Len() int`、`Less(i, j int) bool`、`Swap(i, j int)` Methodを具現する必要がある  
+  ```go
   package main
 
   import (
@@ -1104,12 +1080,52 @@ updates go.mod to require those versions, and downloads source code into the mod
   	sort.Sort(sort.Reverse(S2slice(data)))
   	fmt.Println("Reverse:", data)
   }
-  ~~~
+  ```
 - 参考URL
   - https://go.dev/play/p/rZH2Efbpot
   - https://dev-yakuza.posstree.com/golang/interface/
 
-### `map[string]interface{}`（=`map[string]any{}`）について
+4.  
+```go
+package main
+
+import "fmt"
+
+// インターフェースの定義
+type Greeter interface {
+    SayHello() string
+}
+
+// 構造体の定義
+type Person struct {
+    Name string
+}
+
+// PersonがGreeterインターフェースの条件を満たすようにメソッドを実装
+func (p Person) SayHello() string {
+    return "Hello, my name is " + p.Name
+}
+
+func main() {
+    // Person型のインスタンス
+    p := Person{Name: "Alice"}
+    fmt.Printf("Type of p: %T\n", p) // Type of p: main.Person
+
+    // Person型のインスタンスをGreeterインターフェース型の変数に代入
+    var g Greeter
+    g = p // ここで代入が可能です。PersonがGreeterを満たしているため。
+
+    fmt.Printf("Type of g: %T\n", g) // Type of g: main.Person (動的型はPersonだが、静的型はGreeter)
+    fmt.Println(g.SayHello())      // Greeterインターフェースを通してメソッドを呼び出し
+
+    // 逆の代入は、型アサーションなどが必要
+    // p = g // これはコンパイルエラー (cannot use g (type Greeter) as type Person in assignment)
+}
+```
+
+---
+
+## `map[string]interface{}`（=`map[string]any{}`）について
 - **そもそも`interface{}`は、empty interfaceでどんな型の値でも格納できるもの**
 - goのv1.18から`any`というのが追加されたけど、これは`interface{}`のalias
 - `map[string]interface{}`からのデータ抽出の例
@@ -1150,7 +1166,9 @@ updates go.mod to require those versions, and downloads source code into the mod
     fmt.Println("jvm_perm:", jvm_perm) // "jvm_perm: 128M"
     ```
 
-### Type assertions（型アサーション）
+---
+
+## Type assertions（型アサーション）
 - `interface{}`型の変数に割り当てた値は、実行(ランタイム)時にその値の実際の型(e.g. string、int)に変換して使う必要があり、その型変換機能をType assertionsという
 - 書き方
   - `<interface{}型変数>.(変換したい型)`
@@ -1201,7 +1219,9 @@ func checkType(arg interface{}) {
 }
 ```
 
-### `reflect.TypeOf()`による`interface{}`に割り当てられた値の型確認
+---
+
+## `reflect.TypeOf()`による`interface{}`に割り当てられた値の型確認
 - `reflect`パッケージの`TypeOf()`メソッドで、`interface{}`型に格納された値の実際の型を確認できる
   ```go
   var a interface{} = 15
