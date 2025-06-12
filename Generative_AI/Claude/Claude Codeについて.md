@@ -1,6 +1,9 @@
 ## Claude CodeのBest Practices
 - https://www.anthropic.com/engineering/claude-code-best-practices
 
+## Claude CodeのCHANGELOG
+- https://github.com/anthropics/claude-code/blob/main/CHANGELOG.md
+
 ## Claude Code Action
 - Claude CodeとGithubリポジトリを統合して、自動コードレビュー、PR管理などができる機能
 - 参考URL
