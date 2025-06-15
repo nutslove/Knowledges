@@ -14,7 +14,7 @@
 - https://langfuse.com/self-hosting/docker-compose
 
 ## Helm（k8s）
-- https://github.com/langfuse/langfuse-k8s
+- **https://github.com/langfuse/langfuse-k8s**
 - `langfuse.nextauth.secret.value`には`openssl rand -hex 32`で生成された値を入れる  
   ```shell
   helm install langfuse langfuse/langfuse -n langfuse -f values.yaml

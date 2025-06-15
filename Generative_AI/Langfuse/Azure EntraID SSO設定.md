@@ -1,6 +1,7 @@
 # 手順
 - 参考URL
   - https://langfuse.com/self-hosting/authentication-and-sso#azure-adentra-id
+    - https://next-auth.js.org/providers/azure-ad
   - https://github.com/orgs/langfuse/discussions/4591
   - https://github.com/orgs/langfuse/discussions/4764
 
