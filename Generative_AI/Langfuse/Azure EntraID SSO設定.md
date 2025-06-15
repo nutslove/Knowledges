@@ -74,6 +74,8 @@
             key: azure-tenant-id
       - name: NEXTAUTH_URL
         value: https://<Langfuseにアクセスするために設定したドメイン名>
+      - name: AUTH_AZURE_ALLOW_ACCOUNT_LINKING
+        value: "true"
 
   postgresql:
     deploy: false
