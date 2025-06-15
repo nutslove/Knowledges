@@ -36,7 +36,7 @@
     - 手順2.で確認した「Client secret」の値
 - `langfuse.nextauth.url`と`NEXTAUTH_URL`環境変数両方設定しないといけない（設定する値は「*https://<Langfuseにアクセスするために設定したドメイン名>*」で一緒）
   - `langfuse.nextauth.url`を設定しないとログイン時「*http://localhost:3000/api/auth/callback/azure-ad* 」 にリダイレクトされてしまう
-- `values.yaml`の例（External Secret OperatorでSecretを設定した場合の設定例）  
+- `values.yaml`の例（RDSとS3はAWSサービスを使い、SecretはExternal Secret Operatorで設定した場合の設定例）  
   ```yaml
   langfuse: 
     encryptionKey: # `openssl rand -hex 32`で生成
