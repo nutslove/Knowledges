@@ -7,7 +7,9 @@
 - Prompt Template、Chat Model、Output Parser、Retrieverなどのモジュールは「**Runnable**」という抽象基底クラスを継承していて、**RunnableクラスはRunnableの実行方法として`invoke`、`stream`、`batch`メソッドを持つ**
 - **Runnableを`|`でつなぐと**「**RunnableSequence**」となる
   - RunnableSequenceもRunnableの一種
-- **RunnableSequenceをinvokeすると連結したRunnableが順にinvokeされる**
+- **RunnableSequenceを`invoke`すると連結したRunnableが順に`invoke`される**
+  - RunnableSequenceを`stream`で呼び出すと、連結したRunnableが順に`stream`で実行される
+  - RunnableSequenceを`batch`で呼び出すと、連結したRunnableが順に`batch`で実行される
 - このようにRunnableを`|`でつないで新たなRunnable（RunnableSequence）を作り、それをinvokeしたときに、内部のRunnableが順に実行(invoke)される仕組みを **LCEL（LangChain Expression Language）** と呼ぶ
 - **Runnableを`|`で連結する時は、出力の型と入力の型の整合性に注意する必要がある**
   - 例えば、`RunnableSequence`の最初のRunnableの出力が`str`型で、次のRunnableの入力が`int`型の場合はエラーになる
