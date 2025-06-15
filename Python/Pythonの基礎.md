@@ -328,6 +328,8 @@ print(index) --> 2が出力
   def example(a, b, c=None, r="w", d=[], *ae,  **ab):
   ```
 
+---
+
 ## 特殊メソッド
 ### `__dict__`メソッド
 - Objectが持つ**属性**と**その値**を格納する**辞書**
@@ -429,6 +431,28 @@ print(index) --> 2が出力
   # John
   print(person.age)
   # 52
+  ```
+
+### `__call__`メソッド
+
+#### `__call__`メソッドと`__init__`メソッドの違い
+- `__init__`メソッドはクラスのインスタンス化時に呼び出され、オブジェクトの初期化を行う。
+- `__call__`メソッドはインスタンスが呼び出されたときに実行される。
+- **`__init__`メソッドはオブジェクトが作成されたときに1度だけ呼び出される。一方、`__call__`メソッドはインスタンスが呼び出されるたびに複数回呼び出される。**
+- 例  
+  ```python
+  class Counter:
+      def __init__(self):
+          self.count = 0
+          print("Counter initialized")
+      def __call__(self):
+          self.count += 1
+          print(f"Counter called: {self.count}")
+          return self.count
+   
+  C = Counter() # 出力: Counter initialized
+  C()  # 出力: Counter called: 1
+  C()  # 出力: Counter called: 2
   ```
 
 ## 三項演算子
