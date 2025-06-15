@@ -41,7 +41,18 @@
   print(result)
   ```
 
-### `RunnablePassthrough`について
+### `|`の仕組み
+- pythonでは、演算子の動作を自分で定義できる
+- `Runnable`クラスは`__or__`メソッドと`__ror__`メソッドをオーバーライドしていて、`|`演算子が呼ばれたときに、2つのRunnableを連結した新しいRunnableSequenceを返すようになっている
+  - `__or__`メソッドは左側のRunnableから右側のRunnableへと結合
+  - `__ror__`メソッドは右側のRunnableから左側のRunnableへと結合
+  - `A | B`は、まず`A.__or__(B)`を試し、`A.__or__(B)` が `NotImplemented` を返すか、`__or__` メソッドが存在しない場合、次に `B.__ror__(A)` を試す。それも PNotImplemented` を返すか存在しない場合、`TypeError` が発生
+- `prompt | model`は`prompt.__or__(model)`と同じ意味
+- `|`つまり、`__or__`メソッドは、戻り値として`RunnableSequence`を返す
+
+---
+
+## `RunnablePassthrough`について
 - `RunnablePassthrough`は、入力をそのまま出力として返すRunnable
 - 以下の例で、`{"context": retriever, "question": RunnablePassthrough()}`の部分は、`retriever`からの出力（検索結果）を`context`に渡しつつ、入力された質問をそのまま`question`に渡す役割を果たす
 - RunnablePassthroughを使ったRAGのChainの実装例    
