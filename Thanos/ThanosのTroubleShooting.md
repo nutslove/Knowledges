@@ -31,6 +31,8 @@
     >     **Please note if you enable this option and you use compactor, make sure you have the `--compact.enable-vertical-compaction` flag enabled, otherwise you might risk compactor halt.**
   - https://groups.google.com/g/prometheus-users/c/vtmeo06pxiE?pli=1
 
+---
+
 # Ingesting ReceiverのPV(EBS)の空き容量がなくなった場合
 - Ingesting Receiverから以下のようなログが出る。ただ、必要最低限のReceiverが正常に動いていればメトリクスの受信はできる。  
   ```shell
