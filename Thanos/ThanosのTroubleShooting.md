@@ -50,5 +50,7 @@
   ```
 
 - Pod,PVを削除してPVの容量を増やした後、Podを再デプロイする
-- **以下のPromQLでPVの使用率を監視すること！**
-  - `(kubelet_volume_stats_used_bytes / kubelet_volume_stats_capacity_bytes) * 100`
+
+> [!IMPORTANT]  
+> **以下のPromQLでPVの使用率を監視すること！**  
+> `(kubelet_volume_stats_used_bytes / kubelet_volume_stats_capacity_bytes) * 100`
