@@ -48,3 +48,7 @@
   ```shell
   time=2025-06-17T09:15:18.698Z level=WARN source=queue_manager.go:2031 msg="Failed to send batch, retrying" component=remote remote_name=6c1ca9 url=http://thanos-routing-receiver.monitoring.svc:19291/api/v1/receive err="server returned HTTP status 503 Service Unavailable: 3 errors: forwarding request to endpoint {thanos-ingesting-receiver-0.thanos-ingesting-receiver.monitoring.svc.cluster.local:10901 thanos-ingesting-receiver-0.thanos-ingesting-receiver.monitoring.svc.cluster.local:19391 }: rpc error: code = Unavailable desc = connection error: desc = \"transport: Error while dialing: dial tcp 10.1.24.111:10901: connect: connection refused\"; forwarding request to endpoint {thanos-ingesting-receiver-1.thanos-ingesting-receiver.monitoring.svc.cluster.local:10901 thanos-ingesting-receiver-1.thanos-ingesting-receiver.monitoring.svc.cluster.local:19391 }: rpc error: code = Unavailable desc = connection error: desc = \"transport: Error while dialing: dial tcp 10.1.27.68:10901: connect: connection refused\"; forwarding request to endpoint {thanos-ingesting-receiver-3.thanos-ingesting-receiver.monitoring.svc.cluster.local:10901 thanos-ingesting-receiver-3.thanos-ingesting-receiver.monitoring.svc.cluster.local:19391 }: rpc error: code = Unavailable desc = connection error: desc = \"transpo"
   ```
+
+- Pod,PVを削除してPVの容量を増やした後、Podを再デプロイする
+- **以下のPromQLでPVの使用率を監視すること！**
+  - `(kubelet_volume_stats_used_bytes / kubelet_volume_stats_capacity_bytes) * 100`
