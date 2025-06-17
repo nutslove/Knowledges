@@ -29,6 +29,23 @@
 
 ---
 
+# S3
+- S3のリージョン(Region)を指定しないと以下のようなエラーが出る場合がある  
+  ```shell
+  error  Failed to upload event to S3
+  Failed to upload JSON to S3
+  getaddrinfo ENOTFOUND s3.auto.amazonaws.com
+  ```
+  - Helmの場合、`values.yaml`で`s3.region`でリージョンを指定できる  
+    ```yaml
+    s3:
+      deploy: false
+      bucket: <S3バケット名>
+      region: ap-northeast-1
+    ```
+
+---
+
 # Redisについて
 - Redisが再起動されてもeventが消失されることはないらしい（以下LangfuseのAsk AIの回答）
   > Redis/Valkey serves as a caching layer and queue in Langfuse's architecture [(1)](https://langfuse.com/self-hosting/infrastructure/cache). It has several key roles:
