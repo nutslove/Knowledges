@@ -10,6 +10,7 @@
   ```
 ### 原因
 - いくつか原因があり得るっぽい
-  - Remote WriteするPrometheusと受け取るThanos側でTimeがsyncされてない場合
-    - PrometheusのUIでTSDB StatusでMin/Max Timeがすごい過去/未来の時刻になってないか確認  
-      ![](./image/prometheus_tsdb_time.png)
+
+#### 1. Remote WriteするPrometheusと受け取るThanos側でTimeがsyncされてない場合
+- PrometheusのUIでTSDB StatusでMin/Max Timeがすごい過去/未来の時刻になってないか確認  
+  ![](./image/prometheus_tsdb_time.png)
