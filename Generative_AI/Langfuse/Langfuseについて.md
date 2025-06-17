@@ -30,7 +30,7 @@
 ---
 
 # S3
-- S3のリージョン(Region)を指定しないと以下のようなエラーが出る場合がある  
+- S3のリージョン(Region)を指定しないと、langfuse-webから以下のようなエラーが出る場合がある  
   ```shell
   error  Failed to upload event to S3
   Failed to upload JSON to S3
