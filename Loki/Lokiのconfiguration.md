@@ -1,6 +1,8 @@
 ## Configuration best practice
 - https://grafana.com/docs/loki/latest/configure/bp-configure/
 
+---
+
 ## ingester
 - 参考URL
   - https://grafana.com/docs/loki/latest/configuration/#ingester
@@ -13,10 +15,19 @@
     - ここに指定した時間が経過したchunkをflushする
   - `chunk_idle_period`
     - ここに指定した時間の間、chunkに更新がない場合flushする
+
+---
+
 ## `limit_config` block
 - https://grafana.com/docs/loki/latest/configuration/#limits_config
 - **`reject_old_samples_max_age`と`retention_period`の違いについて**
 ![difference_between_retention_period_and_reject_old_samples_max_age](image/difference_between_retention_period_and_reject_old_samples_max_age.jpg)
+
+- `retention_period`はdefaultでは`0s`（期限なし）になっている
+
+![](image/limit_config_1.jpg)
+
+---
 
 ## `analytics` block
 - defaultではLokiは利用状況と設定情報をGrafana Labsに送るようになっている

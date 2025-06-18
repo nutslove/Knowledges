@@ -22,7 +22,7 @@
 
 # テナントごとのLimit設定
 - 1つのテナントがリソースを使いすぎるのを防ぐためにテナントごとにLimitを設定することができる
-## `frontend`
+## ■ `frontend`
 - https://grafana.com/docs/loki/latest/configure/#frontend
 - `max_outstanding_per_tenant`  
   ```yaml
@@ -31,7 +31,7 @@
   # CLI flag: -querier.max-outstanding-requests-per-tenant
   [max_outstanding_per_tenant: <int> | default = 2048]
   ```
-## `index_gateway`
+## ■ `index_gateway`
 - https://grafana.com/docs/loki/latest/configure/#index_gateway
 - `mode`  
   ```yaml
@@ -44,7 +44,7 @@
   # CLI flag: -index-gateway.mode
   [mode: <string> | default = "simple"]
   ```
-## `limits_config`
+## ■ `limits_config`
 - https://grafana.com/docs/loki/latest/configure/#limits_config  
   > The `limits_config` block configures global and per-tenant limits in Loki. The values here can be overridden in the `overrides` section of the `runtime_config` file
 - **`max_queriers_per_tenant`**  
@@ -74,7 +74,7 @@
   # CLI flag: -frontend.max-query-capacity
   [max_query_capacity: <float> | default = 0]
   ```
-## `querier`
+## ■ `querier`
 - https://grafana.com/docs/loki/latest/configure/#querier
 - `multi_tenant_queries_enabled`  
   ```yaml
@@ -82,7 +82,7 @@
   # CLI flag: -querier.multi-tenant-queries-enabled
   [multi_tenant_queries_enabled: <boolean> | default = false]
   ```
-## `query_scheduler`
+## ■ `query_scheduler`
 - https://grafana.com/docs/loki/latest/configure/#query_scheduler
 - `max_outstanding_requests_per_tenant`  
   ```yaml
@@ -92,7 +92,7 @@
   # CLI flag: -query-scheduler.max-outstanding-requests-per-tenant
   [max_outstanding_requests_per_tenant: <int> | default = 32000]
   ```
-## `overrides`
+## ■ `overrides`
 - https://grafana.com/docs/loki/latest/configure/#runtime-configuration-file
 - `overrides`ブロックでテナントごとの値を設定できる  
   ```yaml
