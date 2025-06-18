@@ -24,8 +24,8 @@
 ![difference_between_retention_period_and_reject_old_samples_max_age](image/difference_between_retention_period_and_reject_old_samples_max_age.jpg)
 
 - `retention_period`はdefaultでは`0s`（期限なし）になっている
-
-![](image/limit_config_1.jpg)
+- その他の設定について  
+  ![](image/limit_config_1.jpg)
 
 ---
 
