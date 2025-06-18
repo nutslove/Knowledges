@@ -28,6 +28,7 @@
   - seriesごとのラベル数の制限は`max_label_names_per_series`で設定
 > [!TIP]  
 > In the context of Loki, "an index query" refers specifically to a query that looks up data from the index, rather than scanning the raw log data itself. The index in Loki is built from the labels assigned to log streams, and index queries are used to quickly find which streams (unique combinations of labels) match certain criteria.
+> 
 > This is different from a general LogQL query, which may include both:
 >  - An index lookup (to find matching streams based on label selectors), and
 >  - A scan/filter of the actual log content within those streams (using filter expressions, regex, etc.).
