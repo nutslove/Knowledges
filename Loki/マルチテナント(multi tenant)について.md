@@ -52,7 +52,7 @@
   # Maximum number of queriers that can handle requests for a single tenant.
   # If set to 0 or value higher than number of available queriers, *all* queriers will handle requests for the tenant. 
   # Each frontend (or query-scheduler, if used) will select the same set of queriers for the same tenant (given that all queriers are connected to all frontends / query-schedulers). 
-  # This option only works with queriers connecting to the query-frontend / query-scheduler, not when using downstream URL.
+  # **This option only works with queriers connecting to the query-frontend / query-scheduler, not when using downstream URL.**
   # CLI flag: -frontend.max-queriers-per-tenant
   [max_queriers_per_tenant: <int> | default = 0]
   ```
