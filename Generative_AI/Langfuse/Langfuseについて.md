@@ -28,45 +28,47 @@
     - https://github.com/bitnami/charts/tree/main/bitnami/postgresql
 - common(Podのresource設定など)もbitnamiのHelmチャートを使っている
   - https://github.com/bitnami/charts/tree/main/bitnami/common
-- PostgreSQLのPasswordに特殊文字が入っていると以下のようなエラーが出る  
+- PostgreSQLのPasswordに特殊文字が入っていると以下のようなエラーが出る。Encodingする必要がある。  
   ```shell
   P1013: The provided database string is invalid. invalid port number in database URL. Please refer to the documentation in https://www.prisma.io/docs/reference/database-reference/connection-urls for constructing a correct connection string. In some cases, certain characters must be escaped. Please check the string for any illegal characters.
   ```  
   - 参考URL
     - https://harusame.dev/blog/posts/supabase-prisma-p1013/
     - https://stackoverflow.com/questions/63684133/prisma-cant-connect-to-postgresql
-  - **ESOでPostgreSQLのPasswordをSecretにしている場合、ESOの`template`に以下を追加してencodingする必要がある**  
-    ```yaml
-    template:
-      type: Opaque
-      data:
-        password: "{{ .password | urlquery }}"
-    ```  
-    - 全体のyaml  
-      ```yaml
-      apiVersion: external-secrets.io/v1beta1
-      kind: ExternalSecret
-      metadata:
-        name: langfuse-rds-auth
-        namespace: monitoring
-      spec:
-        refreshInterval: 1h
-        secretStoreRef:
-          name: aws-secrets-manager
-          kind: ClusterSecretStore
-        target:
-          name: langfuse-rds-auth
-          creationPolicy: Owner
-          template:
-            type: Opaque
-            data:
-              password: "{{ .password | urlquery }}"
-        data:
-        - secretKey: password
-          remoteRef:
-            key: <AWSのSecretManager名>
-            property: password
-      ``` 
+
+> [!CAUSE]  
+> - **ESOでPostgreSQLのPasswordをSecretにしている場合、ESOの`template`に以下を追加してencodingする必要がある**  
+>    ```yaml
+>    template:
+>      type: Opaque
+>      data:
+>        password: "{{ .password | urlquery }}"
+>    ```  
+>    - 全体のyaml  
+>      ```yaml
+>      apiVersion: external-secrets.io/v1beta1
+>      kind: ExternalSecret
+>      metadata:
+>        name: langfuse-rds-auth
+>        namespace: monitoring
+>      spec:
+>        refreshInterval: 1h
+>        secretStoreRef:
+>          name: aws-secrets-manager
+>          kind: ClusterSecretStore
+>        target:
+>          name: langfuse-rds-auth
+>          creationPolicy: Owner
+>          template:
+>            type: Opaque
+>            data:
+>              password: "{{ .password | urlquery }}"
+>        data:
+>        - secretKey: password
+>          remoteRef:
+>            key: <AWSのSecretManager名>
+>            property: password
+>      ``` 
 
 ---
 
