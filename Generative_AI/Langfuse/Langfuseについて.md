@@ -36,7 +36,7 @@
     - https://harusame.dev/blog/posts/supabase-prisma-p1013/
     - https://stackoverflow.com/questions/63684133/prisma-cant-connect-to-postgresql
 
-> [!CAUSE]  
+> [!CAUTION]  
 > - **ESOでPostgreSQLのPasswordをSecretにしている場合、ESOの`template`に以下を追加してencodingする必要がある**  
 >    ```yaml
 >    template:
