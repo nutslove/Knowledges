@@ -24,6 +24,8 @@
     - https://github.com/bitnami/charts/tree/main/bitnami/clickhouse
   - Redis（ValKey）のHelmチャート
     - https://github.com/bitnami/charts/tree/main/bitnami/redis
+  - PostgreSQLのHelmチャート
+    - https://github.com/bitnami/charts/tree/main/bitnami/postgresql
 - common(Podのresource設定など)もbitnamiのHelmチャートを使っている
   - https://github.com/bitnami/charts/tree/main/bitnami/common
 
