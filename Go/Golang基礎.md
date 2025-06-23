@@ -3741,7 +3741,7 @@ fmt.Println(x)  // 10が出力される
 ## init関数
 - mainパッケージでimportしたPackageにinit関数がある場合、mainパッケージ内のinit関数よりPackage内のinit関数が先に実行される
   - importされるタイミングで実行される
-- 1つのコード内に複数のinit関数を定義することは一応できる。(実際に複数のinit関数を定義することはないだろう)
+- 1つのコード内に複数のinit関数を定義することは一応できる。
 - 下記例の場合、"Hello from somepackage"が先に出力されて、その後"init in main package"が出力される
   - `main.go`  
     ```go

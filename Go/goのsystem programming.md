@@ -10,6 +10,7 @@
   - これらの通知を受信するためのチャネルを作る
   - このチャネルはバッファリングされることにご注意
 - シグナルを受信するためのチャネルを作成し、`signal.Notify`関数を使ってシグナルをチャネルに送信
+- **シグナル受信時すべてのGoroutineが終了できるように、main関数内でシグナルを受信するためのGoroutineを作成する**
 
 ### サンプルコード1
 - `sig := <-sigs`を別のgoroutineで受信することで、メインゴルーチンがブロックされないようにする。もしgoroutineを使わずに直接`sig := <-sigs`を書くと、メインgoroutineがそこで完全にブロックされてしまう。つまり、シグナルが来るまで何も処理できない状態になる。  
@@ -453,3 +454,87 @@ func getRepoUrl(repo string) string {
 	return repoUrl
 }
 ```
+
+# `signal.NotifyContext`と`stop()`
+- `stop()`は`signal.NotifyContext`が返すcleanup関数
+- `signal.NotifyContext`は以下の２つを返す
+  - `context.Context`: 指定されたシステムシグナル(`SIGINT`または`SIGTERM`)を受信するとキャンセルされる新しい`context.Context`
+  - `stop()`: シグナル受信を中止し、`signal.NotifyContext`が使用していた内部リソースをクリーンアップする関数。この関数を呼び出すと、`ctx`はそれ以上そのシグナルによってキャンセルされなくなる。つまり、`stop()`はこれ以上にこのシグナルを受信しなくて良いと知らせてくれるスイッチみたいなもの。
+- `stop()`は冪等性があり、2回以上呼び出しても問題ない。2回目以降の呼び出しは何も行わない。
+- 例  
+  ```go
+  package main
+
+  import (
+  	"context"
+  	"errors"
+  	"log/slog"
+  	"net/http"
+  	"os"
+  	"os/signal"
+  	"syscall"
+  	"time"
+
+  	"github.com/gin-gonic/gin"
+  	"github.com/prometheus/client_golang/prometheus/promhttp"
+  )
+
+  func main() {
+  	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+  	defer stop()
+
+  	// Setup analysis server
+  	router := gin.Default()
+  	api := router.Group("/api")
+  	api.POST("/codebase-analysis", RunCodebaseAnalysis)
+
+  	srv := &http.Server{
+  		Addr:    ":8088",
+  		Handler: router,
+  	}
+
+  	// Setup metrics server
+  	metricsMux := http.NewServeMux()
+  	metricsMux.Handle("/metrics", promhttp.Handler())
+  	metricsSrv := &http.Server{
+  		Addr:    ":8089",
+  		Handler: metricsMux,
+  	}
+
+  	// Start servers in separate goroutines
+  	go func() {
+  		slog.Info("Starting analysis server", "address", srv.Addr)
+  		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+  			slog.Error("Analysis server failed", "error", err)
+  		}
+  	}()
+
+  	go func() {
+  		slog.Info("Starting metric server", "address", metricsSrv.Addr)
+  		if err := metricsSrv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+  			slog.Error("Metric server failed", "error", err)
+  		}
+  	}()
+
+  	// Wait for interruption signal
+  	<-ctx.Done()
+
+  	// Restore default behavior on the interrupt signal and notify user of shutdown.
+  	stop()
+  	slog.Info("Shutting down gracefully, press Ctrl+C again to force")
+
+  	// The context is used to inform the server it has 10 seconds to finish
+  	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+  	defer cancel()
+
+  	if err := srv.Shutdown(shutdownCtx); err != nil {
+  		slog.Error("Error occurred while shutting down analysis server", "error", err)
+  	}
+
+  	if err := metricsSrv.Shutdown(shutdownCtx); err != nil {
+  		slog.Error("Error occurred while shutting down metrics server", "error", err)
+  	}
+
+  	slog.Info("Server exiting")
+  }
+	```
