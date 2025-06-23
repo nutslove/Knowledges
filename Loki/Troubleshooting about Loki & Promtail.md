@@ -9,6 +9,8 @@
 - 対処
   - Lokiの`limits_config.ingestion_rate_mb`と`limits_config.ingestion_burst_size_mb`の値を大きくする
 
+---
+
 ## S3 ThrottlingによるIngesterからのError
 - 事象
   - Ingesterのlogから以下のようなErrorが出る
@@ -38,6 +40,8 @@
   - https://community.grafana.com/t/getting-throttled-by-s3/42441/2
   - **https://grafana.slack.com/archives/CEPJRLQNL/p1605809265098700**
   - https://grafana.slack.com/archives/CEPJRLQNL/p1603798598093300
+
+---
 
 ## unhealthy instances(Ingester)によるDistributorからのError
 - 事象
@@ -72,6 +76,8 @@ Having said that, you could have this option in your loki config under:
   - HelmからLokiをデプロイした場合、クラスター外からIngesterへ接続できないため`kubectl expose pod <Ingester POD名> --type=NodePort --name=<Service名>`でNodePortのServiceを作成して接続すること
     - **AWS EKSの場合、PODがVPCのIPを持っているためPODのIPでブラウザからアクセスできる**
 
+---
+
 ## High CardinalityによるChunk/Stream数急増によるDistributorからのStream Limitエラー
 - 事象
   - High Cardinalityの値をLabelに設定したらIngesterメモリ内のChunk/Streamが急増し、DistributorからStream Limitエラー(`loki_discarded_samples_total`メトリクス)が出た
@@ -88,6 +94,8 @@ Having said that, you could have this option in your loki config under:
 - 原因
   - ???
 
+---
+
 ## Index GatewayがReady(1/1)にならず、約5分間隔でrestartを繰り返す
 - 事象
   - Index Gatewayが再起動された時、Podが`Ready 0/1`の状態(`Ready 1/1`にならず)でrestartを繰り返す
@@ -97,6 +105,8 @@ Having said that, you could have this option in your loki config under:
 - 対処
   - Helmチャートの`loki.livenessProbe.initialDelaySeconds`の数値を600などに上げる
     - HelmチャートでindexGateway個別のlivenessProbeは変数化されておらず、loki共通の`livenessProbe.initialDelaySeconds`を上げる必要がある
+
+---
 
 ## Lokiのバージョンを2.8系から2.9系にupgradeしたらcompactorがcompactionに失敗する
 - 事象
