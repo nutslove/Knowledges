@@ -206,6 +206,13 @@ func Default() *Engine {
         // リクエストの後処理
     }
     ```
+- `c.Request.Context()`を使用することで、リクエストに関連するコンテキスト情報にアクセスすることができる。　　
+  ```go
+  func(c *gin.Context) {
+      ctx := c.Request.Context() // リクエストのコンテキストを取得
+      // コンテキストに関連する操作を行う
+  }
+  ```
 
 ### `*gin.Context.AbortWithStatusJSON`と`*gin.Context.JSON`の違い
 - `AbortWithStatusJSON`と`JSON`両方とも、第１引数にHTTPステータスを第２引数に戻りのJSONを指定するのは一緒だけど、**`AbortWithStatusJSON`はリクエストの処理を中断し、その後のハンドラーやミドルウェアの処理実行されない**
