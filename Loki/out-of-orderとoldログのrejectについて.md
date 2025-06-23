@@ -12,3 +12,9 @@
     > **For example, if `max_chunk_age` is 2 hours and the stream `{foo="bar"}` has one entry at `8:00`, Loki will accept data for that stream as far back in time as `7:00`. If another log line is written at `10:00`, Loki will accept data for that stream as far back in time as `9:00`.**
   - https://community.grafana.com/t/getting-entry-too-far-behind-even-if-reject-old-samples-and-reject-old-samples-max-age-should-allow/146706  
     > When you already have logs in a log stream `reject_old_samples_max_age` is irrelevant. When you try to write older logs into a log stream (log stream defined as logs with the same set of labels) that already has newer data then it’s considered out-of-oder writes. Loki has a limit of (`max_chunk_age/2`) when it comes to out-of-order write, and with default 2h of max chunk age that comes down to 1 hour. Essentially, if you have logs in a log stream, the oldest data you can write to the same stream is something 1 hours older than the latest log.
+
+## `reject_old_samples_max_age`と`max_chunk_age`による、`greater_than_max_sample_age`エラーと`too_for_behind`(または`out_of_order`)エラー
+- `reject_old_samples`は`true`に設定されている前提
+- **まず、Lokiにログが連携されると、そのログのTiemstampが`reject_old_samples_max_age`(default:`1w`)の設定より古くないか確認され、それより古かったら`reason`labelが`greater_than_max_sample_age`になっている`loki_discarded_samples_total`と`loki_discarded_bytes_total`メトリクスCountが増える。  
+  `greater_than_max_sample_age`より前のログの場合、該当Log Streamが存在するか確認し、存在しなかったら新しいLog Streamが生成される。もしすでに該当のStream（同じLabel Setのログ）が存在する場合、連携されてきたログのTimestampを確認し、`(Streamの中ですでに存在する一番新しいログのTimestamp - 連携されてきたログのTimestamp) < (max_chunk_age/2)`になっているかチェックする。もし、`(Streamの中ですでに存在する一番新しいログのTimestamp - 連携されてきたログのTimestamp) > (max_chunk_age/2)`の場合、`reason`labelが`too_far_behind`になっている`loki_discarded_samples_total`と`loki_discarded_bytes_total`メトリクスCountが増える。**
+- **https://grafana.com/docs/loki/latest/operations/request-validation-rate-limits/**
