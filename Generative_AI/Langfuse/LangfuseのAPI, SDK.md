@@ -1,16 +1,16 @@
 # SDK
 ## v2
 - https://langfuse.com/docs/sdk/python/low-level-sdk
-> ![CAUTION] 
+> [!CAUTION] 
 > - Lambdaなどの短命な環境では、`langfuse.flush()`を呼び出すことで、SDKがバックグラウンドで実行しているリクエストが完了するのを待つ必要がある。これを行わないと、イベントが失われる可能性がある。
 > > ### Shutdown behavior
 > > The Langfuse SDK executes network requests in the background on a separate thread for better performance of your application. This can lead to lost events in short lived environments like NextJs cloud functions or AWS Lambda functions when the Python process is terminated before the SDK sent all events to our backend.
->
+> >
 > > To avoid this, ensure that the langfuse.flush() function is called before termination. This method is waiting for all tasks to have completed, hence it is blocking.
->
-> ```python
-> langfuse.flush()
-> ```
+> >
+> > ```python
+> > langfuse.flush()
+> > ```
 > - 例  
 > ```python
 > from langfuse import Langfuse
