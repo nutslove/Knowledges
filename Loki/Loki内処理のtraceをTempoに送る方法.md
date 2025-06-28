@@ -1,6 +1,6 @@
 # 前提
 - Loki内の処理に関するtraceをTempo(Otel Collector)に送信することができる
-- Apache Thriftプロトコル（14268ポート）で送信する必要がある
+- JaegerのApache Thriftプロトコル（14268ポート）に送信する必要がある
 
 # Loki側の設定（Helm）
 - https://grafana.com/docs/loki/latest/setup/install/helm/monitor-and-alert/with-grafana-cloud/#enable-loki-tracing
