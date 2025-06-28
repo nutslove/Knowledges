@@ -18,3 +18,7 @@
   API Error (apac.anthropic.claude-sonnet-4-20250514-v1:0): 400 The provided model identifier is invalid.
   ```
 - https://github.com/anthropics/claude-code/issues/1434
+
+# Claude CodeのメトリクスとログをOpenTelemetry（otlp）で連携
+- Claude Codeのメトリクス（e.g. Token Usage）とログをOpenTelemetry（otlp）でバックエンドに送ることができる
+- **https://docs.anthropic.com/ja/docs/claude-code/monitoring-usage**
