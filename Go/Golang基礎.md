@@ -3509,6 +3509,44 @@ if 条件式 {
 	    fmt.Println("done.")
     }
     ~~~
+> [!CAUTION]  
+> `for`の中の`select`があって、`select`文の中に`break`がある場合、`break`は`for`文では`select`文を抜けることになる。
+> 例えば以下のようなコードでは`break`は`for`文を抜けるのではなく、`select`文を抜けることになる。
+> ```go
+>	collected := 0
+>	for collected < len(repos) {
+>		select {
+>		case <-ctx.Done():
+>			break
+>		case result, ok := <-ch:
+>			if !ok {
+>				// チャネルが閉じられたら、もう結果がないので、ループを抜ける
+>				break
+>			}
+>			for k, v := range result.Response {
+>				response.Response[k] = v
+>			}
+>			collected++
+>		}
+>	}
+> ```
+> `for`文を抜けるためには、`break`の前に`for`文のラベルを付けて、`break <ラベル名>`とする必要がある。
+> ```go
+> Loop:
+> for collected < len(repos) {
+>     select {
+>     case <-ctx.Done():
+>         break Loop // forループ自体を抜ける
+>     case result, ok := <-ch:
+>         if !ok {
+>             break Loop
+>         }
+>         // ...結果処理...
+>         collected++
+>     }
+> }
+> ```
+
 - 参考URL
   - https://itsakura.com/go-for
 

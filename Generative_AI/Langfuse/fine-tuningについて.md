@@ -1,0 +1,7 @@
+- jsonl形式でデータをexportできる（S3へのBatch Uploadも可能？）
+  - https://langfuse.com/self-hosting/infrastructure/blobstorage#batch-exports
+- exportしたjsonl形式のデータをfine-tuningのデータセットとして利用できる
+  - Azure OpenAIでのFine-tuningの例
+    - https://qiita.com/ksonoda/items/b9fd3e709aeae79629ff
+    - https://learn.microsoft.com/ja-jp/azure/ai-services/openai/how-to/fine-tuning?tabs=azure-openai&pivots=programming-language-studio
+    - https://learn.microsoft.com/ja-jp/azure/ai-services/openai/tutorials/fine-tune?tabs=command-line
