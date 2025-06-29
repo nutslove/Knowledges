@@ -23,6 +23,8 @@
   # 出力: Hello, Alice!
   ~~~
 
+---
+
 # `except`（例外処理）について
 - ある関数内の`except`で`raise`で上げたエラー内容は呼び出し元の関数に伝播される
 - 例
@@ -47,6 +49,8 @@
       except Exception as e:
         raise e
     ```
+
+---
 
 # 組み込み関数
 ## `index()`メソッド
@@ -96,6 +100,8 @@ print(index) --> 2が出力
   print(unique_labels)  # ['bird', 'cat', 'dog']
   ```
 
+---
+
 # `if <変数名>:`の意味
 > Pythonにおける if <変数名>: 構文は、変数の「真偽値（truthiness）」を評価します。これは、**変数が定義されているかどうかだけではなく、その値が「偽（False）」と評価されるか「真（True）」と評価されるかをチェック**します。
 >
@@ -110,6 +116,8 @@ print(index) --> 2が出力
 > 逆に、これら以外の値はすべて「真（True）」と評価されます。
 >
 > したがって、**`if <変数名>:`のコードは変数が定義されていて、かつその値が「真」であるかどうかをチェック**します。**値が「偽」である場合、ifブロックは実行されません**。もし変数が定義されていない場合、PythonはNameErrorを投げます。
+
+---
 
 # lambda関数(無名関数)
 - 文法
@@ -131,10 +139,14 @@ print(index) --> 2が出力
   `loader = loaders[file_type](tmp_location)`の行で、ファイルタイプに応じたローダーが呼び出される際には、そのローダーに対して`tmp_location`のみが引数として渡されます。しかし、"txt"のファイルタイプに対応するローダー（この場合はlambda関数）には、このlambda関数内で`TextLoader`のコンストラクタに`path`と`autodetect_encoding=True`の両方を渡すように定義されています。  
   つまり、lambda関数を介して`TextLoader`を呼び出す際には、lambda関数が受け取った`tmp_location`（`path`として受け取る）を`TextLoader`の第一引数として、そしてlambda関数の定義により`autodetect_encoding=True`が自動的に第二引数として`TextLoader`に渡されます。
 
+---
+
 # `None`とは
 - 他の言語の`null`や`nil`に該当するもの。  
   Pythonにおける特殊な値で、"何もない"、"値が存在しない"を意味する。
 - NoneはPythonの組み込み定数であり、変数が何も参照していないことを示すために使用される。
+
+---
 
 # 型ヒント
 ## 変数の型ヒント
@@ -225,6 +237,8 @@ print(index) --> 2が出力
   user.age = 31  # これはエラーになる
   ```
 
+---
+
 # 別のPythonファイルをimportする方法
 ## 同じディレクトリ内の別ファイルをimportする場合
 - ファイル名をそのまま使ってimport  
@@ -242,6 +256,8 @@ print(index) --> 2が出力
   from ..somedirectory.somedirectory import module # 親ディレクトリの中のsomedirectoryの中のsomedirectoryからのインポート
   from .subdirectory import module  # 子ディレクトリ
   ```
+
+---
 
 # `*args`と`**kwargs`について
 - **`*args`には *tuple* で、`**kwargs`には *dict()* で入る**
@@ -325,6 +341,8 @@ print(index) --> 2が出力
     another_key: another_value
     ```
 
+---
+
 # `isinstance()`関数によるobjectの型判定
 - https://docs.python.org/ja/3/library/functions.html#isinstance
 - `isinstance(object, classinfo)`の形で、第１引数で指定した`object`が、第２引数で指定した`classinfo`型(またはそのサブクラスのインスタンス)である場合`True`を返す。`object`が`classinfo`型のオブジェクトでない場合`False`を返す。
@@ -349,6 +367,8 @@ print(index) --> 2が出力
   print(isinstance(obj_apple, Fruit))  # True
   print(type(obj_apple) == Fruit)      # False
   ```
+
+---
 
 # 関数で、デフォルト値を持つ引数とデフォルト値を持たない引数の順番
 - Pythonの文法上の制約で、関数にてデフォルト値を持つ引数の後にデフォルト値を持たない引数を置くことはできない
@@ -500,6 +520,8 @@ print(index) --> 2が出力
   C()  # 出力: Counter called: 1
   C()  # 出力: Counter called: 2
   ```
+
+---
 
 # 三項演算子
 ![](./image/ternary_operator.jpg)
