@@ -1,5 +1,6 @@
 # 概念
 - 非同期処理は、I/O待ち時間などのブロッキング操作が多いアプリケーションのパフォーマンスを向上させるための強力な機能。特にネットワーク通信やファイル操作などの場面で効果を発揮する。
+  - CPUバウンドな処理には向いていない。CPUバウンドな処理には`multiprocessing`や`concurrent.futures`の方が適している。
 - 非同期プログラミングでは、タスクが完了するのを待つ間に他のタスクを実行できる。Pythonでは`asyncio`パッケージと`async`と`await`キーワードを使用して実装する。
 - 参考URL
   - https://zenn.dev/iharuoru/articles/45dedf1a1b8352
@@ -107,6 +108,103 @@
       await asyncio.gather(goodbye(), hello()) # タスクも同様
   ```
 
+## `asyncio.as_completed()`
+- `asyncio.gather()`はすべてのタスクが完了するまで待機するのに対し、`asyncio.as_completed()`はタスクが完了した順に結果を取得(処理)できる
+```python
+async def main():
+    tasks = [fetch_data(url) for url in urls]
+    for coro in asyncio.as_completed(tasks):
+        result = await coro
+        print(f"完了: {result}")  # 完了した順番で処理
+```
+
+> [!IMPORTANT]  
+> - 複数のコルーチンを`asyncio.create_task()`でtaskに変換せずに直接`await`する場合、各コルーチンが逐次処理になるため、`asyncio.create_task()`を使って並行実行する方が効率的。
+> - 直接`await`する場合(**6秒**かかる)  
+>   ```python
+>   import asyncio
+>   import time
+>
+>   async def fetch_data(name, delay):
+>       print(f"{name}: 開始")
+>       await asyncio.sleep(delay)
+>       print(f"{name}: 完了")
+>       return f"{name}の結果"
+>
+>   async def sequential_example():
+>       print("=== 逐次実行 ===")
+>       start = time.time()
+>
+>       result1 = await fetch_data("タスク1", 2)  # 2秒待つ
+>       result2 = await fetch_data("タスク2", 3)  # その後3秒待つ
+>       result3 = await fetch_data("タスク3", 1)  # その後1秒待つ
+>
+>       end = time.time()
+>       print(f"総実行時間: {end - start:.2f}秒")
+>       return [result1, result2, result3]
+>
+>   def main():
+>       asyncio.run(sequential_example())
+>
+>   if __name__ == "__main__":
+>       main()
+>
+>   # 実行結果:
+>   # === 逐次実行 ===
+>   # タスク1: 開始
+>   # タスク1: 完了
+>   # タスク2: 開始
+>   # タスク2: 完了
+>   # タスク3: 開始
+>   # タスク3: 完了
+>   # 総実行時間: 6.00秒（2+3+1秒）
+>   ```
+> - `asyncio.create_task()`を使って並行実行する場合(**3秒**かかる)  
+>   ```python
+>   import asyncio
+>   import time
+>
+>   async def fetch_data(name, delay):
+>       print(f"{name}: 開始")
+>       await asyncio.sleep(delay)
+>       print(f"{name}: 完了")
+>       return f"{name}の結果"
+>
+>   async def concurrent_example():
+>       print("=== 並行実行 ===")
+>       start = time.time()
+>
+>       # タスクを作成（この時点ですぐに実行開始）
+>       task1 = asyncio.create_task(fetch_data("タスク1", 2))
+>       task2 = asyncio.create_task(fetch_data("タスク2", 3))
+>       task3 = asyncio.create_task(fetch_data("タスク3", 1))
+>
+>       # 結果を待つ
+>       result1 = await task1
+>       result2 = await task2
+>       result3 = await task3
+>
+>       end = time.time()
+>       print(f"総実行時間: {end - start:.2f}秒")
+>       return [result1, result2, result3]
+>
+>   def main():
+>       asyncio.run(concurrent_example())
+>
+>   if __name__ == "__main__":
+>       main()
+> 
+>   # 実行結果:
+>   # === 並行実行 ===
+>   # タスク1: 開始
+>   # タスク2: 開始
+>   # タスク3: 開始
+>   # タスク3: 完了
+>   # タスク1: 完了
+>   # タスク2: 完了
+>   # 総実行時間: 3.00秒
+>   ```
+
 # 実践的な例
 ## 複数のURLから同時にデータを取得
 ```python
@@ -204,6 +302,8 @@ async def main():
     # 全てのタスクが完了するまで待機
     results = await asyncio.gather(task1, task2, task3, return_exceptions=True)
     print(results)
+    # 例外が発生した場合の結果例
+    # results = [正常な結果, Exception('エラー'), 正常な結果]
 ```
 
 ## タイムアウト処理
