@@ -6,7 +6,7 @@
       display.append("_")
     ~~~
 
-## Pythonの位置引数とキーワード引数について
+# Pythonの位置引数とキーワード引数について
 - 以下のような関数があるとする
   ~~~python
   def greet(name, greeting):
@@ -23,7 +23,7 @@
   # 出力: Hello, Alice!
   ~~~
 
-## `except`（例外処理）について
+# `except`（例外処理）について
 - ある関数内の`except`で`raise`で上げたエラー内容は呼び出し元の関数に伝播される
 - 例
   - 呼び出し元  
@@ -48,21 +48,55 @@
         raise e
     ```
 
-## `index()`メソッドで、ある要素がListの中で何番目にあるか確認する方法
+# 組み込み関数
+## `index()`メソッド
+- **ある要素がListの中で何番目にあるか確認できる**
 - 以下のリストがあるとしたら`index = fruits.index("apple")`(→0が返ってくる)のように`<List名>.index("<要素名>")`で確認できる
   - `fruits = ["apple", "banana", "cherry"]`
 - Listの中に同じ要素が複数ある場合、`index()`メソッドは最初にヒットした要素のIndexを返す
 - 要素がリストにない場合、IndexError例外が発生する
 
-## `rindex()`メソッドで、同じ要素がListの中に複数ある場合、最後のIndexを確認する方法
-~~~python
+## `rindex()`メソッド
+- **同じ要素がListの中に複数ある場合、最後のIndexを確認する方法**
+```python
 fruits = ["apple", "banana", "apple", "cherry"]
 index = fruits.rindex("apple")
 print(index) --> 2が出力
-~~~
+```
 - 要素がリストにない場合、-1 が返される
 
-## `if <変数名>:`の意味
+## `sorted()`関数
+- **Listをソートするための組み込み関数**
+- 元のリストを変更せずに、新しいソートされたリストを返す
+- 例  
+  ```python
+  numbers = [5, 2, 9, 1, 5, 6]
+  sorted_numbers = sorted(numbers)
+  print(numbers)  # 出力: [5, 2, 9, 1, 5, 6] (元のリストは変更されない)
+  print(sorted_numbers)  # 出力: [1, 2, 5, 5, 6, 9]
+  ```
+
+## `set()`関数
+- **Listの重複を排除して、ユニークな要素のみを含むセットを作成するための組み込み関数**
+- 例  
+  ```python
+  numbers = [1, 2, 2, 3, 4, 4, 5]
+  unique_numbers = set(numbers)
+  print(unique_numbers)  # 出力: {1, 2, 3, 4, 5} (順序は保証されない)
+
+  raw_data = [1, 3, 2, 1, 4, 2, 5, 3]
+
+  # 重複排除 + ソート
+  clean_data = sorted(set(raw_data))
+  print(clean_data)  # [1, 2, 3, 4, 5]
+
+  # 機械学習でのラベル一覧取得など
+  labels = ['cat', 'dog', 'cat', 'bird', 'dog']
+  unique_labels = sorted(set(labels))
+  print(unique_labels)  # ['bird', 'cat', 'dog']
+  ```
+
+# `if <変数名>:`の意味
 > Pythonにおける if <変数名>: 構文は、変数の「真偽値（truthiness）」を評価します。これは、**変数が定義されているかどうかだけではなく、その値が「偽（False）」と評価されるか「真（True）」と評価されるかをチェック**します。
 >
 > 以下は、Pythonにおける「偽（False）」と評価される主な値のリストです：
@@ -77,7 +111,7 @@ print(index) --> 2が出力
 >
 > したがって、**`if <変数名>:`のコードは変数が定義されていて、かつその値が「真」であるかどうかをチェック**します。**値が「偽」である場合、ifブロックは実行されません**。もし変数が定義されていない場合、PythonはNameErrorを投げます。
 
-## lambda関数(無名関数)
+# lambda関数(無名関数)
 - 文法
   `lambda 引数: 戻り値`
   - 以下のように引数なしで実行することもできる  
@@ -97,13 +131,13 @@ print(index) --> 2が出力
   `loader = loaders[file_type](tmp_location)`の行で、ファイルタイプに応じたローダーが呼び出される際には、そのローダーに対して`tmp_location`のみが引数として渡されます。しかし、"txt"のファイルタイプに対応するローダー（この場合はlambda関数）には、このlambda関数内で`TextLoader`のコンストラクタに`path`と`autodetect_encoding=True`の両方を渡すように定義されています。  
   つまり、lambda関数を介して`TextLoader`を呼び出す際には、lambda関数が受け取った`tmp_location`（`path`として受け取る）を`TextLoader`の第一引数として、そしてlambda関数の定義により`autodetect_encoding=True`が自動的に第二引数として`TextLoader`に渡されます。
 
-## `None`とは
+# `None`とは
 - 他の言語の`null`や`nil`に該当するもの。  
   Pythonにおける特殊な値で、"何もない"、"値が存在しない"を意味する。
 - NoneはPythonの組み込み定数であり、変数が何も参照していないことを示すために使用される。
 
-## 型ヒント
-### 変数の型ヒント
+# 型ヒント
+## 変数の型ヒント
 - 書き方
   - `<変数名>: <型> = <値>`
 - `:`の後ろにあるのはPython3.5以降で追加された型ヒント機能で、変数・関数の引数・戻り値の期待されるデータ型を指定するために使用される。
@@ -120,7 +154,7 @@ print(index) --> 2が出力
   ):
     ・・・ある処理・・・
   ~~~
-### 関数の型ヒント
+## 関数の型ヒント
 - 書き方
   ~~~python
   def <関数名>(引数名: 型, ・・・) -> <戻り値の型>:
@@ -129,7 +163,7 @@ print(index) --> 2が出力
 
     return <戻り値>
   ~~~
-#### 戻り値が複数ある場合の戻り値の型ヒント
+### 戻り値が複数ある場合の戻り値の型ヒント
 - 戻り値が複数ある場合、戻り値の型ヒントは`typing`の`Tuple`を使って１つのTupleの中に入れる必要がある
   - Pythonの型ヒントは戻り値が１つの型であることを前提にしていて、Tupleにすることで１つの型として扱えるようにする
 - 例  
@@ -143,7 +177,7 @@ print(index) --> 2が出力
       return name, age, is_active
   ```
 
-### クラスの型ヒント
+## クラスの型ヒント
 - 例(1)
   ~~~python
   class Curry:
@@ -177,8 +211,8 @@ print(index) --> 2が出力
           return f"Hello, my name is {self.name} and I am {self.age} years old."
   ~~~
 
-#### `Config` クラスを通じて追加の制約を設定する
-- **ただし、Pydanticは `Config` クラスを通じて追加の制約を設定することができる。例えば、`frozen=True` を設定すると、インスタンス化後の属性変更を完全に禁止することができる。**
+### `Config` クラスを通じて追加の制約を設定する
+- **Pydanticは `Config` クラスを通じて追加の制約を設定することができる。例えば、`frozen=True` を設定すると、インスタンス化後の属性変更を完全に禁止することができる。**
   ```python
   class User(BaseModel):
       name: str
@@ -191,14 +225,14 @@ print(index) --> 2が出力
   user.age = 31  # これはエラーになる
   ```
 
-## 別のPythonファイルをimportする方法
-### 同じディレクトリ内の別ファイルをimportする場合
+# 別のPythonファイルをimportする方法
+## 同じディレクトリ内の別ファイルをimportする場合
 - ファイル名をそのまま使ってimport  
   ```python
   import <インポートするpythonファイル名(e.g. mymodule.pyの場合、mymodule)>
   from <インポートするpythonファイル名> import <関数名>
   ```
-### 異なるディレクトリ内の別ファイルをimportする場合
+## 異なるディレクトリ内の別ファイルをimportする場合
 - 相対import  
   ```python
   import module  # 同じディレクトリ
@@ -209,7 +243,7 @@ print(index) --> 2が出力
   from .subdirectory import module  # 子ディレクトリ
   ```
 
-## `*args`と`**kwargs`について
+# `*args`と`**kwargs`について
 - **`*args`には *tuple* で、`**kwargs`には *dict()* で入る**
 - 例１
   - Python  
@@ -291,11 +325,11 @@ print(index) --> 2が出力
     another_key: another_value
     ```
 
-## `isinstance()`関数によるobjectの型判定
+# `isinstance()`関数によるobjectの型判定
 - https://docs.python.org/ja/3/library/functions.html#isinstance
 - `isinstance(object, classinfo)`の形で、第１引数で指定した`object`が、第２引数で指定した`classinfo`型(またはそのサブクラスのインスタンス)である場合`True`を返す。`object`が`classinfo`型のオブジェクトでない場合`False`を返す。
 
-### `isinstance()`関数と`type()`関数の違い
+## `isinstance()`関数と`type()`関数の違い
 - https://qiita.com/Ryo-0131/items/c5c650359ab8ce10b507
 - isinstance()は継承関係を考慮して型をチェックするのに対し、type()はオブジェクトの型そのものを返す関数なので、サブクラスまで考慮したい場合はisinstance()を使うこと。
 - 比較例  
@@ -316,7 +350,7 @@ print(index) --> 2が出力
   print(type(obj_apple) == Fruit)      # False
   ```
 
-## 関数で、デフォルト値を持つ引数とデフォルト値を持たない引数の順番
+# 関数で、デフォルト値を持つ引数とデフォルト値を持たない引数の順番
 - Pythonの文法上の制約で、関数にてデフォルト値を持つ引数の後にデフォルト値を持たない引数を置くことはできない
 - https://stackoverflow.com/questions/24719368/syntaxerror-non-default-argument-follows-default-argument
 - NG例  
@@ -330,8 +364,8 @@ print(index) --> 2が出力
 
 ---
 
-## 特殊メソッド
-### `__dict__`メソッド
+# 特殊メソッド
+## `__dict__`メソッド
 - Objectが持つ**属性**と**その値**を格納する**辞書**
 - **Class**や**Instance**の属性を動的に確認・操作するために使用される
 - 例 (インスタンス)  
@@ -406,7 +440,7 @@ print(index) --> 2が出力
   # somevalue
   ```
 
-### `__repr__`メソッド
+## `__repr__`メソッド
 - https://docs.python.org/ja/3.11/library/functions.html#repr
 - `__repr__`は`object`クラスで定義されており、すべてのクラスは暗黙的に`object`クラスを継承する。そのため、すべてのクラスに`__repr__`メソッドは定義（継承）されている。
 - **オブジェクトの内部状態（文字列）を返す特殊な文字列**
@@ -433,7 +467,7 @@ print(index) --> 2が出力
   # 52
   ```
 
-### `__call__`メソッド
+## `__call__`メソッド
 - オブジェクトを関数のように呼び出し可能にする特殊メソッド
 - このメソッドを定義することで、初期化したインスタンスに対して括弧`()`を使った呼び出し構文を使用できるようになる
 - 基本的な使い方  
@@ -447,7 +481,7 @@ print(index) --> 2が出力
   print(result)  # 8
   ```
 
-#### `__call__`メソッドと`__init__`メソッドの違い
+### `__call__`メソッドと`__init__`メソッドの違い
 - `__init__`メソッドはクラスのインスタンス化時に呼び出され、オブジェクトの初期化を行う。
 - `__call__`メソッドはインスタンスが呼び出されたときに実行される。
 - **`__init__`メソッドはオブジェクトが作成されたときに1度だけ呼び出される。一方、`__call__`メソッドはインスタンスが呼び出されるたびに複数回呼び出される。**
@@ -467,7 +501,7 @@ print(index) --> 2が出力
   C()  # 出力: Counter called: 2
   ```
 
-## 三項演算子
+# 三項演算子
 ![](./image/ternary_operator.jpg)
 - 参照URL
   - https://atmarkit.itmedia.co.jp/ait/articles/2104/02/news016.html

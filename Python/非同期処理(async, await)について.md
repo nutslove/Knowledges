@@ -7,6 +7,19 @@
 # 主要な要素
 ![](./image/coroutine_task_eventloop_1.jpg)
 
+
+           ┌────────────┐
+           │ async def  │
+           │ コルーチン │
+           └────┬───────┘
+                │
+        asyncio.create_task()
+                ↓
+           ┌────────┐
+           │ Task   │───▶ Event Loop が管理
+           └────────┘
+
+
 ## コルーチン（Coroutine）
 - `async def`で定義される関数は「コルーチン」と呼ばれ、非同期処理の基本単位
 
