@@ -1,0 +1,2 @@
+- https://python.langchain.com/docs/integrations/vectorstores/pgvector/
+- データ投入時metadataを与えて、Retriever時にmetadataでフィルタリングすることができる
