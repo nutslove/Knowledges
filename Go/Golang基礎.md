@@ -3110,6 +3110,78 @@ func main() {
     }
     ```
 
+> [!CAUTION]  
+> `for`文の中の`select`文で`break`を使うと、`select`文からのみ抜けることになり、`for`文は継続される。
+> はい、その通りです。`for`文の中の`select`文で`break`を使うと、**`select`文からのみ抜ける**ことになり、`for`文は継続されます。
+> 
+> ```go
+> for i := 0; i < 5; i++ {
+>     select {
+>     case <-ch:
+>         fmt.Println("received")
+>         break // selectから抜けるだけ
+>     default:
+>         fmt.Println("default case")
+>         break // selectから抜けるだけ
+>     }
+>     fmt.Println("after select") // これは実行される
+>}
+> fmt.Println("after for") // forが完了してから実行
+> ```
+>
+> ## `for`文から抜ける方法：
+>
+> **1. ラベルを使用：**
+> ```go
+> loop:
+> for i := 0; i < 5; i++ {
+>     select {
+>     case <-ch:
+>         fmt.Println("received")
+>         break loop // forから抜ける
+>     default:
+>         fmt.Println("default")
+>     }
+>}
+> loop:
+> for i := 0; i < 5; i++ {
+>     select {
+>     case <-ch:
+>         fmt.Println("received")
+>         break loop // forから抜ける
+>     default:
+>         fmt.Println("default")
+>     }
+> }
+> ```
+>
+> **2. `return`を使用：**
+> ```go
+> for {
+>     select {
+>     case <-ch:
+>         fmt.Println("received")
+>         return // 関数から抜ける
+>     default:
+>         // 継続
+>     }
+> }
+> ```
+>
+> **3. フラグ変数を使用：**
+> ```go
+> done := false
+> for !done {
+>     select {
+>     case <-ch:
+>         fmt.Println("received")
+>         done = true
+>     default:
+>         // 継続
+>     }
+> }
+> ```
+
 ## パッケージ(import)
 - Format
   1. 1つずつ個別にimport
