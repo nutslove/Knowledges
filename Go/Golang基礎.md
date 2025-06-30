@@ -3812,6 +3812,75 @@ fmt.Println(x)  // 10が出力される
     }
     ```
 
+### Goの`init`関数の実行順序
+
+#### 同一パッケージ内での実行順序
+**同一ファイル内**では、**宣言順**に実行される
+
+```go
+// main.go
+func init() {
+    fmt.Println("init 1") // 最初に実行
+}
+
+func init() {
+    fmt.Println("init 2") // 次に実行
+}
+
+func init() {
+    fmt.Println("init 3") // 最後に実行
+}
+```
+
+**異なるファイル間**では、**ファイル名のアルファベット順**に実行される
+
+```go
+// a.go
+func init() {
+    fmt.Println("a.go init")
+}
+
+// b.go  
+func init() {
+    fmt.Println("b.go init")
+}
+
+// z.go
+func init() {
+    fmt.Println("z.go init")
+}
+```
+
+実行順序：`a.go` → `b.go` → `z.go`
+
+#### パッケージ間での実行順序
+
+依存関係の順序に従いう
+
+```go
+// package A (依存なし)
+func init() { fmt.Println("A init") }
+
+// package B (Aに依存)
+import "A"
+func init() { fmt.Println("B init") }
+
+// package C (A, Bに依存)  
+import "A"
+import "B"
+func init() { fmt.Println("C init") }
+```
+
+実行順序：A → B → C
+
+#### 重要な注意点
+
+- **実行順序に依存しない設計**にすることが重要
+- ファイル名に依存した順序制御は避けるべき
+- `init`関数間で相互依存がある場合は設計を見直す
+
+順序に依存する初期化が必要な場合は、明示的な初期化関数を使用することが推奨される。
+
 ## 文字列操作
 ### 正規表現で、`regexp.MatchString` と `regexp.MustCompile().MatchString()` の違い
 #### 1. `regexp.MatchString`
