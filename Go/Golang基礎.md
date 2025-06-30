@@ -3111,8 +3111,7 @@ func main() {
     ```
 
 > [!CAUTION]  
-> `for`文の中の`select`文で`break`を使うと、`select`文からのみ抜けることになり、`for`文は継続される。
-> はい、その通りです。`for`文の中の`select`文で`break`を使うと、**`select`文からのみ抜ける**ことになり、`for`文は継続されます。
+> `for`文の中の`select`文で`break`を使うと、**`select`文からのみ抜ける**ことになり、`for`文は継続される。
 > 
 > ```go
 > for i := 0; i < 5; i++ {
@@ -3142,17 +3141,8 @@ func main() {
 >     default:
 >         fmt.Println("default")
 >     }
->}
-> loop:
-> for i := 0; i < 5; i++ {
->     select {
->     case <-ch:
->         fmt.Println("received")
->         break loop // forから抜ける
->     default:
->         fmt.Println("default")
->     }
 > }
+>
 > ```
 >
 > **2. `return`を使用：**
