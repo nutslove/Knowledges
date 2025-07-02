@@ -27,7 +27,7 @@
       ]
   }
   ```
-  - helmの場合、`alloy.extraPorts`で追加したPortを追加する  
+  - helmの場合、`alloy.extraPorts`に、上で追加したPortを追加する  
     ```yaml
     alloy:
       extraPorts:
@@ -36,7 +36,7 @@
           targetPort: 9999
           protocol: TCP
     ```
-- `loki.process.set_tenant`を追加する  
+- `loki.process`で、`stage.tenant`を追加する  
   ```yaml
   loki.process "set_tenant" {
     forward_to = [loki.write.dynamic_tenant_loki.receiver]
@@ -45,7 +45,7 @@
     }
   }
   ```
-- `loki.write.dynamic_tenant_loki`を追加する  
+- `loki.write`を追加する  
   ```yaml
   loki.write "dynamic_tenant_loki" {
     loki_url = "https://<Lokiのエンドポイント>/loki/api/v1/push"
