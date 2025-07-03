@@ -4,6 +4,11 @@
 # Claude CodeのCHANGELOG
 - https://github.com/anthropics/claude-code/blob/main/CHANGELOG.md
 
+# Claude CodeのUpdate
+```shell
+npm update -g @anthropic-ai/claude-code
+```
+
 # Claude Code Action
 - Claude CodeとGithubリポジトリを統合して、自動コードレビュー、PR管理などができる機能
 - 参考URL
