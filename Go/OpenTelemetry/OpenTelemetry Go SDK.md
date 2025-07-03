@@ -971,3 +971,84 @@ func main() {
 	        })
 	}
   ```
+
+## BatchProcessor
+- `BatchProcessor`は、複数のログをバッチ処理して一度に送信するためのProcessor
+- `BatchProcessor`内部にQueueがあり、poll goroutineは、`dfltExpInterval`または`envarExpInterval`で設定された間隔で`queue`（リングバッファ）をポーリングし、バッチ処理・exportする
+- `queue`（q）は`MaxQSize`で指定された最大サイズを持つリングバッファ
+- **この`queue`は「上書き方式」で、`OnEmit`時にバッファがいっぱい（MaxQSize以上）になった場合、「一番古いレコード」から上書きして新しいレコードを格納する。**  
+  **つまり、poll goroutineが`dfltExpInterval`もしくは`envarExpInterval`に設定されている値の間隔で`queue`の中のログレコードをpollして、もしその間隔が来る前にqueueにMaxQSizeより多くのログがEmitされた場合、先にqueueに入っていた古いログからDropされる**
+  - なので、`BatchProcessor`を使用する際は、`MaxQSize`を適切に設定し、ログの生成速度に応じて`dfltExpInterval`(defaultのpoll間隔で1秒)や`envarExpInterval`を調整することが重要
+- https://github.com/open-telemetry/opentelemetry-go/blob/v1.37.0/sdk/log/batch.go
+  ```go
+  // BatchProcessor is a processor that exports batches of log records.
+  //
+  // Use [NewBatchProcessor] to create a BatchProcessor. An empty BatchProcessor
+  // is shut down by default, no records will be batched or exported.
+  type BatchProcessor struct {
+  	// The BatchProcessor is designed to provide the highest throughput of
+  	// log records possible while being compatible with OpenTelemetry. The
+  	// entry point of log records is the OnEmit method. This method is designed
+  	// to receive records as fast as possible while still honoring shutdown
+  	// commands. All records received are enqueued to queue.
+  	//
+  	// In order to block OnEmit as little as possible, a separate "poll"
+  	// goroutine is spawned at the creation of a BatchProcessor. This
+  	// goroutine is responsible for batching the queue at regular polled
+  	// intervals, or when it is directly signaled to.
+  	//
+  	// To keep the polling goroutine from backing up, all batches it makes are
+  	// exported with a bufferedExporter. This exporter allows the poll
+  	// goroutine to enqueue an export payload that will be handled in a
+  	// separate goroutine dedicated to the export. This asynchronous behavior
+  	// allows the poll goroutine to maintain accurate interval polling.
+  	//
+  	//   ___BatchProcessor____     __Poll Goroutine__     __Export Goroutine__
+  	// ||                     || ||                  || ||                    ||
+  	// ||          ********** || ||                  || ||     **********     ||
+  	// || Records=>* OnEmit * || ||   | - ticker     || ||     * export *     ||
+  	// ||          ********** || ||   | - trigger    || ||     **********     ||
+  	// ||             ||      || ||   |              || ||         ||         ||
+  	// ||             ||      || ||   |              || ||         ||         ||
+  	// ||   __________\/___   || ||   |***********   || ||   ______/\_______  ||
+  	// ||  (____queue______)>=||=||===|*  batch  *===||=||=>[_export_buffer_] ||
+  	// ||                     || ||   |***********   || ||                    ||
+  	// ||_____________________|| ||__________________|| ||____________________||
+  	//
+  	//
+  	// The "release valve" in this processing is the record queue. This queue
+  	// is a ring buffer. It will overwrite the oldest records first when writes
+  	// to OnEmit are made faster than the queue can be flushed. If batches
+  	// cannot be flushed to the export buffer, the records will remain in the
+  	// queue.
+
+  	// exporter is the bufferedExporter all batches are exported with.
+  	exporter *bufferExporter
+
+  	// q is the active queue of records that have not yet been exported.
+  	q *queue
+  	// batchSize is the minimum number of records needed before an export is
+  	// triggered (unless the interval expires).
+  	batchSize int
+
+  	// pollTrigger triggers the poll goroutine to flush a batch from the queue.
+  	// This is sent to when it is known that the queue contains at least one
+  	// complete batch.
+  	//
+  	// When a send is made to the channel, the poll loop will be reset after
+  	// the flush. If there is still enough records in the queue for another
+  	// batch the reset of the poll loop will automatically re-trigger itself.
+  	// There is no need for the original sender to monitor and resend.
+  	pollTrigger chan struct{}
+  	// pollKill kills the poll goroutine. This is only expected to be closed
+  	// once by the Shutdown method.
+  	pollKill chan struct{}
+  	// pollDone signals the poll goroutine has completed.
+  	pollDone chan struct{}
+
+  	// stopped holds the stopped state of the BatchProcessor.
+  	stopped atomic.Bool
+
+  	noCmp [0]func() //nolint: unused  // This is indeed used.
+  }
+  ```
