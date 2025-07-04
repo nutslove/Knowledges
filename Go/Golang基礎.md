@@ -478,70 +478,72 @@ updates go.mod to require those versions, and downloads source code into the mod
   ```
 
 ## Map
-- Format
-  1. `var 変数 map[<Key型>]<Value型>`
-  2. `変数 := make(map[<Key型>]<Value型>)`  
-     - 空のMapが作成される
-     - 初期化(定義と同時に値を代入)する場合は 3. の方法がもう少し性能が良いらしい
-  3. `変数 := map[<Key型>]<Value型> { Key1: Value1, Key2: Value2, ・・・, }`  
-    → 最後の要素の後にも`,`が必要
-      ~~~go
-      m := map[string]int {
-        "Lee": 35,
-        "Yamagiwa": 28,
-      }
-      ~~~
-- MapのValue参照
-  - `<Map変数名>[<Key名>]`  
-    → `fmt.Println(m["Lee"])`
+### Format
+1. `var 変数 map[<Key型>]<Value型>`
+2. `変数 := make(map[<Key型>]<Value型>)`  
+   - 空のMapが作成される
+   - 初期化(定義と同時に値を代入)する場合は 3. の方法がもう少し性能が良いらしい
+3. `変数 := map[<Key型>]<Value型> { Key1: Value1, Key2: Value2, ・・・, }`  
+  → 最後の要素の後にも`,`が必要
+    ~~~go
+    m := map[string]int {
+      "Lee": 35,
+      "Yamagiwa": 28,
+    }
+    ~~~
+### MapのValue参照
+- `<Map変数名>[<Key名>]`  
+ → `fmt.Println(m["Lee"])`
 - Mapは該当のKeyが存在しなくてもエラーにならず、Zero Value(初期値)を返すので要注意!  
-  Mapは実は2つの戻り値があって2つ目の戻り値(bool)でそのKeyが存在有無を判断する
+Mapは実は2つの戻り値があって2つ目の戻り値(bool)でそのKeyが存在有無を判断する
+~~~go
+if v, ok := m["Kim"]; ok {
+ fmt.Println(v)
+}
+→ "Kim"は存在しないので何も表示されない
+if v, ok := m["Lee"]; ok {
+ fmt.Println(v)
+}
+→ "Lee"は存在するので35が表示される
+~~~
+### 要素追加
+- `<Map変数名>[<追加するKey名>] = <追加するValue>`  
+  → `m["Kim"] = 51`
+### 要素削除
+- `delete(<Map変数名>[<削除するKey名>])`  
+  → `delete(m, "Kim")`  
+- 削除するKeyが存在しなくてもエラーにならないので本当に削除されたか確認するためには2つ目の戻り値(bool)で確認してから削除する  
   ~~~go
   if v, ok := m["Kim"]; ok {
-    fmt.Println(v)
-  }
-  → "Kim"は存在しないので何も表示されない
-  if v, ok := m["Lee"]; ok {
-    fmt.Println(v)
-  }
-  → "Lee"は存在するので35が表示される
-  ~~~
-- 要素追加
-  - `<Map変数名>[<追加するKey名>] = <追加するValue>`  
-    → `m["Kim"] = 51`
-- 要素削除
-  - `delete(<Map変数名>[<削除するKey名>])`  
-    → `delete(m, "Kim")`  
-  - 削除するKeyが存在しなくてもエラーにならないので本当に削除されたか確認するためには2つ目の戻り値(bool)で確認してから削除する
-    ~~~go
-    if v, ok := m["Kim"]; ok {
-      delete(m, "Kim")
-    }
-    ~~~
-- rangeを使ってforでMapのループ処理ができる
-  ~~~go
-  for k, v := range m {
-    fmt.Println("Key: ", k, "Value: ", v)
+    delete(m, "Kim")
   }
   ~~~
-  - **Mapのループで取り出される要素の順番はランダムなので要注意！(意図的に設計されたそう)**
+### rangeを使ってforでMapのループ処理
+~~~go
+for k, v := range m {
+  fmt.Println("Key: ", k, "Value: ", v)
+}
+~~~
+- **Mapのループで取り出される要素の順番はランダムなので要注意！(意図的に設計されたそう)**
+
+### Mapの注意点
 - Mapにnilを代入することもできて、**nilのMapにデータを代入しようとするとプログラムがCrashする。**  
   **nilのMapにデータを入れる前に新しいMapを代入してからデータを入れること！**
-  - NG
-    ~~~go
-    aMap := map[string]int{}
-    aMap = nil
-    aMap["key1"] = 1 --→ "panic: assignment to entry in nil map"エラーが出てプログラムがCrashする
-    ~~~
-  - OK
-    ~~~go
-    aMap := map[string]int{}
-    aMap = nil
-    if aMap == nil {
-      aMap = map[string]int{}
-    }
-    aMap["key"] = 10 --→ 上でmapを代入したので正常にMapにデータを入れることができる
-    ~~~
+- NG  
+  ~~~go
+  aMap := map[string]int{}
+  aMap = nil
+  aMap["key1"] = 1 --→ "panic: assignment to entry in nil map"エラーが出てプログラムがCrashする
+  ~~~
+- OK  
+  ~~~go
+  aMap := map[string]int{}
+  aMap = nil
+  if aMap == nil {
+    aMap = map[string]int{}
+  }
+  aMap["key"] = 10 --→ 上でmapを代入したので正常にMapにデータを入れることができる
+  ~~~
 
 ## 定数（const）
 - 作成した後に値の変更ができない
