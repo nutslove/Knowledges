@@ -12,7 +12,7 @@
 - `Sync`の`Application`が全て同期される（Healthyになる）と、`PostSync`フェーズが開始される
  
 # Sync Waves
-- `Sync Waves`は、`Application`の同期を順番に行うための仕組み
+- `Sync Waves`は、`Application`が管理するKubernetesリソースの同期を順番に行うための仕組み
 - `Application`そのものではなく、実際にデプロイされる`Job`などのリソースに対して、`sync-wave`というannotationを付与することで、同期の順番を制御できる
 - 数値が小さい順に実行される（例: "0" → "1" → "2"）
 - 例  
