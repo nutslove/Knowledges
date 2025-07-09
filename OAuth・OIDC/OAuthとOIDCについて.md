@@ -9,9 +9,9 @@ sequenceDiagram
 
     U->>C: 1. ログイン要求<br/>「OpenID Connectでログイン」
     
-    Note over C: scope=openid, profile, email<br/>response_type=code
-    C->>AS: 2. 認可リクエスト<br/>GET /oauth/authorize?<br/>response_type=code&<br/>scope=openid, profile, email&<br/>client_id=xxx&<br/>redirect_uri=xxx
-    
+    Note over C: scope=openid profile email<br/>response_type=code
+    C->>AS: 2. 認可リクエスト<br/>GET /oauth/authorize?<br/>response_type=code&<br/>scope=openid profile email&<br/>client_id=xxx&<br/>redirect_uri=xxx
+
     AS->>U: 3. 認証画面表示<br/>ログインフォーム
     
     U->>AS: 4. 認証情報送信<br/>ユーザー名・パスワード
@@ -59,6 +59,9 @@ sequenceDiagram
 - **IDトークン**: OIDC固有で、ユーザーの認証情報（`sub`, `email`, `name`など）を含むJWT
 - **アクセストークン**: リソースへのアクセス権限（何ができるか）を表すもので、APIアクセス用
 - **スコープ**: openidは必須、profileやemailで追加情報を要求
+  - 大文字・小文字は区別される
+  - 複数のスコープを指定する場合はスペースで区切る
+  - 複数のスコープを指定時、スコープの順番は意味を持たない
 
 # OAuth 2.0
 - **認可**のプロトコル
