@@ -5,3 +5,6 @@
 ## インストール
 - Kubernetes上にHelmでインストール
   - https://grafana.com/docs/alloy/latest/configure/kubernetes/
+
+## AlloyのHealthCheck Endpoint
+- `http://<alloy-host>:12345/-/healthy`
