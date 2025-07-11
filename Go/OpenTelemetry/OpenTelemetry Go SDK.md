@@ -966,8 +966,9 @@ func main() {
 		}),
 		otlploghttp.WithTimeout(30 * time.Second),
 		otlploghttp.WithRetry(otlploghttp.RetryConfig{
-			MaxInterval:     60 * time.Second,
-			MaxElapsedTime:  10 * time.Minute,
+			InitialInterval:  5 * time.Second, // 初回のRetry間隔
+			MaxInterval:      30 * time.Second, // 最大Retry間隔
+			MaxElapsedTime:  10 * time.Minute, // Retryを試みる最大時間
 		})
 	}
   ```
