@@ -965,10 +965,10 @@ func main() {
 			"X-Scope-OrgID": sid,
 		}),
 		otlploghttp.WithTimeout(30 * time.Second),
-                otlploghttp.WithRetry(otlploghttp.RetryConfig{
-		    MaxInterval:     60 * Time.Second,
-		    MaxElapsedTime:  10 * Time.Minute,
-	        })
+		otlploghttp.WithRetry(otlploghttp.RetryConfig{
+			MaxInterval:     60 * time.Second,
+			MaxElapsedTime:  10 * time.Minute,
+		})
 	}
   ```
 
