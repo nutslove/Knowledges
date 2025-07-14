@@ -88,6 +88,7 @@ sequenceDiagram
 # OIDC（OpenID Connect）
 - **認証**のプロトコル
 - OAuth 2.0の上に構築された認証レイヤー（OAuth 2.0に「ユーザー認証（Who you are）」の要素を追加したもの）
+  - OAuth 2.0の拡張仕様
 
 # OIDC/OAuth vs SAML
 | 項目 | SAML | OIDC/OAuth |
