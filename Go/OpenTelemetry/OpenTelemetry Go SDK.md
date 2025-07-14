@@ -1053,3 +1053,70 @@ func main() {
   	noCmp [0]func() //nolint: unused  // This is indeed used.
   }
   ```
+
+## 注意事項
+##### ■ Otel Go SDK for Logで、バックエンド(e.g. Loki)が落ちていると、exporter設定でretry時間を長く設定しても、ProcessorでTimeout（default 30秒）が発生し、`processor export timeout`エラーが発生し、リトライされずにログが失われる
+- https://github.com/open-telemetry/opentelemetry-go/issues/6588
+- 理由は、Processorの`WithExportTimeout`で指定した時間を超えると、Exporterに渡す`context`がキャンセルされるため、その後のリトライ処理は実行されないため
+	- Exporterに設定した`RetryConfig`（`MaxElapsedTime` など）はあくまで `context` が有効な間に限って有効
+	- Processorのタイムアウト (`WithExportTimeout`) が先に来て `context.Cancel()` された時点で、`Exporter.Export(ctx, data)` はそれ以上リトライされず、失敗として終了する
+	- `otlploghttp.New()` や `otlptracehttp.NewClient()` に指定した `Retry` 設定は、HTTP リクエストが `ctx` の制約内で失敗したときに再送するものであり、`ctx` がキャンセルされていたらリトライしない
+- 対策としては、Otel Collectorはバックエンドが落ちている場合でも、リトライしてくれるのでOtel Collectorを経由させるか、以下のようにProcessorの`WithExportTimeout()`を長く設定して、バックエンドが復旧するまで待つようにする  
+  ```go
+  import (
+		sdklog "go.opentelemetry.io/otel/sdk/log"
+	)
+
+  func initLogProvider(ctx context.Context, otelEndpoint string) (*sdklog.LoggerProvider, error) {
+  	// エンドポイントURLの正規化
+  	endpoint := strings.TrimSuffix(otelEndpoint, "/")
+
+  	// OTLPログエクスポーターの作成（HTTP）
+  	// WithURLPathを使って明示的にパスを指定
+  	exporter, err := otlploghttp.New(ctx,
+  		otlploghttp.WithEndpoint(endpoint),
+  		// otlploghttp.WithURLPath("/otlp/v1/logs"), // LokiのotlpエンドポイントのURL Path
+  		otlploghttp.WithInsecure(),
+  		otlploghttp.WithHeaders(map[string]string{
+  			"X-Scope-OrgID": "migration",
+  		}),
+  		otlploghttp.WithTimeout(30 * time.Second),
+  		otlploghttp.WithRetry(otlploghttp.RetryConfig{
+  			Enabled: true,
+  			InitialInterval: 5 * time.Second,
+  			MaxInterval: 30 * time.Second,
+  			MaxElapsedTime: 30 * time.Minute,
+  		}),
+  	)
+  	if err != nil {
+  		return nil, fmt.Errorf("failed to create log exporter: %w", err)
+  	}
+
+  	// リソースの定義
+  	res, err := resource.New(ctx,
+  		resource.WithAttributes(
+  			semconv.ServiceName("observability-app"),
+  			semconv.ServiceVersion("1.0.0"),
+  			attribute.String("environment", "production"),
+  		),
+  	)
+  	if err != nil {
+  		return nil, fmt.Errorf("failed to create resource: %w", err)
+  	}
+
+  	batchProcessor := sdklog.NewBatchProcessor(exporter,
+          sdklog.WithMaxQueueSize(10000),
+          sdklog.WithExportTimeout(10*time.Second), // ここ！
+          sdklog.WithExportInterval(5*time.Second),
+  	)
+
+  	// LoggerProviderの作成
+  	lp := sdklog.NewLoggerProvider(
+  		sdklog.WithProcessor(batchProcessor),
+  		sdklog.WithResource(res),
+  	)
+
+  	global.SetLoggerProvider(lp)
+  	return lp, nil
+  }
+	```
