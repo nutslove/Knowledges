@@ -107,8 +107,8 @@ sequenceDiagram
 - ユーザー情報を提供するAPIエンドポイント
 - OpenIDプロバイダーから取得したアクセストークンを使用して、リライングパーティがユーザーの詳細情報を取得
 
-# OAuthとOIDCの違い
-![OAuthとOIDCの違い](./image/access_token_vs_id_token.jpg)
+# Access Token と ID Token との比較
+![Access Token と ID Token との比較](./image/access_token_vs_id_token.jpg)
 
 # OIDC/OAuth vs SAML
 | 項目 | SAML | OIDC/OAuth |
