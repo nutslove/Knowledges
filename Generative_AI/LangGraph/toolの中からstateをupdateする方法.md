@@ -1,0 +1,3 @@
+- `ToolNode`でNode化したtoolから直接stateを更新(update)することはできず、`Command`を使う必要がある
+- https://github.com/langchain-ai/langgraph/discussions/1322
+- https://langchain-ai.github.io/langgraph/how-tos/tool-calling/
