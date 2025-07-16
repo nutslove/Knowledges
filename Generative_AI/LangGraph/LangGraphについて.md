@@ -506,7 +506,7 @@
 > - Executes multiple tools concurrently.
 > - Handles errors during tool execution (`handle_tool_errors=True`, enabled by default). See [handling tool errors](https://langchain-ai.github.io/langgraph/how-tos/tool-calling/#handle-errors) for more details.
 >
-> `ToolNode` operates on MessagesState:
+> `ToolNode` operates on [`MessagesState`](https://langchain-ai.github.io/langgraph/concepts/low_level/#messagesstate):
 >
 > **Input**: `MessagesState`, where the last message is an `AIMessage` containing the `tool_calls` parameter.
 > **Output**: `MessagesState` updated with the resulting [`ToolMessage`](https://python.langchain.com/docs/concepts/messages/?_gl=1*plbdmx*_gcl_au*MTY1MjgyNDU3MS4xNzQ4OTUwMjQw*_ga*ODA3MTA0MzA3LjE3NDg4NzExNTE.*_ga_47WX3HKKY2*czE3NTI2NDQxNzEkbzU1JGcxJHQxNzUyNjQ1OTc4JGo1MyRsMCRoMA..#toolmessage) from executed tools.
