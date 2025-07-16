@@ -497,6 +497,22 @@
   - https://langchain-ai.github.io/langgraph/how-tos/tool-calling/
   - https://langchain-ai.github.io/langgraph/reference/prebuilt/#langgraph.prebuilt.chat_agent_executor.create_react_agent
 
+> ### ToolNode
+> To execute tools in custom workflows, use the prebuilt [ToolNode](https://langchain-ai.github.io/langgraph/reference/agents/#langgraph.prebuilt.tool_node.ToolNode) or implement your own custom node.
+>
+> `ToolNode` is a specialized node for executing tools in a workflow. It provides the following features:
+>
+> - Supports both synchronous and asynchronous tools.
+> - Executes multiple tools concurrently.
+> - Handles errors during tool execution (`handle_tool_errors=True`, enabled by default). See [handling tool errors](https://langchain-ai.github.io/langgraph/how-tos/tool-calling/#handle-errors) for more details.
+>
+> `ToolNode` operates on MessagesState:
+>
+> **Input**: `MessagesState`, where the last message is an `AIMessage` containing the `tool_calls` parameter.
+> **Output**: `MessagesState` updated with the resulting [`ToolMessage`](https://python.langchain.com/docs/concepts/messages/?_gl=1*plbdmx*_gcl_au*MTY1MjgyNDU3MS4xNzQ4OTUwMjQw*_ga*ODA3MTA0MzA3LjE3NDg4NzExNTE.*_ga_47WX3HKKY2*czE3NTI2NDQxNzEkbzU1JGcxJHQxNzUyNjQ1OTc4JGo1MyRsMCRoMA..#toolmessage) from executed tools.
+API Reference: ToolNode
+
+
 ## tool callingするagentにstructured outputさせる方法
 - **https://langchain-ai.github.io/langgraph/how-tos/react-agent-structured-output/**
 - LLMモデルとtoolを紐づける`bind_tools`メソッドと、LLMに構造化されたoutputを強制する`with_structured_output`メソッドを併用することはできない。
