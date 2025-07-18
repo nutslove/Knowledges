@@ -20,8 +20,8 @@
 
 ### `container_cpu_cfs_periods_total`と`container_cpu_cfs_throttled_periods_total`の関係  
 ```
-時間軸: [期間1] [期間2] [期間3] [期間4] [期間5]
-結果:   正常    スロットル  正常    スロットル  正常
+時間軸: [期間1]   [期間2]   [期間3]   [期間4]   [期間5]
+結果:   正常     スロットル  正常    スロットル   正常
 ```
 上記の場合、  
 `container_cpu_cfs_periods_total` = 5（全期間数）  
