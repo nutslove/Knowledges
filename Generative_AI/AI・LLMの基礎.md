@@ -90,6 +90,54 @@
 - 深層学習フレームワーク（例: TensorFlow, PyTorch）では、テンソルが基本的なデータ構造として広く利用されている
 - PyTorchのDataLoaderは、入力データセットを繰り返し処理しながら、入力変数と目的変数をテンソルとして返す
 
+## 埋め込み層（Embedding Layer）、重み行列（Weight Matrix）
+- 埋め込み層は、離散的な入力（単語、文字、カテゴリなど）を連続値のベクトルに変換する層
+- 重み行列は、ニューラルネットワークの各層において、入力から出力への変換を決定する数値の集合
+- 埋め込み層は、入力の各トークンを対応するベクトルに変換するための重み行列を持っている
+- **埋め込み層は、トークンIDに基づいて埋め込み層の重み行列から対象の行を取り出すLookup演算を行っている**
+- 例  
+  ```python
+  import torch
+  import torch.nn as nn
+
+  # 埋め込み層の作成（語彙サイズ5、埋め込み次元3）
+  embedding_layer = nn.Embedding(5, 3)
+
+  # 重み行列の確認
+  print("重み行列（語彙サイズ × 埋め込み次元）:")
+  print(embedding_layer.weight.data)
+  print()
+  ## 以下は出力例
+  # 重み行列（語彙サイズ × 埋め込み次元）:
+  # tensor([[ 0.6724,  0.4698,  0.6228],
+  #        [-0.6037,  0.4422, -1.2405],
+  #        [ 2.7881, -0.0756, -0.9052],
+  #        [ 0.0336,  0.9864,  0.6590],
+  #        [ 0.5250,  0.5011,  0.5585]])
+
+  # トークンIDからベクトルへの変換（Lookup演算）
+  token_ids = torch.tensor([0, 2, 4])
+  embedded_vectors = embedding_layer(token_ids)
+
+  print(f"入力トークンID: {token_ids}")
+  print("出力埋め込みベクトル:")
+  print(embedded_vectors)
+  print()
+  ## 以下は出力例
+  # 入力トークンID: tensor([0, 2, 4])
+  # 出力埋め込みベクトル:
+  #  tensor([[ 0.6724,  0.4698,  0.6228],
+  #          [ 2.7881, -0.0756, -0.9052],
+  #          [ 0.5250,  0.5011,  0.5585]], grad_fn=<EmbeddingBackward0>)
+  # ★上の重み行列のインデックス0、インデックス2、インデックス4がそれぞれトークンID 0, 2, 4に対応する埋め込みベクトルで、変換されている
+
+  # 手動でのLookup演算（本質的な仕組み）
+  print("手動Lookup（重み行列から直接取り出し）:")
+  for token_id in token_ids:
+      vector = embedding_layer.weight.data[token_id]  # トークンID番目の行を取得
+      print(f"ID {token_id} -> {vector}")
+  ```
+
 ## Fine-tuning（ファインチューニング）
 - 事前学習済み(pre-trained)のモデルを特定のタスクに適応させるための手法
   - 事前学習済みモデルは、ラベルなしの大量のデータで学習される
