@@ -50,6 +50,46 @@
   - モデル訓練中は、目的変数の後ろにある単語をすべてマスクし、（例: "I love [MASK]"）LLMは目的変数の後ろにある単語にアクセスできない
 - 事前学習済みモデル（ベースモデル）を特定のタスクに適応させるために、ファインチューニングが行われる
 
+## テンソル（Tensor）
+- **多次元配列**のこと
+- **スカラー（0次元）**、**ベクトル（1次元）**、**行列（2次元）**、およびそれ以上の次元（高次元テンソル）を持つデータ構造
+  - 例  
+    ```python
+    import torch
+
+    # 0次元テンソル（スカラー）
+    scalar = torch.tensor(3.14)
+    print(f"0次元: {scalar}")  # tensor(3.1400)
+
+    # 1次元テンソル（ベクトル）
+    vector = torch.tensor([1, 2, 3, 4, 5])
+    print(f"1次元: {vector}")  # tensor([1, 2, 3, 4, 5])
+
+    # 2次元テンソル（行列）
+    matrix = torch.tensor([[1, 2, 3],
+                          [4, 5, 6]])
+    print(f"2次元: {matrix}")
+    # tensor([[1, 2, 3],
+    #         [4, 5, 6]])
+
+    # 3次元テンソル（例：RGBカラー画像 1枚）
+    # shape: (channels=3, height=2, width=3)
+    image = torch.tensor([[[255, 128, 64],   # Red channel
+                          [32, 16, 8]],
+                         [[200, 150, 100],   # Green channel
+                          [50, 25, 12]],
+                         [[180, 90, 45],     # Blue channel
+                          [22, 11, 5]]])
+
+    # 4次元テンソル（例：画像のバッチ）
+    # shape: (batch_size=2, channels=3, height=2, width=2)
+    batch_images = torch.randn(2, 3, 2, 2)
+    print(f"4次元 shape: {batch_images.shape}")  # torch.Size([2, 3, 2, 2])
+    ```
+- テンソルは、数値データを効率的に表現し、計算するために使用される
+- 深層学習フレームワーク（例: TensorFlow, PyTorch）では、テンソルが基本的なデータ構造として広く利用されている
+- PyTorchのDataLoaderは、入力データセットを繰り返し処理しながら、入力変数と目的変数をテンソルとして返す
+
 ## Fine-tuning（ファインチューニング）
 - 事前学習済み(pre-trained)のモデルを特定のタスクに適応させるための手法
   - 事前学習済みモデルは、ラベルなしの大量のデータで学習される
