@@ -17,6 +17,7 @@
 
 #### **`container_cpu_cfs_throttled_periods_total`** (counter)
 - CPUリミットに達してスロットリングが発生した期間の回数
+- `increase(container_cpu_cfs_throttled_periods_total[$__rate_interval])`
 
 ### `container_cpu_cfs_periods_total`と`container_cpu_cfs_throttled_periods_total`の関係  
 ```
