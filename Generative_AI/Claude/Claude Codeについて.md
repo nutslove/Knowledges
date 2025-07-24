@@ -27,3 +27,13 @@ npm update -g @anthropic-ai/claude-code
 # Claude CodeのメトリクスとログをOpenTelemetry（otlp）で連携
 - Claude Codeのメトリクス（e.g. Token Usage）とログをOpenTelemetry（otlp）でバックエンドに送ることができる
 - **https://docs.anthropic.com/ja/docs/claude-code/monitoring-usage**
+
+# Claude Codeへの指示
+- https://www.anthropic.com/engineering/claude-code-best-practices
+- https://docs.anthropic.com/ja/docs/claude-code/memory
+- `CLAUDE.md`ファイルに指示を書くことで、Claude Codeに指示を与えることができる
+- `CLAUDE.md`ファイルの置き場所  
+  ![memory](./images/memory_1.jpg)
+  ![memory2](./images/memory_2.jpg)
+- `CLAUDE.md`のフォーマットは決まってない  
+  ![memory3](./images/memory_3.jpg)
