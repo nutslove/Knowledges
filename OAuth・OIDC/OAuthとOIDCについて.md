@@ -122,7 +122,7 @@ sequenceDiagram
 | **データ形式** | XML | JSON |
 | **主な用途** | エンタープライズSSO、属性交換 | Web/モバイル認証（OIDC）、API認可（OAuth） |
 | **登場人物** | ・Identity Provider（IdP）<br>・Service Provider（SP）<br>・ユーザー | ・Authorization Server<br>・Client（Relying Party）<br>・Resource Server<br>・Resource Owner（ユーザー） |
-| **トークン** | **SAML Assertion**<br>・XML形式の認証/認可情報<br>・デジタル署名付き<br>・ユーザー属性を含む | **Access Token**：リソースアクセス用<br>**ID Token（OIDC）**：ユーザー認証情報（JWT）<br>**Refresh Token**：トークン更新用 |
+| **トークン** | **SAML Assertion**<br>・XML形式の認証/認可情報<br>・デジタル署名付き<br>・ユーザー属性を含む | **Access Token**：リソースアクセス用（JWT形式の場合もある（e.g. Azure EntraID））<br>**ID Token（OIDC）**：ユーザー認証情報（JWT）<br>**Refresh Token**：トークン更新用 |
 | **通信方式** | ・HTTP POST/Redirect<br>・SOAP over HTTP<br>・ブラウザリダイレクトベース | ・HTTPS REST API<br>・JSON over HTTP<br>・Authorization Headerでトークン送信 |
 | **SSO実現方式** | ・SP-Initiated SSO<br>・IdP-Initiated SSO<br>・メタデータ交換による信頼関係構築 | ・Authorization Code Flow<br>・Discovery URLによる動的設定<br>・複数サービス間でのトークン共有 |
 | **パフォーマンス** | ・メッセージサイズ：大（2-10KB）<br>・処理速度：遅い（XML解析）<br>・ネットワーク：複数リダイレクト | ・メッセージサイズ：小（0.5-2KB）<br>・処理速度：速い（JSON解析）<br>・ネットワーク：効率的なAPI通信 |
