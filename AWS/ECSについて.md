@@ -4,6 +4,12 @@
 - Task定義に基づいて起動されるコンテナ群
 - 同一Task内のコンテナは同一ホスト上で実行される
 
+### Task起動方法
+1. Serviceを使って起動する
+   - Serviceは、指定した数のTaskを常に実行することを保証
+2. Run Task（Standalone Task）を使って起動する
+   - 一時的なタスクやバッチ処理など、特定の数のTaskを実行するために使用
+
 ## Task Definition
 - ECSタスクの設定を記述するテンプレート
 - Kubernetesのマニフェストファイルのようなもの
@@ -38,7 +44,7 @@
 - KubernetesのServiceリソースの`ports`に該当する項目
 
 ### `logConfiguration`
-
+- 要整理
 
 ## Service
 - KubernetesのDeploymentsとServiceに近い概念
