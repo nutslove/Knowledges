@@ -87,3 +87,6 @@
         system = message_attributes.get('system', {}).get('stringValue', None)
         environment = message_attributes.get('environment', {}).get('stringValue', None)
     ```
+### 2. Step FunctionsのPassを使用する方法
+- https://zenn.dev/hisamitsu/articles/1866a34c1314e8
+- まだ、検証してないので、要確認
