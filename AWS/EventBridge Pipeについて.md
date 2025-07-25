@@ -12,6 +12,13 @@
 - SQSのメッセージをKMSで暗号化している場合、PipeのIAM RoleにKMSの権限も付与する必要がある
   - `kms:Decrypt`と`kms:GenerateDataKey`の権限が必要
 
+# Step FunctionsからECS Run Taskするときの注意点
+- https://zenn.dev/mn87/articles/982434a01190f4
+- 以下のようなエラーが出る  
+  ```shell
+  Network Configuration must be provided when networkMode 'awsvpc' is specified.
+  ```
+- **ECSのTask Definitionで`networkMode`を`awsvpc`に設定している場合、Step FunctionsのState MachineでECS Taskを起動する際に、`NetworkConfiguration`を指定する必要がある**
 ---
 
 # SQS → EventBridge Pipe → Step Functions → ECS Taskの例
