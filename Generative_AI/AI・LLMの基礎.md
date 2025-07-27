@@ -89,17 +89,18 @@
   ```math
   a・b = a1*b1 + a2*b2 + ... + an*bn
   ```  
-  ```python
-  import torch
+  - コード例  
+    ```python
+    import torch
 
-  # ベクトルAとBを定義（1次元のテンソル）
-  a = torch.tensor([1, 2, 3])
-  b = torch.tensor([4, 5, 6])
+    # ベクトルAとBを定義（1次元のテンソル）
+    a = torch.tensor([1, 2, 3])
+    b = torch.tensor([4, 5, 6])
 
-  # ドット積の計算
-  dot_product = torch.dot(a, b)
-  print(f"A・B のドット積は: {dot_product.item()}")
-  ```
+    # ドット積の計算
+    dot_product = torch.dot(a, b)
+    print(f"A・B のドット積は: {dot_product.item()}")
+    ```
 
 ##### ソフトマックス
 
