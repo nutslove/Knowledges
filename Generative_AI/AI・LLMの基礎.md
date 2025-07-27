@@ -104,7 +104,7 @@
 
     # ドット積の計算
     dot_product = torch.dot(a, b)
-    print(f"A・B のドット積は: {dot_product.item()}")
+    print(f"A・B のドット積は: {dot_product}")
     ```
 
 ##### ソフトマックス
