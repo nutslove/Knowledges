@@ -24,6 +24,7 @@
 ##### ■ SQSのメッセージをKMSで暗号化している場合、PipeのIAM RoleにKMSの権限も付与する必要がある
 - `kms:Decrypt`と`kms:GenerateDataKey`の権限が必要
 
+---
 
 # Step FunctionsからECS Run Taskするときの注意点
 - https://zenn.dev/mn87/articles/982434a01190f4
