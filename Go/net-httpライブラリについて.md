@@ -162,7 +162,7 @@ ListenAndServe always returns a non-nil error.
       params.Add("query", `{job="varlogs"}`)
       
       // URLにクエリパラメータを追加
-      fullURL := baseURL + "?" + params.Encode()
+      fullURL := fmt.Sprintf("%s?%s", baseURL, params.Encode())
       
       // HTTPリクエストを作成
       resp, err := http.Get(fullURL)
