@@ -8,6 +8,9 @@
 
 ## マルチテナントLokiに連携するための設定
 ### Firehose側の設定
+> [!NOTE]  
+> パラメータの設定は、送信先として『HTTPエンドポイント』を選択した場合にのみ表示(設定)できる
+
 - `Parameters`で、Keyに`lbl_<テナントID>`を、Valueに`<テナント名>`を設定する。
   - Alloy側で`lbl_`が除去されてLabelとして設定される。
   - https://grafana.com/docs/alloy/latest/reference/components/loki/loki.source.awsfirehose/

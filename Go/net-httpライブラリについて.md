@@ -127,3 +127,71 @@ ListenAndServe always returns a non-nil error.
 ### `http.Post`関数
 
 ### `http.NewRequest`関数
+
+# クエリパラメータ
+- クエリパラメータは、URLの末尾に`?`を付けて、その後に`key=value`の形式で指定する
+- 複数のクエリパラメータを指定する場合は、`&`で区切る
+  - 例: `http://example.com/api?param1=value1&param2=value2`
+## `net/url`パッケージを使ったクエリパラメータの操作
+- `net/url`パッケージの`Values`型を使うと、クエリパラメータを簡単に操作できる
+  - `Values`は、URLのクエリパラメータを表すマップで、キーと値のペアを保持する
+  - `Values`型の値は、`url.Values`として定義されている
+- `Values`型の値を作成するには、`url.Values{}`のように初期化する
+- クエリパラメータを追加するには、`Add`メソッドを使用する
+  - 例: `values.Add("param1", "value1")`
+- クエリパラメータをURLに変換するには、`Encode`メソッドを使用する
+  - 例: `url := "http://example.com/api?" + values.Encode()`
+- 全体的な例  
+  ```go
+  package main
+
+  import (
+      "encoding/json"
+      "fmt"
+      "io"
+      "net/http"
+      "net/url"
+  )
+
+  func main() {
+      // ベースURL
+      baseURL := "http://localhost:3100/loki/api/v1/query_range"
+      
+      // クエリパラメータを設定
+      params := url.Values{}
+      params.Add("query", `{job="varlogs"}`)
+      
+      // URLにクエリパラメータを追加
+      fullURL := fmt.Sprintf("%s?%s", baseURL, params.Encode())
+      
+      // HTTPリクエストを作成
+      resp, err := http.Get(fullURL)
+      if err != nil {
+          fmt.Printf("Error making request: %v\n", err)
+          return
+      }
+      defer resp.Body.Close()
+      
+      // レスポンスボディを読み取り
+      body, err := io.ReadAll(resp.Body)
+      if err != nil {
+          fmt.Printf("Error reading response: %v\n", err)
+          return
+      }
+      
+      // JSONを整形して表示（jqと同様の効果）
+      var jsonData interface{}
+      if err := json.Unmarshal(body, &jsonData); err != nil {
+          fmt.Printf("Error parsing JSON: %v\n", err)
+          return
+      }
+      
+      prettyJSON, err := json.MarshalIndent(jsonData, "", "  ")
+      if err != nil {
+          fmt.Printf("Error formatting JSON: %v\n", err)
+          return
+      }
+      
+      fmt.Println(string(prettyJSON))
+  }
+  ```
