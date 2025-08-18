@@ -5,7 +5,16 @@
 ## 各データの保存先
 - Traceは先にS3に保存されて、その後ClickHouseにロードされる
   - https://github.com/orgs/langfuse/discussions/6133
+  - https://langfuse.com/self-hosting/backups  
+    > **ClickHouse stores your observability data including _traces_, _observations_, and _scores_.** Backup strategies vary depending on whether you use a managed service or self-hosted deployment.
+
+> [!CAUTION]  
+> S3 acts as a buffer for ingestion resilience, but the canonical source for traces and observations is **ClickHouse**, not S3 .
+
 - PromptsはPostgreSQL内に保存される
+- ClickHouseのストレージとして、EBSだけではなく、EFSも使えるっぽい
+  - https://github.com/orgs/langfuse/discussions/7742
+  - https://github.com/langfuse/langfuse-terraform-aws
 
 ---
 
