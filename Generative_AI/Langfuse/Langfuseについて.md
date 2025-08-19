@@ -6,7 +6,7 @@
 - Traceは先にS3に保存されて、その後ClickHouseにロードされる
   - https://github.com/orgs/langfuse/discussions/6133
   - https://langfuse.com/self-hosting/backups  
-    > **ClickHouse stores your observability data including _traces_, _observations_, and _scores_.** Backup strategies vary depending on whether you use a managed service or self-hosted deployment.
+    > **ClickHouse** stores your observability data including **_traces_, _observations_, and _scores_.** Backup strategies vary depending on whether you use a managed service or self-hosted deployment.
 
 > [!CAUTION]  
 > S3 acts as a buffer for ingestion resilience, but the canonical source for traces and observations is **ClickHouse**, not S3 .
@@ -99,6 +99,8 @@
 ---
 
 # Redisについて
+- https://langfuse.com/blog/2024-12-langfuse-v3-infrastructure-evolution
+- https://langfuse.com/self-hosting/infrastructure/cache
 - Redisが再起動されてもeventが消失されることはないらしい（以下LangfuseのAsk AIの回答）
   > Redis/Valkey serves as a caching layer and queue in Langfuse's architecture [(1)](https://langfuse.com/self-hosting/infrastructure/cache). It has several key roles:
   >
