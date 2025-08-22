@@ -32,6 +32,7 @@
         requests:
           storage: 1Gi
   ```
-2. 例えば、`my-statefulset-0` が起動すると、自動的に`my-volume-my-statefulset-0` (`volumeClaimTemplates`の`metadata.name` ＋ Pod名) というPVCが作成される
-3. `PersistentVolume` (PV) はこのPVCにバインドされ、PodはそのPVを利用する
-4. `my-statefulset-0` が削除された後、再作成されても `my-volume-my-statefulset-0` のPVCが存続しているため、同じPVがマウントされる
+2. 例えば、`my-statefulset-0` が起動すると、自動的に`my-volume-my-statefulset-0` (`volumeClaimTemplates`の`metadata.name` + Pod名 + 番号) というPVCが作成される
+3. `PersistentVolumeClaim`が作成されるとき、`StorageClass`の設定に基づいて`PersistentVolume`が動的にプロビジョニングされる
+4. `PersistentVolume` (PV) はこのPVCにバインドされ、PodはそのPVを利用する
+5. `my-statefulset-0` が削除された後、再作成されても `my-volume-my-statefulset-0` のPVCが存続しているため、同じPVがマウントされる
