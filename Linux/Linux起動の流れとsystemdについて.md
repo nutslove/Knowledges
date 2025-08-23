@@ -1,5 +1,5 @@
 ## Linux(OS)起動の流れ
-- asd
+- 要整理
 
 ## Systemd
 - 参考URL
