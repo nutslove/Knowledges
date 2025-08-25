@@ -1,6 +1,6 @@
 - https://langfuse.com/self-hosting/troubleshooting#clickhouse-handling-failed-migrations
 
-# Langfuse Webで "no migration found for version xx" が出て、Langfuse Web（Pod）が起動しない	
+# ■ Langfuse Webで "no migration found for version xx" が出て、Langfuse Web（Pod）が起動しない	
 - エラーログ全文  
   ```
   error: no migration found for version 23: read down for version 23 .: file does not existerror: no migration found for version 23: read down for version 23 .: file does not exist"
@@ -13,7 +13,7 @@
 
 ---
 
-# Langfuse Webで "error: Dirty database version xx. Fix and force version." が出て、Langfuse Web（Pod）が起動しない
+# ■ Langfuse Webで "error: Dirty database version xx. Fix and force version." が出て、Langfuse Web（Pod）が起動しない
 
 ### 原因
 - https://github.com/langfuse/langfuse/issues/6679
@@ -23,7 +23,7 @@
 
 ---
 
-# ZookeeperでBindExceptionが出て、traceなどのデータが連携されない
+# ■ ZookeeperでBindExceptionが出て、traceなどのデータが連携されない
 
 ### 事象
 - ClickHouseのPodで以下のエラーが発生  
