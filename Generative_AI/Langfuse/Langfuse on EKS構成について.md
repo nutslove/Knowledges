@@ -228,7 +228,7 @@ s3:
 > 旧EKSクラスターからPVとPVCの削除は不要
 
 1. 旧EKSクラスターからLangfuseを削除
-2. 新EKSクラスターにPVをデプロイ
+2. 新EKSクラスターにClickHouse, Zookeeperの（EFS）PVをデプロイ
 3. 新EKSクラスターにLangfuseをデプロイ
 4. Langfuse用のALB TargetGroupの`eks:eks-cluster-name`タグの値を新EKSクラスター名に変更
 5. 新EKSクラスターに`TargetGroupBinding`をデプロイ
