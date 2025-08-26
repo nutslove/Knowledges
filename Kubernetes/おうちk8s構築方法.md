@@ -36,6 +36,6 @@
 
 > [!TIP] 
 > ### CRI（Container Runtime Interface）
-> - kubeletとコンテナランタイム（containerd、CRI-O、etc.）が通信するための「仕様・標準インターフェース」。このインターフェースにより、KubernetesはDockerだけでなく、CRI-Oやcontainerdなど様々なコンテナランタイムをプラグインのように利用できるようになる
+> - kubeletとコンテナランタイム（containerd、CRI-O、etc.）が通信するための「仕様・標準インターフェース」。このインターフェースにより、KubernetesはDockerだけでなく、CRI-Oやcontainerdなど様々なコンテナランタイムをプラグインのように利用できるようになった
 > - kubeletはコンテナ実行基盤（containerd / CRI-O など）と直接ではなく CRI (gRPC API) を介してやり取りしている
 > - `crictl`はその gRPC API を直接叩くコマンドラインツール
