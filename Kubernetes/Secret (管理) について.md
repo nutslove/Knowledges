@@ -7,7 +7,7 @@
   - `env` として参照する場合、Pod内の環境変数としてSecretの内容が利用できる
 
 > [!CAUTION]  
-> `volumes`としてマウントする場合は、Secretが更新されたときに自動的にPod内に反映されるが、`env`として参照させている場合は自動的にPodに反映されず、Podの再起動が必要！
+> `volumes`としてマウントする場合は、Secretが更新されたときに自動的にPod内に反映されるが、**`env`として参照させている場合は自動的にPodに反映されず、Podの再起動が必要！**
 
 ## Secret管理ツール
 1. HashiCorp Vault
