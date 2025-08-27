@@ -1,5 +1,14 @@
 - k8s `Secret`はBase64エンコーディングなので簡単にデコーディングできてしまうため、別のツールと組み合わせてSecretを安全に管理する必要がある
 
+## Secretについて
+- https://kubernetes.io/ja/docs/concepts/configuration/secret/
+- PodがSecretを参照させる場合、PodのSpecに `volumes` としてSecretをマウントする方法と、`env` として環境変数で参照する方法がある
+  - `volumes` としてマウントする場合、Pod内のファイルとしてSecretの内容が利用できる
+  - `env` として参照する場合、Pod内の環境変数としてSecretの内容が利用できる
+
+> [!CAUTION]  
+> `volumes`としてマウントする場合は、Secretが更新されたときに自動的にPod内に反映されるが、`env`として参照させている場合は自動的にPodに反映されず、Podの再起動が必要！
+
 ## Secret管理ツール
 1. HashiCorp Vault
 2. Secrets Store CSI Driver
