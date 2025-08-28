@@ -10,6 +10,10 @@
   ```
 - PGVectorのバージョンを確認  
   ```shell
+  \dx
+  ```
+  もしくは  
+  ```shell
   SELECT extversion FROM pg_extension WHERE extname='vector';
   ```
   - PostgreSQL自体のバージョンは `select * From version();`で確認可能
