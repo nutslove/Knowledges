@@ -14,10 +14,6 @@
   ```
   - PostgreSQL自体のバージョンは `select * From version();`で確認可能
 - vector用テーブル作成  
-
-> [!IMPORTANT]  
-> `vector(n)`内の `n`の部分の数字はEmbeddingモデルの **ディメンション** サイズに合わせる
-
   ```shell
   CREATE TABLE documents (
     id BIGSERIAL PRIMARY KEY,
@@ -36,3 +32,6 @@
     - メタデータによるフィルタリングに使える
   - `created_at`, `updated_at`
     - 必須ではないが、ドキュメントの挿入順序を把握できたり、古いデータの削除やアーカイブ処理、データの更新履歴管理などができる等のメリットがあるので追加しておく
+
+> [!IMPORTANT]  
+> `vector(n)`の `n`の部分の数字はEmbeddingモデルの **ディメンション** サイズに合わせる
