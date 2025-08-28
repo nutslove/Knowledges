@@ -40,7 +40,19 @@
 > [!IMPORTANT]  
 > `vector(n)`の `n`の部分の数字はEmbeddingモデルの **ディメンション** サイズに合わせる
 
+- 作成したテーブルのカラム情報を確認  
+  ```shell
+  \d documents
+  ```
+
 - インデックス作成（検索性能向上）  
   ```shell
   CREATE INDEX ON documents USING hnsw (embedding vector_cosine_ops) WITH (ef_construction=256);
   ```
+
+> [!CAUTION]  
+> Embeddingモデルのディメンションサイズ（次元）（`vector(n)`）が2000より大きい場合、HNSWインデックスは使えない。  
+> その場合は次元数を下げるか、IVFFlatインデックスを使用する。  
+> ```shell
+> CREATE INDEX ON documents USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);
+> ```
