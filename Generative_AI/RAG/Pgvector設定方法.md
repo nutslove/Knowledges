@@ -39,3 +39,8 @@
 
 > [!IMPORTANT]  
 > `vector(n)`の `n`の部分の数字はEmbeddingモデルの **ディメンション** サイズに合わせる
+
+- インデックス作成（検索性能向上）  
+  ```shell
+  CREATE INDEX ON documents USING hnsw (embedding vector_cosine_ops) WITH (ef_construction=256);
+  ```
