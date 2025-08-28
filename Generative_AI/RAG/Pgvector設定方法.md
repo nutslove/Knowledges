@@ -1,0 +1,38 @@
+- https://github.com/pgvector/pgvector
+- https://docs.aws.amazon.com/ja_jp/AmazonRDS/latest/AuroraUserGuide/AuroraPostgreSQL.VectorDB.html （参考）
+
+## 手順
+- まず、PostgreSQLに接続する
+  - postgresql Podの場合、Podに入って `psql -U postgres -d postgres`でアクセス
+- 以下のコマンドでPGVector拡張機能を作成  
+  ```shell
+  CREATE EXTENSION IF NOT EXISTS vector;
+  ```
+- PGVectorのバージョンを確認  
+  ```shell
+  SELECT extversion FROM pg_extension WHERE extname='vector';
+  ```
+  - PostgreSQL自体のバージョンは `select * From version();`で確認可能
+- vector用テーブル作成  
+
+> [!IMPORTANT]  
+> `vector(n)`内の `n`の部分の数字はEmbeddingモデルの **ディメンション** サイズに合わせる
+
+  ```shell
+  CREATE TABLE documents (
+    id BIGSERIAL PRIMARY KEY,
+    content TEXT NOT NULL,
+    embedding vector(3072) NOT NULL,
+    metadata JSONB,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  );
+  ```
+  - `content`
+    - ベクトル化される前の生テキスト（原文）
+  - `embedding`
+    - contentをembeddingモデルでベクトル化した数値配列
+  - `metadata`
+    - メタデータによるフィルタリングに使える
+  - `created_at`, `updated_at`
+    - 必須ではないが、ドキュメントの挿入順序を把握できたり、古いデータの削除やアーカイブ処理、データの更新履歴管理などができる等のメリットがあるので追加しておく
