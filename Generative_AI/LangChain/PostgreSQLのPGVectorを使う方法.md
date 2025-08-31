@@ -52,7 +52,8 @@
 - 同期・非同期によって若干設定が異なる
 ### 非同期
 - `sqlalchemy`、`langchain-postgres`ライブラリーをインストール
-- `sqlalchemy`の`create_async_engine`（`from sqlalchemy.ext.asyncio import create_async_engine`）でDBコネクションを初期化し、`langchain_postgres`の`PGEngine`の`from_engine`メソッドでDB Engineインスタンスを初期化し、`langchain_postgres`の`PGVectorStore`の`create`メソッドでVectorStoreを初期化し`aadd_documents`メソッドでEmbeddingする
+- `sqlalchemy`の`create_async_engine`（`from sqlalchemy.ext.asyncio import create_async_engine`）でDBコネクションを初期化し、`langchain_postgres`の`PGEngine`の`from_engine`メソッドでDB Engineインスタンスを初期化し、`langchain_postgres`の`PGVectorStore`の`create`メソッドでVectorStoreインスタンスを初期化し`aadd_documents`メソッドでEmbeddingする
+- retrieveするときはVectorStoreインスタンスの`asimilarity_search`を使う
 - コード例  
   ```python
   from langchain_google_genai import GoogleGenerativeAIEmbeddings
@@ -105,6 +106,8 @@
 
 ### 同期
 - `langchain-postgres`ライブラリーをインストール
+- `langchain_postgres`の`PGEngine`の`from_connection_string`メソッドでDB Engineインスタンスを初期化し、`PGVectorStore`の`create_sync`メソッドでVectorStoreインスタンスを初期化し`add_documents`メソッドでEmbeddingする
+- retrieveするときはVectorStoreインスタンスの`similarity_search`を使う
 - コード例  
   ```python
   from langchain_core.documents import Document
