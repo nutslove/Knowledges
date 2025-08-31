@@ -23,7 +23,7 @@
 - ``
 
 > [!CAUTION]  
-> https://github.com/langchain-ai/langchain-postgres
+> https://github.com/langchain-ai/langchain-postgres  
 > `langchain-postgres` v0.0.14から `PGVector`は非推奨になった。代わりに **`PGVectorStore`** を使うこと。
 > - `PGVectorStore`
 >   - https://python.langchain.com/docs/integrations/vectorstores/pgvectorstore/
