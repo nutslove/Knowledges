@@ -1,9 +1,24 @@
 - https://github.com/pgvector/pgvector
 - https://docs.aws.amazon.com/ja_jp/AmazonRDS/latest/AuroraUserGuide/AuroraPostgreSQL.VectorDB.html （参考）
 
+## Docker単体のコンテナとしてPGVector対応のコンテナ作成方法
+- container用のVolumeを作成  
+  ```shell
+  docker volume create pg_data
+  ```
+- PGVector対応済みのpgvectorプロジェクトが公式でPostgresと統合されたDockerイメージでコンテナ実行  
+  ```shell
+  docker run --name pgvector \
+  -e POSTGRES_USER=postgres \
+  -e POSTGRES_PASSWORD=postgres \
+  -p 5432:5432 \
+  -v pg_data:/var/lib/postgresql/data \
+  -d pgvector/pgvector:pg17
+  ```
+
 ## 手順
 - まず、PostgreSQLに接続する
-  - postgresql Podの場合、Podに入って `psql -U postgres -d postgres`でアクセス
+  - postgresql Pod/Dockerの場合、Pod/Dockerコンテナに入って `psql -U postgres -d postgres`でアクセス
 - 以下のコマンドでPGVector拡張機能を作成  
   ```shell
   CREATE EXTENSION IF NOT EXISTS vector;
