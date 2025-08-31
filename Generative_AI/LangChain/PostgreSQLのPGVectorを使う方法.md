@@ -77,6 +77,11 @@
     TABLE_NAME = "documents"
     VECTOR_SIZE = 3072
 
+    await pg_engine.ainit_vectorstore_table(
+      table_name=TABLE_NAME,
+      vector_size=VECTOR_SIZE,
+    )
+
     embedding = GoogleGenerativeAIEmbeddings(model="gemini-embedding-001")
 
     store = await PGVectorStore.create(
