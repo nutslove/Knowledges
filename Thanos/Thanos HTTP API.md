@@ -1,0 +1,29 @@
+> [!NOTE]  
+> これらのAPIは *Querier* または *Query Frontend*（9090ポート）に対して実行
+
+> [!NOTE]  
+> Multi Tenancyモードを使っている場合は、`THANOS-TENANT`ヘッダーを付けること  
+> - 例 
+>   ```shell
+>   curl -s -H 'THANOS-TENANT: <テナント名>' http://<Querier/Query FrontendのIP>:9090/api/v1/label/__name__/values
+>   ```
+
+## メトリクス一覧取得
+```shell
+curl -s http://<Querier/Query FrontendのIP>:9090/api/v1/label/__name__/values
+```
+
+## ラベル一覧
+```shell
+curl -s http://<Querier/Query FrontendのIP>:9090/api/v1/labels
+```
+
+## 特定のメトリクスが持っているラベル一覧（ラベルと値のすべての組み合わせ）
+```shell
+curl -s http://<Querier/Query FrontendのIP>:9090/api/v1/series?match[]=<対象メトリクス名>
+```
+
+## 特定ラベルの値一覧
+```shell
+curl -s http://<Querier/Query FrontendのIP>:9090/api/v1/label/<ラベル名>/values
+```
