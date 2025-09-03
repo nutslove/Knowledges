@@ -15,10 +15,78 @@
 
 # ■ Langfuse Webで "error: Dirty database version xx. Fix and force version." が出て、Langfuse Web（Pod）が起動しない
 
+- https://langfuse.com/faq/all/self-hosting-clickhouse-handling-failed-migrations
+
 ### 原因
 - https://github.com/langfuse/langfuse/issues/6679
 
 ### 対処方法
+- ClickHouse Podに入り、`clickhouse-client`コマンドで（defaultユーザのPW入力して）DBに接続する
+- 以下のコマンドでDB一覧、Table一覧、`schema_migrations`テーブル内のDirtyなレコードを確認する  
+  ```sql
+  SHOW DATABASES;
+  USE default;
+  SHOW TABLES;
+  SELECT * FROM schema_migrations;
+  ```
+- 以下のSQLでDirtyなレコードを削除する（`version`は自分の環境に合わせて変更すること）  
+  ```sql
+  DELETE FROM schema_migrations WHERE version = 23;
+  ```
+
+- 私の場合、上記でも解決せず、追加で以下の対応を行った
+  - すべてのdirty（dirtyが1の）行を削除  
+    ```
+    DELETE FROM schema_migrations WHERE dirty = 1;
+    ```
+  - その後、langfuse-web podを削除（再起動）したら、今回は以下のようなエラーが出た  
+    ```shell
+    Script executed successfully.
+    Prisma schema loaded from packages/shared/prisma/schema.prisma
+    Datasource "db": PostgreSQL database "postgres_langfuse", schema "public" at "prod-rcallm-cluster-ap-northeast-1.cluster-cguwy7lk6qzo.ap-northeast-1.rds.amazonaws.com"
+    338 migrations found in prisma/migrations
+    No pending migrations to apply.
+    error: migration failed in line 0: CREATE TABLE dataset_run_items_rmt ON CLUSTER default (
+        -- primary identifiers
+        `id` String,
+        `project_id` String,
+        `dataset_run_id` String,
+        `dataset_item_id` String,
+        `dataset_id` String,
+        `trace_id` String,
+        `observation_id` Nullable(String),
+        -- error field
+        `error` Nullable(String),
+         -- timestamps
+        `created_at` DateTime64(3) DEFAULT now(),
+        `updated_at` DateTime64(3) DEFAULT now(),
+        -- denormalized immutable dataset run fields
+        `dataset_run_name` String,
+        `dataset_run_description` Nullable(String),
+        `dataset_run_metadata` Map(LowCardinality(String), String),
+        `dataset_run_created_at` DateTime64(3),
+        -- denormalized dataset item fields (mutable, but snapshots are relevant)
+        `dataset_item_input` Nullable(String) CODEC(ZSTD(3)), -- json
+        `dataset_item_expected_output` Nullable(String) CODEC(ZSTD(3)), -- json
+        `dataset_item_metadata` Map(LowCardinality(String), String),
+        -- clickhouse engine fields
+        `event_ts` DateTime64(3),
+        `is_deleted` UInt8,
+        -- For dataset item lookups
+        INDEX idx_dataset_item dataset_item_id TYPE bloom_filter(0.001) GRANULARITY 1,
+    ) ENGINE = ReplicatedReplacingMergeTree(event_ts, is_deleted)
+    ORDER BY (project_id, dataset_id, dataset_run_id, id); (details: code: 57, message: There was an error on [langfuse-clickhouse-shard0-2.langfuse-clickhouse-headless.monitoring.svc.cluster.local:9000]: Code: 57. DB::Exception: Table default.dataset_run_items_rmt already exists. (TABLE_ALREADY_EXISTS) (version 25.2.1.3085 (official build)))
+    Applying clickhouse migrations failed. This is mostly caused by the database being unavailable.
+    Exiting...
+    ```
+  - すべてのClickHouse Podで、`dataset_run_items_rmt`テーブルを削除  
+    ```shell
+    DROP TABLE dataset_run_items_rmt;
+    ```
+  - その後、langfuse-web podを再起動（削除）してもversionが1つ上がってdirtyエラーが出た。再度dirtyとなっている最新のversionだけを削除して、langfuse web podを削除（再起動）したら 'Running 1/1' になった！
+
+
+#### 最終手段
 - RDSのLangfuse用のDBを削除し、ClickHouseとZookeeper用のEFS（PV）もAccessPointを作り直して、すべてクリアした状態でデプロイしたら問題なく起動した。(既存のデータはすべて消えた)
 
 ---
