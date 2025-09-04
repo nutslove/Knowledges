@@ -37,3 +37,16 @@ npm update -g @anthropic-ai/claude-code
   ![memory2](./images/memory_2.jpg)
 - `CLAUDE.md`のフォーマットは決まってない  
   ![memory3](./images/memory_3.jpg)
+
+# Claude Code cheat sheet
+> [!NOTE]  
+> `claude`でClaude Codeに入ったあとに実行するコマンド
+
+- 現在ログインしているアカウントやモデルの確認  
+  `/status`
+
+- ログイン、ログアウト  
+  `/login`、`/logout`
+
+- 利用するモデルの設定  
+  `/model`
