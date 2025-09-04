@@ -10,12 +10,29 @@
 >   curl -s -H 'X-Scope-OrgID: <テナント名>' http://<gatewayのIP>:8080/loki/api/v1/labels
 >   ```
 
-## ラベル一覧
+## ラベル一覧取得
 ```shell
 curl -s http://<gatewayのIP>:8080/loki/api/v1/labels
 ```
+- output例  
+  ```json
+  {
+    "status": "success",
+    "data": [
+      "app",
+      "cluster",
+      "container",
+      "container_runtime",
+      "instance",
+      "job",
+      "namespace",
+      "pod",
+      "service_name"
+    ]
+  }
+  ```
 
-## 特定のStreamが持っているラベル一覧（ラベルと値のすべての組み合わせ）
+## 特定のStreamが持っているラベル一覧（ラベルと値のすべての組み合わせ）取得
 > returns the list of streams (unique set of labels) that match a certain given selector.
 
 ```shell
@@ -73,7 +90,47 @@ curl -s "http://localhost:3100/loki/api/v1/series" \
   }
   ```
 
-## 特定ラベルの値一覧
+## 特定ラベルの値一覧取得
 ```shell
 curl -s http://<gatewayのIP>:8080/loki/api/v1/label/<ラベル名>/values
 ```
+- output例  
+  ```json
+  {
+    "status": "success",
+    "data": [
+      "alloy",
+      "argocd-application-controller",
+      "argocd-applicationset-controller",
+      "argocd-notifications-controller",
+      "argocd-repo-server",
+      "argocd-server",
+      "cert-controller",
+      "clickhouse",
+      "codebase-analysis",
+      "compactor",
+      "controller",
+      "csi-provisioner",
+      "distributor",
+      "external-secrets",
+      "grafana",
+      "index-gateway",
+      "ingester",
+      "langfuse-web",
+      "langfuse-worker",
+      "manager",
+      "nginx",
+      "prometheus",
+      "querier",
+      "query-frontend",
+      "split-brain-fix",
+      "tf-runner",
+      "thanos-compactor",
+      "thanos-ingesting-receiver",
+      "thanos-routing-receiver",
+      "thanos-store",
+      "tofu-controller",
+      "webhook"
+    ]
+  }
+  ```
