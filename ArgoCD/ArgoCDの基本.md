@@ -16,6 +16,15 @@
 ## 構成
 - https://hiroki-hasegawa.hatenablog.jp/entry/2023/05/02/145115?utm_source=pocket_reader
 
+### Redis
+- https://argo-cd.readthedocs.io/en/stable/operator-manual/high_availability/
+- RedisはStatefulSetで構成されているけど、中のデータが消えても特にサービスには問題ないっぽい  
+  > Redis is only used as a throw-away cache and can be lost. When lost, it will be rebuilt without loss of service.
+- HA Modeの場合、Redisは3ノード構成になっていて、1台がMaster、2台がReplicaになっている
+- また、Redis Sentinelというのもあり、Masterが落ちた場合にReplicaの中から新しいMasterを自動的に選出する仕組みがある
+  - SentinelはRedis Pod内にSidecarとして起動
+  - Master を監視し、障害時には自動的にフェイルオーバーを実行する
+
 ## HelmチャートのApplications登録方法
 - `index.yaml`と`*.tgz`があるHelmリポジトリを使う方法と、`charts`ディレクトリや`Chart.yaml`があるGitリポジトリを使う方法がある
 
