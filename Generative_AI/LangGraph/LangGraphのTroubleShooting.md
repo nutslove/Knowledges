@@ -40,6 +40,8 @@ An error occurred (ValidationException) when calling the InvokeModel operation: 
   history_messages = state["messages"][:-1]
   ```
 
+---
+
 ## ■ StateのMessageにToolによるメッセージ（e.g. `tool_use`または`tool_result`）が含まれているのに、`bind_tools`してないLLMで`invoke`すると以下のようなエラーが出る
 ```
 Error raised by bedrock service: An error occurred (ValidationException) when calling the InvokeModel operation: Requests which include `tool_use` or `tool_result` blocks must define tools.
