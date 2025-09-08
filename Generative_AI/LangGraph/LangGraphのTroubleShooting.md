@@ -16,6 +16,8 @@
   Traceback
   ```
 
+---
+
 ## ■ React Agentで、llmがtool callと判断したのに無理やり回答させようとするとエラーとなる
 - `bind_tools`でToolを紐づけたReact Agentで、LLMが次のアクションとして`tool_calls`を選んだのに、強制的にToolではなく、回答をさせようとすると以下のようなエラーが出る  
   ```shell
@@ -26,10 +28,24 @@
     history_messages = state["messages"][:-1]
     ```
 
+---
+
+## ■ React Agentで、`tool_use`があるのに、`tool_result`がない場合、以下のようなエラーが出る
+```shell
+An error occurred (ValidationException) when calling the InvokeModel operation: messages.72: tool_use ids were found without tool_result blocks immediately after: toolu_bdrk_01PBrJYLp5w7obr55pVMRT33. Each tool_use block must have a corresponding tool_result block in the next message."
+```
+- `tool_use`がある場合、必ず次のメッセージに対応する`tool_result`が必要
+- なので、上記と同じように、以下のようにMessageステートから最後のメッセージを除外するか、`ToolMessage`で`tool_result`を追加する  
+  ```python
+  history_messages = state["messages"][:-1]
+  ```
+
 ## ■ StateのMessageにToolによるメッセージ（e.g. `tool_use`または`tool_result`）が含まれているのに、`bind_tools`してないLLMで`invoke`すると以下のようなエラーが出る
 ```
 Error raised by bedrock service: An error occurred (ValidationException) when calling the InvokeModel operation: Requests which include `tool_use` or `tool_result` blocks must define tools.
 ```
+
+---
 
 ## ■ Node並列実行時、各NodeでState内の同じ項目を更新すると以下のエラーになる
 - 複数のNodeでState内の`system_name`項目を更新しようとしたときのエラー  
@@ -65,6 +81,8 @@ Error raised by bedrock service: An error occurred (ValidationException) when ca
     builder.add_edge(START, "other_node")
     graph = builder.compile()
     ```
+
+---
 
 ## ■ Nodeの中でstateを使わない場合でもNode関数の引数にstateは必要
 - `get_aws_health_dashboard_info`Node関数に引数を定義してない場合、以下のようなエラーが出る  
