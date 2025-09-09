@@ -8,6 +8,15 @@
 >   curl -s -H 'THANOS-TENANT: <テナント名>' http://<Querier/Query FrontendのIP>:9090/api/v1/label/__name__/values
 >   ```
 
+## メトリクス取得
+```shell
+curl -s "http://<Querier/Query FrontendのIP>:9090/api/v1/query_range?query=<PromQL>&start=<UNIX TIMESTAMP>&end=<UNIX TIMESTAMP>&step=<DataPointの間隔(秒)>"
+```
+- 例  
+  ```shell
+  curl -s "http://10.1.3.88:9090/api/v1/query_range?query=up\{\"job\"=\"kube-state-metrics\"\}&start=1756695030&end=1756698630&step=600"
+  ```
+
 ## メトリクス一覧取得
 ```shell
 curl -s http://<Querier/Query FrontendのIP>:9090/api/v1/label/__name__/values
