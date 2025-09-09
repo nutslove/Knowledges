@@ -27,6 +27,39 @@
   - 例えば上記の場合、`my_dog`が`self`に、`dasomi`が`name`に入る
     ![](image/self.jpg)
 
+### `self`内にある属性があるか確認する方法
+- `hasattr(オブジェクト, '属性名')`  
+  ```python
+  class Dog:
+    def __init__(self, name):
+      self.name = name
+
+  my_dog = Dog("dasomi")
+  print(hasattr(my_dog, 'name')) --→ True
+  print(hasattr(my_dog, 'age')) --→ False
+  ``` 
+- Classのメソッド内で`self`内にある属性があるか確認する方法  
+  ```python
+  class Dog:
+    def __init__(self, name):
+      self.name = name
+
+    def bark(self):
+      if hasattr(self, 'name'):
+        print(f"{self.name} is barking.")
+      else:
+        print("This dog has no name.")
+
+  my_dog = Dog("dasomi")
+  my_dog.bark() --→ "dasomi is barking."が出力される
+
+  nameless_dog = Dog(None)
+  del nameless_dog.name --→ name属性を削除
+  nameless_dog.bark() --→ "This dog has no name."が出力される
+  ```
+
+---
+
 ## 継承 (inheritance)
 - 既存のClassの属性やMethodを使いつつ、既存のClassにはない属性やMethodを追加/修正するなど、Classを拡張するもの
 - 継承の書き方
