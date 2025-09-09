@@ -12,7 +12,7 @@ def example():
     テキストです"""
 
     # textwrap.dedent()を使った解決策
-    good = textwrap.dedent("""\
+    good = textwrap.dedent("""
         これは
         複数行の
         テキストです
