@@ -152,3 +152,61 @@
   docs = store.similarity_search(query)
   print(docs)
   ```
+
+### metadataを使った保存・フィルタリング
+#### 保存
+```python
+import uuid
+
+from langchain_core.documents import Document
+
+docs = [
+    Document(
+        id=str(uuid.uuid4()),
+        page_content="Red Apple",
+        metadata={"description": "red", "content": "1", "category": "fruit"},
+    ),
+    Document(
+        id=str(uuid.uuid4()),
+        page_content="Banana Cavendish",
+        metadata={"description": "yellow", "content": "2", "category": "fruit"},
+    ),
+    Document(
+        id=str(uuid.uuid4()),
+        page_content="Orange Navel",
+        metadata={"description": "orange", "content": "3", "category": "fruit"},
+    ),
+]
+
+await store.aadd_documents(docs)
+```
+#### フィルタリング（Retriever）
+- https://python.langchain.com/docs/integrations/vectorstores/pgvectorstore/#search-for-documents-with-metadata-filter
+```python
+import uuid
+
+docs = [
+    Document(
+        id=str(uuid.uuid4()),
+        page_content="Red Apple",
+        metadata={"description": "red", "content": "1", "category": "fruit"},
+    ),
+    Document(
+        id=str(uuid.uuid4()),
+        page_content="Banana Cavendish",
+        metadata={"description": "yellow", "content": "2", "category": "fruit"},
+    ),
+    Document(
+        id=str(uuid.uuid4()),
+        page_content="Orange Navel",
+        metadata={"description": "orange", "content": "3", "category": "fruit"},
+    ),
+]
+
+await custom_store.aadd_documents(docs)
+
+# Use a dictionary filter on search
+docs = await custom_store.asimilarity_search(query, filter={"content": {"$gte": 1}})
+
+print(docs)
+```
