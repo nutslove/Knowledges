@@ -7,6 +7,15 @@
 ## MCPの仕様
 - https://modelcontextprotocol.io/specification/
 
+### 非同期通信（async）
+- MCP自体は非同期通信のみを前提として設計されている（明記されている）わけではなさそうだが、LangChain MCP AdaptersやMCP公式のPython SDKなどは非同期通信を前提としている
+  - LangChain MCP Adapters
+    - https://github.com/langchain-ai/langchain-mcp-adapters
+    - https://langchain-ai.github.io/langgraph/agents/mcp/
+  - MCP公式のPython SDK
+    - https://github.com/modelcontextprotocol/python-sdk
+- https://www.issoh.co.jp/tech/details/5984/
+
 ---
 
 # MCP Server
