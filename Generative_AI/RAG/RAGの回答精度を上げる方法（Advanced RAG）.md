@@ -1,26 +1,8 @@
-#### 参考URL
-- **https://aws.amazon.com/jp/blogs/news/a-practical-guide-to-improve-rag-systems-with-advanced-rag-on-aws/** （★）
-- https://speakerdeck.com/naoki_0531/amazon-bedrock-amazon-aurorawozu-mihe-wasetaragdehui-da-jing-du-noxiang-shang-niqu-rizu-ndemita
-- https://fintan.jp/page/10301/
-- https://qiita.com/DeepMata/items/3c27394e4475b1b7e7ff
-
-### ■ Semantic search（セマンティック検索）とは
-- https://www.softbank.jp/biz/solutions/generative-ai/ai-glossary/semantic-search/
-- 検索エンジンが単純なキーワードの一致検索だけではなく、ユーザの意図やクエリの意味を理解して、関連性の高い情報を検索するための技術
-- その代表的な実装が **「ベクトル検索」** で、**テキストを埋め込みベクトルに変換し、コサイン類似度や内積などで近いものを探す。**
-
-  #### Semantic search（セマンティック検索）の特徴
-  1. 意味の理解
-     - キーワードの単純な一致だけでなく、文脈や文の意味を理解します。これにより、ユーザーが意図した情報をより正確に把握することができます。
-  2. 関連性の高い結果
-     - 関連性の高い情報を提供するため、より適切な検索結果を表示することができます。キーワードの一致だけではなく、関連するトピックや意味的に類似した情報も考慮されます。
-  3. 構造化データの利用
-     - セマンティック検索では、構造化データ（例: RDF、OWL）やオントロジー（知識体系）を活用することがあります。これにより、データの意味的な関連性や階層構造を考慮して検索が行われます。
-  4. 自然言語処理と機械学習の応用
-     - セマンティック検索では、自然言語処理（NLP）や機械学習の技術が活用され、テキストの意味解析や文脈理解、関連性の推定が行われます。
-
-  #### 検索例
-  - 例えば、キーワード「ロンドンの天気」でセマンティック検索を行うと、従来のキーワードベースの検索では「ロンドンの天気」というキーワードの一致や近さに基づいて結果が表示されましたが、セマンティック検索では「ロンドンの現在の気象情報」や「ロンドンの天気予報」など、関連性の高い情報やより正確な情報を提供することが可能になります。
+- 参考URL
+  - **https://aws.amazon.com/jp/blogs/news/a-practical-guide-to-improve-rag-systems-with-advanced-rag-on-aws/** （★）
+  - https://speakerdeck.com/naoki_0531/amazon-bedrock-amazon-aurorawozu-mihe-wasetaragdehui-da-jing-du-noxiang-shang-niqu-rizu-ndemita
+  - https://fintan.jp/page/10301/
+  - https://qiita.com/DeepMata/items/3c27394e4475b1b7e7ff
 
 ## 1. Parent Document Retriever
 - 参考URL
