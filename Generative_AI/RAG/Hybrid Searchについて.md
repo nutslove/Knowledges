@@ -37,8 +37,24 @@
 ### 全文検索とBM25
 - 全文検索とBM25は同義語ではなく、BM25は、全文検索の中でよく使われる「スコアリング手法（ランキングアルゴリズム）」の一つ
   - つまり「全文検索」 ⊃ 「BM25」
+
 #### BM25
 - 「Best Matching 25」の略で、検索エンジンが「どの文書が検索クエリに最も関連しているか」を数値で評価するためのアルゴリズム
 - **TF（単語の出現回数）**、**IDF（単語の逆文書頻度）**、**文書の長さの正規化**を組み合わせて計算する。
 - 例えば、単語Aが含まれる文書を探しつつ、「出現頻度が多い」,「文書が短い」などの要素でスコアを計算し、関連度の高い順にランキングする。
 - 現代の全文検索エンジン（Elasticsearch、OpenSearch、Luceneなど）でデフォルト採用されていることが多い。
+
+##### LangChainでのBM25Retriever
+- 参考URL
+  - https://python.langchain.com/docs/integrations/retrievers/bm25/
+  - https://python.langchain.com/api_reference/community/retrievers/langchain_community.retrievers.bm25.BM25Retriever.html
+
+> [!NOTE]  
+> BM25はキーワード検索の一種なので、**VectorStore上のドキュメントと、ユーザからのクエリーの両方をトークン単位に分割（トークナイズ）** する必要がある。
+> `BM25Retriever`はデフォルトで、文章をスペースでトークン化して処理する。英語はこれでトークン化できるが、日本語はできないので、`sudachi`、`MeCab`など日本語の形態素解析器を使ってトークン化する必要がある。
+
+### LangChainでのHybrid Search
+- `EnsembleRetriever`クラスを使えば、複数のRetrieverを組み合わせてHybrid Searchが可能
+- 参考URL
+  - https://python.langchain.com/api_reference/langchain/retrievers/langchain.retrievers.ensemble.EnsembleRetriever.html
+  - https://python.langchain.com/docs/how_to/ensemble_retriever/
