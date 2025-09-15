@@ -1,4 +1,5 @@
 #### 参考URL
+- **https://aws.amazon.com/jp/blogs/news/a-practical-guide-to-improve-rag-systems-with-advanced-rag-on-aws/** （★）
 - https://speakerdeck.com/naoki_0531/amazon-bedrock-amazon-aurorawozu-mihe-wasetaragdehui-da-jing-du-noxiang-shang-niqu-rizu-ndemita
 - https://fintan.jp/page/10301/
 - https://qiita.com/DeepMata/items/3c27394e4475b1b7e7ff
@@ -6,6 +7,7 @@
 ### ■ Semantic search（セマンティック検索）とは
 - https://www.softbank.jp/biz/solutions/generative-ai/ai-glossary/semantic-search/
 - 検索エンジンが単純なキーワードの一致検索だけではなく、ユーザの意図やクエリの意味を理解して、関連性の高い情報を検索するための技術
+- その代表的な実装が **「ベクトル検索」** で、**テキストを埋め込みベクトルに変換し、コサイン類似度や内積などで近いものを探す。**
 
   #### Semantic search（セマンティック検索）の特徴
   1. 意味の理解
@@ -19,10 +21,6 @@
 
   #### 検索例
   - 例えば、キーワード「ロンドンの天気」でセマンティック検索を行うと、従来のキーワードベースの検索では「ロンドンの天気」というキーワードの一致や近さに基づいて結果が表示されましたが、セマンティック検索では「ロンドンの現在の気象情報」や「ロンドンの天気予報」など、関連性の高い情報やより正確な情報を提供することが可能になります。
-
-### ■ 質問とVector Storeから検索したデータの類似度確認方法
-
-
 
 ## 1. Parent Document Retriever
 - 参考URL
@@ -157,13 +155,19 @@
 - **参照元ドキュメントの全文をPromptに入れると (特に参照元ドキュメントのサイズが大きいときは) Promptのサイズが大きくなりすぎて、応答までより時間がかかったり、Token数も多くなって利用料が上がったり、API側のスロットリングに引っ掛かる可能性があるため、parent_splitterを使って類似度検索で使うChunkとPromptに含めるChunkサイズを分ける方式の方が現実的な気がする。**
 
 ## 2. Multi-Query Retriever
-
+- １つのクエリーをLLMで多角的な観点から複数のクエリーに変換して、それぞれのクエリーで類似度検索を行い、取得した複数のChunkをまとめてLLMに渡す手法
 
 ## 3. Self-Querying Retriever
-- セマンティック検索ではなく、ドキュメント(文書)が持っているmetadataをfilteringして、より正確な回答を生成する手法
-- filteringが必要な質問に適切な手法(e.g. CSV, EXCEL)
+- LangChain が提供するRetrieverの一種で、ユーザーの自然言語クエリを解析して セマンティック検索 + メタデータフィルタリング を自動で組み合わせてくれる仕組み
+- ユーザーの質問をLLMに解釈させ、以下を自動で抽出し、検索に利用する。
+  1. 検索クエリ部分（埋め込み検索用のテキスト）
+  2. フィルタリング条件（メタデータに基づく制約）
+- 例
+  - クエリ：「2021年以降に出版されたPythonに関する論文を探して」
+  - 「Python 論文」で埋め込み検索 ＋ `year >= 2021` でメタデータをフィルタリング
 
 ## 4. Time-weighted
+- 時系列データを扱う場合に、最新の情報に重みを置いて類似度検索を行う手法
 
 ## その他
 #### チャンク分割（チャンキング戦略）
