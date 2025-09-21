@@ -75,7 +75,7 @@ user = user_service.get_user(1)
   4. 再利用性の低下
      - UserServiceは特定の実装（MySQL、特定のEmailService）にしか使えない
 
-- 上記の問題を解決するために、**依存性注入（Dependency Injection, DI）**を使って、`UserService`が依存する具体的な実装を外部から注入できるようにする（以下は上記コードをDI対応に書き換えた例）  
+- 上記の問題を解決するために、**依存性注入（Dependency Injection, DI）** を使って、`UserService`が依存する具体的な実装を外部から注入できるようにする（以下は上記コードをDI対応に書き換えた例）  
   1. 抽象化（インターフェース）の導入  
      ```python
      class DatabaseInterface(ABC):
