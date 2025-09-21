@@ -11,6 +11,6 @@
 1. 上位モジュールは下位モジュールに依存してはならない。両者とも抽象に依存すべき
 2. 抽象は実装の詳細に依存してはならない。実装の詳細が抽象に依存すべき
    - NG  
-     ![DIP NG](./images/DIP_NG.png)
+     ![DIP NG](./images/DIP_NG.jpg)
    - OK  
-     ![DIP OK](./images/DIP_OK.png)
+     ![DIP OK](./images/DIP_OK.jpg)
