@@ -1,6 +1,7 @@
 ## `@dataclass`について
 - Python 3.7で導入された`dataclasses`モジュールの一部で、クラス定義を簡素化するためのデコレータ（`@dataclass`）
 - `@dataclass`を使用すると、クラスの属性に基づいて自動的に初期化メソッド（`__init__`）、文字列表現メソッド（`__repr__`）、比較メソッド（`__eq__`など）などが生成される
+
 ### 基本的な使い方  
 ```python
 from dataclasses import dataclass
@@ -11,6 +12,7 @@ class Person:
     age: int
     email: str = None  # デフォルト値を設定可能
 ```
+
 ### 従来のクラス定義と比較（`@dataclass`を使わない場合）  
 ```python
 class PersonTraditional:
@@ -129,7 +131,7 @@ p = Point(1, 2)
     print(e)  # Example(x=10)
     ```
 
-##### よくある組み合わせ例
+### よくある組み合わせ例
 - 辞書やリストのデフォルト値を設定したい場合  
   ```python
   @dataclass
