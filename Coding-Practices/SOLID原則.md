@@ -1,11 +1,78 @@
 ## SOLID原則とは
-- オブジェクト指向プログラミングにおける設計原則の集合
+- オブジェクト指向プログラミングにおいて、**変更しやすく・理解しやすく・再利用しやすい**モジュール設計のための5つの原則
 - 以下の5つの原則から構成される
   - 単一責任の原則（Single Responsibility Principle, SRP）
   - オープン・クローズドの原則（Open/Closed Principle, OCP）
   - リスコフの置換原則（Liskov Substitution Principle, LSP）
   - インターフェース分離の原則（Interface Segregation Principle, ISP）
   - 依存関係逆転の原則（Dependency Inversion Principle, DIP）
+
+### 単一責任の原則（Single Responsibility Principle, SRP）
+- 1つのクラス（モジュール）は1つの責任・機能のみを持つべき。クラス（モジュール）は「変更理由」が一つだけであるべき。
+
+### オープン・クローズドの原則（Open/Closed Principle, OCP）
+- ソフトウェア要素（クラスや関数）は「拡張に対しては開かれて」いなければならないが、「修正に対しては閉じられて」いるべき。つまり既存コードを変更せずに機能追加できる設計。
+
+### リスコフの置換原則（Liskov Substitution Principle, LSP）
+- サブタイプはスーパークラスの代わりに使える（置換してもプログラムの正当性が保たれる）ように設計すること。契約（前提・事後条件）を破らない。
+- 例えば、`Bird`クラスを継承した`Penguin`クラスが`fly()`メソッドを持つと、`Bird`型の変数に`Penguin`を代入した際に問題が発生する。  
+   ```python
+   class Bird:
+       def fly(self):
+           pass
+
+   class Penguin(Bird):
+       def fly(self):
+           raise NotImplementedError("ペンギンは飛べません")
+
+   def make_bird_fly(bird: Bird):
+       bird.fly()  # ここでエラーになる可能性がある
+
+   penguin = Penguin()
+   make_bird_fly(penguin)  # LSP違反
+   ```
+
+### インターフェース分離の原則（Interface Segregation Principle, ISP）
+- クライアントはそれが使用しないメソッドに依存してはならない。大きなインターフェースを小さく分割し、特定のクライアントに必要なインターフェースのみを提供すること。
+- 悪い例  
+  ```python
+  # bad_isp.py
+  class Printer:
+      def print(self, doc): ...
+      def scan(self, doc): ...
+      def fax(self, doc): ...
+  # 複合機の全機能を期待するインターフェースだが、
+  # 単純に印刷だけしたいクライアントが不必要なメソッドを実装する必要がある
+  ```
+- 改善（機能別に分割）  
+  ```python
+  # good_isp.py
+  from abc import ABC, abstractmethod
+
+  class PrinterInterface(ABC):
+      @abstractmethod
+      def print(self, doc): pass
+
+  class ScannerInterface(ABC):
+      @abstractmethod
+      def scan(self, doc): pass
+
+  class FaxInterface(ABC):
+      @abstractmethod
+      def fax(self, doc): pass
+
+  class SimplePrinter(PrinterInterface):
+      def print(self, doc):
+          print("printing", doc)
+
+  class MultiFunctionDevice(PrinterInterface, ScannerInterface, FaxInterface):
+      def print(self, doc):
+          print("printing", doc)
+      def scan(self, doc):
+          print("scanning", doc)
+      def fax(self, doc):
+          print("faxing", doc)
+  ```
 
 ### 依存関係逆転の原則（Dependency Inversion Principle, DIP）
 1. 上位モジュールは下位モジュールに依存してはならない。両者とも抽象に依存すべき
