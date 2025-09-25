@@ -39,6 +39,12 @@
     ```
 
 #### Lambdaプロキシ統合
+
+> [!CAUTION]  
+> REST APIとLambdaの統合の場合、HTTPメソッドは**POST**にしなければならないっぽい。（GETとかだと403エラーになる）
+> - https://github.com/aws/serverless-application-model/issues/430
+> - https://docs.aws.amazon.com/ja_jp/apigateway/latest/developerguide/set-up-lambda-integrations.html
+
 - https://docs.aws.amazon.com/ja_jp/apigateway/latest/developerguide/getting-started-rest-new-console.html
 - Lambda関数をAPI Gatewayのバックエンドとして使用する場合、Lambdaプロキシ統合を使用することが推奨される
   - https://docs.aws.amazon.com/ja_jp/apigateway/latest/developerguide/api-gateway-api-integration-types.html  
