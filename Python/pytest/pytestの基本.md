@@ -15,6 +15,19 @@
 - 例: `assert foo() == 42`
 - `assert`はpythonの組み込みキーワードであり、`assert`の後に続く式が`False`の場合、`AssertionError`を発生させる
 
+## 想定される例外のテスト
+- `pytest.raises()`を使って、特定の例外が発生することをテストできる
+- 例（`ZeroDivisionError`が発生することをテスト）  
+  ```python
+  import pytest
+
+  def test_zero_division():
+      with pytest.raises(ZeroDivisionError):
+          1 / 0
+  ```
+  - **`with`ブロック内で`ZeroDivisionError`が発生しない場合、テストは失敗する**
+  - **`with`ブロック内で`ZeroDivisionError`以外の例外が発生した場合、テストは失敗する**
+
 ## テストの実行
 - ターミナルで`pytest`コマンドを実行する
   - 例: `pytest test_example.py`
