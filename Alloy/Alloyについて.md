@@ -8,3 +8,18 @@
 
 ## AlloyのHealthCheck Endpoint
 - `http://<alloy-host>:12345/-/healthy`
+
+## Alloyのユーザ設定（非Root）
+- https://grafana.com/docs/alloy/latest/configure/nonroot/
+```yaml
+alloy:
+  securityContext:
+    runAsUser: 473
+    runAsGroup: 473
+
+configReloader:
+  securityContext:
+    # this is the UID of the "nobody" user that the configReloader image runs as
+    runAsUser: 65534
+    runAsGroup: 65534
+```
