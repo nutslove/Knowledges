@@ -1,7 +1,6 @@
 # AI Agentの基本的な能力
-- https://langchain-ai.github.io/langgraph/concepts/agentic_concepts/
-- aasd  
-  > There are many ways that an LLM can control application:
+- https://langchain-ai.github.io/langgraph/concepts/agentic_concepts/  
+  > Instead of hard-coding a fixed control flow, we sometimes want LLM systems that can pick their own control flow to solve more complex problems! This is one definition of an [agent](https://blog.langchain.dev/what-is-an-agent/?_gl=1*7isroa*_gcl_au*MTU1MTc1NDczMi4xNzU1OTcyMjQ4*_ga*MTExOTQyMzM1MC4xNzU1OTcyMjQ5*_ga_47WX3HKKY2*czE3NTkxNzgxNzIkbzI1JGcxJHQxNzU5MTc4NTYxJGo2MCRsMCRoMA..): an agent is a system that uses an LLM to decide the control flow of an application. There are many ways that an LLM can control application:
   >
   > - **An LLM can route between two potential paths**
   > - **An LLM can decide which of many tools to call**
