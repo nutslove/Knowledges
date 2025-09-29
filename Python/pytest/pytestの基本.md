@@ -69,7 +69,7 @@
 - 実際のテスト関数の実行に先立って（場合によってはそのあとに）pytestが実行する関数
   - 例: テストで使うデータセットの取得、DBのセットアップ、モックサーバーの起動など
 - フィクスチャは`@pytest.fixture`デコレータを使って定義する
-- テスト関数の引数にフィクスチャ名を指定すると、そのフィクスチャが実行され、その戻り値が引数として渡される
+- pytest の fixture は、テスト関数の引数に指定することで実行され、その戻り値（または `yield` の値）がテスト関数の引数に渡される。戻り値がない場合は副作用のみ利用できる。
 - 例  
   ```python
   import pytest
@@ -112,8 +112,25 @@
 
 ### 後処理を含むfixture
 - `yield`を使って、セットアップ & ティアダウン（後片付け）を行うことができる
-- `yield`の前が事前処理、後が後処理になる
-- 例
+- `yield`の前が前処理、後が後処理になる
+- `yield`の戻り値がテスト関数に渡される
+- 例１  
+  ```python
+  import pytest
+
+  @pytest.fixture
+  def resource():
+      print("セットアップ")
+      res = {"connection": "DB接続"}
+      yield res   # ← ここで res がテスト関数に渡される
+      print("ティアダウン")  # テスト関数の後に必ず実行される
+
+  # テスト関数
+  def test_resource(resource):
+      print("テスト実行中")
+      assert resource["connection"] == "DB接続"
+  ```
+- 例２
   ```python
   import pytest
 
