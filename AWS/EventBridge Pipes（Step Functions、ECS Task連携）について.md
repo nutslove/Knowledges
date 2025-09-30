@@ -47,7 +47,7 @@
     "States": {
       "Run ECS Task and wait for it to complete": {
         "Type": "Task",
-        "Resource": "arn:aws:states:::ecs:runTask.sync",
+        "Resource": "arn:aws:states:::ecs:runTask.sync", ★-→ ここ！
         "Parameters": {
           "LaunchType": "FARGATE",
           "Cluster": "arn:aws:ecs:ap-northeast-1:xxxxxx:cluster/dev-cluster",
