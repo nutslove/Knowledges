@@ -27,6 +27,7 @@
 ---
 
 # Step FunctionsからECS Run Taskするときの注意点
+### 1. NetworkConfigurationの指定
 - https://zenn.dev/mn87/articles/982434a01190f4
 - 以下のようなエラーが出る  
   ```shell
@@ -34,6 +35,66 @@
   ```
 - **ECSのTask Definitionで`networkMode`を`awsvpc`に設定している場合、Step FunctionsのState MachineでECS Taskを起動する際に、`NetworkConfiguration`を指定する必要がある**
 ---
+
+### 2. ECS Task処理失敗時のリトライ
+- Step FunctionsのState Machineの定義で、`States`の中の`Resource`に `arn:aws:states:::ecs:runTask`を指定している場合、`Retry`で `ErrorEquals: States.TaskFailed`が指定されていても、 ECS Taskが異常終了したとき、Step Functionsのタスクは正常終了扱いになり、リトライされない
+- ECS Task異常終了時、リトライさせたい場合は、**`States`の中の`Resource`に `arn:aws:states:::ecs:runTask.sync`を指定する必要がある**
+- 例  
+  ```json
+  {
+    "Comment": "A description of my state machine",
+    "StartAt": "Run ECS Task and wait for it to complete",
+    "States": {
+      "Run ECS Task and wait for it to complete": {
+        "Type": "Task",
+        "Resource": "arn:aws:states:::ecs:runTask.sync", ★-→ ここ！
+        "Parameters": {
+          "LaunchType": "FARGATE",
+          "Cluster": "arn:aws:ecs:ap-northeast-1:xxxxxx:cluster/dev-cluster",
+          "TaskDefinition": "arn:aws:ecs:ap-northeast-1:xxxxxx:task-definition/dev-task-definition",
+          "NetworkConfiguration": {
+            "AwsvpcConfiguration": {
+              "AssignPublicIp": "DISABLED",
+              "SecurityGroups": [
+                "sg-xxxxxxxxxxxxxx"
+              ],
+              "Subnets": [
+                "subnet-xxxxxxxxxxxxxx",
+                "subnet-xxxxxxxxxxxxxx"
+              ]
+            }
+          },
+          "Overrides": {
+            "ContainerOverrides": [
+              {
+                "Name": "test",
+                "Environment": [
+                  {
+                    "Name": "STEP_FUNCTIONS_INPUT",
+                    "Value.$": "States.JsonToString($)"
+                  }
+                ]
+              }
+            ]
+          },
+          "PlatformVersion": "LATEST"
+        },
+        "Comment": "TestのためのECS Taskを実行",
+        "Retry": [
+          {
+            "ErrorEquals": [
+              "States.TaskFailed"
+            ],
+            "BackoffRate": 2,
+            "IntervalSeconds": 60,
+            "MaxAttempts": 3
+          }
+        ],
+        "End": true
+      }
+    }
+  }
+  ```
 
 # SQS → EventBridge Pipes → Step Functions → ECS Taskの例
 - SQSメッセージごとに独立した(隔離された)ECS Taskを起動するためには、EventBridge PipeのSourceの設定で "**Batch size**"を `1`に設定する必要がある
