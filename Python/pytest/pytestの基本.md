@@ -185,3 +185,9 @@
       yield conn
       conn.close()
   ```
+
+## テスト関数の構造化
+- Arrange-Act-Assert（Given-When-Then）パターンを使うと、テスト関数の構造が明確になる
+  1. **Arrange（Given）（準備）**: テストに必要なデータや状態を準備する
+  2. **Act（When）（実行）**: テスト対象のコードを実行する
+  3. **Assert（Then）（検証）**: 結果が期待通りかどうかを検証する
