@@ -210,3 +210,112 @@ docs = await custom_store.asimilarity_search(query, filter={"content": {"$gte": 
 
 print(docs)
 ```
+
+---
+
+## Hybrid Search（ハイブリッド検索）
+- https://python.langchain.com/docs/integrations/vectorstores/pgvectorstore/#hybrid-search-with-pgvectorstore
+- ベクトル(類似度)検索とキーワード検索を組み合わせた検索方法
+- `PGVectorStore`は、TSV（Text Search Vector）ベースのキーワード検索をサポートしている
+  - TSV（Text Search Vector）とは、テキストを検索用に最適化した形式に変換したデータ型（PostgreSQLの全文検索機能で使用されるデータ型）
+- `PGVectorStore`の`create`や`create_sync`メソッドの`hybrid_search_config`パラメータに [HybridSearchConfig](https://python.langchain.com/api_reference/postgres/v2/langchain_postgres.v2.hybrid_search_config.HybridSearchConfig.html) オブジェクトを渡すことで、ハイブリッド検索を有効化できる
+  - `tsv_lang`
+    - tokenizationに使用する言語を指定（デフォルトは`'pg_catalog.english'`で、**japaneseはない**）
+    - `english`の場合、半角スペースなどで単語が分割されるため、日本語はスペースがないので、うまく分割されないため、精度が悪くなる可能性がある
+
+### 設定例（使い方の例）
+- **metadataを使ったフィルタリングも同時に行う例**  
+  ```python
+  from langchain_postgres.v2.hybrid_search_config import (
+      HybridSearchConfig,
+      reciprocal_rank_fusion,
+  )
+  from langchain_postgres import PGVectorStore, PGEngine
+  from langchain_postgres.v2.engine import Column
+  from langchain_aws import BedrockEmbeddings
+
+  hybrid_search_config = HybridSearchConfig(
+      tsv_column="hybrid_description", ★ # TSV（Text Search Vector）カラム。単語単位で分割されたテキストを格納されるカラム
+      tsv_lang="pg_catalog.english",
+      fusion_function=reciprocal_rank_fusion,
+      fusion_function_parameters={
+          "rrf_k": 60,
+          "fetch_top_k": 10,
+      },
+  )
+
+  connection_string = (
+      f"postgresql+psycopg://{postgre_user}:{postgre_password}@{db_host}"
+      f":5432/{db_name}"
+  )
+  pg_engine = PGEngine.from_connection_string(connection_string)
+
+  pg_engine.init_vectorstore_table(
+      table_name="vectorstore", # このTable名で作成される
+      schema_name="rag_schema", # 事前にschemaを作成しておく必要がある
+      vector_size=3072, # embeddingの次元数に合わせる
+      id_column="id", # primary key（uuid）
+      content_column="content", # Embeddingされる前の元のドキュメントが格納されるカラム
+      embedding_column="embedded_content", # Embeddingベクトルを格納するカラム
+      metadata_columns=[ # metadataを格納するカラム（以下の１行１行がカラムとして作成される。以下の例だと`system_id`、`incident_id`、`created_at`カラムが作成される）
+          Column(name="system_id", data_type="text"), # `data_type`は`text`、`integer`、`timestamp`などPostgreSQLのデータ型を指定可能
+          Column(name="incident_id", data_type="text"),
+          Column(name="created_at", data_type="timestamp"),
+      ],
+      metadata_json_column="metadata", # metadata全体をJSON形式で格納するカラム
+      hybrid_search_config=hybrid_search_config, # `HybridSearchConfig`オブジェクトを渡す
+      store_metadata=True,
+  )
+
+  embeddings = BedrockEmbeddings(
+      model_id="cohere.embed-multilingual-v3",
+      region_name="us-west-2",
+  )
+
+  hybrid_store = PGVectorStore.create_sync( # Storeインスタンスを初期化
+      engine=pg_engine,
+      schema_name="rag_schema",
+      table_name="vectorstore",
+      embedding_service=embeddings,
+      content_column="content",
+      id_column="id",
+      embedding_column="embedded_content",
+      metadata_json_column="metadata",
+      metadata_columns=["system_id", "incident_id", "created_at"],
+      hybrid_search_config=hybrid_search_config,
+  )
+
+  # VectorStoreにドキュメントを格納
+  docs = [
+      Document(
+          page_content="Alert Name: ECS CPU usage alert, Priority: warning, summary: ECS CPU usage high",
+          metadata={"system_id": "apple", "incident_id": "1", "created_at": "2025-10-01T12:00:00Z"},
+      ),
+      Document(
+          page_content="Alert Name: rds-error log alert, Priority: warning, summary: some rds-error occurred",
+          metadata={"system_id": "apple", "incident_id": "2", "created_at": "2024-12-01T12:00:00Z"},
+      ),
+      Document(
+          page_content="Alert Name: ALB 5xx error alert, Priority: critical, summary: ALB 5xx error occurred",
+          metadata={"system_id": "samsung", "incident_id": "3", "created_at": "2004-12-01T12:00:00Z"},
+      ),
+      Document(
+          page_content="Alert Name: slow query log alert, Priority: critical, summary:  slow query log detected",
+          metadata={"system_id": "samsung", "incident_id": "4", "created_at": "2024-04-03T12:00:00Z"},
+      ),
+  ]
+
+  hybrid_store.add_documents(docs)
+
+  # ハイブリッド検索
+  query = "CPU usage high"
+  results = hybrid_store.similarity_search_with_score(
+              query=query,
+              k=5, # 取得する上位k件
+              filter={"system_id": {"$eq": "apple"}}, ★ # `metadata_columns`で指定したカラムを使ったフィルタリング
+          )
+  print(results)
+  ```
+
+> [!CAUTION]
+> `metadata_json_column`で指定したカラムを使ったフィルタリングはうまく機能しなかった。要確認。
