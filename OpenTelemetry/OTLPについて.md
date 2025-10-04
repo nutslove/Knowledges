@@ -1,14 +1,4 @@
-## Semantic Conventions
-- https://opentelemetry.io/docs/concepts/semantic-conventions/
-- **Common names for different kinds of operations and data.**
-- Semantic Attributesとも呼ばれる
-- ResourceやDBなどカテゴリごとにSemantic Conventionがある
-  - *DB*
-    - https://opentelemetry.io/docs/specs/otel/trace/semantic_conventions/database/
-  - *Resource*
-    - https://opentelemetry.io/docs/specs/otel/resource/semantic_conventions/
-
-## OTLP（OpenTelemetry Protocol）
+# OTLP（OpenTelemetry Protocol）とは
 - https://opentelemetry.io/docs/specs/otlp/
 > The OpenTelemetry Protocol (OTLP) specification describes the encoding, transport, and delivery mechanism of telemetry data between telemetry sources, intermediate nodes such as collectors and telemetry backends.
 >
@@ -24,7 +14,9 @@
 - 参考URL
   - https://github.com/open-telemetry/opentelemetry-proto/tree/main/docs
 
-### OTLPベースプロトコル
+---
+
+# OTLPベースプロトコル
 - OTLPはベースプロトコルとして、HTTP/1.1とgRPCを選択できる  
   > This specification defines how OTLP is implemented over [gRPC](https://grpc.io/) and HTTP 1.1 transports and specifies [Protocol Buffers schema](https://protobuf.dev/overview/) that is used for the payloads.
 - HTTP/1.1の場合、テレメトリーデータは HTTP Request Bodyに含まれる。また、データは Protocol Buffers 形式でエンコードされ、Content-Type は`application/x-protobuf`となる。
