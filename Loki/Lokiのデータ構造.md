@@ -8,6 +8,8 @@
 - [`pkg/ingester/stream.go`](https://github.com/grafana/loki/blob/main/pkg/ingester/stream.go)
 #### Stream
 - ログストリームを管理する構造体
+- streamごとに1つの`stream`構造体が作成される
+- 同じラベルセットのログは常に同じstreamに追加される
 ```go
 // 一部抜粋
 type stream struct {
