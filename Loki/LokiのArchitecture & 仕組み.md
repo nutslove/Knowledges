@@ -99,7 +99,7 @@
 1. __Replication factor__
    - Distributorが受け取ったlogを複数のIngesterにreplicateすることで、1つのIngesterが落ちてもlogが失われないようにする
 2. __WAL (Write Ahead Log)__
-   - ingesterが書き込みを受け付ける前にまず先にログをDiskに全部書き込んでからメモリに書き込む。  
+   - ingesterがまず先にログをメモリに書き込んでからDiskにも書き込む。  
     そして、ingesterが何らかの理由で落ちたら、起動時にメモリにあったすべてのログをWALから読み込んで修復する。
       > This is a new feature, available starting in the 2.2 release, which helps ensure Loki doesn’t drop logs by writing all incoming data to disk before acknowledging the write. If an ingester dies for some reason, it will replay this log upon startup, safely ensuring all the data it previously had in memory has been recovered.
    - WALから読み込む(replay)時にWALサイズがingesterが利用可能な(割り当てられている)メモリサイズより大きい場合、幸いにメモリが制限されている状態でもbackpressureの形でreplayが実行されるけど、`replay_memory_ceiling`の設定でreplayデータ量が設定値に達したらreplayを一旦止めてflushさせてから再開させることができる
