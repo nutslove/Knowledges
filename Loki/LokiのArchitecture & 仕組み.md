@@ -75,7 +75,9 @@
     - `chunk`  
       → logデータが圧縮されたもの
       > a container for log entries for a specific set of labels.
+
     ![Write_Path](image/Write_Path.jpg)  
+
   - v1.5前まではindex(ex. DynamoDB)とchunk(ex. S3)を別々のところに保存していた
   - v1.5からindexもchunkと同じObject Storageに保存できるようにするためにBoltDB Shipperが登場した
 - __仕組み__
