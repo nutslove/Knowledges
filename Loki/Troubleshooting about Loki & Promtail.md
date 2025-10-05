@@ -87,6 +87,29 @@ Having said that, you could have this option in your loki config under:
 - 対処
   - カーディナリティの高い値をLabelから外した
 
+---
+
+## Metric queriesで `maximum of series (500) reached for a single query` エラーが出る
+- 事象
+  - GrafanaでMetric queries（e.g. `count_over_time`）を実行したら `maximum of series (500) reached for a single query`エラーが出る
+- 原因
+  - defaultでは、Lokiの1回のクエリーで返せるtime series（＝ streams）数の上限が500に設定されているため
+  - つまり、対象ログのLabelの組み合わせ（＝ streams）が500を超えるとこのエラーが出る
+- 対処
+  - `limits_config`ブロックの`max_query_series`の値を500より大きい値に設定する
+  - 以下のように`Keep`や`Drop`を使って、必要なLabelだけに絞る
+    ```logql
+    count_over_time({job="example"} | trace_id="0242ac120002" | keep job  [5m])
+    ```
+
+> [!CAUTION]  
+> https://grafana.com/docs/loki/latest/get-started/labels/structured-metadata/#querying-structured-metadata
+> Labelだけではなく、Structured metadataも結果的にLabelとして返されるため、Structured metadataの組み合わせの数が多い場合もこのエラーが出る可能性がある
+> > Note that since structured metadata is extracted automatically to the results labels, some metric queries might return an error like maximum of series (500) reached for a single query. You can use the Keep and Drop stages to filter out labels that you don’t need. For example:
+> > ```logql
+> > count_over_time({job="example"} | trace_id="0242ac120002" | keep job  [5m])
+> > ```
+
 ## Python等から直接Lokiのエンドポイント(/loki/api/v1/push)にAPIでlogをpushした際に出るDistributorからのError
 - 事象
   - Distributorから以下のようなErrorが出る
