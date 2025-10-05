@@ -91,6 +91,7 @@ Having said that, you could have this option in your loki config under:
 
 ## Metric queriesで `maximum of series (500) reached for a single query` エラーが出る
 - 事象
+  - **https://github.com/grafana/loki/issues/3045**
   - GrafanaでMetric queries（e.g. `count_over_time`）を実行したら `maximum of series (500) reached for a single query`エラーが出る
 - 原因
   - defaultでは、Lokiの1回のクエリーで返せるtime series（＝ streams）数の上限が500に設定されているため
