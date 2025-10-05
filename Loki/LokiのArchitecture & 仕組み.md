@@ -97,7 +97,7 @@
 
 ## LogがDropされるのを防ぐための仕組み
 1. __Replication factor__
-   - Distributorから受け取ったlogを複数のIngesterにreplicateすることで、1つのIngesterが落ちてもlogが失われないようにする
+   - Distributorが受け取ったlogを複数のIngesterにreplicateすることで、1つのIngesterが落ちてもlogが失われないようにする
 2. __WAL (Write Ahead Log)__
    - ingesterが書き込みを受け付ける前にまず先にログをDiskに全部書き込んでからメモリに書き込む。  
     そして、ingesterが何らかの理由で落ちたら、起動時にメモリにあったすべてのログをWALから読み込んで修復する。
