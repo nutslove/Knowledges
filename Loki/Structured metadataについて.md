@@ -28,7 +28,7 @@
 > ```logql
 > {job="example"} | pod="myservice-abc1234-56789" | trace_id="0242ac120002"
 > ```
-> **Note that since structured metadata is extracted automatically to the results labels, some metric queries might return an error like `maximum of series (50000) reached for a single query`.** **You can use the [Keep](https://grafana.com/docs/loki/latest/query/log_queries/#keep-labels-expression) and [Drop](https://grafana.com/docs/loki/latest/query/log_queries/#drop-labels-expression) stages to filter out labels that you don’t need.** For example:
+> **Note that since structured metadata is extracted automatically to the results labels, some metric queries might return an error like `maximum of series (500) reached for a single query`.** **You can use the [Keep](https://grafana.com/docs/loki/latest/query/log_queries/#keep-labels-expression) and [Drop](https://grafana.com/docs/loki/latest/query/log_queries/#drop-labels-expression) stages to filter out labels that you don’t need.** For example:
 > ```logql
 > count_over_time({job="example"} | trace_id="0242ac120002" | keep job  [5m])
 > ```
