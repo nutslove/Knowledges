@@ -111,6 +111,8 @@ Having said that, you could have this option in your loki config under:
 > > count_over_time({job="example"} | trace_id="0242ac120002" | keep job  [5m])
 > > ```
 
+---
+
 ## Python等から直接Lokiのエンドポイント(/loki/api/v1/push)にAPIでlogをpushした際に出るDistributorからのError
 - 事象
   - Distributorから以下のようなErrorが出る

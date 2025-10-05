@@ -1,4 +1,5 @@
 ## 参考URL
+- **https://grafana.com/docs/loki/latest/get-started/architecture**
 - https://taisho6339.hatenablog.com/entry/2021/05/26/104449
 - https://taisho6339.gitbook.io/grafana-loki-deep-dive/
 - https://speakerdeck.com/line_developers/grafana-loki-deep-dive
@@ -70,8 +71,10 @@
     > Loki receives logs in separate streams, where each stream is uniquely identified by its tenant ID and its set of labels. As log entries from a stream arrive, they are compressed as “chunks” and saved in the chunks store. 
     - `index`  
       → labelとtenant IDの組合せから生成されるchunkを検索するためのindex
+      > a table of contents of where to find logs for a specific set of labels.
     - `chunk`  
       → logデータが圧縮されたもの
+      > a container for log entries for a specific set of labels.
     ![Write_Path](image/Write_Path.jpg)  
   - v1.5前まではindex(ex. DynamoDB)とchunk(ex. S3)を別々のところに保存していた
   - v1.5からindexもchunkと同じObject Storageに保存できるようにするためにBoltDB Shipperが登場した
@@ -92,8 +95,7 @@
 
 ## LogがDropされるのを防ぐための仕組み
 1. __Replication factor__
-   - Distributorから
-   - 
+   - Distributorから受け取ったlogを複数のIngesterにreplicateすることで、1つのIngesterが落ちてもlogが失われないようにする
 2. __WAL (Write Ahead Log)__
    - ingesterが書き込みを受け付ける前にまず先にログをDiskに全部書き込んでからメモリに書き込む。  
     そして、ingesterが何らかの理由で落ちたら、起動時にメモリにあったすべてのログをWALから読み込んで修復する。
