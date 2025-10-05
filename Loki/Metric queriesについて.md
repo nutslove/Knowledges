@@ -1,52 +1,66 @@
 # Metric Queries (`count_over_time`等) の処理フロー
-- **Claude Codeによる調査結果なので、自分でも追ってみること！**
 
-HTTP Request: `count_over_time({app="foo"}[5m])`
-    ↓
-1. パース (`pkg/logql/syntax/parser.go:71`)
-   `ParseExpr()` → AST構築
-    ↓  
+> **⚠️ 注意**: Claude Codeによる調査結果なので、自分でも追ってみること！
 
-  ```go
-   RangeAggregationExpr {
-       Operation: "count_over_time"
-       Left: LogRangeExpr {
-           Selector: {app="foo"}
-           Interval: 5m
-       }
-   }
-   ```
+## 処理フロー
+- LogQLクエリー: `count_over_time({app="foo"}[5m])`
 
-1. エンジン (`pkg/logql/engine.go`)
-   `query.Exec()` → 実行コンテキスト設定
-   `evalSample()` → StepEvaluator作成
+### 1. パース
+**場所**: `pkg/logql/syntax/parser.go:71`
 
-2. Evaluator (`pkg/logql/evaluator.go:328`)
-   `NewStepEvaluator()`
-   → RangeAggregationExprの場合:
+- `ParseExpr()` でAST構築
 
-3. データ取得 (`pkg/querier/querier.go:219`)
-   `SelectSamples()`
-       ├→ Ingesterクエリ (最新データ)
-       ├→ Storeクエリ (履歴データ)
-       └→ イテレータをマージ
+```go
+RangeAggregationExpr {
+    Operation: "count_over_time"
+    Left: LogRangeExpr {
+        Selector: {app="foo"}
+        Interval: 5m
+    }
+}
+```
 
-4. Range集約 (`pkg/logql/range_vector.go`)
-   `newRangeAggEvaluator()`
-   → RangeVectorEvaluator作成
+### 2. エンジン
+**場所**: `pkg/logql/engine.go`
 
-   各タイムステップで:
-       ├→ [step-interval, step]のサンプルをロード
-       ├→ countOverTime()集約を適用 (line 367)
-       └→ Sample(metric, timestamp, count)を返す
+- `query.Exec()` → 実行コンテキスト設定
+- `evalSample()` → StepEvaluator作成
 
-5. 結果組み立て (`pkg/logql/engine.go:546`)
-   `JoinSampleVector()`
-   → 全ステップのサンプルを収集
-   → メトリックラベルでグループ化
-   → `promql.Matrix` (ソート済み時系列)を返す
+### 3. Evaluator
+**場所**: `pkg/logql/evaluator.go:328`
 
-## サポートされるRange集約操作
+- `NewStepEvaluator()` を呼び出し
+- RangeAggregationExprの場合、次のステップへ
+
+### 4. データ取得
+**場所**: `pkg/querier/querier.go:219`
+
+`SelectSamples()` による並列データ取得:
+- **Ingesterクエリ**: 最新データを取得
+- **Storeクエリ**: 履歴データを取得
+- **マージ**: イテレータを統合
+
+### 5. Range集約
+**場所**: `pkg/logql/range_vector.go`
+
+- `newRangeAggEvaluator()` でRangeVectorEvaluatorを作成
+
+各タイムステップで以下を実行:
+1. `[step-interval, step]` の範囲のサンプルをロード
+2. `countOverTime()` 集約を適用 (line 367)
+3. `Sample(metric, timestamp, count)` を返す
+
+### 6. 結果組み立て
+**場所**: `pkg/logql/engine.go:546`
+
+`JoinSampleVector()` による結果の構築:
+1. 全ステップのサンプルを収集
+2. メトリックラベルでグループ化
+3. `promql.Matrix` (ソート済み時系列)を返す
+
+---
+
+# サポートされるRange集約操作
 - `pkg/logql/syntax/ast.go` (lines 1236-1250)で定義:
   - `count_over_time`, `rate`, `bytes_over_time`
   - `avg_over_time`, `sum_over_time`, `min_over_time`, `max_over_time`
