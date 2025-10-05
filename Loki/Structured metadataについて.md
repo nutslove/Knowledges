@@ -16,6 +16,81 @@
 - `limits_config`ブロックで`allow_structured_metadata: true`でStructured metadataを有効にする必要がある
 
 ---
+# LabelsとStructured metadataの比較
+### 1. Label (Stream Labels) - インデックス化される
+
+定義場所: `pkg/push/types.go`
+
+```go
+type Stream struct {
+    Labels  string   // ← これがStream Label（インデックス化される）
+    Entries []Entry
+    Hash    uint64
+}
+```
+
+例:
+```json
+{
+  "streams": [
+    {
+      "labels": "{app=\"nginx\", env=\"prod\"}",  ← これがLabel
+      "entries": [...]
+    }
+  ]
+}
+```
+
+特徴:
+- ✅ インデックス化される
+- ✅ Streamの識別に使用される
+- ✅ クエリのフィルタリングに使用: `{app="nginx"}`
+- ✅ 同じlabelセット = 同じstream
+- ✅ Cardinality制限がある（ユニークなlabelの組み合わせ数）
+
+### 2. Structured Metadata - インデックス化されない
+
+定義場所: `pkg/push/types.go`
+
+```go
+type Entry struct {
+    Timestamp          time.Time
+    Line               string
+    StructuredMetadata LabelsAdapter  // ← これがStructured Metadata（インデックス化されない）
+    Parsed             LabelsAdapter
+}
+```
+
+例:  
+```json
+{
+  "streams": [
+    {
+      "labels": "{app=\"nginx\"}",
+      "entries": [
+        {
+          "ts": "2024-01-15T12:00:00Z",
+          "line": "GET /api/users 200",
+          "structuredMetadata": {       ← これがStructured Metadata
+            "trace_id": "abc123",
+            "user_id": "456",
+            "response_time_ms": "150"
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+特徴:
+- ❌ インデックス化されない
+- ✅ エントリごとに異なる値を持てる（高cardinality OK）
+- ✅ ログエントリと一緒にチャンクに保存される
+- ✅ クエリ時にフィルタリング可能（ただし全チャンクをスキャン）
+- ✅ 抽出・集計が可能
+
+---
 
 # Structured metadataのクエリー（Querying structured metadata）
 > **Structured metadata is extracted automatically for each returned log line and added to the labels returned for the query. You can use labels of structured metadata to filter log line using a [label filter expression](https://grafana.com/docs/loki/latest/query/log_queries/#label-filter-expression).**
