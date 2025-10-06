@@ -26,6 +26,8 @@
     >
     > ３. 次にセマンティック検索は結果を生成し、概念的な関連性に基づいてその結果をランク付けします。
 
+---
+
 ## Hybrid Searchとは
 - 基本的にはベクトル類似度により、ベクトルストアから検索（ベクトル検索）が行われるけど、ベクトル類似度検索と他の検索手法（全文検索、BM25、キーワード検索など）を組み合わせて、より高度な検索を行う方式を**Hybrid Search**という
   - ハイブリッド検索の方法はベクトルストアによって異なる
@@ -44,7 +46,7 @@
 - 例えば、単語Aが含まれる文書を探しつつ、「出現頻度が多い」,「文書が短い」などの要素でスコアを計算し、関連度の高い順にランキングする。
 - 現代の全文検索エンジン（Elasticsearch、OpenSearch、Luceneなど）でデフォルト採用されていることが多い。
 
-##### LangChainでのBM25Retriever
+#### LangChainでのBM25Retriever
 - 参考URL
   - https://python.langchain.com/docs/integrations/retrievers/bm25/
   - https://python.langchain.com/api_reference/community/retrievers/langchain_community.retrievers.bm25.BM25Retriever.html
@@ -57,9 +59,13 @@
 > BM25は「全文検索（統計的スコアリング）」を行うアルゴリズムで、Embeddingベースの検索とは違い、前処理済みのインデックス構造を持たない限り、全ドキュメントを一度ロードしてスコア計算を行う必要がある。
 > LangChainのBM25Retrieverはインデックスを永続化しない（都度作り直す）ため、現状では「VectorStore内にあるドキュメントを都度取得 → BM25スコアリングを実行」という仕組みとなっており、**大量のドキュメントを扱う場合、毎回全ドキュメントをメモリにロードする必要があり、メモリ使用量と検索パフォーマンスの面で悪影響が出る可能性がある。**
 
-
 ### LangChainでのHybrid Search
 - `EnsembleRetriever`クラスを使えば、複数のRetrieverを組み合わせてHybrid Searchが可能
 - 参考URL
   - https://python.langchain.com/api_reference/langchain/retrievers/langchain.retrievers.ensemble.EnsembleRetriever.html
   - https://python.langchain.com/docs/how_to/ensemble_retriever/
+
+---
+
+## Rerank
+- Hybrid Searchでは、キーワード検索とベクトル検索の両方を使って候補を取得し、**その後に「Rerank（再ランキング）」を行って、並び直す手法がよく使われる。**
