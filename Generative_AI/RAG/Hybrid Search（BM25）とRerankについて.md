@@ -69,3 +69,8 @@
 
 ## Rerank
 - Hybrid Searchでは、キーワード検索とベクトル検索の両方を使って候補を取得し、**その後にRerank modelを使って、並び直す手法がよく使われる。**
+- LLMはTransformerのDecoder部分で構成されているが、EmbeddingモデルとRerankモデルはTransformerのEncoder部分で構成されている。
+- RerankモデルとEmbeddingモデルはEncoder部分で構成されているのは共通しているが、訓練方法や目的が異なる。
+- Embeddingモデルは、クエリとドキュメントを別々のEncoderに通してベクトル化し、そのベクトル間の類似度を計算するように訓練されている。  
+  一方、Rerankモデルは、クエリとドキュメントを1つのEncoderに同時に入力し、両者のトークン間の相互作用を通じて関連度スコアを直接出すように訓練されている。
+  ![](./image/embedding_vs_rerank.jpg)
