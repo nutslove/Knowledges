@@ -491,6 +491,10 @@
     ).bind_tools(tools)
     ```
 
+> [!NOTE]  
+> `@tool`デコレーターで定義した関数からの`return`値は、自動的に`ToolMessage`の`content`に入る
+> - https://python.langchain.com/api_reference/core/messages/langchain_core.messages.tool.ToolMessage.html
+
 ## `ToolNode`
 - 参考URL
   - https://langchain-ai.github.io/langgraph/how-tos/tool-calling/
