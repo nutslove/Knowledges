@@ -83,7 +83,7 @@
 - `hikaricp_connections_acquire_seconds_count`
 - `logback_events_total`
 
-> [!INFO]  
+> [!NOTE]  
 > ### Spring Boot Actuator
 > - Spring Boot Actuatorは、Spring Bootアプリケーションに「運用・監視のための機能」を追加するためのモジュール
 > - `/actuator/health`や`/actuator/metrics`などのエンドポイントを提供し、アプリケーションの状態やパフォーマンスに関する情報を取得できる。
