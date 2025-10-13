@@ -149,7 +149,7 @@
         scrape_interval: 30s
 
       remote_write:
-        - url: http://cortex-tenant.monitoring.svc:8080/push
+        - url: http://cortex-tenant.monitoring.svc:8080/push ★→ `cortex-tenant`をRemote Write先に指定
 
       scrape_configs:
       - job_name: 'kube-state-metrics'
