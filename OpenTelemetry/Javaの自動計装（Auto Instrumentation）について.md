@@ -27,6 +27,7 @@
 - その他のフラグについては以下のページで確認
   - **https://opentelemetry.io/docs/languages/java/configuration/**
 - otel-collectorへの通信にTLSを使わない場合、環境変数`OTEL_EXPORTER_OTLP_INSECURE="true"`を設定する
+  - 要らない気がする（逆にこれの設定をしたらトレースが連携されなくなった）ので、要確認
 - 実行の例  
   ```shell
   export OTEL_EXPORTER_OTLP_INSECURE="true"
