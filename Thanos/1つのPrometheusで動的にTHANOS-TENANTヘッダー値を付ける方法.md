@@ -156,11 +156,11 @@
         static_configs:
         - targets: ['kube-state-metrics.monitoring.svc.cluster.local:8080']
           labels:
-            tenant: kube-state-metrics ★→ ここで指定したラベル名が`cortex-tenant`の設定で指定したラベル名と一致している必要があり、、ここで指定した値が`THANOS-TENANT`ヘッダーの値になる
+            tenant: kube-state-metrics ★→ ここで指定したラベル名が`cortex-tenant`の設定で指定したラベル名と一致している必要があり、ここで指定した値が`THANOS-TENANT`ヘッダーの値になる
 
       - job_name: 'grafana'
         static_configs:
         - targets: ['grafana.monitoring.svc.cluster.local']
           labels:
-            tenant: grafana ★→ ここで指定したラベル名が`cortex-tenant`の設定で指定したラベル名と一致している必要があり、、ここで指定した値が`THANOS-TENANT`ヘッダーの値になる
+            tenant: grafana ★→ ここで指定したラベル名が`cortex-tenant`の設定で指定したラベル名と一致している必要があり、ここで指定した値が`THANOS-TENANT`ヘッダーの値になる
   ```
