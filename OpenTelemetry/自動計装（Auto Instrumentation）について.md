@@ -1,9 +1,25 @@
 # 各言語の自動計装の仕組み
 
-## ■ **Java（JVM言語）の場合**
+## ■ Java（JVM言語）の場合
 Javaは**バイトコード**にコンパイルされ、**JVM（Java仮想マシン）** 上で実行される：
 
 1. **バイトコード変換**：ソースコード → バイトコード → JVMで実行
+
+> [!NOTE]  
+> ### バイトコードとは
+> - Javaプログラムがコンパイルされる中間形式
+> - JVMによって実行される
+> - バイトコードはプラットフォーム（OSやハードウェア）に依存しない
+> - バイトコード ≠ 機械語
+> - JVMが `.class` のバイトコードを解釈実行するか、JITコンパイラ（Just-In-Time Compiler） が機械語に変換してCPUで実行する
+> ```scss
+> ソースコード (.java)
+>    ↓ javac（コンパイル）
+> バイトコード (.class)
+>    ↓ JVMが解釈またはJITコンパイル
+> 機械語（CPUが実行）
+> ```
+
 2. **動的バイトコード操作**：JVMには実行時にバイトコードを変更する機能がある
 3. **Java Agent**：JVMの `-javaagent` オプションを使って、Class loading時にバイトコードを自動的に書き換え
 4. **ASM/ByteBuddy**：これらのライブラリを使ってメソッドの開始・終了にトレース用のコードを自動挿入
@@ -33,7 +49,9 @@ class UserService {
 }
 ```
 
-## ■ **Python（インタープリター言語）の場合**
+---
+
+## ■ Python（インタープリター言語）の場合
 Pythonは**インタープリター**で実行される：
 
 1. **動的実行**：コードは実行時に解釈される
@@ -60,7 +78,40 @@ requests.get = instrumented_get  # 関数を置換
 
 ---
 
-# **Goで自動計装ができない理由**
+## ■ Node.jsの場合
+Node.jsは**JavaScriptエンジン（V8など）**で実行される：
+
+1. **動的実行**：コードは実行時に解釈される
+2. **関数の動的置換**：Node.jsでは実行時に関数を別の関数で置き換え可能
+3. **モンキーパッチング**：ライブラリの関数を自動的にトレース機能付きの関数で置換
+   - OpenTelemetryは主要なライブラリ（`http`, `mysql` など）の関数をラップしてトレース処理を挿入する。
+4. **requireフック**：モジュールの読み込み時に自動的にパッチを適用
+
+例：
+```javascript
+// 元のコード
+const http = require('http');
+http.get("http://example.com", (res) => {
+    console.log("Response received");
+});
+
+# 自動計装により内部的に以下のように変換
+const http = require('http');
+http.get = (originalGet => {
+    return function(...args) {
+        const span = tracer.start_span("http_request");
+        try {
+            return originalGet.apply(this, args);
+        } finally {
+            span.finish();
+        }
+    };
+})(http.get);
+```
+
+---
+
+# Goで自動計装ができない理由
 ## **コンパイル言語の制約**
 1. **静的コンパイル**：Goはソースコードからマシンコードに直接コンパイルされる
 2. **実行時変更不可**：一度コンパイルされたバイナリは実行時に変更できない
