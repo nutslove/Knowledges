@@ -26,9 +26,39 @@
   [^1]: https://taisho6339.gitbook.io/grafana-loki-deep-dive/monitoring
 
 ## Lokiの読み込みパフォーマンスを監視するためのメトリクス
-- `loki_request_duration_seconds` (histogram)  
-- `loki_logql_querystats_latency_seconds` (histogram)  
-- `logql_query_duration_seconds` (histogram)   
+- **`loki_request_duration_seconds`** (histogram)
+  - HTTPリクエスト全体のレスポンスタイムを測定するメトリクス
+  - LogQLクエリーだけのレスポンスタイムではなく、LokiのAPIサーバーがリクエストを受け取ってからレスポンスを返すまでの全体の時間を測定する
+  - `route`ラベルでAPIの種類が分かる
+    - `route="loki_api_v1_query_range"` → range query
+    - `route="loki_api_v1_push"` → push log（loki形式）
+- **`loki_logql_querystats_latency_seconds`** (histogram)  
+  - **Query-frontendで記録される分割前のクエリー全体の所要時間（壁時計時間）**
+  - `type`ラベルでクエリの種類が分かる
+    - `type="filter"` → log query with filter (e.g. `{app="nginx"} |= "error"`)
+    - `type="limited"` → log query without filter (e.g. `{app="nginx"}`)
+    - `type="metric"` → metric query
+- **`logql_query_duration_seconds`** (histogram)   
+  - **Query-Frontendによって(default: 24時間単位で)分割された個々の(サブ)クエリーのレイテンシ**
+  - `query_type`ラベルでクエリの種類が分かる
+    - `query_type="range"` → range query
+    - `query_type="instant"` → instant query
+
+### その他のクエリ関連メトリクス
+- `loki_logql_querystats_bytes_processed_per_seconds`
+  - LogQLクエリの処理速度（バイト/秒）
+- `loki_logql_querystats_chunk_download_latency_seconds`
+  - チャンクダウンロードのレイテンシ
+- `loki_logql_querystats_duplicates_total`
+  - クエリ実行中に見つかった重複の総数
+- `loki_logql_querystats_downloaded_chunk_total`
+  - ダウンロードされたチャンクの総数
+- `loki_logql_querystats_ingester_sent_lines_total`
+  - Ingesterから送信された行の総数
+
+> [!NOTE]  
+> メトリクスからはどのクエリーが実行されたかまでは分からない。
+> 実行されたクエリーはLokiのログから確認する必要がある。
 
 ## 共通
 - `loki_memcache_request_duration_seconds_count`  
