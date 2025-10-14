@@ -25,6 +25,11 @@
 - 役に立つメトリクス[^1]
   [^1]: https://taisho6339.gitbook.io/grafana-loki-deep-dive/monitoring
 
+## Lokiの読み込みパフォーマンスを監視するためのメトリクス
+- `loki_request_duration_seconds` (histogram)  
+- `loki_logql_querystats_latency_seconds` (histogram)  
+- `logql_query_duration_seconds` (histogram)   
+
 ## 共通
 - `loki_memcache_request_duration_seconds_count`  
   → RPS (Memcached)
