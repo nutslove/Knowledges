@@ -57,11 +57,16 @@
   - Ingesterから送信された行の総数
 
 > [!NOTE]  
-> メトリクスからはどのクエリーが実行されたかまでは分からない。
-> 実行されたクエリーはLokiのログから確認する必要がある。
+> メトリクスからはどのクエリーが実行されたかまでは分からない。  
+> 実行されたクエリーはLokiのログから確認する必要がある。  
+> - 1秒以上かかったクエリーをログから抽出する例（LogQL）  
 > ```logql
 > {service_name="loki"} | logfmt | query_type=~".+" | duration > 1s | line_format "●Query: {{.query}}\n●Query_Type: {{.query_type}}\n●Duration: {{.duration}}"
 > ```
+
+> [!CAUTION]  
+> 上記のLogQLで確認するログはQuery-Frontendによって分割されたクエリーの実行ログで、`length`ラベルで分割されたクエリーの長さ(分割単位)が分かる。  
+> 同じクエリーから分割されたクエリー実行ログは、同じ`query_hash`ラベルの値を持つ
 
 ## 共通
 - `loki_memcache_request_duration_seconds_count`  
