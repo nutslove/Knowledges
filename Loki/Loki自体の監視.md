@@ -59,6 +59,9 @@
 > [!NOTE]  
 > メトリクスからはどのクエリーが実行されたかまでは分からない。
 > 実行されたクエリーはLokiのログから確認する必要がある。
+> ```logql
+> {service_name="loki"} | logfmt | query_type=~".+" | duration > 1s | line_format "●Query: {{.query}}\n●Query_Type: {{.query_type}}\n●Duration: {{.duration}}"
+> ```
 
 ## 共通
 - `loki_memcache_request_duration_seconds_count`  
