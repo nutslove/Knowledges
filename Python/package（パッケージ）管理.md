@@ -9,21 +9,21 @@
   - `setup.py`や`setup.cfg`、`requirements.txt`を1つのファイルに統合できる
 
 - このファイルの中には３個の TOML テーブルを置くことが可能
-  1. `[build-system]`: どのビルドバックエンドを使うのか、また、そのプロジェクトをビルドするためには他のどんな依存関係が必要なのかを宣言する
+  1. **`[build-system]`**: どのビルドバックエンドを使うのか、また、そのプロジェクトをビルドするためには他のどんな依存関係が必要なのかを宣言する
      > **The `[build-system]` table should always be present, regardless of which build backend you use (`[build-system]` defines the build tool you use).**）
      - `requires`: ビルドに必要なパッケージのリスト
      - `build-backend`: 使用するビルドバックエンド（以下が指定できる）
          - `setuptools.build_meta`: setuptoolsを使用する場合
          - `flit_core.buildapi`: Flitを使用する場合
          - `poetry.core.masonry.api`: Poetryを使用する場合
-  2. `[project]`: パッケージ(プロジェクト)のメタデータ（名前、バージョン、依存関係など）を定義する
+  2. **`[project]`**: パッケージ(プロジェクト)のメタデータ（名前、バージョン、依存関係など）を定義する
      - `name`: パッケージ名（必須 / PyPIに登録される(pip installで使う)名前）
      - `version`: バージョン番号（必須）
      - `description`: パッケージの説明
      - `requires-python`: 対応するPythonの最小バージョン
      - `authors`: 作成者情報（名前とメールアドレス）
      - `dependencies`: パッケージが依存する他のパッケージのリスト
-  3. `[tool.<tool-name>]`: 各ツール固有の設定
+  3. **`[tool.<tool-name>]`**: 各ツール固有の設定
 
 - 例: `pyproject.toml`
   ```toml
@@ -53,11 +53,12 @@
 > ```toml
 > [tool.setuptools]
 > packages = ["my_import_name"] # importで使う名前
-> package-dir = {"my_import_name" = "."} # importで使う名前のディレクトリの場所
+> package-dir = {"my_import_name" = "."} # そのパッケージの実体の場所（.=カレントディレクトリ）
 > ```
-> 例えば、以下のようにディレクトリ名は大文字の`Common`で、importで使う名前を小文字の`common`にしたい場合は以下のようにする
-> ```markdown
-> Common/
+> 
+> 例えば、以下のようにディレクトリ名は大文字の`Common`で、importで使う名前を小文字の`common`にしたい場合：
+> ```
+> Common/            ← ディレクトリ名（大文字）
 > ├── __init__.py
 > ├── module1.py
 > ├── module2.py
@@ -65,8 +66,13 @@
 > ```
 > ```toml
 > [tool.setuptools]
-> packages = ["common"]
-> package-dir = {"common" = "."} # common パッケージの実体はこのディレクトリ（＝カレント）
+> packages = ["common"]   # Pythonパッケージ名（小文字）
+> package-dir = {"common" = "."}    # commonの実体は"."（=Common/ディレクトリ）
+> ```
+> ```python
+> # 使用例
+> import common  # ← 小文字でimport
+> from common import module1
 > ```
 
 ## `__init__.py`ファイル
