@@ -66,8 +66,8 @@
 > ```
 > ```toml
 > [tool.setuptools]
-> packages = ["common"]   # Pythonパッケージ名（小文字）
-> package-dir = {"common" = "."}    # commonの実体は"."（=Common/ディレクトリ）
+> packages = ["common"]            # Pythonパッケージ名（小文字）
+> package-dir = {"common" = "."}   # commonの実体は"."（=Common/ディレクトリ）
 > ```
 > ```python
 > # 使用例
@@ -76,6 +76,33 @@
 > ```
 
 ## `__init__.py`ファイル
-- パッケージディレクトリには`__init__.py`ファイルを含める必要がある
-- `__init__.py`は、パッケージの初期化コードを含むことができる
-- 空の`__init__.py`ファイルでもパッケージとして認識される
+- Python 3.3以降では、`__init__.py`ファイルがなくてもパッケージとして認識されるが、以下の理由から含めることが推奨される
+  1. 互換性: 古いPythonバージョンとの互換性を保つため
+  2. 明示的なパッケージ定義: このディレクトリがパッケージであることを明示的に示す
+  3. 初期化処理: パッケージ読み込み時の初期化コードを書ける
+  4. 公開APIの制御: `__all__` で「外からimport可能なもの」を制御する
+- `__init__.py`の例:  
+  ```python
+  """
+  共通モジュール
+  """
+
+  __version__ = "0.1.0" # バージョン情報
+
+  # 各モジュールをimportして利用可能にする
+  from . import auth
+  from . import config
+  from . import customlogger
+
+  __all__ = [
+      "auth",
+      "config",
+      "customlogger",
+  ]
+  ```
+- `__init__.py`に`__all__`を定義することで、`from package import *`でimportされるモジュールを制御できる
+  - 例えば、**上記例の場合、`from my_package import *`とすると、`auth`, `config`, `customlogger`が自動的にimportされる**
+- `__init__.py`に初期化コードを書くことで、パッケージがimportされたときに特定の処理を実行できる
+- `from . import <module_name>`のように相対importを使うことで、パッケージがimportされたときに、<module_name>に指定したモジュールを自動的にimportされて利用可能になる。
+  - 例えば、`from . import auth`とすると、`my_package.auth.login()`のように`auth`モジュールを利用できる。
+  - これがないと、`import my_package`しただけでは`my_package.auth`は利用できず、`from my_package import auth`のように明示的にimportする必要がある。
