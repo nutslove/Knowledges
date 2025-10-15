@@ -59,6 +59,7 @@
 > [!NOTE]  
 > メトリクスからはどのクエリーが実行されたかまでは分からない。  
 > 実行されたクエリーはLokiのログから確認する必要がある。  
+> - **https://grafana.com/docs/loki/latest/operations/meta-monitoring/?utm_source=chatgpt.com#example-loki-log-line-metricsgo**
 > - 1秒以上かかったクエリーをログから抽出する例（LogQL）  
 > ```logql
 > {service_name="loki"} | logfmt | query_type=~".+" | duration > 1s | line_format "●Query: {{.query}}\n●Query_Type: {{.query_type}}\n●Duration: {{.duration}}"
