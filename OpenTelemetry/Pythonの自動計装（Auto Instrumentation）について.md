@@ -14,11 +14,11 @@
 
 > [!NOTE]  
 > ## `opentelemetry-bootstrap -a install`の実際の処理内容
-> - [opentelemetry-instrumentation/pyproject.toml](https://github.com/open-telemetry/opentelemetry-python-contrib/blob/main/opentelemetry-instrumentation/pyproject.toml)の`opentelemetry-bootstrap = "opentelemetry.instrumentation.bootstrap:run"`に記載されている`run`関数が実行される
-> - その実態は[opentelemetry-instrumentation/src/opentelemetry/instrumentation/bootstrap.py](https://github.com/open-telemetry/opentelemetry-python-contrib/blob/main/opentelemetry-instrumentation/src/opentelemetry/instrumentation/bootstrap.py)の`run`関数であり、`bootstrap_gen.py`に定義されている`libraries`と`default_instrumentations`のリストにあるパッケージを引数として`_run_install`関数を実行する
-> - `_run_install`関数は、`_find_installed_libraries`関数を呼び出す
-> - `_find_installed_libraries`関数は、`default_instrumentations`リスト内のすべてのパッケージと、`libraries`リスト内のパッケージのうちインストールされているものを`_is_installed`関数で検出し、インストールされているパッケージだけを返す
-> - `_run_install`関数に戻って、`_sys_pip_install`関数で、`default_instrumentations`リスト内のすべてのパッケージと、`libraries`リスト内でインストールされているパッケージのみのinstrumentationパッケージを、`_sys_pip_install`関数でインストールする
+> 1. [opentelemetry-instrumentation/pyproject.toml](https://github.com/open-telemetry/opentelemetry-python-contrib/blob/main/opentelemetry-instrumentation/pyproject.toml)の`opentelemetry-bootstrap = "opentelemetry.instrumentation.bootstrap:run"`に記載されている`run`関数が実行される
+> 2. その実態は[opentelemetry-instrumentation/src/opentelemetry/instrumentation/bootstrap.py](https://github.com/open-telemetry/opentelemetry-python-contrib/blob/main/opentelemetry-instrumentation/src/opentelemetry/instrumentation/bootstrap.py)の`run`関数であり、`bootstrap_gen.py`に定義されている`libraries`と`default_instrumentations`のリストにあるパッケージを引数として`_run_install`関数を実行する
+> 3. `_run_install`関数は、`_find_installed_libraries`関数を呼び出す
+> 4. `_find_installed_libraries`関数は、`default_instrumentations`リスト内のすべてのパッケージと、`libraries`リスト内のパッケージのうちインストールされているものを`_is_installed`関数で検出し、インストールされているパッケージだけを返す
+> 5. `_run_install`関数に戻って、`_sys_pip_install`関数で、`default_instrumentations`リスト内のすべてのパッケージと、`libraries`リスト内でインストールされているパッケージのみのinstrumentationパッケージを、`_sys_pip_install`関数でインストールする
 
 - 以下の環境変数を設定
   - `OTEL_EXPORTER_OTLP_ENDPOINT`
