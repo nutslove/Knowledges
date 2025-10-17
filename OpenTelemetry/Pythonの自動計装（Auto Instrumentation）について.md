@@ -22,15 +22,22 @@
 
 - 以下の環境変数を設定
   - `OTEL_EXPORTER_OTLP_ENDPOINT`
-    - OTLPエクスポーターのエンドポイントURLを指定する。デフォルトは`http://localhost:4318`（HTTPプロトコルの場合）
-  - `OTEL_EXPORTER_OTLP_PROTOCOL`
-    - OTLPエクスポーターのプロトコルを指定する。`http/protobuf`または`grpc`を指定可能。デフォルトは`http/protobuf`
+    - OTLPエクスポーターのエンドポイントURLを指定する。デフォルトは`http://localhost:4318`（HTTPプロトコルの場合）（gRPCの場合は`http://localhost:4317`）
+  - `OTEL_TRACES_EXPORTER`
+    - トレースエクスポーターを指定。`otlp`を指定するとOTLPエクスポーターが使用される
+  - `OTEL_METRICS_EXPORTER`
+    - メトリクスエクスポーターを指定。`prometheus`を指定するとPrometheusエクスポーターが使用される
   - `OTEL_SERVICE_NAME`
     - サービス名を指定
 
 - その後は、Python実行時に`opentelemetry-instrument`コマンドを使用してアプリケーションを起動するだけで、自動的に計装が行われる  
   ```bash
-  opentelemetry-instrument python your_application.py
+  OTEL_SERVICE_NAME=your-service-name \
+  OTEL_TRACES_EXPORTER=console,otlp \
+  OTEL_METRICS_EXPORTER=console \
+  OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=0.0.0.0:4317
+
+  opentelemetry-instrument python myapp.py
   ```
 
 ## Python Auto Instrumentationが対応(サポート)しているライブラリ/フレームワーク
