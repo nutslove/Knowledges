@@ -40,6 +40,9 @@
   opentelemetry-instrument python myapp.py
   ```
 
+## 自動計装の仕組み
+- OpenTelemetryのPython Auto Instrumentationは、Pythonの標準機能である`sitecustomize.py`を利用して、自動的にアプリケーションの起動時に計装コードを挿入する仕組みを採用している。
+
 ## Python Auto Instrumentationが対応(サポート)しているライブラリ/フレームワーク
 - https://opentelemetry.io/ecosystem/registry/?language=python&component=instrumentation
 - 以下のPythonのOpenTelemetryリポジトリの「**instrumentation**」ディレクトリ配下から確認可能（そのディレクトリ配下にあるのがAuto Instrumentationが対応しているライブラリ/フレームワーク）
