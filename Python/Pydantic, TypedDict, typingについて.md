@@ -145,6 +145,37 @@
       ```python
       obj.validate().validate().validate()
       ```
+9. `NewType`
+    - 新しい型を定義するための関数
+    - 基本構文  
+      ```python
+      from typing import NewType
+
+      NewTypeName = NewType('NewTypeName', ExistingType)
+      ```
+      - `NewTypeName`: 新しく定義する型の名前
+      - `ExistingType`: 既存の型（例えば `int`, `str`, `list` など）
+    - 例  
+      ```python
+      from typing import NewType
+
+      UserId = NewType('UserId', int)
+      ProductId = NewType('ProductId', int)
+
+      def get_user(user_id: UserId):
+          print(f"Getting user with ID: {user_id}")
+
+      def get_product(product_id: ProductId):
+          print(f"Getting product with ID: {product_id}")
+
+      user_id = UserId(123)
+      product_id = ProductId(456)
+
+      get_user(user_id)        # OK
+      get_product(product_id)  # OK
+
+      get_user(product_id)     # 型チェックツールでエラーになる（実行時は問題ない）
+      ```
 
 # `TypedDict`
 - Python 3.8で公式に`typing`モジュールに追加されたので
@@ -284,3 +315,50 @@
    user = User(name="Alice", age=30)
    user.update_age("Not an integer")  # これはエラーにならない
    ```
+
+## その他`pydantic`の機能
+### `Field`
+- モデルのフィールド（属性）に対してメタデータや制約（バリデーション条件）を付与するための関数
+- **`BaseModel`の属性と組み合わせて使うことで、データ構造を明示的に定義し、入力データの自動検証やドキュメント生成などが可能になる**
+- 基本構文  
+  ```python
+  from pydantic import BaseModel, Field
+
+  class User(BaseModel):
+      id: int = Field(..., description="ユーザーID", ge=1)
+      name: str = Field(..., min_length=1, max_length=50, description="ユーザー名")
+      age: int = Field(default=18, ge=0, le=150, description="年齢")
+  ```
+  - **`...`は必須フィールド**を示す
+    - 値がないと`ValidationError`になる
+  - `description`: フィールドの説明
+  - `ge`, `le`: 数値の範囲制約（greater than or equal, less than or equal）
+  - `min_length`, `max_length`: 文字列やリストの長さ制約
+  - `default`: デフォルト値
+  - `default_factory`: デフォルト値を生成する関数を指定（動的デフォルト値）  
+    ```python
+    from datetime import datetime
+
+    class Log(BaseModel):
+        timestamp: datetime = Field(default_factory=datetime.utcnow)
+    ``` 
+  - `alias`: 別名を指定（Key名を変更する）  
+    ```python
+    class Item(BaseModel):
+        item_name: str = Field(..., alias="name")
+
+    data = {"name": "Book"}
+    item = Item(**data)
+    print(item.item_name)  # Book
+    ```
+- バリデーション例  
+  ```python
+  class Product(BaseModel):
+      price: float = Field(..., gt=0, description="0より大きい価格")
+      tags: list[str] = Field(default_factory=list, max_length=5)
+
+  Product(price=-10)
+  # ValidationError: 1 validation error for Product
+  # price
+  #   ensure this value is greater than 0 (type=value_error.number.not_gt; limit_value=0)
+  ```
