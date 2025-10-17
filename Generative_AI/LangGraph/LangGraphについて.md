@@ -32,7 +32,7 @@
 ---
 
 # コンポーネント
-## ステート (State)
+## State（ステート）
 - LangGraphのワークフローで実行される各ノードによって更新された値を保存するための仕組み
 - 各ノードは、このステートに保存されているデータを読み書きしながら処理を進めていく
 - ステートのデータ構造はPydanticのBaseModelクラスを用いて定義する
@@ -64,10 +64,11 @@
 ### `TypedDict` vs Pydantic `BaseModel`
 - Stateは`typing`の`TypedDict`もしくは、`pydantic`の`BaseModel`を使って定義できる
 
-## ノード
+## Node（ノード）
+- https://docs.langchain.com/oss/python/langgraph/graph-api#nodes
 - 各ノードが特定の処理や判断を担当
-- **ノードは`State`を引数として取って、`return`で`State`を更新する（更新した`State`を`return`する）**
-### ノードの指定
+- **Nodeは`State`を引数として取って、`return`で`State`を更新する（更新した`State`を`return`する）**
+### Nodeの指定
 - `StateGraph`クラスの`add_node`関数の引数に、ノードとして使う関数またはRunnable（LCELのオブジェクト）を指定
 - 例１：関数またはRunnable（LCELのオブジェクト）だけを指定  
   ```python
@@ -77,7 +78,7 @@
   ```python
   workflow.add_node("answering", answering_node) # ノード名は"answering"になる
   ```  
-### ノードの実装方法
+### Nodeの実装方法
 #### 関数の場合
 - **ステート(`State`)オブジェクトを引数にとり、更新差分を表す`State`内の辞書型のオブジェクトを返す**  
   1. 1つのフィールドを更新  
@@ -139,9 +140,86 @@
   ```
 
 ### Parallel Node Execution
+- https://docs.langchain.com/oss/python/langgraph/graph-api#parallel-node-execution
+  > By default, the return value `routing_function` is used as the name of the node (or list of nodes) to send the state to next. All those nodes will be run in parallel as a part of the next superstep.
+
+### Nodeの引数
+- https://docs.langchain.com/oss/python/langgraph/graph-api#nodes  
+  > In LangGraph, **nodes are Python functions (either synchronous or asynchronous) that accept the following arguments**:
+  > 1. `state`: The [state](https://docs.langchain.com/oss/python/langgraph/graph-api#state) of the graph
+  > 2. `config`: A [RunnableConfig](https://reference.langchain.com/python/langchain_core/runnables/?_gl=1*1a2b44m*_gcl_au*MTA5ODkwNDUwOC4xNzYwNjE3Mjg5*_ga*MTE1OTg1OTAwNC4xNzYwNjE3Mjkw*_ga_47WX3HKKY2*czE3NjA2NzAyNzUkbzQkZzEkdDE3NjA2NzAyOTEkajQ0JGwwJGgw#langchain_core.runnables.RunnableConfig) object that contains configuration information like `thread_id` and tracing information like `tags`
+  > 3. `runtime`: A `Runtime` object that contains [runtime `context`](https://docs.langchain.com/oss/python/langgraph/graph-api#runtime-context) and other information like `store` and `stream_writer`
+
+- 例  
+  ```python
+  from dataclasses import dataclass
+  from typing_extensions import TypedDict
+
+  from langchain_core.runnables import RunnableConfig
+  from langgraph.graph import StateGraph
+  from langgraph.runtime import Runtime
+
+  class State(TypedDict):
+      input: str
+      results: str
+
+  @dataclass
+  class Context:
+      user_id: str
+
+  builder = StateGraph(State)
+
+  def plain_node(state: State):
+      return state
+
+  def node_with_runtime(state: State, runtime: Runtime[Context]):
+      print("In node: ", runtime.context.user_id)
+      return {"results": f"Hello, {state['input']}!"}
+
+  def node_with_config(state: State, config: RunnableConfig):
+      print("In node with thread_id: ", config["configurable"]["thread_id"])
+      return {"results": f"Hello, {state['input']}!"}
 
 
-## エッジ
+  builder.add_node("plain_node", plain_node)
+  builder.add_node("node_with_runtime", node_with_runtime)
+  builder.add_node("node_with_config", node_with_config)
+  ...
+  ```
+  - `config`の使い方例
+    ```python
+    def node_with_config(state: State, config: RunnableConfig):
+        print("In node with thread_id: ", config["configurable"]["thread_id"])
+        return {"results": f"Hello, {state['input']}!"}
+    
+    builder.add_node("node_with_config", node_with_config)
+    graph = builder.compile()
+    graph.invoke(
+        {"input": "World"},
+        config={"configurable": {"thread_id": "my_thread_id"}},
+    )
+    ```
+
+    ```python
+    class StateSchema(TypedDict):
+        messages: Annotated[list[str], add_messages]
+
+    class ConfigSchema(TypedDict):
+        user_id: str
+        
+    builder = StateGraph(state_schema=StateSchema, config_schema=ConfigSchema)
+    agent = builder.compile()
+    agent.invoke(
+        {"messages": [{"role": "user", "content": "hi!"}]},
+        config={"configurable": {"user_id": "user_123"}}
+    )
+    ```
+
+> [!CAUTION]  
+> `config`の書き方が変わるかも。
+> https://github.com/langchain-ai/langgraph/issues/5023
+
+## Edge（エッジ）
 - 各ノードの処理間のつながりや関係性を表現
 ### EntryPoint
 - Graphの開始ノードを指定
