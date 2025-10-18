@@ -24,6 +24,10 @@ Javaは**バイトコード**にコンパイルされ、**JVM（Java仮想マシ
 3. **Java Agent**：JVMの `-javaagent` オプションを使って、Class loading時にバイトコードを自動的に書き換え
 4. **ASM/ByteBuddy**：これらのライブラリを使ってメソッドの開始・終了にトレース用のコードを自動挿入
 
+> [!NOTE]  
+> Java Auto Instrumentationが対応(サポート)しているライブラリ/フレームワークは、以下のJava Instrumentationリポジトリの「**instrumentation**」ディレクトリ配下から確認可能（そのディレクトリ配下にあるフォルダがAuto Instrumentationが対応しているライブラリ/フレームワーク）  
+> https://github.com/open-telemetry/opentelemetry-java-instrumentation
+
 ---
 
 ## ■ Python（インタープリター言語）の場合
