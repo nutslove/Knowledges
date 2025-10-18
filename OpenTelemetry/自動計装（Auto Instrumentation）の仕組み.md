@@ -24,31 +24,6 @@ Javaは**バイトコード**にコンパイルされ、**JVM（Java仮想マシ
 3. **Java Agent**：JVMの `-javaagent` オプションを使って、Class loading時にバイトコードを自動的に書き換え
 4. **ASM/ByteBuddy**：これらのライブラリを使ってメソッドの開始・終了にトレース用のコードを自動挿入
 
-例：`public void myMethod()` が実行時に以下のように変換される
-```java
-// 元のUserService.class（バイトコード）
-class UserService {
-    public void createUser(String name) {
-        System.out.println("Creating user: " + name);
-    }
-}
-
-// ↓ クラスローディング時にJava Agentが自動変換 ↓
-class UserService {
-    public void createUser(String name) {
-        // 自動挿入：トレース開始
-        NewRelicAgent.getTransaction().startSegment("UserService.createUser");
-        try {
-            // 元のコード
-            System.out.println("Creating user: " + name);
-        } finally {
-            // 自動挿入：トレース終了
-            NewRelicAgent.getTransaction().endSegment();
-        }
-    }
-}
-```
-
 ---
 
 ## ■ Python（インタープリター言語）の場合
@@ -57,56 +32,81 @@ Pythonは**インタープリター**で実行される：
 1. **動的実行**：コードは実行時に解釈される
 2. **関数の動的置換**：Pythonでは実行時に関数を別の関数で置き換え可能
 3. **モンキーパッチング**：ライブラリの関数を自動的にトレース機能付きの関数で置換
-4. **import hook**：モジュールのimport時に自動的にパッチを適用
-
-例：
-```python
-# 元のコード
-import requests
-requests.get("http://example.com")
-
-# 自動計装により内部的に以下のように変換
-def instrumented_get(*args, **kwargs):
-    span = tracer.start_span("http_request")
-    try:
-        return original_get(*args, **kwargs)
-    finally:
-        span.finish()
-
-requests.get = instrumented_get  # 関数を置換
-```
+4. **sitecustomizeでPython起動時にモンキーパッチを適用**
 
 ---
 
 ## ■ Node.jsの場合
 Node.jsは**JavaScriptエンジン（V8など）**で実行される：
 
-1. **動的実行**：コードは実行時に解釈される
-2. **関数の動的置換**：Node.jsでは実行時に関数を別の関数で置き換え可能
-3. **モンキーパッチング**：ライブラリの関数を自動的にトレース機能付きの関数で置換
-   - OpenTelemetryは主要なライブラリ（`http`, `mysql` など）の関数をラップしてトレース処理を挿入する。
-4. **requireフック**：モジュールの読み込み時に自動的にパッチを適用
+1. **JITコンパイルと動的実行**
+   - コードは最初にバイトコードにコンパイルされ、頻繁に実行されるコード（ホットパス）は最適化された機械語にコンパイルされる
+   - 実行時の型変更やプロパティ追加など、JavaScriptの動的な性質は保持される
+   - この動的性により、実行時に関数の置き換えが可能
+2. **関数の動的置換（Shimmerパターン）**
+   - JavaScriptでは実行時にオブジェクトのプロパティ（関数を含む）を別の関数で置き換え可能
+   - OpenTelemetryは元の関数を保存し、トレース機能付きのラッパー関数で置き換える
+   - ラッパー関数内で：①トレース開始（span作成） → ②元の関数を呼び出し → ③トレース終了
+3. **自動インストルメンテーション（モンキーパッチング）**
+   - OpenTelemetryは主要なライブラリ（http, mysql, express など）の関数を自動的にラップ
+   - 例：mysqlのquery()関数をトレース機能付きの関数で置き換え
+   - アプリケーションコードを変更せずにトレースを収集可能
+4. **モジュールロードフック（InstrumentationNodeModuleDefinition）**
+   - Node.jsのrequire()メカニズムにフックし、特定のモジュールがロードされる際に自動的にパッチを適用
+   - 対象モジュール名とバージョン範囲を指定して、ロード時に関数を置き換え
+   - パッチの適用と解除（アンラップ）の両方をサポート
 
 例：
 ```javascript
 // 元のコード
-const http = require('http');
-http.get("http://example.com", (res) => {
-    console.log("Response received");
+const mysql = require('mysql');
+const connection = mysql.createConnection({ /* config */ });
+connection.query('SELECT * FROM users', (err, results) => {
+   console.log(results);
 });
 
-# 自動計装により内部的に以下のように変換
-const http = require('http');
-http.get = (originalGet => {
-    return function(...args) {
-        const span = tracer.start_span("http_request");
-        try {
-            return originalGet.apply(this, args);
-        } finally {
-            span.finish();
-        }
-    };
-})(http.get);
+// 自動計装により内部的に以下のように変換される（簡略版）
+const mysql = require('mysql');
+
+// createConnection関数をラップ
+mysql.createConnection = (originalCreateConnection => {
+   return function(...args) {
+       const connection = originalCreateConnection.apply(this, args);
+
+       // query関数をラップ
+       connection.query = (originalQuery => {
+           return function(sql, values, callback) {
+               // spanを開始
+               const span = tracer.startSpan('mysql.query', {
+                   kind: SpanKind.CLIENT,
+                   attributes: {
+                       'db.system': 'mysql',
+                       'db.statement': sql
+                   }
+               });
+
+               // コールバックをラップ（非同期処理対応）
+               const wrappedCallback = function(err, results, fields) {
+                   if (err) {
+                       span.setStatus({
+                           code: SpanStatusCode.ERROR,
+                           message: err.message
+                       });
+                   }
+                   span.end();  // 非同期処理完了後にspanを終了
+
+                   // 元のコールバックを呼び出す
+                   if (callback) callback(err, results, fields);
+               };
+
+               // 元のquery関数を実行
+               return originalQuery.call(this, sql, values, wrappedCallback);
+           };
+       })(connection.query);
+
+       return connection;
+   };
+})(mysql.createConnection);
 ```
 
 ---
