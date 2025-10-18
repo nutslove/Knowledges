@@ -38,6 +38,10 @@ Pythonは**インタープリター**で実行される：
 3. **モンキーパッチング**：ライブラリの関数を自動的にトレース機能付きの関数で置換
 4. **sitecustomizeでPython起動時にモンキーパッチを適用**
 
+> [!NOTE]  
+> Python Auto Instrumentationが対応(サポート)しているライブラリ/フレームワークは、以下のPython Instrumentationリポジトリの「**instrumentation**」ディレクトリ配下から確認可能（そのディレクトリ配下にあるフォルダがAuto Instrumentationが対応しているライブラリ/フレームワーク）  
+> https://github.com/open-telemetry/opentelemetry-python-contrib
+
 ---
 
 ## ■ Node.jsの場合
@@ -112,6 +116,10 @@ mysql.createConnection = (originalCreateConnection => {
    };
 })(mysql.createConnection);
 ```
+
+> [!NOTE]  
+> JavaScript (Node.js) Auto Instrumentationが対応(サポート)しているライブラリ/フレームワークは、以下のJavaScript Instrumentationリポジトリの「**packages**」ディレクトリ配下から確認可能（そのディレクトリ配下にある「__instrumentation-*__」で始まるディレクトリがAuto Instrumentationが対応しているライブラリ/フレームワーク）  
+> https://github.com/open-telemetry/opentelemetry-js-contrib
 
 ---
 
