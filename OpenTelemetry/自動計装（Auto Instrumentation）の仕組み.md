@@ -26,7 +26,9 @@ Javaは**バイトコード**にコンパイルされ、**JVM（Java仮想マシ
 
 > [!NOTE]  
 > Java Auto Instrumentationが対応(サポート)しているライブラリ/フレームワークは、以下のJava Instrumentationリポジトリの「**instrumentation**」ディレクトリ配下から確認可能（そのディレクトリ配下にあるフォルダがAuto Instrumentationが対応しているライブラリ/フレームワーク）  
-> https://github.com/open-telemetry/opentelemetry-java-instrumentation
+> https://github.com/open-telemetry/opentelemetry-java-instrumentation  
+> または、以下のOpenTelemetry公式ドキュメントからも確認可能  
+> https://opentelemetry.io/docs/zero-code/java/agent/supported-libraries/
 
 ---
 
