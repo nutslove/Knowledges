@@ -134,8 +134,14 @@ management.metrics.tags.<tag名>=<tag値>
 ### 環境変数
 - DockerfileやKubernetesのマニフェスト、ECSのTask Definition fileなどで以下の環境変数を設定
 ```shell
+OTEL_SERVICE_NAME=your-service-name
 OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=http://<traceのためのバックエンドのIP/Host名>:4317（gRPC）(もしくはhttp://<traceのためのバックエンドのIP/Host名>:4318（HTTP）)
 OTEL_EXPORTER_OTLP_LOGS_ENDPOINT=http://<logのためのバックエンドのIP/Host名>:4317（gRPC）(もしくはhttp://<logのためのバックエンドのIP/Host名>:4318（HTTP）)
+OTEL_TRACES_EXPORTER=otlp
+OTEL_METRICS_EXPORTER=prometheus
+OTEL_LOGS_EXPORTER=otlp
+OTEL_EXPORTER_OTLP_TRACES_PROTOCOL=<プロトコル>
+OTEL_EXPORTER_OTLP_LOGS_PROTOCOL=<プロトコル>
 ```
 
 > [!TIP]  
