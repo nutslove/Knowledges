@@ -60,17 +60,12 @@
 - Python Auto Instrumentationで、一部のinstrumentationパッケージはメトリクスも出してくれる
 - Python Auto Instrumentationのリポジトリの 「**instrumentation**」ディレクトリ配下のREADME.mdに、「Metrics support」列にメトリクスも出してパッケージが確認
   - https://github.com/open-telemetry/opentelemetry-python-contrib/tree/main/instrumentation
-- 以下の環境変数を設定  
-  - `OTEL_METRICS_EXPORTER=prometheus`
-    - default: `otlp`
-  - 以下は必要に応じて設定（defaultのままで良い）
-    - `OTEL_EXPORTER_PROMETHEUS_PORT`
-      - default: `8080`
-    - `OTEL_EXPORTER_PROMETHEUS_HOST`
-      - default: `0.0.0.0`
-- prometheus（もしくはOtel-Collectorなど）で`<ip_address>:8080/metrics`エンドポイントからスクレイピング
 
-> [!TIP]  
+> [!IMPORTANT]  
+> Python Auto InstrumentationはJava Auto Instrumentationと異なり、デフォルトでメトリクスのエンドポイントを公開しない。  
+> `OTEL_METRICS_EXPORTER=otlp`に設定して、Otel Collectorなどにメトリクスを送信して、そこからPrometheus Remote WriteでPrometheusに送信する必要がある。
+
+> [!NOTE]  
 > Python Auto Instrumentationが生成してくれるメトリクスは、exemplarsは出してくれないっぽい
 
 ---
