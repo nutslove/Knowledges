@@ -4,7 +4,7 @@
 ## 手順
 - 以下を実行し、必要なパッケージをインストールする  
   ```bash
-  pip install opentelemetry-distro opentelemetry-exporter-otlp
+  pip install opentelemetry-distro opentelemetry-exporter-otlp opentelemetry-exporter-prometheus
   opentelemetry-bootstrap -a install
   ```
   - `opentelemetry-bootstrap -a install`は、自動的に現在の環境のライブラリを検出し、対応するOpenTelemetryのinstrumentationパッケージをインストールする
