@@ -40,10 +40,14 @@
   opentelemetry-instrument python myapp.py
   ```
 
+---
+
 ## 自動計装の仕組み
 - OpenTelemetryのPython Auto Instrumentationは、Pythonの標準機能である`sitecustomize.py`を利用して、自動的にアプリケーションの起動時に、インストールされているライブラリ/フレームワークを検出し、
  計装コードを挿入する（正確にはモンキーパッチを適用する）仕組みを採用している。
  - すべてのコードをモンキーパッチで置換するわけではなく、サポートしているライブラリ/フレームワークのコードに対してのみモンキーパッチを適用する
+
+---
 
 ## Python Auto Instrumentationが対応(サポート)しているライブラリ/フレームワーク
 - https://opentelemetry.io/ecosystem/registry/?language=python&component=instrumentation
@@ -51,9 +55,54 @@
   - https://github.com/open-telemetry/opentelemetry-python-contrib  
   ![](images/python_auto_instrumentation_list.jpg)
 
+---
+## メトリクス(metrics)
+- Python Auto Instrumentationで、一部のinstrumentationパッケージはメトリクスも出してくれる
+- Python Auto Instrumentationのリポジトリの 「**instrumentation**」ディレクトリ配下のREADME.mdに、「Metrics support」列にメトリクスも出してパッケージが確認
+  - https://github.com/open-telemetry/opentelemetry-python-contrib/tree/main/instrumentation
+- 以下の環境変数を設定  
+  - `OTEL_METRICS_EXPORTER=prometheus`
+    - default: `otlp`
+  - 以下は必要に応じて設定（defaultのままで良い）
+    - `OTEL_EXPORTER_PROMETHEUS_PORT`
+      - default: `8080`
+    - `OTEL_EXPORTER_PROMETHEUS_HOST`
+      - default: `0.0.0.0`
+- prometheus（もしくはOtel-Collectorなど）で`<ip_address>:8080/metrics`エンドポイントからスクレイピング
+
+> [!TIP]  
+> Python Auto Instrumentationが生成してくれるメトリクスは、exemplarsは出してくれないっぽい
+
+---
+
 ## ログ(log)との連携
-要確認/整理
-- https://signoz.io/docs/userguide/python-logs-auto-instrumentation/
-- https://opentelemetry.io/ja/docs/zero-code/python/logs-example/
-- https://opentelemetry.io/ja/docs/zero-code/python/configuration/#logging
-- https://github.com/open-telemetry/opentelemetry-python/blob/main/docs/examples/logs/example.py
+- 参考URL
+  - https://signoz.io/docs/userguide/python-logs-auto-instrumentation/
+  - https://opentelemetry.io/ja/docs/zero-code/python/logs-example/
+  - https://opentelemetry.io/ja/docs/zero-code/python/configuration/#logging
+  - https://github.com/open-telemetry/opentelemetry-python/blob/main/docs/examples/logs/example.py
+
+- **以下の環境変数を設定して、`logging`標準ライブラリでloggerを設定し、作成したloggerでログを出力すれば、自動でTraceIDとSpanIDがログに含まれるようになる**  
+  1. `OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED=true`
+     - OpenTelemetryがログを自動計装
+  2. `OTEL_PYTHON_LOG_CORRELATION=true`
+     - TraceIDとSpanIDが自動的に追加
+  3. `OTEL_PYTHON_LOG_FORMAT`
+     - ログフォーマット
+     - 例： `%(asctime)s [%(levelname)s] trace_id=%(otelTraceID)s span_id=%(otelSpanID)s - %(message)s`
+- 上記の環境変数を設定した上で、以下のようにloggingライブラリを使ってログを出力すれば、自動的にTraceIDとSpanIDがログに含まれるようになる
+  ```python
+  import logging
+
+  logging.basicConfig(level=logging.INFO)
+  logger = logging.getLogger(__name__)
+  
+  logger.info("Creating order for user")
+  ```
+  - 上記のように書くだけで、実際の出力は以下のようになる  
+    ```shell
+      2025-10-20 12:34:56 [INFO] trace_id=1234567890abcdef1234567890abcdef span_id=1234567890abcdef - Creating order for user
+    ```
+
+> [!CAUTION]  
+> `logging`標準ライブラリでloggerを設定し、作成したloggerでログを出力する必要がある。`print()`関数などでの出力ではTraceID/SpanIDは含まれない
