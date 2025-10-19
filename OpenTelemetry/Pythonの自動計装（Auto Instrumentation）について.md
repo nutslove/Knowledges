@@ -65,9 +65,6 @@
 > Python Auto InstrumentationはJava Auto Instrumentationと異なり、デフォルトでメトリクスのエンドポイントを公開しない。  
 > `OTEL_METRICS_EXPORTER=otlp`に設定して、Otel Collectorなどにメトリクスを送信して、そこからPrometheus Remote WriteでPrometheusに送信する必要がある。
 
-> [!NOTE]  
-> Python Auto Instrumentationが生成してくれるメトリクスは、exemplarsは出してくれないっぽい
-
 ---
 
 ## ログ(log)との連携
