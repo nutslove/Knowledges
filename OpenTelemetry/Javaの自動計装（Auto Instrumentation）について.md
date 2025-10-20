@@ -32,6 +32,10 @@
             static_configs:
                 - targets: ['192.168.1.7:9464']
     ```
+
+> [!NOTE]  
+> `OTEL_METRICS_EXPORTER=otlp`に設定して（すると自動的にOTLP ENDPOINTにメトリクスも送信する）、Otel Collectorなどにメトリクスを送信して、そこからPrometheus Remote WriteでPrometheusに送信することもできる
+
 - その他のフラグについては以下のページで確認
   - **https://opentelemetry.io/docs/languages/java/configuration/**
 - otel-collectorへの通信にTLSを使わない場合、環境変数`OTEL_EXPORTER_OTLP_INSECURE="true"`を設定する
