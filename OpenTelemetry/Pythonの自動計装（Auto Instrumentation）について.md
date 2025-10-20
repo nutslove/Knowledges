@@ -65,9 +65,34 @@
 > Python Auto InstrumentationはJava Auto Instrumentationと異なり、デフォルトでメトリクスのエンドポイントを公開しない。  
 > `OTEL_METRICS_EXPORTER=otlp`に設定して（すると自動的にOTLP ENDPOINTにメトリクスも送信する）、Otel Collectorなどにメトリクスを送信して、そこからPrometheus Remote WriteでPrometheusに送信する必要がある。
 
-> [!NOTE]  
-> Python Auto Instrumentationはexemplarsには対応していない？要確認  
-> https://github.com/open-telemetry/opentelemetry-python/issues/4250
+> [!IMPORTANT]
+> 2025/10/20現在、  
+> Python Auto InstrumentationのSDK自体はexemplarsには対応しているけど、  
+> 各instrumentationパッケージがメトリクスにexemplars（context）を追加する処理を実装していないため、  
+> 現状ではPython Auto Instrumentationで生成されるメトリクスにexemplarsは含まれない。  
+> ※正確には、メトリクスにexemplarsはあるけど、trace idとspan idが含まれてない。  
+> - 2024/09にExemplars自体の対応は完了
+>   - https://github.com/open-telemetry/opentelemetry-python/issues/2407
+>   - https://github.com/open-telemetry/opentelemetry-python/pull/4094
+>   - `record`メソッドなどに`context`引数（ここにtrace idなどcontext情報が入る）が追加された
+> - ただ、各instrumentationパッケージがexemplarsをメトリクスに追加する実装はまだ完了していない
+>   - https://github.com/open-telemetry/opentelemetry-python-contrib/issues/2158
+>   - 例えば、ASGIの以下の`record`メソッドの呼び出し部分に`context`引数を追加する実装がまだされていない  
+>     ```python
+>     if self.duration_histogram_old:
+>          self.duration_histogram_old.record(
+>              max(round(duration_s * 1000), 0), duration_attrs_old
+>          )
+>     if self.duration_histogram_new:
+>          self.duration_histogram_new.record(
+>              max(duration_s, 0), duration_attrs_new
+>          )
+>     self.active_requests_counter.add(
+>               -1, active_requests_count_attrs
+>     )
+>     ```
+
+>     - https://github.com/open-telemetry/opentelemetry-python-contrib/blob/main/instrumentation/opentelemetry-instrumentation-asgi/src/opentelemetry/instrumentation/asgi/__init__.py
 
 > [!NOTE]  
 > ### `OTEL_METRICS_EXEMPLAR_FILTER`環境変数
