@@ -56,6 +56,7 @@
   ![](images/python_auto_instrumentation_list.jpg)
 
 ---
+
 ## メトリクス(metrics)
 - Python Auto Instrumentationで、一部のinstrumentationパッケージはメトリクスも出してくれる
 - Python Auto Instrumentationのリポジトリの 「**instrumentation**」ディレクトリ配下のREADME.mdに、「Metrics support」列にメトリクスも出してパッケージが確認
