@@ -41,6 +41,9 @@
 > [!CAUTION]  
 > Manually setting a global TracerProvider will conflict with the Auto SDK and prevent manual spans from properly correlating with eBPF-based spans. If you are creating manual spans in a Go application that is also instrumented by eBPF, do not initialize your own global TracerProvider.
 
+> [!NOTE]  
+> 2025/10現時点では、メトリクスとログの自動計装には対応していない。
+
 ### Getting Started
 - https://github.com/open-telemetry/opentelemetry-go-instrumentation/blob/main/docs/getting-started.md
 
