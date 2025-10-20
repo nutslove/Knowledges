@@ -69,6 +69,13 @@
 > Python Auto Instrumentationはexemplarsには対応していない？要確認  
 > https://github.com/open-telemetry/opentelemetry-python/issues/4250
 
+> [!NOTE]  
+> ### `OTEL_METRICS_EXEMPLAR_FILTER`環境変数
+> - 以下の3つの値を指定可能
+>   - `always_off`： exemplarsを無効化
+>   - `always_on`： exemplarsを有効化
+>   - `trace_based`： トレースが存在する場合にexemplarsを有効化（デフォルト値）
+
 ---
 
 ## ログ(log)との連携
