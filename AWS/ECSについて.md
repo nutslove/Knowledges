@@ -10,6 +10,8 @@
 2. Run Task（Standalone Task）を使って起動する
    - 一時的なタスクやバッチ処理など、特定の数のTaskを実行するために使用
 
+---
+
 ## Task Definition
 - ECSタスクの設定を記述するテンプレート
 - Kubernetesのマニフェストファイルのようなもの
@@ -43,8 +45,39 @@
 ### `portMappings`
 - KubernetesのServiceリソースの`ports`に該当する項目
 
-### `logConfiguration`
-- 要整理
+### ログ(log)関連設定
+- 参考URL
+  - https://docs.aws.amazon.com/ja_jp/AmazonECS/latest/developerguide/firelens-taskdef.html
+  - **https://docs.aws.amazon.com/ja_jp/AmazonECS/latest/developerguide/using_firelens.html**
+- **アプリコンテナログはstdout/stderrに出力されることが前提**
+- **それをどこに送るかをアプリコンテナのconfigの`logConfiguration.logDriver`で指定する**
+- **アプリコンテナの設定で、`logConfiguration.logDriver`に`awsfirelens`を指定した場合、FireLensコンテナ（AWS for Fluent Bit）をサイドカーコンテナとして追加する必要がある**  
+  **さらに、FireLensコンテナ側の設定で`firelensConfiguration`ブロックも必要で、fluent bitの場合は`type`に`fluentbit`を指定する**
+  - 設定例  
+    ```json
+    "firelensConfiguration": {
+      "options": {
+        "config-file-type": "file",
+        "config-file-value": "/fluent-bit/etc/fluent-bit-custom.conf",
+        "enable-ecs-log-metadata": "true"
+      },
+      "type": "fluentbit"
+    },
+    ```
+    - `config-file-type`：`file`または`s3`を指定可能（**Fargateでは`file`のみ使用可能**）
+
+> [!CAUTION]  
+> Fluent Bitのカスタム設定ファイルを使用する場合、以下のFireLensがデフォルトで使用するパスとは異なるパスを指定する必要がある
+> - Fluent Bit
+>   - `/fluent-bit/etc/fluent-bit.conf`
+> - Fluentd
+>   - `/fluentd/etc/fluent.conf`
+
+#### `logConfiguration`ブロック
+- https://docs.aws.amazon.com/ja_jp/AmazonECS/latest/APIReference/API_LogConfiguration.html
+- FargateのTaskの場合、`awslogs`,`splunk`, `awsfirelens`のいずれかを指定可能
+
+---
 
 ## Service
 - KubernetesのDeploymentsとServiceに近い概念
@@ -130,6 +163,8 @@
 - Terraform Resource
   - https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/ecs_service
 
+---
+
 ## IAM Role
 - Task RoleとTask Execution Roleの２つがある
 
@@ -145,6 +180,13 @@
   - CloudWatch Logsへのログ書き込み
   - Secrets Managerからの機密情報の取得
 
+---
+
 ## DataPlaneとしてFargateを使う場合の注意事項
 - Taskの定義にCPUとメモリのLimitの設定が必須（EC2の場合は省略可）
 - 使用できるネットワークモードは`awsvpc`のみ
+
+---
+
+## ECS Managed Instances
+- ECSクラスターで使用されるEC2インスタンスをAWSが管理してくれる
