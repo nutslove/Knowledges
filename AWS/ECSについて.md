@@ -193,4 +193,5 @@
 ---
 
 ## ECS Managed Instances
-- ECSクラスターで使用されるEC2インスタンスをAWSが管理してくれる
+- EKS Auto Modeと似たようなもので、ECSクラスターで使用されるEC2インスタンスをAWSが管理してくれるもの
+- **ECS Cluster作成時に、「Infrastructure」フィールドで「Fargate and Managed Instances」を選択すると、1つのECS Cluster内でFargateとManaged Instancesを併用できるようになる（1つのServiceでの併用はできない。ServiceごとにFargateまたはManaged Instancesを選択する必要がある）**
