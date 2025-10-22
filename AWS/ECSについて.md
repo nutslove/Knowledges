@@ -67,8 +67,8 @@
     - `config-file-type`：`file`または`s3`を指定可能（**Fargateでは`file`のみ使用可能**）
 - ログの流れ
   1. アプリコンテナがstdout/stderrにログを出力
-  2. FireLensコンテナがアプリコンテナのログを受け取る
-  3. FireLensコンテナが設定に基づいて、ログを指定された宛先（CloudWatch Logs、OpenSearch、その他ログツール）に送信する
+  2. FireLensサイドカーコンテナがアプリコンテナのログを受け取る
+  3. FireLensサイドカーコンテナが設定に基づいて、ログを指定された宛先（CloudWatch Logs、OpenSearch、その他ログツール）に送信する
 
 > [!CAUTION]  
 > Fluent Bitのカスタム設定ファイルを使用する場合、以下のFireLensがデフォルトで使用するパスとは異なるパスを指定する必要がある
