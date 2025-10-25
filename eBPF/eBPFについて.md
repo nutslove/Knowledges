@@ -20,5 +20,10 @@
 - eBPF MAPは、eBPFプログラムと user space アプリケーション間や、eBPFプログラム同士でデータを共有するためのデータ構造
 - eBPF MAPには、ハッシュテーブル、配列、リングバッファ（perfリングバッファ、BPFリングバッファ）など、さまざまなタイプがある
 
+## eBPF仮想マシン
+- （C言語やRustで書かれた）eBPFプログラムは、eBPFバイトコードにコンパイルされ、実行時にシステムが動作しているCPUで動くネイティブの機械語命令にJIT（Just-In-Time）コンパイルされる
+- eBPF仮想マシンにはeBPFレジスタと呼ばれる仮想的なレジスタセットがあり、eBPFプログラムはこれらのレジスタを使ってデータを操作する
+- eBPFバイトコードがカーネル内にあるeBPF仮想マシンの中で実行される
+
 ## BCC (BPF Compiler Collection)
 - eBPF (extended Berkeley Packet Filter) を使って、カーネルをトレース・モニタリング・デバッグするための強力なフレームワーク／ツール群
