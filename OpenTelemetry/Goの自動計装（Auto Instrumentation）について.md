@@ -49,6 +49,12 @@
 
 ### Configuration
 - https://github.com/open-telemetry/opentelemetry-go-instrumentation/blob/main/docs/configuration.md
+#### 各環境変数
+|環境変数名|説明|備考|
+|---|---|---|
+|`OTEL_GO_AUTO_TARGET_EXE`|Sets the binary for the Go application to be instrumented. As an alternative to using the environment variable, you can use the `-target-exe` CLI flag. **対象のGoバイナリを指定**||
+|`OTEL_GO_AUTO_INCLUDE_DB_STATEMENT`|Sets whether to include SQL queries in the trace data.||
+|`OTEL_GO_AUTO_PARSE_DB_STATEMENT`|Sets whether to parse the SQL statement for trace data, setting `db.operation.name.` Only valid if `OTEL_GO_AUTO_INCLUDE_DB_STATEMENT` is also set.||
 
 ### How it works
 - https://github.com/open-telemetry/opentelemetry-go-instrumentation/blob/main/docs/how-it-works.md
