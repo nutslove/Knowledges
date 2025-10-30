@@ -113,6 +113,14 @@
   ```
 - https://docs.aws.amazon.com/ja_jp/eks/latest/userguide/sample-storage-workload.html
 
+## Auto Modeで静的EBS PVを使うときの注意点
+- https://neusstudio.blog/eks-auto-mode-static-ebs-troubleshooting/
+
+1. `driver`を`ebs.csi.aws.com`ではなく、 **`ebs.csi.eks.amazonaws.com`** にする必要がある
+    - https://docs.aws.amazon.com/ja_jp/eks/latest/userguide/ebs-csi.html#ebs-csi-considerations
+2. EBS Volumeに Key：`eks:eks-cluster-name`、Value：`<対象EKSクラスター名>`の設定が必要
+    - http://repost.aws/questions/QUj5BAYq-xQgKmH-dkR5ajLQ/eks-automode-static-pv-can-t-be-attached-volume-attachment-is-being-deleted
+
 # `Ingress`周りについて
 - 参考URL
   - https://zenn.dev/hanabusashun/articles/43572ae6e15366
