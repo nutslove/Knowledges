@@ -1,4 +1,5 @@
 # Trace
+- https://opentelemetry.io/ja/docs/languages/go/getting-started/
 
 ## 設定の流れ
 1. `otlptracehttp.New`もしくは`otlptracegrpc.New`でexporter(トレースの送り先)を設定し、Exporterインスタンスを初期化する  
@@ -328,6 +329,46 @@ func doMoreWork(ctx context.Context) {
     // ここでトレースする別の操作を実行
 }
 ```
+
+## ■ Resourceについて
+- **https://opentelemetry.io/ja/docs/concepts/resources/**
+- **https://opentelemetry.io/ja/docs/languages/go/resources/**. 
+	> リソースは、リソース属性としてテレメトリーを生成するエンティティを表します。 たとえば、Kubernetes上のコンテナで実行されているテレメトリーを生成するプロセスは、プロセス名、ポッド名、ネームスペース、および場合によってはデプロイメント名を持ちます。 これらの4つの属性すべてをリソースに含まれることができます。
+
+- `resource.NewWithAttributes`と`semconv`でセマンティック規約に則った属性を設定する例  
+	```go
+	res := resource.NewWithAttributes(
+			semconv.SchemaURL,
+			semconv.ServiceNameKey.String("myService"),
+			semconv.ServiceVersionKey.String("1.0.0"),
+			semconv.ServiceInstanceIDKey.String("abcdef12345"),
+	)
+
+	provider := sdktrace.NewTracerProvider(
+			...
+			sdktrace.WithResource(res),
+	)
+	```
+
+- `resource.New`を使用してリソースを作成する例  
+	```go
+	res, err := resource.New(
+		context.Background(),
+		resource.WithFromEnv(),      // OTEL_RESOURCE_ATTRIBUTESとOTEL_SERVICE_NAME環境変数から属性を発見して提供します
+		resource.WithTelemetrySDK(), // 使用されているOpenTelemetry SDKに関する情報を発見して提供します
+		resource.WithProcess(),      // プロセス情報を発見して提供します
+		resource.WithOS(),           // OS情報を発見して提供します
+		resource.WithContainer(),    // コンテナ情報を発見して提供します
+		resource.WithHost(),         // ホスト情報を発見して提供します
+		resource.WithAttributes(attribute.String("foo", "bar")), // カスタムリソース属性を追加します
+		// resource.WithDetectors(thirdparty.Detector{}), // 独自の外部Detector実装を持参します
+	)
+	if errors.Is(err, resource.ErrPartialResource) || errors.Is(err, resource.ErrSchemaURLConflict) {
+		log.Println(err) // 致命的でない問題をログに記録します
+	} else if err != nil {
+		log.Fatalln(err) // エラーは致命的である可能性があります
+	}
+	```
 
 ## ■ otel.SetTextMapPropagatorについていて
 - `otel.SetTextMapPropagator`は、グローバルなテキストマッププロパゲータを設定するために使用される。
