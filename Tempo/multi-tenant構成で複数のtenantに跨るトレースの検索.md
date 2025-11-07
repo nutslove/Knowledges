@@ -1,0 +1,4 @@
+- 前提として`multitenancy_enabled`が`true`に設定されている（マルチテナントモードになっている）必要がある
+- Grafanaのデータソースのheaderの設定で`X-Scope-OrgID`に`|`で区切った複数のtenant idを指定することで、複数のtenantに跨るトレースの検索が可能になる
+  - 例: `tenantA|tenantB|tenantC`
+- あと、Tempoの設定で`query_frontend.multi_tenant_queries_enabled`が`true`に設定されている必要がある（defaultが`true`）
