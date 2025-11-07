@@ -1,6 +1,13 @@
 ## Connector
+- https://opentelemetry.io/docs/collector/building/connector/
+
+![Connector](./images/otel_collector_connector.png)
+
 - `receivers`と`exporters`の両方の役割を持ち、ある`receivers`から受け取ったデータを`exporters`から別の`receivers`にデータを流すことができる
 - Spanを受け取って特定のSpanに対してMetricsにしたり（[Span Metrics Connector](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/connector/spanmetricsconnector/README.md)）、一つのパイプラインに流れてきたデータをAttributeによって分岐させたり（[Routing Connector](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/connector/routingconnector/README.md)）、特定のログの件数をMetricsにしたり（[Count Connector](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/connector/countconnector)）することができる
+
+- **使用可能なConnector一覧**
+  - https://opentelemetry.io/ja/docs/collector/components/connector/
 
 ### Span Metrics Connector
 - 参考URL
