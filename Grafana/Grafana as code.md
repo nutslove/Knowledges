@@ -16,6 +16,7 @@
   - https://grafana.com/docs/grafana/latest/alerting/set-up/provision-alerting-resources/
   - https://grafana.com/blog/2022/09/20/grafana-alerts-as-code-get-started-with-terraform-and-grafana-alerting/
 - `reduce`や`math`など、TimeRangeがないものについても`relative_time_range`を定義する必要がある
+
 ### module化している場合の`Provider`,`module`の書き方
 - importされる`module/`配下の`.tf`側とproviderやimportする側両方に`terraform.required_providers`の設定が必要！
 - Providerやmoduleをimportする側の設定例
@@ -60,6 +61,48 @@
   }
   ~~~
 
+> [!NOTE]  
+> ## tfstateファイルをS3に管理し、Grafana TokenをSecrets Managerで管理する場合の例
+> ```hcl
+> terraform {
+>   required_providers {
+>     grafana = {
+>       source  = "grafana/grafana"
+>       version = "~> 4.0"
+>     }
+>    aws = {
+>      source  = "hashicorp/aws"
+>      version = "~> 5.0"
+>    }
+>  }
+> }
+>
+> terraform  {
+>  backend "s3" {
+>    bucket         = "lee-test-grafana-terraform-bucket"
+>    key            = "dev/grafana/terraform.tfstate"
+>    region         = "ap-northeast-1"
+>    encrypt        = true
+>  }
+> }
+>
+> provider "aws" {
+>  region = "us-west-2" # Secrets Managerが存在するリージョンを指定
+> }
+>
+> data "aws_secretsmanager_secret" "grafana_token" {
+>  name = "lee-grafana-test" # Secrets ManagerのSecret nameを指定
+> }
+>
+> data "aws_secretsmanager_secret_version" "grafana_token" {
+>  secret_id = data.aws_secretsmanager_secret.grafana_token.id
+> }
+>
+> provider "grafana" {
+>  url = "https://dev-grafana.com/"
+>  auth = jsondecode(data.aws_secretsmanager_secret_version.grafana_token.secret_string)["dev_grafana_token"]
+> }
+> ```
 #### Data Source
 - https://registry.terraform.io/providers/grafana/grafana/latest/docs/resources/data_source
 
