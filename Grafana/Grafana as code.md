@@ -63,6 +63,7 @@
 
 > [!NOTE]  
 > ## tfstateファイルをS3に管理し、Grafana TokenをSecrets Managerで管理する場合の例
+> - **Grafanaにアクセスできる、かつSecrets ManagerとS3にアクセスできるIAMロールが必要**（`aws sso login --profile <profile名> && export AWS_PROFILE=<profile名>`などでログインしている場合は、そのユーザーに必要な権限を付与する）
 > ```hcl
 > terraform {
 >   required_providers {
@@ -100,7 +101,7 @@
 >
 > provider "grafana" {
 >  url = "https://dev-grafana.com/"
->  auth = jsondecode(data.aws_secretsmanager_secret_version.grafana_token.secret_string)["dev_grafana_token"]
+>  auth = jsondecode(data.aws_secretsmanager_secret_version.grafana_token.secret_string)["dev_grafana_token"] # Secrets Managerから取得したGrafana Tokenを指定('dev_grafana_token'はSecretのkey名)
 > }
 > ```
 #### Data Source
