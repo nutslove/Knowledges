@@ -129,4 +129,6 @@
 > Counter.increment_class()
 > Counter.increment_class()
 > print(Counter.count)  # 2 (すべてのインスタンスで共有)
+> print(c1.count)  # 2 (すべてのインスタンスで共有)
+> print(c2.count)  # 2 (すべてのインスタンスで共有)
 > ```
