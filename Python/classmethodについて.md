@@ -119,14 +119,14 @@
 >     def increment_class(cls):
 >         cls.count += 1
 >
->     c1 = Counter()
->     c2 = Counter()
+> c1 = Counter()
+> c2 = Counter()
 >
->     c1.increment_instance()
->     print(c1.instance_count)  # 1
->     print(c2.instance_count)  # 0 (別のインスタンス)
+> c1.increment_instance()
+> print(c1.instance_count)  # 1
+> print(c2.instance_count)  # 0 (別のインスタンス)
 >
->     Counter.increment_class()
->     Counter.increment_class()
->     print(Counter.count)  # 2 (すべてのインスタンスで共有)
+> Counter.increment_class()
+> Counter.increment_class()
+> print(Counter.count)  # 2 (すべてのインスタンスで共有)
 > ```
