@@ -97,8 +97,20 @@
 - **`loki_discarded_samples_total`** (counter)  
   → rejected samples by reason  
   → distributorのRateLimitやvalidation checkで引っかかって破棄されたログ数  
-  → `reason`ラベルに破棄された理由が入る  
-  → https://grafana.com/docs/loki/latest/operations/request-validation-rate-limits/
+  → `reason`ラベルに破棄された理由が入る（以下reasonの種類（参考: https://github.com/grafana/loki/blob/main/operator/docs/lokistack/sop.md#steps-5））  
+
+    | Reason  | Description                                 | Corresponding Ingestion Limit Keys                 |
+    |---------|---------------------------------------------|----------------------------------------------------|
+    | `rate_limited` | request rate limit exceeded          | `ingestionRate`, `ingestionBurstSize`              |
+    | `stream_limit`  |             | `maxGlobalStreamsPerTenant`                       |
+    | `label_name_too_long` | label name exceeded max length   | `maxLabelNameLength`                            |
+    | `label_value_too_long` | label value exceeded max length  | `maxLabelValueLength`                          |
+    | `line_too_long` | log line exceeded max length        | `maxLineSize`                                      |
+    | `max_label_names_per_series` | number of labels per stream exceeded max | `maxLabelNamesPerSeries`         |
+    | `per_stream_rate_limit` | per-stream rate limit exceeded | `perStreamRateLimit`, `perStreamRateLimitBurst` |
+
+  → **https://grafana.com/docs/loki/latest/operations/request-validation-rate-limits/** ⭐️  
+    → 各reasonの意味が詳しく書いてあるので必ず確認！
 - `loki_distributor_ingester_append_failures_total` (counter)  
   → The total number of failed batch appends sent to ingesters.  
     > **Note**  

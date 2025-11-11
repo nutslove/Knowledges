@@ -8,8 +8,9 @@
 ---
 
 # Multi-tenant Queries
-- https://grafana.com/docs/loki/latest/operations/multi-tenancy/
+- https://grafana.com/docs/loki/latest/operations/multi-tenancy/#multi-tenant-queries
 - 複数のテナントに渡ってクエリーを投げることができる
+  - ヘッダー設定例: **`X-Scope-OrgID: tenantA|tenantB`**
 - **そのためにはQuerierの設定で`multi_tenant_queries_enabled`を`true`(defaultは`false`)に設定する必要がある**
 - `multi_tenant_queries_enabled: true`にせずに、GrafanaでLokiデータセットで`X-Scope-OrgID: A|B`とか設定すると以下のようなエラーが出る  
   ![](./image/multi_tenant_queries_1.jpg)
