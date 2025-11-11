@@ -1,6 +1,10 @@
 - **There are dashboards grafana labs uses available in the `dashboards` dir in the URL below**
   - https://github.com/grafana/loki/tree/main/production/loki-mixin
 
+> [!NOTE]  
+> - Lokiが公開しているアラート設定一覧
+>   - https://github.com/grafana/loki/blob/main/operator/internal/manifests/internal/alerts/prometheus-alerts.yaml
+
 # Observability
 - Loki/promtailも自身に関するメトリクスを開示している
   - https://grafana.com/docs/loki/latest/operations/observability/
