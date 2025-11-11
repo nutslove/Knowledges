@@ -101,13 +101,13 @@
 
     | Reason  | Description                                 | Corresponding Ingestion Limit Keys                 |
     |---------|---------------------------------------------|----------------------------------------------------|
-    | `rate_limited` | request rate limit exceeded          | `ingestionRate`, `ingestionBurstSize`              |
-    | `stream_limit`  |             | `maxGlobalStreamsPerTenant`                       |
-    | `label_name_too_long` | label name exceeded max length   | `maxLabelNameLength`                            |
-    | `label_value_too_long` | label value exceeded max length  | `maxLabelValueLength`                          |
-    | `line_too_long` | log line exceeded max length        | `maxLineSize`                                      |
-    | `max_label_names_per_series` | number of labels per stream exceeded max | `maxLabelNamesPerSeries`         |
-    | `per_stream_rate_limit` | per-stream rate limit exceeded | `perStreamRateLimit`, `perStreamRateLimitBurst` |
+    | `rate_limited` | This rate limit is enforced when a tenant has exceeded their configured log ingestion rate limit. | `ingestionRate`, `ingestionBurstSize`              |
+    | `stream_limit`  | This limit is enforced when a tenant reaches their maximum number of active streams. | `maxGlobalStreamsPerTenant`                       |
+    | `label_name_too_long` | If a sample is sent with a label name that has a length in bytes greater than Loki has been configured to allow, it will be rejected with the `label_name_too_long` reason. | `maxLabelNameLength`                            |
+    | `label_value_too_long` | If a sample has a label value with a length in bytes greater than Loki has been configured to allow, it will be rejected for the `label_value_too_long` reason. | `maxLabelValueLength`                          |
+    | `line_too_long` | This error occurs when a log line exceeds the maximum allowable length in bytes. The HTTP response will include the stream to which the offending log line belongs as well as its size in bytes. | `maxLineSize`                                      |
+    | `max_label_names_per_series` | If a sample is submitted with more labels than Loki has been configured to allow, it will be rejected with the `max_label_names_per_series` reason. Note that ‘series’ is the same thing as a ‘stream’ in Loki - the ‘series’ term is a legacy name. | `maxLabelNamesPerSeries`         |
+    | `per_stream_rate_limit` | This limit is enforced when a single stream reaches its rate limit. | `perStreamRateLimit`, `perStreamRateLimitBurst` |
 
   → **https://grafana.com/docs/loki/latest/operations/request-validation-rate-limits/** ⭐️  
     → 各reasonの意味が詳しく書いてあるので必ず確認！
