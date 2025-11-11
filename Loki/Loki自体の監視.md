@@ -2,8 +2,8 @@
   - https://github.com/grafana/loki/tree/main/production/loki-mixin
 
 > [!NOTE]  
-> - Lokiが公開しているアラート設定一覧
->   - https://github.com/grafana/loki/blob/main/operator/internal/manifests/internal/alerts/prometheus-alerts.yaml
+> ## Lokiが公開しているアラート設定一覧
+> - https://github.com/grafana/loki/blob/main/operator/internal/manifests/internal/alerts/prometheus-alerts.yaml
 
 # Observability
 - Loki/promtailも自身に関するメトリクスを開示している
