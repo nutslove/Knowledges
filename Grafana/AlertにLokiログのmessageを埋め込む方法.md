@@ -13,3 +13,18 @@
 - 上記の設定で、`{{ $values.B.Labels.message }}`でSummaryなどに記述できて、logの中身が連携される
 - また、Labelに`message`として連携されるので、アラートを受け取るバックエンド(e.g. Lambda)でラベルから`message`を抜き取って処理することもできる
 - **ただ、messageごとに異なるアラートとして扱われるので、messageの内容が１文字でも違うと、LogQLにヒットするログの数の分アラートが発砲される**
+
+
+#### Slack通知の設定例
+- テンプレート内で `.Alerts` 配列をループして、各アラートのラベルやアノテーションを参照する必要がある
+- Contact PointのSlackの Text Bodyの設定例  
+  ```text
+  {{ range .Alerts }}
+  *Alert:* {{ .Labels.alertname }}
+  *Severity:* {{ .Labels.priority }}
+  *SID:* {{ .Labels.SID }}
+  *Message:* {{ .Labels.message }}
+  *Summary:* {{ .Annotations.summary }}
+  *Description:* {{ .Annotations.description }}
+  {{ end }}
+  ```
