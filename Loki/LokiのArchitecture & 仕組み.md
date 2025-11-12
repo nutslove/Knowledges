@@ -95,6 +95,8 @@
   - https://grafana.com/docs/loki/latest/operations/storage/boltdb-shipper/
   - https://grafana.com/docs/loki/latest/fundamentals/architecture/
 
+---
+
 ## LogがDropされるのを防ぐための仕組み
 1. __Replication factor__
    - Distributorが受け取ったlogを複数のIngesterにreplicateすることで、1つのIngesterが落ちてもlogが失われないようにする
@@ -109,12 +111,16 @@
   - https://grafana.com/docs/loki/latest/design-documents/2020-09-write-ahead-log/
   - https://grafana.com/docs/loki/latest/operations/storage/boltdb-shipper/#queriers
 
+---
+
 ## Consistent Hash Rings
 - 参考URL
   - **https://grafana.com/docs/loki/latest/fundamentals/architecture/rings/**
 - Ingester Ring Statusは「http://Ingester_IP:3100/ring」から確認できる
 - Distributor Ring Statusは「http://Distributor_IP:3100/distributor/ring」から確認できる
-- ringのstatusについて`cortex_ring_members`metricsで確認できる
+- ringのstatusについて`loki_ring_members`metricsで確認できる
+
+---
 
 ## chunkの圧縮
 - 転送速度向上およびストレージコスト削減のため、ログはgzip[^3]で圧縮されてchunkとして保存される
