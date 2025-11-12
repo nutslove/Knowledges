@@ -116,9 +116,11 @@
 ## Consistent Hash Rings
 - 参考URL
   - **https://grafana.com/docs/loki/latest/fundamentals/architecture/rings/**
-- Ingester Ring Statusは「http://Ingester_IP:3100/ring」から確認できる
-- Distributor Ring Statusは「http://Distributor_IP:3100/distributor/ring」から確認できる
+- Ingester Ring Statusは「`http://<Ingester_IP>:3100/ring`」から確認できる
+- Distributor Ring Statusは「`http://<Distributor_IP>:3100/distributor/ring`」から確認できる
 - ringのstatusについて`loki_ring_members`metricsで確認できる
+  - `state`ラベルでringの状態を確認できる
+    - `Unhealthy`や`PENDING`の状態のものがないか監視
 
 ---
 
