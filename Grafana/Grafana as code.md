@@ -149,3 +149,38 @@
         jsonData:
           patternsDisabled: true
     ```
+    - k8sのConfigMapとDeploymentの設定例  
+      ```yaml
+      apiVersion: v1
+      kind: ConfigMap
+      metadata:
+        name: grafana-provisioning-plugins
+        namespace: monitoring
+      data:
+        lokiexplore-plugin.yaml: |
+          apiVersion: 1
+          apps:
+            - type: 'grafana-lokiexplore-app'
+              jsonData:
+                patternsDisabled: true
+      ---
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: grafana
+        namespace: monitoring
+      spec:
+        template:
+          spec:
+            containers:
+              - name: grafana
+                image: grafana/grafana:latest
+                volumeMounts:
+                  - name: grafana-provisioning-plugins
+                    mountPath: /etc/grafana/provisioning/plugins/lokiexplore-plugin.yaml
+                    subPath: lokiexplore-plugin.yaml
+            volumes:
+              - name: grafana-provisioning-plugins
+                configMap:
+                  name: grafana-provisioning-plugins
+      ```
