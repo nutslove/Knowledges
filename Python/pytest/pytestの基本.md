@@ -186,6 +186,49 @@
       conn.close()
   ```
 
+### その他fixtureのオプション
+#### `autouse`オプション
+- `autouse=True`を指定すると、明示的にテスト関数の引数に指定しなくても自動的に実行される（デフォルトは`False`）
+  - `autouse: False`の場合  
+    ```python
+    import pytest
+
+    @pytest.fixture
+    def setup_env():
+        print("\n--- setup_env fixture 実行 ---")
+
+    def test_one(setup_env):
+        print("test_one 実行")
+
+    def test_two():
+        print("test_two 実行")
+    
+    # 実行結果
+    ## --- setup_env fixture 実行 ---
+    ## test_one 実行
+    ## test_two 実行
+    ```
+  - `autouse: True`の場合  
+    ```python
+    import pytest
+
+    @pytest.fixture(autouse=True)
+    def setup_env():
+        print("\n--- setup_env fixture 実行 ---")
+
+    def test_one():
+        print("test_one 実行")
+
+    def test_two():
+        print("test_two 実行")
+
+    # 実行結果
+    ## --- setup_env fixture 実行 ---
+    ## test_one 実行
+    ## --- setup_env fixture 実行 ---
+    ## test_two 実行
+    ```
+
 ## テスト関数の構造化
 - Arrange-Act-Assert（Given-When-Then）パターンを使うと、テスト関数の構造が明確になる
   1. **Arrange（Given）（準備）**: テストに必要なデータや状態を準備する
