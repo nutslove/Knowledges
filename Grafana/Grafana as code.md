@@ -3,7 +3,8 @@
 - 参考URL
   - https://grafana.com/blog/2022/12/06/a-complete-guide-to-managing-grafana-as-code-tools-tips-and-tricks/
   - https://grafana.com/blog/2020/02/26/how-to-configure-grafana-as-code/
-## Terraform
+
+# Terraform
 - **Terraformなどコードで作成したアラートはデフォルトでは手動では修正できない**
   - https://grafana.com/docs/grafana/latest/alerting/set-up/provision-alerting-resources/terraform-provisioning/
   - **ただ、`disable_provenance`項目を`true`にするとTerraformから作成したアラートも手動で修正できるようになる**
@@ -17,7 +18,7 @@
   - https://grafana.com/blog/2022/09/20/grafana-alerts-as-code-get-started-with-terraform-and-grafana-alerting/
 - `reduce`や`math`など、TimeRangeがないものについても`relative_time_range`を定義する必要がある
 
-### module化している場合の`Provider`,`module`の書き方
+## module化している場合の`Provider`,`module`の書き方
 - importされる`module/`配下の`.tf`側とproviderやimportする側両方に`terraform.required_providers`の設定が必要！
 - Providerやmoduleをimportする側の設定例
   ~~~terraform
@@ -62,7 +63,7 @@
   ~~~
 
 > [!NOTE]  
-> ## tfstateファイルをS3に管理し、Grafana TokenをSecrets Managerで管理する場合の例
+> ### tfstateファイルをS3に管理し、Grafana TokenをSecrets Managerで管理する場合の例
 > - **Grafanaにアクセスできる、かつSecrets ManagerとS3にアクセスできるIAMロールが必要**（`aws sso login --profile <profile名> && export AWS_PROFILE=<profile名>`などでログインしている場合は、そのユーザーに必要な権限を付与する）
 > ```hcl
 > terraform {
@@ -104,6 +105,7 @@
 >  auth = jsondecode(data.aws_secretsmanager_secret_version.grafana_token.secret_string)["dev_grafana_token"] # Secrets Managerから取得したGrafana Tokenを指定('dev_grafana_token'はSecretのkey名)
 > }
 > ```
+
 #### Data Source
 - https://registry.terraform.io/providers/grafana/grafana/latest/docs/resources/data_source
 
@@ -132,3 +134,18 @@
 
 #### Notification Policy
 - https://registry.terraform.io/providers/grafana/grafana/latest/docs/resources/notification_policy
+
+---
+
+# Provisioning
+- https://grafana.com/docs/grafana/latest/administration/provisioning/
+- `/etc/grafana/provisioning/`配下にYAMLファイルを配置してGrafanaの設定をコードで管理できる
+- 例えば、Pluginsの設定は`/etc/grafana/provisioning/plugins/`配下にYAMLファイルを配置する
+  - 例: `grafana-lokiexplore-app`プラグインで、Loki patternを無効化する場合  
+    ```yaml
+    apiVersion: 1
+    apps:
+      - type: 'grafana-lokiexplore-app'
+        jsonData:
+          patternsDisabled: true
+    ```
