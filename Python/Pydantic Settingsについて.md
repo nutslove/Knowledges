@@ -67,8 +67,6 @@
       Field required [type=missing, input_value={}, input_type=dict]
         For further information visit https://errors.pydantic.dev/2.12/v/missing
     ```
-     
->>> settings = Settings()
 
 > [!NOTE]  
 > - 環境変数の名前は、フィールド名を**大文字**に変換し、**アンダースコア**で区切った形式になる
