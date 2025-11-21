@@ -10,3 +10,10 @@
   - **https://qiita.com/icoxfog417/items/e9989e052ea1c83759e1**
   - https://github.com/awslabs/amazon-bedrock-agent-samples/tree/main/src/InlineAgent
 - SDKでActionGroupとしてLambdaではなく、コード内の関数を（Toolとして）使うことができる
+
+## `Input is too long for requested model.`エラーについて
+- Bedrockの使っているモデル（e.g. Claude）のInput Max Token数を超えると以下のようなエラーが出る  
+  ```
+  botocore.errorfactory.ValidationException: An error occurred (ValidationException) when calling the InvokeModel operation: Input is too long for requested model.
+  ```
+- 対策としては、Inputテキストを分割して複数回に分けてモデルに投げるとか、要約したりして、量を減らすしかない
