@@ -3,7 +3,8 @@
 
 # 概要
 - DeepAgentsもSubAgentsもLangchainの`create_agent`で作られていて、どちらもReact Agentである
-　- https://github.com/langchain-ai/deepagents/blob/master/libs/deepagents/deepagents/graph.py#L149  
+  - https://github.com/langchain-ai/deepagents/blob/master/libs/deepagents/deepagents/graph.py#L149  
+
     ```python
     from langchain.agents import create_agent
 
