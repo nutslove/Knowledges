@@ -82,3 +82,22 @@
           comment=f"Ticket escalated to human agent"
       )
   ```
+
+### Trace IDの設定
+- UUIDを使って利用者側でTraceIDを指定することもできる
+  - これを使えば連続しない処理も同じTraceIDを指定することでトレースを連結させることができる
+- https://langfuse.com/docs/tracing-features/trace-ids
+
+> [!CAUTION]  
+> - https://langfuse.com/docs/observability/features/trace-ids-and-distributed-tracing  
+>   > By default, Langfuse assigns random IDs (uuid, cuid) to all logged events. For the OTEL-based SDKs, Langfuse assigns random 32 hexchar trace IDs and 16 hexchar observation IDs.
+
+> [!CAUTION]  
+> SDK v2まではUUID形式のTraceIDを指定できたが、SDK v3からはOTEL Basedになったため、32桁の16進数で指定する必要がある（W3C Trace Context IDs）
+> **`last_trace_id`でTrace IDを取得することができる**  
+> ```python
+> from langfuse.langchain import CallbackHandler
+> langfuse_handler = CallbackHandler()
+> langfuse_handler.last_trace_id  # 32桁の16進数のTrace IDが取得できる
+> ```
+> **ただ、常時起動かつ同時実行される環境では、最後のTrace IDが取得されるため、意図しないTrace IDが取得される可能性があるので要注意**
