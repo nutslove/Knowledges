@@ -1,5 +1,5 @@
 # SDK
-## v2
+## ■ v2
 - https://langfuse.com/docs/sdk/python/low-level-sdk
 > [!CAUTION] 
 > - Lambdaなどの短命な環境では、`langfuse.flush()`を呼び出すことで、SDKがバックグラウンドで実行しているリクエストが完了するのを待つ必要がある。これを行わないと、イベントが失われる可能性がある。
@@ -33,7 +33,11 @@
   - https://langfuse.com/faq/all/api-authentication
   - 例: `curl -u "<public_key>:<secret_key>" https://cloud.langfuse.com/api/public/projects`
 
-## LangGraphのinvoke時にTagを付与
+---
+
+## ■ v3
+
+### LangGraphのinvoke時にTagを付与
 - https://langfuse.com/docs/observability/sdk/python/instrumentation
 - `config`の`metadata`の`langfuse_tags`にTagのListを渡す  
   ```python
@@ -48,4 +52,32 @@
       "langfuse_tags": ["<system名など>","<alert_source名など>"] # should be a list of strings
     }
   })
+  ```
+
+### observation types
+- https://langfuse.com/docs/observability/features/observation-types
+
+### User Feedback
+- https://langfuse.com/docs/observability/features/user-feedback
+- 例  
+  ```python
+  from langfuse import get_client
+  langfuse = get_client()
+  
+  # Check if customer support ticket was resolved successfully
+  ticket_status = checkIfTicketClosed(ticket_id="ticket-456")
+  if ticket_status.is_closed:
+      langfuse.create_score(
+          trace_id=ticket_status.trace_id,
+          name="ticket-resolution",
+          value=1,
+          comment=f"Ticket closed successfully after {ticket_status.resolution_time}"
+      )
+  else:
+      langfuse.create_score(
+          trace_id=ticket_status.trace_id,
+          name="ticket-resolution",
+          value=0,
+          comment=f"Ticket escalated to human agent"
+      )
   ```
