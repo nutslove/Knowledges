@@ -59,6 +59,7 @@
 
 ### User Feedback
 - https://langfuse.com/docs/observability/features/user-feedback
+- https://langfuse.com/docs/observability/sdk/python/evaluation#create-scores
 - 例  
   ```python
   from langfuse import get_client
