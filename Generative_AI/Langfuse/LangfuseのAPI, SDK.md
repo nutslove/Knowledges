@@ -32,3 +32,20 @@
 - API時の認証はTokenを使ったBasic Auth
   - https://langfuse.com/faq/all/api-authentication
   - 例: `curl -u "<public_key>:<secret_key>" https://cloud.langfuse.com/api/public/projects`
+
+## LangGraphのinvoke時にTagを付与
+- https://langfuse.com/docs/observability/sdk/python/instrumentation
+- `config`の`metadata`の`langfuse_tags`にTagのListを渡す  
+  ```python
+  final_state = graph.invoke({
+      "messages": [("user", error_message)],
+      "final_response": Response(analysis_results="", final_command="")
+  }, config={
+      "recursion_limit": 120,
+      "callbacks": [langfuse_handler],
+      "run_id": predefined_run_id,
+      "metadata": {
+          "langfuse_tags": [system,alert_source] # should be a list of strings
+      }
+  })
+  ```
