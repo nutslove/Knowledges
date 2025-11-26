@@ -93,7 +93,7 @@
 >   > By default, Langfuse assigns random IDs (uuid, cuid) to all logged events. For the OTEL-based SDKs, Langfuse assigns random 32 hexchar trace IDs and 16 hexchar observation IDs.
 
 > [!CAUTION]  
-> SDK v2まではUUID形式のTraceIDを指定できたが、SDK v3からはOTEL Basedになったため、32桁の16進数で指定する必要がある（W3C Trace Context IDs）
+> SDK v2まではUUID形式のTraceIDを指定できたが、SDK v3からはOTEL Basedになったため、32桁の16進数で指定する必要がある（W3C Trace Context IDs）  
 > **`last_trace_id`でTrace IDを取得することができる**  
 > ```python
 > from langfuse.langchain import CallbackHandler
