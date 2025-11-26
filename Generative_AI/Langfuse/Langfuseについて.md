@@ -133,3 +133,9 @@ Langfuse is designed to handle this scenario safely. The system uses S3/Blob Sto
 - UUIDを使って利用者側でTraceIDを指定することもできる
   - これを使えば連続しない処理も同じTraceIDを指定することでトレースを連結させることができる
 - https://langfuse.com/docs/tracing-features/trace-ids
+
+> [!CAUTION]  
+> - https://langfuse.com/docs/observability/features/trace-ids-and-distributed-tracing  
+>   > By default, Langfuse assigns random IDs (uuid, cuid) to all logged events. For the OTEL-based SDKs, Langfuse assigns random 32 hexchar trace IDs and 16 hexchar observation IDs.
+
+
