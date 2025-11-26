@@ -45,7 +45,7 @@
     "callbacks": [langfuse_handler],
     "run_id": predefined_run_id,
     "metadata": {
-      "langfuse_tags": [system,alert_source] # should be a list of strings
+      "langfuse_tags": ["<system名など>","<alert_source名など>"] # should be a list of strings
     }
   })
   ```
