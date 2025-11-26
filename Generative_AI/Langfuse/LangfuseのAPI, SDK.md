@@ -38,14 +38,14 @@
 - `config`の`metadata`の`langfuse_tags`にTagのListを渡す  
   ```python
   final_state = graph.invoke({
-      "messages": [("user", error_message)],
-      "final_response": Response(analysis_results="", final_command="")
+    "messages": [("user", error_message)],
+    "final_response": Response(analysis_results="", final_command="")
   }, config={
-      "recursion_limit": 120,
-      "callbacks": [langfuse_handler],
-      "run_id": predefined_run_id,
-      "metadata": {
-          "langfuse_tags": [system,alert_source] # should be a list of strings
-      }
+    "recursion_limit": 120,
+    "callbacks": [langfuse_handler],
+    "run_id": predefined_run_id,
+    "metadata": {
+      "langfuse_tags": [system,alert_source] # should be a list of strings
+    }
   })
   ```
