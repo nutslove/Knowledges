@@ -186,6 +186,97 @@
       conn.close()
   ```
 
+### `monkeypatch`フィクスチャ
+- 本番コードを直接変更する必要なく、テストの中で**一時的に**特定の関数・変数・環境変数などを書き換えることができるfixture
+  - テストが終わると、自動的に元の状態に戻る
+#### サポートされるメソッド
+- `setattr`: オブジェクトの属性を一時的に変更
+- `delattr`: オブジェクトの属性を一時的に削除
+- `setitem`: 辞書のキーと値を一時的に変更
+- `delitem`: 辞書のキーと値を一時的に削除
+- `setenv`: 環境変数を一時的に設定
+- `delenv`: 環境変数を一時的に削除
+- `syspath_prepend`: `sys.path`にパスを一時的に追加
+- `chdir`: カレントディレクトリを一時的に変更
+#### 例１: 関数の差し替え（外部APIを呼び出す関数をモックする）
+- `app.py`（本番コード）  
+  ```python
+  import requests
+
+  def get_user_name(user_id):
+      response = requests.get(f"https://api.example.com/users/{user_id}")
+      return response.json()["name"]
+  ```
+- `test_app.py`（テストコード）  
+  ```python
+  from app import get_user_name
+
+  def test_get_user_name(monkeypatch):
+      # モック用のレスポンスクラス
+      class MockResponse:
+          def json(self):
+              return {"name": "テスト太郎"}
+
+      # requests.getを差し替え
+      def mock_get(url):
+          return MockResponse()
+
+      monkeypatch.setattr("requests.get", mock_get)
+
+      result = get_user_name(123)
+      assert result == "テスト太郎"
+  ```
+#### 例２: 環境変数の差し替え
+- `config.py`（本番コード）  
+  ```python
+  import os
+
+  def get_database_url():
+      return os.getenv("DATABASE_URL", "sqlite:///default.db")
+  ```
+- `test_config.py`（テストコード）  
+  ```python
+  from config import get_database_url
+
+  def test_database_url_from_env(monkeypatch):
+      monkeypatch.setenv("DATABASE_URL", "postgresql://localhost/testdb")
+      
+      assert get_database_url() == "postgresql://localhost/testdb"
+
+  def test_database_url_default(monkeypatch):
+      monkeypatch.delenv("DATABASE_URL", raising=False)
+      
+      assert get_database_url() == "sqlite:///default.db"
+  ```
+
+> [!NOTE]
+> - `raising=False`を指定すると、環境変数が存在しない場合でも例外が発生しない
+#### 例３: クラスメソッドの差し替え
+- `service.py`（本番コード）  
+  ```python
+  class PaymentService:
+      def charge(self, amount):
+          # 実際には外部決済APIを呼ぶ
+          return {"status": "charged", "amount": amount}
+
+  def process_order(amount):
+      service = PaymentService()
+      return service.charge(amount)
+  ```
+- `test_service.py`（テストコード）  
+  ```python
+  from service import PaymentService, process_order
+
+  def test_process_order(monkeypatch):
+      def mock_charge(self, amount):
+          return {"status": "mocked", "amount": amount}
+
+      monkeypatch.setattr(PaymentService, "charge", mock_charge)
+
+      result = process_order(1000)
+      assert result["status"] == "mocked"
+  ```
+
 ### その他fixtureのオプション
 #### `autouse`オプション
 - `autouse=True`を指定すると、明示的にテスト関数の引数に指定しなくても自動的に実行される（デフォルトは`False`）
