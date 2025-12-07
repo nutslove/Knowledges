@@ -207,7 +207,7 @@ emp.name = "Jiro Suzuki"
 print(emp.first_name)  # "Jiro"
 ```
 
-## まとめ
+#### まとめ
 
 | 状況 | propertyなし | propertyあり |
 |------|-------------|--------------|
