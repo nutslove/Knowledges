@@ -72,24 +72,24 @@ response = llm_bedrock_with_retry.invoke("Hello")
 >
 > if use_vertex_ai:
 >    llm = ChatVertexAI(
->      model=vertex_model,
->      include_thoughts=True, # 思考プロセスを有効化（https://ai.google.dev/gemini-api/docs/thinking?hl=ja、https://reference.langchain.com/python/integrations/langchain_google_vertexai/#langchain_google_vertexai.ChatVertexAI）
->      temperature=0,
->      max_tokens=15000,
->      # max_retries=5, # LangChainのwith_retryを使うのでここでは指定しない
->      stop=None,
->      project="test-prj",
->                        location="global",
->                        credentials=gcp_credentials,
->                    )
->                elif use_bedrock:
->                    llm = ChatBedrock(
->                        model_id=bedrock_model_id,
->                        region_name=bedrock_llm_region,
->                        provider="anthropic",
->                        model_kwargs={"temperature": 0.1},
->                        max_tokens=15000, # limit: 64,000
->                    )
+>        model=vertex_model,
+>        include_thoughts=True, # 思考プロセスを有効化（https://ai.google.dev/gemini-api/docs/thinking?hl=ja、https://reference.langchain.com/python/integrations/langchain_google_vertexai/#langchain_google_vertexai.ChatVertexAI）
+>        temperature=0,
+>        max_tokens=15000,
+>        # max_retries=5, # LangChainのwith_retryを使うのでここでは指定しない
+>        stop=None,
+>        project="test-prj",
+>        location="global",
+>        credentials=gcp_credentials,
+>     )
+> elif use_bedrock:
+>    llm = ChatBedrock(
+>        model_id=bedrock_model_id,
+>        region_name=bedrock_llm_region,
+>        provider="anthropic",
+>        model_kwargs={"temperature": 0.1},
+>        max_tokens=15000, # limit: 64,000
+>    )
 >
->                llm_with_structured_output = runnable_with_retry(llm.with_structured_output(STRUCTURED_OUTPUT_SCHEMA))
->                llm_with_tools = runnable_with_retry(llm_with_structured_output.bind_tools(tools))
+> llm_with_structured_output = runnable_with_retry(llm.with_structured_output(STRUCTURED_OUTPUT_SCHEMA))
+> llm_with_tools = runnable_with_retry(llm_with_structured_output.bind_tools(tools))
