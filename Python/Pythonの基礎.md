@@ -246,16 +246,29 @@ print(index) --> 2が出力
   import <インポートするpythonファイル名(e.g. mymodule.pyの場合、mymodule)>
   from <インポートするpythonファイル名> import <関数名>
   ```
-## 異なるディレクトリ内の別ファイルをimportする場合
-- 相対import  
-  ```python
-  import module  # 同じディレクトリ
-  from .. import module  # 親ディレクトリ
-  from ..somedirectory import module  # 親ディレクトリの中のsomedirectoryからのインポート
-  from ...somedirectory import module  # 2つ上の親ディレクトリの中のsomedirectoryからのインポート
-  from ..somedirectory.somedirectory import module # 親ディレクトリの中のsomedirectoryの中のsomedirectoryからのインポート
-  from .subdirectory import module  # 子ディレクトリ
-  ```
+## 異なるディレクトリ内の別ファイルをimportする場合（相対import）
+
+> [!CAUTION]  
+> - 相対importはパッケージ内でのみ動作し、スクリプトの直接実行では使えない
+> - パッケージ化は`__init__.py`ファイルをディレクトリに追加することで行う
+
+```python
+from . import module           # 同じディレクトリ
+from .. import module          # 親ディレクトリ
+from ..subdir import module    # 親ディレクトリ内のsubdir
+from .subdir import module     # 子ディレクトリ
+```
+
+## `from .main` vs `from main` の違い
+### `from .main import <関数名>` （相対import）
+- `.`は相対importを示し、現在のパッケージからのimportを意味する
+- パッケージ内のモジュール間でインポートする際の標準的な方法
+
+### `from main import <関数名>` （絶対import）
+- Pythonのモジュール検索パス（`sys.path`）からmainを探す
+- 同じディレクトリにあっても、そのディレクトリが`sys.path`に含まれていないと見つからない
+- パッケージ化されていないスクリプトや、単一のスクリプトファイルでの使用に適している
+- 実行時のカレントディレクトリは自動的に`sys.path`に追加されるため、カレントディレクトリから実行すれば同じディレクトリのモジュールは見つかる
 
 ---
 
