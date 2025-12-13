@@ -320,6 +320,70 @@
     ## test_two 実行
     ```
 
+## パラメータ化
+- 同じテスト関数を異なる引数（複数のテストケース）で繰り返し実行したい場合に使う仕組み
+- ３つの方法がある
+  1. `@pytest.mark.parametrize`デコレータを使う方法
+  2. フィクスチャでパラメータ化する方法
+  3. `pytest_generate_tests`フック関数を使う方法
+
+### `@pytest.mark.parametrize`デコレータを使う方法
+- 最も一般的な方法
+- 複数の引数セットを指定して、同じテスト関数を繰り返し実行できる
+- **セットアップ/ティアダウンが不要な単純なテストに適している**
+- 例  
+  ```python
+  import pytest
+
+  @pytest.mark.parametrize("input,expected", [
+      (1, 2),
+      (2, 3),
+      (3, 4),
+  ])
+  def test_increment(input, expected):
+      assert input + 1 == expected
+  ```
+
+### フィクスチャでパラメータ化する方法
+- フィクスチャに`params`引数を指定してパラメータ化できる
+- 各パラメータセットごとにフィクスチャが実行され、テスト関数に渡される
+- セットアップ/ティアダウンが必要な場合に適している
+- `request.param`は現在のパラメータセットの値を表す
+- 例  
+  ```python
+  import pytest
+
+  @pytest.fixture(params=["mysql", "postgresql", "sqlite"])
+  def database(request):
+      db = connect_to_db(request.param)
+      yield db
+      db.close()
+
+  def test_query(database):
+      result = database.execute("SELECT 1")
+      assert result is not None
+  ```
+
+### `pytest_generate_tests`フック関数を使う方法
+- より高度なパラメータ化が必要な場合に使う
+- テスト収集フェーズで動的にパラメータを生成
+- 外部ファイルからパラメータを読み込んだり、条件に応じてパラメータを変えたい場合に有効
+- `metafunc`オブジェクトに様々な情報が含まれていて、`metafunc`オブジェクトを使って、テスト関数の引数名やパラメータセットを操作できる
+  - `metafunc.fixturenames`: テスト関数の引数名のリスト
+  - `metafunc.parametrize(argnames, argvalues)`: 引数名と引数値のリストを指定してパラメータ化する
+- 例  
+  ```python
+  import pytest
+
+  def pytest_generate_tests(metafunc):
+      if "input" in metafunc.fixturenames:
+          test_data = [(1, 2), (2, 3), (3, 4)]
+          metafunc.parametrize("input,expected", test_data)
+
+  def test_increment(input, expected):
+      assert input + 1 == expected
+  ```
+
 ## テスト関数の構造化
 - Arrange-Act-Assert（Given-When-Then）パターンを使うと、テスト関数の構造が明確になる
   1. **Arrange（Given）（準備）**: テストに必要なデータや状態を準備する
