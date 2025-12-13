@@ -366,6 +366,7 @@
 ### `@pytest.mark.parametrize`デコレータを使う方法
 - 最も一般的な方法
 - 複数の引数セットを指定して、同じテスト関数を繰り返し実行できる
+  - 引数セットごとにテスト関数が実行される
 - **セットアップ/ティアダウンが不要な単純なテストに適している**
 - 例  
   ```python
@@ -419,6 +420,9 @@
   def test_increment(input, expected):
       assert input + 1 == expected
   ```
+
+## マーカー（marker）
+- 特定のテストが何か特別であることをpytestに伝えるためのラベル/タグのようなもの
 
 ## テスト関数の構造化
 - Arrange-Act-Assert（Given-When-Then）パターンを使うと、テスト関数の構造が明確になる
