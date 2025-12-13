@@ -107,6 +107,42 @@
 > - フィクスチャ関数で例外が発生した場合は、**ERROR**になる
 > なので、テストが失敗した場合に、フィクスチャ関数で例外が発生しているのか、テスト関数で例外が発生しているのかを区別することができる
 
+### `params`を使ったパラメータ化
+- フィクスチャに`params`引数を渡すことで、同じフィクスチャを使って複数のパラメータでテストを実行できる
+- `request`は固定の引数名で、`request.param`で現在のパラメータを取得できる
+- 一般的な例  
+  ```python
+  import pytest
+
+  @pytest.fixture(params=[
+      (2, 3, 5),
+      (0, 0, 0),
+      (-1, 1, 0),
+  ])
+  def add_test_data(request):
+      return request.param  # 各パラメータが順番に渡される
+
+  def test_add(add_test_data):
+      a, b, expected = add_test_data
+      assert add(a, b) == expected
+  ```
+- idも付けられる  
+  ```python
+  import pytest
+
+  @pytest.fixture(params=[
+      pytest.param({"a": 2, "b": 3, "expected": 5}, id="positive"),
+      pytest.param({"a": -1, "b": 1, "expected": 0}, id="negative"),
+      pytest.param({"a": 0, "b": 0, "expected": 0}, id="zero"),
+  ])
+  def add_test_data(request):
+      return request.param
+
+  def test_add(add_test_data):
+      assert add(add_test_data["a"], add_test_data["b"]) == add_test_data["expected"]
+  ```
+
+
 ### `conftest.py`ファイル
 - フィクスチャをプロジェクト全体で共有したい場合、`conftest.py`ファイルにフィクスチャを定義する
 - `conftest.py`ファイルにフィクスチャを定義すると、そのディレクトリとサブディレクトリ配下のすべてのテストから利用可能になる
