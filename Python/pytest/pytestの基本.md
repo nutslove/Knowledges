@@ -6,14 +6,70 @@
   - 例: `class TestExample:`
 - `tests`フォルダ内の`test_*.py`ファイルも自動的にテスト対象になる
 
-## `pytest.ini`ファイル
-- pytestのデフォルトの振る舞いを変更できるメインの設定ファイル。
-- このファイルが保存されているディレクトリがpytestのルートディレクトリになる。
-
 ## アサーション（assertion）
 - アサーションは、テストが期待通りの結果を得ているかを確認するためのもの
 - 例: `assert foo() == 42`
 - `assert`はpythonの組み込みキーワードであり、`assert`の後に続く式が`False`の場合、`AssertionError`を発生させる
+
+## 基本的なテスト関数の例
+```python
+def add(a, b):
+    return a + b
+
+def test_add():
+    assert add(2, 3) == 5
+    assert add(-1, 1) == 0
+    assert add(0, 0) == 0
+```
+
+```python
+def some_function():
+    return {"key": "expected_value", "other_key": 123}
+
+def test_complex_assertion():
+    result = some_function()
+    assert isinstance(result, dict)
+    assert "key" in result
+    assert result["key"] == "expected_value"
+```
+
+## classを使ったテストの例
+- `setup_method`メソッドを使って、各テストメソッドの前に共通のセットアップ処理を実行できる
+  - `setup_method`は各テストメソッドの実行前に毎回呼ばれるので、テスト間の独立性も保たれる
+
+```python
+class MathOperations:
+    def add(self, a, b):
+        return a + b
+
+    def subtract(self, a, b):
+        return a - b
+
+class TestMathOperations:
+    def setup_method(self):
+        self.math_ops = MathOperations()
+
+    def test_add(self):
+        assert self.math_ops.add(2, 3) == 5
+
+    def test_subtract(self):
+        assert self.math_ops.subtract(5, 3) == 2
+``` 
+
+- もしくはfixtureを使う方法もある  
+  ```python
+  import pytest
+
+  @pytest.fixture
+  def math_ops():  # 好きな名前でOK
+      return MathOperations()
+
+  class TestMathOperations:
+      def test_add(self, math_ops):  # 引数で受け取る
+          assert math_ops.add(2, 3) == 5
+      def test_subtract(self, math_ops):
+          assert math_ops.subtract(5, 3) == 2
+  ```
 
 ## 想定される例外のテスト
 - `pytest.raises()`を使って、特定の例外が発生することをテストできる
@@ -436,3 +492,7 @@
   1. **Arrange（Given）（準備）**: テストに必要なデータや状態を準備する
   2. **Act（When）（実行）**: テスト対象のコードを実行する
   3. **Assert（Then）（検証）**: 結果が期待通りかどうかを検証する
+
+## `pytest.ini`ファイル
+- pytestのデフォルトの振る舞いを変更できるメインの設定ファイル。
+- このファイルが保存されているディレクトリがpytestのルートディレクトリになる。
