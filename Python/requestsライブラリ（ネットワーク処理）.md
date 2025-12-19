@@ -25,3 +25,28 @@
       response = session.post(token_endpoint, headers=headers, data=data, timeout=10)
       return response.json()["access_token"]
   ```
+
+## `response.raise_for_status()`について
+- HTTPレスポンスのステータスコードをチェックし、エラーがあれば例外を発生させるためのメソッド
+- 基本的な動作は以下の通り
+
+| ステータスコード | 動作 |
+| --- | --- |
+| 200〜399 | 何もしない（正常）|
+| 400〜499 | HTTPError 例外を発生（クライアントエラー）|
+| 500〜599 | HTTPError 例外を発生（サーバーエラー）|
+
+- 例 
+  ```python
+  import requests
+
+  try:
+    response = requests.get("https://api.example.com/data")
+    response.raise_for_status()
+  except requests.exceptions.HTTPError as e:
+    print("HTTPエラー:", e)
+  except requests.exceptions.RequestException as e:
+    print("通信エラー:", e)
+  else:
+    print(response.json())
+  ```
