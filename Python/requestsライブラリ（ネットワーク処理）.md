@@ -33,8 +33,8 @@
 | ステータスコード | 動作 |
 | --- | --- |
 | 200〜399 | 何もしない（正常）|
-| 400〜499 | HTTPError 例外を発生（クライアントエラー）|
-| 500〜599 | HTTPError 例外を発生（サーバーエラー）|
+| 400〜499 | `HTTPError` 例外を発生（クライアントエラー）|
+| 500〜599 | `HTTPError` 例外を発生（サーバーエラー）|
 
 - 例 
   ```python
@@ -45,6 +45,7 @@
     response.raise_for_status()
   except requests.exceptions.HTTPError as e:
     print("HTTPエラー:", e)
+    print(f"ステータスコード: {e.response.status_code}")
   except requests.exceptions.RequestException as e:
     print("通信エラー:", e)
   else:
