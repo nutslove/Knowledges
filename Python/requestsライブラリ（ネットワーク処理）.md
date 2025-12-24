@@ -51,3 +51,25 @@
   else:
     print(response.json())
   ```
+
+## `requests.exceptions.RequestException`について
+- `requests`ライブラリで発生するすべての例外の基底クラス
+- 具体的な例外クラスは以下の通り
+| 例外クラス | 説明 |
+| --- | --- |
+| `HTTPError` | HTTPエラー（`raise_for_status()`で発生） |
+| `ConnectionError` | ネットワーク接続エラー |
+| `Timeout` | リクエストのタイムアウト |
+| `TooManyRedirects` | リダイレクトの上限超過 |
+- 例外処理で`RequestException`をキャッチすることで、すべての`requests`関連の例外を一括で処理できる
+- 例  
+  ```python
+  import requests
+  try:
+    response = requests.get("https://api.example.com/data", timeout=5)
+    response.raise_for_status()
+  except requests.exceptions.RequestException as e:
+    print("リクエストエラー:", e)
+  else:
+    print(response.json())
+  ```
