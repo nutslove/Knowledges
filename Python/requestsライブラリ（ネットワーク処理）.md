@@ -61,7 +61,7 @@
 | `ConnectionError` | ネットワーク接続エラー |
 | `Timeout` | リクエストのタイムアウト |
 | `TooManyRedirects` | リダイレクトの上限超過 |
-- 例外処理で`RequestException`をキャッチすることで、すべての`requests`関連の例外を一括で処理できる
+- **例外処理で`RequestException`をキャッチすることで、すべての`requests`関連の例外を一括で処理できる**
 - 例  
   ```python
   import requests
