@@ -11,3 +11,4 @@
   parameters:
     type: gp3
   ```
+  - **`allowVolumeExpansion`を`true`に設定している場合、後から`kubectl patch pvc <pvc-name> -p '{"spec":{"resources":{"requests":{"storage":"10Gi"}}}}'`のようにPVCの容量を拡張できる**
