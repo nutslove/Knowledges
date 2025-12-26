@@ -135,8 +135,6 @@ def test_patch_function(mock_now):
     assert get_time() == "2025-01-01"
 ```
 
----
-
 ## 1-8. `patch` を context manager で使う
 
 ```python
@@ -147,8 +145,6 @@ def test_patch_with():
         mock_func.return_value = 1
         assert module.func() == 1
 ```
-
----
 
 ## 1-9. クラスのモック
 
