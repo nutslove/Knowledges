@@ -7,7 +7,7 @@ sequenceDiagram
 
     Note over U,RS: OpenID Connect + OAuth 2.0 Authorization Code Flow
 
-    U->>C: 1. ログイン要求<br/>「OpenID Connectでログイン」
+    U->>C: 1. ログイン要求<br/>「OpenID Connectなどでログイン」
     
     Note over C: scope=openid profile email<br/>response_type=code
     C->>AS: 2. 認可リクエスト<br/>GET /oauth/authorize?<br/>response_type=code&<br/>scope=openid profile email&<br/>client_id=xxx&<br/>redirect_uri=xxx
@@ -32,8 +32,8 @@ sequenceDiagram
     Note over C: IDトークン（JWT）のペイロードから<br/>基本的なユーザー情報を取得<br/>{"sub":"12345","name":"田中太郎","email":"tanaka@example.com"}
     
     opt さらに詳細な情報が必要な場合
-        C->>RS: 10. ユーザー情報取得<br/>GET /userinfo<br/>Authorization: Bearer ACCESS_TOKEN
-        RS->>C: 11. ユーザー情報レスポンス<br/>追加のユーザー属性情報
+        C->>AS: 10. ユーザー情報取得<br/>GET /userinfo<br/>Authorization: Bearer ACCESS_TOKEN
+        AS->>C: 11. ユーザー情報レスポンス<br/>追加のユーザー属性情報
     end
     
     C->>U: 12. ログイン完了<br/>ユーザー情報表示
@@ -58,8 +58,10 @@ sequenceDiagram
 
 - **IDトークン**: OIDC固有で、ユーザーの認証情報（`sub`, `email`, `name`など）を含むJWT
 - **アクセストークン**: リソースへのアクセス権限（何ができるか）を表すもので、APIアクセス用
-  - 認可サーバへの認証・認可許可後、認可サーバから連携されるCodeを使用してアクセストークンを取得し、アクセストークンを使用してリソースサーバーにアクセスする
-  - アクセストークンを直接Resource Ownerに送信せずに、1回Codeからアクセストークンを取得する理由は、アクセストークンを直接Resource Ownerに送信すると、セキュリティ上のリスクがあるため
+  - 認可サーバへの認証・認可許可後、認可サーバから連携される認可コードを使用してアクセストークンを取得し、アクセストークンを使用してリソースサーバーにアクセスする
+  - アクセストークンを直接Resource Ownerに送信せずに、1回認可コードからアクセストークンを取得する理由は、アクセストークンを直接Resource Ownerに送信すると、セキュリティ上のリスクがあるため
+    - ブラウザのURLでトークンを渡すと、ブラウザ履歴やRefererヘッダー経由で漏洩するリスクがある
+    - 認可コードフローでは、トークン交換をバックチャネル（サーバー間通信）で行うため安全
 - **スコープ**: openidは必須、profileやemailで追加情報を要求
   - 大文字・小文字は区別される
   - 複数のスコープを指定する場合はスペースで区切る
@@ -75,7 +77,7 @@ sequenceDiagram
 
 ## OAuthの登場人物
 #### **リソースオーナー（Resource Owner）**
-- 認可を与えるユーザー
+- 認可を与える**クライアントが代理でアクセスするリソースの所有者（ユーザー）**
 #### **クライアント（Client）**
 - リソースオーナーの代理としてリソースサーバーにアクセスするアプリケーション
 - Scope（範囲）を指定して、アクセス権限を制限することができる
@@ -97,8 +99,8 @@ sequenceDiagram
   - ユーザログイン
 
 ## IDトークンの検証で使われる鍵
-- **秘密鍵**: OpenIDプロバイダーが内部で使用する秘密鍵で、IDトークンの署名を行う際に使用（暗号化）
-- **公開鍵**: OpenIDプロバイダーが提供する公開鍵を使用して、IDトークンの署名を検証（復号化）
+- **秘密鍵**: OpenIDプロバイダーが内部で使用する秘密鍵で、IDトークンの署名を行う際に使用
+- **公開鍵**: OpenIDプロバイダーが提供する公開鍵を使用して、IDトークンの署名を検証
 
 ![IDトークンの検証](./image/id_token_verify.jpg)
 
