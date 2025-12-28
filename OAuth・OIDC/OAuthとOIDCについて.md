@@ -87,6 +87,37 @@ sequenceDiagram
 - APIを通じてクライアントに保護されたリソースを提供するサーバー
 - アクセストークンを検証して、クライアントのアクセスを許可する
 
+## OAuthのエンドポイント
+### **認可エンドポイント（Authorization Endpoint）**
+- **提供**: 認可サーバー側
+- パス例: `/authorize`, `/oauth/authorize`
+- ユーザーの認証と認可同意を行い、**認可コードを発行する役割**
+- **フロントチャネル**（ブラウザリダイレクト）で通信
+- 主なリクエストパラメータ:
+  - `response_type`: 応答タイプ（`code` など）
+  - `client_id`: クライアント識別子
+  - `redirect_uri`: リダイレクト先URL
+  - `scope`: 要求するスコープ
+  - `state`: CSRF対策用のランダム値
+
+### **トークンエンドポイント（Token Endpoint）**
+- **提供**: 認可サーバー側
+- パス例: `/token`, `/oauth/token`
+- **認可コードをパラメーターとして受け取って、アクセストークン（およびリフレッシュトークン）を発行する役割**
+- リフレッシュトークンによるトークン更新にも使用
+- **バックチャネル**（サーバー間通信）で通信
+- 主なリクエストパラメータ:
+  - `grant_type`: `authorization_code` または `refresh_token`
+  - `code`: 認可コード
+  - `client_id` / `client_secret`: クライアント認証情報
+
+### **リダイレクトエンドポイント（Redirection Endpoint / Redirect URI）**
+- **提供**: クライアント側
+- パス例: `/callback`, `/oauth/callback`
+- **認可サーバーが認可コード（またはエラー）を返す先のURL**
+- **クライアントが事前に認可サーバーに登録しておく必要がある**
+- 認可リクエスト時に `redirect_uri` パラメータで指定
+
 # OIDC（OpenID Connect）
 - **認証**のプロトコル
 - OAuth 2.0の上に構築された認証レイヤー（OAuth 2.0に「ユーザー認証（Who you are）」の要素を追加したもの）
