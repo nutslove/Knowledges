@@ -2,7 +2,7 @@
 sequenceDiagram
     participant U as 👤 ユーザー<br/>(Resource Owner)
     participant C as 📱 クライアント<br/>(アプリケーション)
-    participant AS as 🔐 認証サーバー<br/>(Authorization Server)
+    participant AS as 🔐 認可サーバー<br/>(Authorization Server)
     participant RS as 💾 リソースサーバー<br/>(Resource Server)
 
     Note over U,RS: OpenID Connect + OAuth 2.0 Authorization Code Flow
@@ -10,7 +10,8 @@ sequenceDiagram
     U->>C: 1. ログイン要求<br/>「OpenID Connectなどでログイン」
     
     Note over C: scope=openid profile email<br/>response_type=code
-    C->>AS: 2. 認可リクエスト<br/>GET /oauth/authorize?<br/>response_type=code&<br/>scope=openid profile email&<br/>client_id=xxx&<br/>redirect_uri=xxx
+    C->>U: 2a. 認可サーバーへリダイレクト（302）
+    U->>AS: 2b. 認可リクエスト（認可エンドポイントにアクセス）<br/>GET /oauth/authorize?<br/>response_type=code&<br/>scope=openid profile email&<br/>client_id=xxx&<br/>redirect_uri=xxx&<br/>state=xyz789
 
     AS->>U: 3. 認証画面表示<br/>ログインフォーム
     
@@ -20,7 +21,8 @@ sequenceDiagram
     
     U->>AS: 6. 認可同意<br/>「許可」ボタンクリック
     
-    AS->>C: 7. 認可コード発行<br/>302 Redirect<br/>https://app.example.com/callback?<br/>code=ABC123...
+    AS->>U: 7a. 認可コードの発行 ＋ クライアントへリダイレクト（302 + 認可コード）<br/>302 Redirect<br/>https://app.example.com/callback?<br/>code=ABC123...&state=xyz789
+    U->>C: 7b. リダイレクトエンドポイントにアクセス <br/>GET /callback?code=ABC123...&state=xyz789
     
     Note over C: client_secret使用で<br/>バックエンドで安全に実行
     C->>AS: 8. 発行された認可コードでトークン要求<br/>POST /oauth/token<br/>grant_type=authorization_code&<br/>code=ABC123&<br/>client_id=xxx&<br/>client_secret=xxx
