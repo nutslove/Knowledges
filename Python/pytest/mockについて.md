@@ -76,7 +76,6 @@ def test_method_chain():
 👉 `client.get().json()` みたいなケース
 
 ## 1-5. 呼び出し回数・引数の検証
-
 ```python
 from unittest.mock import Mock
 
@@ -88,8 +87,38 @@ def test_call_assertions():
 
     assert mock_func.call_count == 2
     mock_func.assert_any_call(1)
-    mock_func.assert_called_with(2)
+    mock_func.assert_called_with(2)  # 最後の呼び出しを検証
 ```
+
+### 検証メソッド一覧
+
+| メソッド | 検証内容 |
+|---------|---------|
+| `assert_called()` | 1回以上呼ばれたか |
+| `assert_called_once()` | ちょうど1回呼ばれたか（引数は問わない） |
+| `assert_called_with(...)` | **最後の呼び出し**が指定した引数か |
+| `assert_called_once_with(...)` | 1回だけ＆指定した引数で呼ばれたか |
+| `assert_any_call(...)` | 指定した引数での呼び出しが1回でもあるか |
+| `assert_not_called()` | 一度も呼ばれていないか |
+
+### `assert_called_once_with` の使い方
+```python
+def test_called_once_with():
+    mock_func = Mock()
+    mock_func("hello", key="value")
+
+    # ✅ 1回だけ & 正しい引数で呼ばれた
+    mock_func.assert_called_once_with("hello", key="value")
+```
+
+👉 **「この関数が正しい引数で1回だけ呼ばれたこと」を保証したいときに使う（最頻出）**
+
+### ⚠️ タイポに注意
+```python
+mock_func.assert_called_once_With("hello")  # ❌ タイポ！エラーにならない
+```
+
+Mockは存在しないメソッド名でもエラーにならないため、テストが常にパスしてしまう。`autospec=True` を使うと防げる。
 
 ## 1-6. `MagicMock`（マジックメソッド）
 
@@ -110,6 +139,41 @@ def test_iterable():
 
     assert list(m) == [1, 2, 3]
 ```
+
+### MagicMockについて (Mockとの違い)
+- `Mock`の拡張版で、`__len__`, `__iter__`, `__getitem__`などの**マジックメソッド**が最初から使える
+```python
+from unittest.mock import Mock, MagicMock
+
+# Mockの場合
+mock = Mock()
+len(mock)  # ❌ TypeError: object of type 'Mock' has no len()
+
+# MagicMockの場合
+magic = MagicMock()
+len(magic)  # ✅ 0（デフォルト値が返る）
+```
+
+#### マジックメソッドとは
+- Pythonの特殊メソッド（`__xxx__` の形式）
+```python
+magic = MagicMock()
+
+# これらが全部最初から動く
+len(magic)           # __len__
+iter(magic)          # __iter__
+str(magic)           # __str__
+magic[0]             # __getitem__
+magic + 1            # __add__
+bool(magic)          # __bool__
+```
+
+- Mockでマジックメソッドを使いたい場合  
+    ```python
+    mock = Mock()
+    mock.__len__ = Mock(return_value=5)
+    len(mock)  # ✅ 5
+    ```
 
 ## 1-7. `patch`（超重要）
 
