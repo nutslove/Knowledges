@@ -248,6 +248,9 @@ def test_patch_function(mocker):
     mock = mocker.patch("module.func")
     mock.return_value = 42
 
+    # 以下のようにpatchの中でreturn_valueを設定することもできる
+    mocker.patch("module.func", return_value=42)
+
     assert module.func() == 42
 ```
 
@@ -268,6 +271,9 @@ def test_patch_class(mocker):
 def test_side_effect_exception(mocker):
     mock = mocker.patch("module.func")
     mock.side_effect = RuntimeError
+
+    # 以下のようにpatchの中でside_effectを設定することもできる
+    mocker.patch("module.func", side_effect=RuntimeError)
 
     import pytest
     with pytest.raises(RuntimeError):
