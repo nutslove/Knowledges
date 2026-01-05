@@ -2,15 +2,16 @@
 sequenceDiagram
     participant U as 👤 ユーザー<br/>(Resource Owner)
     participant C as 📱 クライアント<br/>(アプリケーション)
-    participant AS as 🔐 認証サーバー<br/>(Authorization Server)
+    participant AS as 🔐 認可サーバー<br/>(Authorization Server)
     participant RS as 💾 リソースサーバー<br/>(Resource Server)
 
     Note over U,RS: OpenID Connect + OAuth 2.0 Authorization Code Flow
 
-    U->>C: 1. ログイン要求<br/>「OpenID Connectでログイン」
+    U->>C: 1. ログイン要求<br/>「OpenID Connectなどでログイン」
     
     Note over C: scope=openid profile email<br/>response_type=code
-    C->>AS: 2. 認可リクエスト<br/>GET /oauth/authorize?<br/>response_type=code&<br/>scope=openid profile email&<br/>client_id=xxx&<br/>redirect_uri=xxx
+    C->>U: 2a. 認可サーバーへリダイレクト（302）
+    U->>AS: 2b. 認可リクエスト（認可エンドポイントにアクセス）<br/>GET /oauth/authorize?<br/>response_type=code&<br/>scope=openid profile email&<br/>client_id=xxx&<br/>redirect_uri=xxx&<br/>state=xyz789
 
     AS->>U: 3. 認証画面表示<br/>ログインフォーム
     
@@ -20,7 +21,8 @@ sequenceDiagram
     
     U->>AS: 6. 認可同意<br/>「許可」ボタンクリック
     
-    AS->>C: 7. 認可コード発行<br/>302 Redirect<br/>https://app.example.com/callback?<br/>code=ABC123...
+    AS->>U: 7a. 認可コードの発行 ＋ クライアントへリダイレクト（302 + 認可コード）<br/>302 Redirect<br/>https://app.example.com/callback?<br/>code=ABC123...&state=xyz789
+    U->>C: 7b. リダイレクトエンドポイントにアクセス <br/>GET /callback?code=ABC123...&state=xyz789
     
     Note over C: client_secret使用で<br/>バックエンドで安全に実行
     C->>AS: 8. 発行された認可コードでトークン要求<br/>POST /oauth/token<br/>grant_type=authorization_code&<br/>code=ABC123&<br/>client_id=xxx&<br/>client_secret=xxx
@@ -32,8 +34,8 @@ sequenceDiagram
     Note over C: IDトークン（JWT）のペイロードから<br/>基本的なユーザー情報を取得<br/>{"sub":"12345","name":"田中太郎","email":"tanaka@example.com"}
     
     opt さらに詳細な情報が必要な場合
-        C->>RS: 10. ユーザー情報取得<br/>GET /userinfo<br/>Authorization: Bearer ACCESS_TOKEN
-        RS->>C: 11. ユーザー情報レスポンス<br/>追加のユーザー属性情報
+        C->>AS: 10. ユーザー情報取得<br/>GET /userinfo<br/>Authorization: Bearer ACCESS_TOKEN
+        AS->>C: 11. ユーザー情報レスポンス<br/>追加のユーザー属性情報
     end
     
     C->>U: 12. ログイン完了<br/>ユーザー情報表示
@@ -58,8 +60,10 @@ sequenceDiagram
 
 - **IDトークン**: OIDC固有で、ユーザーの認証情報（`sub`, `email`, `name`など）を含むJWT
 - **アクセストークン**: リソースへのアクセス権限（何ができるか）を表すもので、APIアクセス用
-  - 認可サーバへの認証・認可許可後、認可サーバから連携されるCodeを使用してアクセストークンを取得し、アクセストークンを使用してリソースサーバーにアクセスする
-  - アクセストークンを直接Resource Ownerに送信せずに、1回Codeからアクセストークンを取得する理由は、アクセストークンを直接Resource Ownerに送信すると、セキュリティ上のリスクがあるため
+  - 認可サーバへの認証・認可許可後、認可サーバから連携される認可コードを使用してアクセストークンを取得し、アクセストークンを使用してリソースサーバーにアクセスする
+  - アクセストークンを直接Resource Ownerに送信せずに、1回認可コードからアクセストークンを取得する理由は、アクセストークンを直接Resource Ownerに送信すると、セキュリティ上のリスクがあるため
+    - ブラウザのURLでトークンを渡すと、ブラウザ履歴やRefererヘッダー経由で漏洩するリスクがある
+    - 認可コードフローでは、トークン交換をバックチャネル（サーバー間通信）で行うため安全
 - **スコープ**: openidは必須、profileやemailで追加情報を要求
   - 大文字・小文字は区別される
   - 複数のスコープを指定する場合はスペースで区切る
@@ -75,20 +79,61 @@ sequenceDiagram
 
 ## OAuthの登場人物
 #### **リソースオーナー（Resource Owner）**
-- 認可を与えるユーザー
+- **クライアントにアクセスを許可するリソースの所有者（ユーザー）**
 #### **クライアント（Client）**
 - リソースオーナーの代理としてリソースサーバーにアクセスするアプリケーション
-- Scope（範囲）を指定して、アクセス権限を制限することができる
+- Scope（範囲）を要求し、認可サーバによって許可された範囲内でのみリソースにアクセスできる
+- 事前に**認可サーバ**に登録し、**クライアントID**（識別子）を発行してもらう必要がある
+  - **コンフィデンシャルクライアント（Confidential Client）** の場合は、**クライアントシークレット**も発行される。
+- クライアントの種類に応じて、クライアント認証またはPKCEなどの仕組みを用い、認可サーバーからアクセストークンを取得する
+  - コンフィデンシャルクライアント（Confidential Client）の場合は、クライアントIDとクライアントシークレットを使用して、クライアント認証を行い、認可サーバーからアクセストークンを取得する
+- クライアントシークレットを安全に保管できるかどうかで、クライアントの種類が分かれる
+  - **コンフィデンシャルクライアント（Confidential Client）**: クライアントシークレットを安全に保管できるサーバーサイドアプリケーションなど
+  - **パブリッククライアント（Public Client）**: クライアントシークレットを安全に保管できないモバイルアプリやSPAなど
 #### **認可サーバー（Authorization Server）**
 - リソースオーナーの認証・認可を受けて、クライアントにアクセストークンを発行するサーバー
 #### **リソースサーバー（Resource Server）**
 - APIを通じてクライアントに保護されたリソースを提供するサーバー
 - アクセストークンを検証して、クライアントのアクセスを許可する
 
+## OAuthのエンドポイント
+### **認可エンドポイント（Authorization Endpoint）**
+- **提供**: 認可サーバー側
+- パス例: `/authorize`, `/oauth/authorize`
+- ユーザーの認証と認可同意を行い、**認可コードを発行する役割**
+- **フロントチャネル**（ブラウザリダイレクト）で通信
+- 主なリクエストパラメータ:
+  - `response_type`: 応答タイプ（`code` など）
+  - `client_id`: クライアント識別子
+  - `redirect_uri`: リダイレクト先URL
+  - `scope`: 要求するスコープ
+  - `state`: CSRF対策用のランダム値
+
+### **トークンエンドポイント（Token Endpoint）**
+- **提供**: 認可サーバー側
+- パス例: `/token`, `/oauth/token`
+- **認可コードをパラメーターとして受け取って、アクセストークン（およびリフレッシュトークン）を発行する役割**
+- リフレッシュトークンによるトークン更新にも使用
+- **バックチャネル**（サーバー間通信）で通信
+- 主なリクエストパラメータ:
+  - `grant_type`: `authorization_code` または `refresh_token`
+  - `code`: 認可コード
+  - `client_id` / `client_secret`: クライアント認証情報
+
+### **リダイレクトエンドポイント（Redirection Endpoint / Redirect URI）**
+- **提供**: クライアント側
+- パス例: `/callback`, `/oauth/callback`
+- **認可サーバーが認可コード（またはエラー）を返す先のURL**
+- **クライアントが事前に認可サーバーに登録しておく必要がある**
+- 認可リクエスト時に `redirect_uri` パラメータで指定
+
+---
+
 # OIDC（OpenID Connect）
 - **認証**のプロトコル
 - OAuth 2.0の上に構築された認証レイヤー（OAuth 2.0に「ユーザー認証（Who you are）」の要素を追加したもの）
   - OAuth 2.0の拡張仕様
+  - **OAuth認可コードフローの中でユーザー認証（ログイン）が発生するが、それはOAuthの仕様外であり、「誰が認証されたか」をクライアントに伝える標準的な仕組みがなかった。OIDCはその部分をIDトークンという形で標準化した拡張仕様。**
 - トークンタイプ
   - **IDトークン**: ユーザーの属性情報（ID、名前、メールアドレスなど）を含むJWT（JSON Web Token）
   - **アクセストークン**: リソースへのアクセス権限を表すトークン（OAuth 2.0と同様）
@@ -97,8 +142,8 @@ sequenceDiagram
   - ユーザログイン
 
 ## IDトークンの検証で使われる鍵
-- **秘密鍵**: OpenIDプロバイダーが内部で使用する秘密鍵で、IDトークンの署名を行う際に使用（暗号化）
-- **公開鍵**: OpenIDプロバイダーが提供する公開鍵を使用して、IDトークンの署名を検証（復号化）
+- **秘密鍵**: OpenIDプロバイダーが内部で使用する秘密鍵で、IDトークンの署名を行う際に使用
+- **公開鍵**: OpenIDプロバイダーが提供する公開鍵を使用して、IDトークンの署名を検証
 
 ![IDトークンの検証](./image/id_token_verify.jpg)
 
@@ -140,7 +185,7 @@ sequenceDiagram
 ## PKCEの仕組み
 1. クライアントがランダムな `code_verifier` を生成
 2. `code_verifier` を `SHA256` ハッシュして Base64URL エンコード → `code_challenge`
-3. 認可リクエストに `code_challenge` と `challenge_method=S256` を含める
+3. 認可リクエストに `code_challenge` と `code_challenge_method=S256` を含める
 4. 認可サーバが認可コードを発行
 5. アクセストークンリクエスト時、クライアントが `code_verifier` を送る
 6. 認可サーバが側で `code_verifier` を使って `code_challenge` を再生成し、最初に受け取った値と一致するか確認し、一致すれば、アクセストークンを発行
