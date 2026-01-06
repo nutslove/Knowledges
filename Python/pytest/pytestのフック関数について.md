@@ -29,6 +29,22 @@ def pytest_unconfigure(config):
     print("テスト終了")
 ```
 
+##### `config`引数について
+- pytestの設定オブジェクト（`pytest.Config`オブジェクト）
+- pytestの設定情報やコマンドラインオプションにアクセス可能
+
+```python
+  def pytest_configure(config):
+    # _aws_secret_mockに保存しているのは、後でpytest_unconfigureでstop()するため
+      config._aws_secret_mock = patch(...)
+      config._aws_secret_mock.start()
+
+  def pytest_unconfigure(config):
+      config._aws_secret_mock.stop()  # クリーンアップ
+    # ただし、テスト終了時に自動でクリーンアップされるので、
+    # pytest_unconfigureは省略しても動く。
+```
+
 #### 2. テスト収集系
 ```python
 def pytest_collection_modifyitems(config, items):

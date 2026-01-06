@@ -243,6 +243,31 @@ def test_mock_class(mock_client):
     assert result == "data"
 ```
 
+> [!NOTE]  
+> ### `patch`の使い方
+> 通常、patchはデコレータやコンテキストマネージャとして使う
+> #### デコレータとして
+> ```python
+> @patch("module.function", mock_value)
+> def test_something():
+>      ...
+> ```
+>
+> #### コンテキストマネージャとして 
+> ```python
+> with patch("module.function", mock_value):
+>      ...
+> ```
+>
+> しかし`pytest_configure`ではどちらも使えないため、手動で開始・停止する必要がある
+>
+> ```python
+> patcher = patch("module.function", mock_value)
+> patcher.start()   # モックを開始
+> # ... モックが有効な状態 ...
+> patcher.stop()    # モックを停止
+
+
 ---
 
 # 2. `pytest-mock`（プラグイン）
