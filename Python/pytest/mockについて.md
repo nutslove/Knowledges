@@ -20,6 +20,27 @@ def test_something(mock_class):
     mock_class.return_value.method.return_value = "mocked"
 ```
 
+> [!NOTE]  
+> `patch`の第２引数に置き換える値を指定できる（省略すると自動的にMagicMockが作られる）  
+> ```python
+> # conftest.py
+> def pytest_configure(config):
+>    os.environ["SECRETMANAGER_SECRET_ID"] = "test-secret-id"
+>
+>    # インポート前にモックを設定
+>    mock_secret = MagicMock(return_value={
+>        "SLACK_BOT_TOKEN": "xoxb-test-token",
+>        "SLACK_SIGNING_SECRET": "test-signing-secret",
+>        "LANGFUSE_SECRET_KEY": "test-langfuse-secret",
+>        "LANGFUSE_PUBLIC_KEY": "test-langfuse-public",
+>    })
+>    config._aws_secret_mock = patch("common.aws_secret_manager.get_secret", mock_secret)
+>    config._aws_secret_mock.start()
+>
+>    # slack_bolt.Appのモック（トークン検証をスキップ）
+>    config._slack_app_mock = patch("slack_bolt.App")
+>    config._slack_app_mock.start()
+
 ## 1-1. 関数の戻り値を固定する
 
 ```python
