@@ -259,7 +259,7 @@ def test_mock_class(mock_client):
 >      ...
 > ```
 >
-> しかし`pytest_configure`ではどちらも使えないため、手動で開始・停止する必要がある
+> しかし`pytest_configure`ではどちらも使えないため、手動で`start()`と`stop()`を呼び出して開始・停止する必要がある
 >
 > ```python
 > patcher = patch("module.function", mock_value)
