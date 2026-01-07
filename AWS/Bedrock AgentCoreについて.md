@@ -172,6 +172,28 @@
 - API Gatewayで現在の形式を確認したい場合は、「**Stages**」タブの「**Stage actions**」→「**Export**」でOpenAPI 3.0形式でエクスポートできる
 - ダウンロードしたOpenAPI定義を修正して、「**Resource**」タブの「**API actions**」→「**Import API**」でインポートすることで、API GatewayのAPI定義を更新できる
 
+- または、API Gatewayの「**Models**」タブで「**Create model**」にて、「**Content type**」を `application/json` とし、「**Model schema**」に以下のようなJSONスキーマを設定することでも定義できる  
+  ```json
+  {
+    "required" : [ "account_id", "queries" ],
+    "type" : "object",
+    "properties" : {
+      "account_id" : {
+        "type" : "string",
+        "description" : "NewRelic Account ID"
+      },
+      "queries" : {
+        "type" : "array",
+        "description" : "List of NRQL queries to execute",
+        "items" : {
+          "type" : "string"
+        }
+      }
+    }
+  }
+  ```
+  その後、「**Resource**」タブで、対象のメソッドを選択し、「**Method Response**」で `HTTP status code` `200` を選択、「**Response body**」で先ほど作成したモデルを紐付けることで、API GatewayのAPI定義を更新できる
+
 > [!CAUTION]  
 > - 「import mode」を「Overwrite」にすると既存の設定がすべて上書きされるため注意すること
 >   - 一部だけ更新したい場合は「Merge」を選択すること
