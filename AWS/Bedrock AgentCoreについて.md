@@ -16,7 +16,6 @@
 
 - OpenAPI 3.0仕様に準拠している必要がある
   - https://blog.serverworks.co.jp/api-gateway-mcp-policy
-  - 
   - 例  
     ```json
     {
