@@ -39,3 +39,7 @@
 > - kubeletとコンテナランタイム（containerd、CRI-O、etc.）が通信するための「仕様・標準インターフェース」。このインターフェースにより、KubernetesはDockerだけでなく、CRI-Oやcontainerdなど様々なコンテナランタイムをプラグインのように利用できるようになった
 > - kubeletはコンテナ実行基盤（containerd / CRI-O など）と直接ではなく CRI (gRPC API) を介してやり取りしている
 > - `crictl`はその gRPC API を直接叩くコマンドラインツール
+
+> [!NOTE]  
+> - 上記とは別で、WorkerNodeの物理NICのIPv4のIPアドレスがなくなっていた（`ip a`コマンドで確認）
+> - `reboot`したらIPアドレスが復活して、上記のsawp無効化とcontainerd再起動でWorkerNodeは正常に動作するようになった
