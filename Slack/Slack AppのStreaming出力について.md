@@ -1,4 +1,4 @@
-##　`chat_stream`メソッド
+##　 `chat_stream`メソッド
 
 - 参考 URL
   - **https://docs.slack.dev/changelog/2025/10/7/chat-streaming/**
