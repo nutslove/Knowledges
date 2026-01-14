@@ -34,3 +34,4 @@ streamer.stop(blocks=feedback_block)
   - `append`なので全体のメッセージの長さ（上限）ではなく、例えば Token 単位でストリーミング出力する場合は１つの Token 分の長さの上限が 12,000 文字になるため、現実的には問題ないと思われる。
   - https://docs.slack.dev/tools/python-slack-sdk/reference/web/chat_stream.html
   - 全体の text の上限は明示的に書いてないが、通常の chat.postMessage の text の上限と同じく 40,000 文字と思われる。
+    - https://docs.slack.dev/changelog/2018-truncating-really-long-messages/
