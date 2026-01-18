@@ -1,3 +1,9 @@
+# 概要
+![k8s_dns](image/k8s_dns.jpg)
+![k8s_dns2](image/k8s_dns2.jpg)
+https://speakerdeck.com/hhiroshell/kubernetes-network-fundamentals-69d5c596-4b7d-43c0-aac8-8b0e5a633fc2?slide=42
+https://speakerdeck.com/hhiroshell/kubernetes-network-fundamentals-69d5c596-4b7d-43c0-aac8-8b0e5a633fc2?slide=44
+
 # Pod内の`/etc/resolv.conf`の設定
 - EKSの場合はPod内の`/etc/resolv.conf`は以下のようになっている
   ```bash
