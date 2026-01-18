@@ -94,6 +94,7 @@
 
 ## Pod Disruption Budgets
 
+---
 
 # Storage
 ## `StorageClass`
@@ -120,6 +121,14 @@
     - https://docs.aws.amazon.com/ja_jp/eks/latest/userguide/ebs-csi.html#ebs-csi-considerations
 2. EBS Volumeに Key：`eks:eks-cluster-name`、Value：`<対象EKSクラスター名>`の設定が必要
     - http://repost.aws/questions/QUj5BAYq-xQgKmH-dkR5ajLQ/eks-automode-static-pv-can-t-be-attached-volume-attachment-is-being-deleted
+
+---
+
+# Network
+
+## 
+
+---
 
 # `Ingress`周りについて
 - 参考URL
@@ -164,6 +173,8 @@
     targetType: ip
   ```
 
+---
+
 # Add-ons
 - https://docs.aws.amazon.com/eks/latest/userguide/eks-add-ons.html#addon-consider-auto
 - https://docs.aws.amazon.com/eks/latest/userguide/workloads-add-ons-available-eks.html
@@ -173,6 +184,11 @@
   - CoreDNS
   - EBS CNI Dribe
   - EKS Pod Identity Agent
+
+> [!IMPORTANT] 
+> EKS Auto Modeでは上記Add-onは各ワーカーノード上にsystemdプロセスとして配置されるため、`kube-system` Namespace上にPodとしては存在しない 
+
+---
 
 # その他Auto Modeの注意点
 ## CoreDNS、VPC CNI、EBS CSI driverなどのAdd-onの配置場所
