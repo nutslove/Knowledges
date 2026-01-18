@@ -131,6 +131,24 @@
   - https://docs.aws.amazon.com/en_es/eks/latest/userguide/auto-networking.html  
     > EKS Auto Mode defaults to using prefix delegation (/28 prefixes) for pod networking and maintains a predefined warm pool of IP resources that scales based on the number of scheduled pods. 
 
+- Prefix Delegationの仕組み  
+  ```
+  ┌─────────────────────────────────────────────────────────────┐
+  │  Worker Node (EKS Auto Mode)                                │
+  │                                                             │
+  │  ENI                                                        │
+  │  ├─ Primary IP: 10.0.1.10（ノード自身）                      │
+  │  └─ Prefix: 10.0.1.64/28（16個のIP: 10.0.1.64〜10.0.1.79）  │
+  │       │                                                     │
+  │       ├─ Pod A: 10.0.1.64                                   │
+  │       ├─ Pod B: 10.0.1.65                                   │
+  │       └─ Pod C: 10.0.1.66                                   │
+  └─────────────────────────────────────────────────────────────┘
+  ```
+
+- ENIには10個のスロット制限があり、従来のセカンダリ(Secondary)IP方式では、1つのENIに最大10個のPodしか配置できなかったが、Prefix Delegation方式では/28プレフィックスが割り当てられるため、1つのENIに最大16個?のPodを配置できるようになる
+- ただ、Prefix Delegation方式では、最初から/28プレフィックスが確保されるため、Pod数が少ない場合は逆にIPアドレスの無駄遣いになる可能性がある
+
 ---
 
 # `Ingress`周りについて
