@@ -107,7 +107,11 @@
 > [!NOTE]  
 > `Service`リソースはkube-proxyとEndpointSlice Controllerの両方から監視されている
 > - **EndpointSlice Controller**: Serviceの `selector` を見て、どのPodを対象にするか判断
+>   - https://kubernetes-docsy-staging.netlify.app/docs/concepts/services-networking/endpoint-slices/  
+>     > The EndpointSlice controller watches **Services** and **Pods** to ensure corresponding EndpointSlices are up to date.
 > - **kube-proxy**: Serviceの `ClusterIP` や `Port` を見て、iptablesのDNAT変換元を設定
+>   - https://kubernetes.io/docs/reference/networking/virtual-ips/
+>     > Each instance of kube-proxy watches the Kubernetes control plane for the addition and removal of **Service** and **EndpointSlice** objects. 
 
 ### `ClusterIP`タイプの`Service`
 `ClusterIP`タイプの`Service`が作成されると、kube-proxyは以下のようなiptablesルールを作成する
