@@ -70,9 +70,11 @@
 # Podと外部との通信、Pod間通信
 - 2つのProxy modeがある
   - iptablesプロキシモード
+    - nftablesというiptablesの後継技術もあるが、2026/01時点ではあまり普及されれてないっぽい
   - IPVSプロキシモード
 ## ■ kube-proxy
-- `Service`リソースを監視し、`NodePort`など外部通信のためのTypeが作成されたら(iptablesプロキシモードの場合)、iptablesのIPマスカレードのルールを作成する。
+- https://kubernetes.io/docs/concepts/architecture/#kube-proxy
+- `Endpoints`/`EndpointSlices`リソースと`Service`リソースを監視し、PodやServiceが作成/更新されたら(iptablesプロキシモードの場合)、iptablesのIPマスカレードのルールを作成する。
 - `ClusterIP`の場合もkube-proxyによるiptablesのルールは作成される
   ![kube-proxy1](image/kube-proxy1.jpg)  
   - `Service`リソースが作成されると自動的に`Endpoints`リソースが作成され、kube-proxyが`Endpoints`に合わせてiptablesのルールを作成してくれる
