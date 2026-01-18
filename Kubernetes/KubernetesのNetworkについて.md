@@ -75,13 +75,39 @@
 ## ■ kube-proxy
 - https://kubernetes.io/docs/concepts/architecture/#kube-proxy
 - `Endpoints`/`EndpointSlices`リソースと`Service`リソースを監視し、PodやServiceが作成/更新されたら(iptablesプロキシモードの場合)、iptablesのIPマスカレードのルールを作成する。
+  - Podの作成/削除などを監視して`EndpointSlices`リソースを更新するのはkube-controller-manager (EndpointSlice Controller)
 - `ClusterIP`の場合もkube-proxyによるiptablesのルールは作成される
   ![kube-proxy1](image/kube-proxy1.jpg)  
-  - `Service`リソースが作成されると自動的に`Endpoints`リソースが作成され、kube-proxyが`Endpoints`に合わせてiptablesのルールを作成してくれる
+  - `Service`リソースが作成されると、kube-controller-managerが自動的に`Endpoints`リソースを作成し、kube-proxyがそれに合わせてiptablesのルールを作成する
 
   ![kube-proxy2](image/kube-proxy2.jpg)
   https://speakerdeck.com/hhiroshell/kubernetes-network-fundamentals-69d5c596-4b7d-43c0-aac8-8b0e5a633fc2?slide=39
   https://speakerdeck.com/hhiroshell/kubernetes-network-fundamentals-69d5c596-4b7d-43c0-aac8-8b0e5a633fc2?slide=40
+
+> [!NOTE]  
+> ### EndpointSlice Controllerの動作
+> - EndpointSlice Controller（kube-controller-managerのコンポーネント）は Service と Pod の両方 を監視している
+> ```
+> Service作成（selector: app=nginx）
+>        │
+>        ▼
+> EndpointSlice Controller
+>  ├─ Serviceのselectorを確認
+>  ├─ selectorに一致するPodを検索
+>  └─ EndpointSlicesリソースを作成（一致するPodのIPを登録）
+>
+> Pod作成/削除/Ready状態変化
+>        │
+>        ▼
+> EndpointSlice Controller
+>  ├─ そのPodがどのServiceのselectorに一致するか確認
+>  └─ 該当するEndpointSlicesを更新
+> ```
+
+> [!NOTE]  
+> `Service`リソースはkube-proxyとEndpointSlice Controllerの両方から監視されている
+> - **EndpointSlice Controller**: Serviceの `selector` を見て、どのPodを対象にするか判断
+> - **kube-proxy**: Serviceの `ClusterIP` や `Port` を見て、iptablesのDNAT変換元を設定
 
 ### `ClusterIP`タイプの`Service`
 `ClusterIP`タイプの`Service`が作成されると、kube-proxyは以下のようなiptablesルールを作成する
