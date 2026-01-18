@@ -1,3 +1,9 @@
+- **https://docs.aws.amazon.com/eks/latest/best-practices/vpc-cni.html**
+
+![vpc_cni_1](../image/VPC_CNI_1.png)
+
+- **https://aws.amazon.com/jp/blogs/containers/amazon-vpc-cni-increases-pods-per-node-limits/**
+- https://www.eksworkshop.com/docs/networking/vpc-cni/
 - `aws-node`というDaemonSet PodがVPC CNIプラグイン
 - VPC CNIは**Underlay Network**を使用
 - VPC CNIのGithub(**定期的に読むこと！**)
