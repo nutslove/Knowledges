@@ -186,7 +186,7 @@
 > # CoreDNS のログの確認
 > bash-5.2# chroot /host journalctl -u coredns
 > ```
-> Systemdなので、Alloyの`loki.source.journal
+> Systemdなので、DaemonSetのAlloyの`loki.source.journal
 `を使ってLokiにログを送ることもできる（はず）  
 > https://grafana.com/docs/alloy/latest/reference/components/loki/loki.source.journal/
 
