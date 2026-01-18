@@ -126,7 +126,10 @@
 
 # Network
 
-## 
+## Prefix Delegation
+- EKS Auto ModeではdefaultでPrefix Delegationを使う設定になっている
+  - https://docs.aws.amazon.com/en_es/eks/latest/userguide/auto-networking.html  
+    > EKS Auto Mode defaults to using prefix delegation (/28 prefixes) for pod networking and maintains a predefined warm pool of IP resources that scales based on the number of scheduled pods. 
 
 ---
 
