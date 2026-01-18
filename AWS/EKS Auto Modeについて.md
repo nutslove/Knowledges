@@ -175,6 +175,21 @@
   - EKS Pod Identity Agent
 
 # その他Auto Modeの注意点
+## CoreDNS、VPC CNI、EBS CSI driverなどのAdd-onの配置場所
+- 通常のKubernetesではCoreDNSやCSI Driverなどは`kube-system` NamespaceにPodとして配置されるが、**EKS Auto Modeでは各ワーカーノード上にsystemdプロセスとして配置される**
+  - https://medium.com/@gajaoncloud/simplify-kubernetes-management-with-amazon-eks-auto-mode-d26650bfc239
+
+> [!TIP]  
+> CoreDNSのログを確認するためには以下のコマンドで対象ワーカーノード上にdebugコンテナを起動して、そこに入ってjournalctlコマンドで確認する必要がある
+> ```bash
+> kubectl debug node/< エラーが発生した Pod が起動するワーカーノード名 > -it --profile=sysadmin --image=public.ecr.aws/amazonlinux/amazonlinux:2023
+> # CoreDNS のログの確認
+> bash-5.2# chroot /host journalctl -u coredns
+> ```
+> Systemdなので、Alloyの`loki.source.journal
+`を使ってLokiにログを送ることもできる（はず）  
+> https://grafana.com/docs/alloy/latest/reference/components/loki/loki.source.journal/
+
 ## Hop Limit
 - Auto ModeではワーカーノードのHop Limitを変更することはできない
   - https://github.com/aws/containers-roadmap/issues/2498
