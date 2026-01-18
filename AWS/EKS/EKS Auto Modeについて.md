@@ -161,6 +161,8 @@
 > [!NOTE]  
 > ### セカンダリ (Secondary) IPとは
 > - 1つのENIに複数のIPを持たせる機能
+> - https://docs.aws.amazon.com/ja_jp/AWSEC2/latest/UserGuide/instance-secondary-ip-addresses.html  
+>   > ネットワークインターフェイスに最初に割り当てられた IPv4 アドレスを、プライマリ IP アドレスといいます。セカンダリ IP アドレスは、ネットワークインターフェイスに追加で割り当てられた IPv4 アドレスです。
 > 
 > ```
 > ┌─────────────────────────────────────────────────────────────┐
