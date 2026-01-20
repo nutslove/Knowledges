@@ -7,7 +7,10 @@
 ## MCPの仕様
 - https://modelcontextprotocol.io/specification/
 
-### 非同期通信（async）
+## Tool Call
+- MCPでは、ツールの引数は常にJSON bodyとして送信される。LLMがツールを呼び出す際、引数はJSON Schemaに基づいたJSONオブジェクトとして渡される。
+
+## 非同期通信（async）
 - MCP自体は非同期通信のみを前提として設計されている（明記されている）わけではなさそうだが、LangChain MCP AdaptersやMCP公式のPython SDKなどは非同期通信を前提としている
   - LangChain MCP Adapters
     - https://github.com/langchain-ai/langchain-mcp-adapters
