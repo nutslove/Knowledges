@@ -111,8 +111,6 @@
 >       ↓
 >  Prometheus/Thanos
 > ```
->  
->     >    
 
 ```yaml
 loki:
