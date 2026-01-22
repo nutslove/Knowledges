@@ -7,7 +7,7 @@
 - Recording時は、Lokiのログデータを元にPrometheusのメトリクスを生成し、Prometheus互換の（Remote Write）エンドポイントに送信することができる
   - **Lokiのログが持っているラベルはPrometheusのメトリクスのラベルとして引き継がれる**
 - LokiのRecorind rulesはPrometheusのと同じアーキテクチャ（Prometheusのコードを再利用している）  
-  > The Loki implementation of recording rules largely reuses Prometheus' code.
+  > Since Loki reuses the Prometheus code for recording rules and WALs, it also gains all of Prometheus' observability.
 
 > [!TIP]  
 > - Recording Rulesで変換後のメトリクス名の命名規則は強制的なルールはないが、強く推奨されている命名規則がある
@@ -46,8 +46,11 @@
 > ```
 
 > [!IMPORTANT]  
-> - **Rulerの評価(evaluation)の間隔と、`rate`や`count_over_time`などの集計関数で使用する時間範囲（`[]`）は一致させる必要がある**
-> - defaultの評価感覚は`ruler`blockの`evaluation_interval`で設定できて、初期値は`1m`(1分)
+> - **Rulerの評価(evaluation)の間隔と、`rate`や`count_over_time`などの集計関数で使用する時間範囲（`[]`）は一致させることが推奨される**
+>   - `interval > range` の場合：データの欠落（ギャップ）が発生
+>   - `interval < range` の場合：重複カウント（同じログが複数回集計される）
+>   - `interval == range` の場合：ギャップも重複もない
+> - defaultの評価間隔は`ruler`blockの`evaluation_interval`で設定できて、初期値は`1m`(1分)
 >   - 各rule groupごとに`interval`で上書き可能
 > - 例  
 > ```yaml
