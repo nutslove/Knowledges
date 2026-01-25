@@ -1,5 +1,5 @@
 ## Headless Serviceとは
-- 特定のPodに直接アクセスするために使用されるService。主にStatefulSetで使われる。
+- StatefulSetで各Podに固定DNS名が必要な場合（DB、Kafka、Elasticsearchなど）に使用されるService。
 - **通常のServiceはServiceにIPアドレスが割り当てられ、そのServiceの`selector`に指定した(複数の)PodのIPが含まれた`Endpoints`が自動で作成され (その後Podの追加/削除時に自動で`Endpoints`も更新される)、複数のPodにロードバランシングされるが、Headless ServiceはServiceにIPアドレスが割り当てられない。**
   - `selector`の条件に一致するPodのIPアドレスで`Endpoints`が作成されて、Serviceとマッピングされるのは一緒
 - `ClusterIP: None`にするとHeadless Serviceになる  
