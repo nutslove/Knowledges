@@ -88,7 +88,7 @@
 ![tempo_drilldown_emptyring](img/tempo_drilldown_emptyring.png)
 
 ### 原因
-- 上記のログにも出ているように、DrilldownではTempoのメトリクスクエリを実行している。しかし、デフォルトの状態ではmetricsGeneratorが無効になっており、メトリクスクエリを実行できないためエラーとなっている。**なので、metricsGeneratorを有効にする必要がある**。
+- 上記のログにも出ているように、DrilldownではTempoのメトリクスクエリを実行している。しかし、デフォルトの状態ではmetricsGeneratorが無効になっており、メトリクスクエリを実行できないためエラーとなっている。**なので、metricsGeneratorを有効にする必要がある**。(metrics-generatorのPodが作成される)
 - 参考URL
   - https://grafana.com/docs/tempo/latest/configuration/
   - https://grafana.com/docs/tempo/latest/metrics-from-traces/metrics-queries/configure-traceql-metrics/
