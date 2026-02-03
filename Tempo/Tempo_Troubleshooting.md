@@ -91,6 +91,8 @@
 - 上記のログにも出ているように、DrilldownではTempoのメトリクスクエリを実行している。しかし、デフォルトの状態ではmetricsGeneratorが無効になっており、メトリクスクエリを実行できないためエラーとなっている。**なので、metricsGeneratorを有効にする必要がある**。
 - 参考URL
   - https://grafana.com/docs/tempo/latest/configuration/
+  - https://grafana.com/docs/tempo/latest/metrics-from-traces/metrics-queries/configure-traceql-metrics/
+  - https://github.com/grafana/tempo/issues/5491
   - https://github.com/grafana/helm-charts/tree/main/charts/tempo-distributed  
     > ## Activate metrics generator
     > Metrics-generator is disabled by default and can be activated by configuring the following values:
