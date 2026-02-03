@@ -91,26 +91,56 @@
 - 上記のログにも出ているように、DrilldownではTempoのメトリクスクエリを実行している。しかし、デフォルトの状態ではmetricsGeneratorが無効になっており、メトリクスクエリを実行できないためエラーとなっている。**なので、metricsGeneratorを有効にする必要がある**。
 - 参考URL
   - https://grafana.com/docs/tempo/latest/configuration/
-  - https://github.com/grafana/helm-charts/tree/main/charts/tempo-distributed
+  - https://github.com/grafana/helm-charts/tree/main/charts/tempo-distributed  
+    > ## Activate metrics generator
+    > Metrics-generator is disabled by default and can be activated by configuring the following values:
+    > ```yaml
+    > metricsGenerator:
+    >   enabled: true
+    >   config:
+    >     storage:
+    >       remote_write:
+    >       - url: http://cortex/api/v1/push
+    >         send_exemplars: true
+    >    #    headers:
+    >    #      x-scope-orgid: operations
+    > # Global overrides
+    > overrides:
+    >   defaults:
+    >     metrics_generator:
+    >       processors:
+    >         - service-graphs
+    >         - span-metrics
 
 ### 対処
-- `metricsGenerator`を有効にし、`registry`と`storage`の設定を追加する。以下はCortex-tenantにRemote Writeする例。  
+- `metricsGenerator`を有効にし、`registry`と`storage`の設定を追加する。以下はCortex-tenantにRemote Writeする例。あと、`overrides`でprocessorsを指定するのも忘れずに。  
   ```yaml
   tempo:
-    metricsGenerator:
-      enabled: true
-      config:
-        registry:
-          collection_interval: 30s
-          external_labels:
-            source: tempo
-          inject_tenant_id_as: tenant # Tenant IDが「tenant」ラベルに設定される
-        storage:
-          path: /var/tempo/wal
-          remote_write:
-            - url: http://cortex-tenant.monitoring.svc:8080/push # Cortex-tenant側で
-              send_exemplars: true
-          remote_write_add_org_id_header: true
+    iamge:
+      ・・・
+
+  metricsGenerator:
+    enabled: true
+    config:
+      registry:
+        collection_interval: 30s
+        external_labels:
+          source: tempo
+        inject_tenant_id_as: tenant # Tenant IDが「tenant」ラベルに設定される
+      storage:
+        path: /var/tempo/wal
+        remote_write:
+          - url: http://cortex-tenant.monitoring.svc:8080/push # Cortex-tenant側で
+            send_exemplars: true
+        remote_write_add_org_id_header: true
+
+  overrides:
+    defaults:
+      metrics_generator:
+        processors:
+          - service-graphs
+          - span-metrics
+          - local-blocks # Grafana DrillDownが内部で使う TraceQL metrics クエリ（rate(), count_over_time() 等）には local-blocks が必須
   ```
 
 > [!IMPORTANT]  
