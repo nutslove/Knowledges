@@ -99,6 +99,7 @@
     > ```yaml
     > metricsGenerator:
     >   enabled: true
+    >   replicas: 2
     >   config:
     >     storage:
     >       remote_write:
