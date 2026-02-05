@@ -57,7 +57,7 @@
   ```
 
 > [!NOTE]  
-> - Ubuntuの場合、DHCPでIPアドレスが変わらないようににするには、`/etc/netplan/nn-xx.yaml`を以下のように修正する  
+> - Ubuntuの場合、DHCPでIPアドレスが変わらないようにするには、`/etc/netplan/nn-xx.yaml`を以下のように修正する  
 >  ```yaml
 > network:
 >   ethernets:
