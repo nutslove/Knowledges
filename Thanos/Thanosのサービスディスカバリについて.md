@@ -33,4 +33,4 @@
 ## Thanosでの利用例
 > [!IMPORTANT]  
 > - **Querierで、endpointに（Ingesting）Receiverを指定するとき、`--endpoint=thanos-ingesting-receiver.monitoring.svc`のように普通のService名で指定すると、名前解決される１つのReceiverにしか接続されない（かつ、Thanosは複数のReceiverにメトリクスデータが分散される）ため、クエリーを実行するたびに取得されるデータにばらつきが出る。**  
-> そのため、**`dns+`か`dnssrv+`を使って、Serviceに紐づいているすべてのPodに接続できるようにする必要がある**
+> そのため、**`dns+`（`--endpoint=dns+thanos-ingesting-receiver.monitoring.svc:10901`）か`dnssrv+`を使って、Serviceに紐づいているすべてのPodに接続できるようにする必要がある**
