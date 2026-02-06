@@ -56,6 +56,25 @@
   Unable to connect to the server: tls: failed to verify certificate: x509: certificate is valid for <旧IP>, not <新IP>
   ```
 
+> [!NOTE]  
+> - Ubuntuの場合、DHCPでIPアドレスが変わらないようにするには、`/etc/netplan/nn-xx.yaml`を以下のように修正する  
+>  ```yaml
+> network:
+>   ethernets:
+>       enp1s0:
+>           dhcp4: no # ここをtrueからnoに変更
+>           addresses:
+>             - 192.168.0.176/24 # 固定IPアドレスを設定
+>           routes:
+>             - to: default
+>               via: 192.168.0.1 # デフォルトゲートウェイを設定(ip routeで確認)
+>           nameservers:
+>             addresses:
+>               - 8.8.8.8
+>   version: 2
+> ``` 
+> - 修正後、`sudo netplan apply`コマンドで反映する
+
 ### やったこと
 - クライアント側のkubeconfigを修正  
   ```shell
