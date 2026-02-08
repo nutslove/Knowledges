@@ -258,6 +258,10 @@
   up{job="prometheus",env="2",cluster="2",replica="A"} 1
   ```
 
+## 重複排除(Deduplication)
+- https://thanos.io/tip/components/query.md/#deduplication  
+  > Two or more series that are only distinguished by the given replica label, will be merged into a single time series.
+
 # Query Frontend
 - https://thanos.io/tip/components/query-frontend.md/
 - Query Frontend is fully **stateless** and horizontally scalable.
@@ -287,7 +291,7 @@
 - HA構成のPrometheusからのメトリクスをCompactor側でもdedupすることができる
   - https://thanos.io/tip/components/compact.md/#vertical-compaction-use-cases
   - でもリスクがあるらしく、あまり使わない方が良さそう？
-- defaultではCompactorはcronjobとして動かせるように処理が終わったらCompletedになってしまうため、継続的に実行させるためには`--wait`と`--wait-interval=5m`フラグを付ける必要がある
+- **defaultではCompactorはcronjobとして動かせるように処理が終わったらCompletedになってしまうため、継続的に実行させるためには`--wait`と`--wait-interval=5m`フラグを付ける必要がある**
 - CompactorのWeb UIを持っていて、`10902`ポート(http)からアクセス可能
   - 各Blockに関する情報を確認できる
 
@@ -397,10 +401,19 @@
 - *Block overlap*とは  
   > Set of blocks with exactly the same external labels in meta.json and for the same time or overlapping time period.
   - meta.jsonの`thanos.labels`のExternal labelsと`minTime`,`maxTime`がすべて同じのBlockが複数あること
+- なぜBlock overlapが発生するのか？
+  - Receiverでレプリケーション（`--receive.replication-factor=2`以上）を使うと、**同じメトリクスが複数のReceiverに書き込まれるため**
 - Thanosはoverlapped blocksが絶対出ないようにデザインされていて、overlapped blocksはunexpected incidentと見なしてoverlapped blocksに対してautomatic repairを実装してない。  
-  なのでBlock overlapが発生した場合は手動で解決しなければいけない。
+  なのでBlock overlapが発生した場合はCompactorはHALT or crashし、手動で解決しなければいけない。
+
+> [!NOTE]  
+> - compactor側で`--compact.enable-vertical-compaction`フラグを`true`（defaultは`false`）にしてvertical compactionを有効にしている場合は、block overlapが発生してもhaltしないっぽい。
+
+#### Block overlapを防ぐ方法
+##### 前提
 - **Receiver構成の場合、CompactorはPrometheusのExternal labelsをcompaction groupに使わない(`tenant_id`とreceiverの`--label`フラグのみを使う)ため、`replication-factor`を２以上にした場合、同じExternal LabelのReceiver間で同じデータを持ち、Object Storageにアップロードされるため、Block overlapが発生する。**  
-  **それを防ぐために以下のように(ingesting)receiverの`--label`にPod名が入るようにして各Receiverが異なるExternal labelsを持つようにする必要がある**  
+##### 1. Receiverの`--label`にPod名など、各Receiverが異なるExternal labelsを持つようにする
+- **それを防ぐために以下のように(ingesting)receiverの`--label`にPod名が入るようにして各Receiverが異なるExternal labelsを持つようにする必要がある**  
   ```yaml
   apiVersion: apps/v1
   kind: StatefulSet
@@ -445,6 +458,29 @@
   ```
   - https://thanos.io/tip/operating/troubleshooting.md/#overlaps  
     > 2 Prometheus instances are misconfigured and they are uploading the data with exactly the same external labels. This is wrong, they should be unique.
+
+##### 2. CompactorでVertical Compactionを有効にする
+> [!NOTE]  
+> Vertical Compactionはクエリー時に重複排除するのではなく、Object Storage上のデータを直接重複排除するもの
+
+- https://thanos.io/tip/components/compact.md/#vertical-compactions
+- Vertical Compactionは、Compactorの`--compact.enable-vertical-compaction`フラグを`true`に設定することで有効になる。defaultは`false`。
+- `--deduplication.replica-label`フラグはVertical Compaction専用のもの  
+  > If you want to “virtually” group blocks differently for deduplication use cases, use `--deduplication.replica-label=LABEL` to set one or more labels to be ignored during block loading.
+  > 
+  > For example if you have following set of block streams:
+  > ```
+  > external_labels: {cluster="eu1", replica="1", receive="true", environment="production"}
+  > external_labels: {cluster="eu1", replica="2", receive="true", environment="production"}
+  > external_labels: {cluster="us1", replica="1", receive="true", environment="production"}
+  > external_labels: {cluster="us1", replica="1", receive="true", environment="staging"}
+  > ```
+  > and set `--deduplication.replica-label=replica`, Compactor will assume those as:
+  > ```
+  > external_labels: {cluster="eu1", receive="true", environment="production"} (2 streams, resulted in one)
+  > external_labels: {cluster="us1", receive="true", environment="production"}
+  > external_labels: {cluster="us1", receive="true", environment="staging"}
+  > ```
 
 
 # Ruler
