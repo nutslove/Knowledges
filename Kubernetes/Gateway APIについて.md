@@ -11,7 +11,7 @@
 
 ## Gateway APIの主要コンポーネント
 ![gatewayapi_flow](image/gatewayapi_flow.png)
-- **GatewayClass**: Gatewayのテンプレート。管理者が定義し、利用者は参照するだけ。どのGatewayがどのControllerに管理されるかを指定（例えば、AというnameのGatewayClassがIstio Controllerに対応するなど）
+- **GatewayClass**: Gatewayのテンプレート。管理者が定義し、利用者は参照するだけ。どのGatewayがどのControllerで管理されるかを指定（例えば、AというnameのGatewayClassがIstio Controllerに対応するなど）
   - 例  
     ```yaml
     apiVersion: gateway.networking.k8s.io/v1beta1
