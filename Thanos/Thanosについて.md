@@ -407,7 +407,9 @@
   なのでBlock overlapが発生した場合はCompactorはHALT or crashし、手動で解決しなければいけない。
 
 > [!NOTE]  
-> - compactor側で`--compact.enable-vertical-compaction`フラグを`true`（defaultは`false`）にしてvertical compactionを有効にしている場合は、block overlapが発生してもhaltしないっぽい。
+  > - `--compact.enable-vertical-compaction=true`だけではhaltしない。ただ、haltはしないだけで異なるreplicaラベルを持つブロックは別のGroupKeyのままマージされない 
+  > - 適切にマージするには`--deduplication.replica-label=receiver`の設定が必要
+  > - `--deduplication.replica-label`を設定すると`--compact.enable-vertical-compaction`は自動的に有効になる     
 
 #### Block overlapを防ぐ方法
 ##### 前提
@@ -482,6 +484,19 @@
   > external_labels: {cluster="us1", receive="true", environment="staging"}
   > ```
 
+##### QuerierとCompactorの使い分け
+| 項目 | Querierで重複排除 | Compactorで重複排除 |
+|------|------------------|-------------------|
+| フラグ | `--query.replica-label` | `--deduplication.replica-label` |
+| 処理タイミング | クエリ時（リアルタイム） | コンパクション時（バッチ） |
+| ストレージ上のデータ | 重複が残る | マージされて1つになる |
+| ストレージ容量 | 多い（N倍） | 削減される |
+| 可逆性 | ✅ いつでも変更可能 | ❌ 不可逆 |
+
+**推奨**: 通常はQuerierの`--query.replica-label`だけで十分。ストレージ容量削減が必要な場合のみCompactorを検討。
+
+> [!WARNING]  
+> Compactorでのマージは**不可逆**。マージ後はreplicaラベルが削除され、特定Receiverのデータだけをクエリできなくなる。 
 
 # Ruler
 - Alert/Recording Ruleのためのコンポネント
