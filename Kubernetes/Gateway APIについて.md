@@ -21,7 +21,7 @@
     spec:
       controllerName: application-networking.k8s.aws/gateway-api-controller
     ```
-- **Gateway**: 実際のロードバランサーで、ここでトラフィックのハンドリングが行われる。GatewayClassを参照し、リスナーやルーティング設定を持つ。
+- **Gateway**: 実際のロードバランサーで、ここでトラフィックのハンドリングが行われる。GatewayClassを参照し、リスナー（ポート、プロトコル、TLS設定など）設定を持つ。
   > It defines how traffic enters the cluster and which listeners will handle the traffic (e.g., HTTP, HTTPS).
   - 例  
     ```yaml
