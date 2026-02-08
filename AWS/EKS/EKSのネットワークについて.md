@@ -22,11 +22,3 @@
 ### Instance Mode
 - NLB/ALBからワーカーノードのNodePortにトラフィックを転送し、
   kube-proxyが作成したiptablesルールによってPodにルーティングされるモード
-
-# Gateway APIについて
-- 参考URL
-  - https://dev.classmethod.jp/articles/aws-gateway-api-controller-eks-vpc-lattice/
-  - https://www.gateway-api-controller.eks.aws.dev/latest/concepts/concepts/
-  - https://aws.amazon.com/jp/blogs/containers/kubernetes-gateway-api-in-action/
-- AWSからAWS Gateway API ControllerがOSSとして提供されていて、これを使う場合は、VPC Latticeが使用される
-- AWS Gateway API Controller以外にも、IstioやEnvoy Gateway、TraefikなどのGateway API Controllerが存在する
