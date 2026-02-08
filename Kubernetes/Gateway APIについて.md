@@ -10,6 +10,7 @@
 - IngressはL7ロードバランサーに特化しているのに対し、Gateway APIはL4/L7両方をサポートし、より柔軟で拡張性の高いトラフィック管理が可能
 
 ## Gateway APIの主要コンポーネント
+![gatewayapi_flow](image/gatewayapi_flow.png)
 - **GatewayClass**: Gatewayのテンプレート。管理者が定義し、利用者は参照するだけ。どのGatewayがどのControllerに管理されるかを指定（例えば、AというnameのGatewayClassがIstio Controllerに対応するなど）
   - 例  
     ```yaml
@@ -20,7 +21,7 @@
     spec:
       controllerName: application-networking.k8s.aws/gateway-api-controller
     ```
-- **Gateway**: 実際のロードバランサーで、ここでトラフィックのハンドリングが行われる。GatewayClassを参照し、リスナーやルーティング設定を持つ。  
+- **Gateway**: 実際のロードバランサーで、ここでトラフィックのハンドリングが行われる。GatewayClassを参照し、リスナーやルーティング設定を持つ。
   > It defines how traffic enters the cluster and which listeners will handle the traffic (e.g., HTTP, HTTPS).
   - 例  
     ```yaml
@@ -43,11 +44,11 @@
     metadata:
       name: inventory
     spec:
-      parentRefs:
-      - name: my-hotel # 紐づけるGatewayを指定
-        sectionName: http
+      parentRefs: # このRouteが紐づくGatewayを指定
+      - name: my-hotel # 紐づけるGateway名を指定
+        sectionName: http # Gatewayの対象のlistener名を指定（省略時は該当Gatewayのすべてのlistenerに紐づく）
       rules:
-      - backendRefs:
+      - backendRefs: # トラフィックの送信先を指定
         - name: inventory-ver1
           kind: Service
           port: 8090
@@ -57,6 +58,16 @@
           port: 8090
           weight: 50
     ```
+
+## Ingressとの比較
+
+| Features | Gateway API | Ingress |
+|----------|-------------|---------|
+| Protocol Support | gRPC、HTTP/2、WebSocketなど多くのプロトコルをサポートし、複雑なトラフィック管理が可能 | 主にHTTPとHTTPSトラフィックをサポート |
+| Routing Complexity | 重み付けトラフィック分割や、異なるサービス・プロトコル向けの高度なルールなど、複雑なルーティングが可能 | HTTP/HTTPSトラフィック向けの基本的なルーティングルールをサポート |
+| Ease of Management | クラスター管理者が複数のGatewayクラスの作成・管理、新しいGatewayのデプロイ、本番デプロイ前の設定テストを容易に行える | シンプルだが、複数のGatewayや複雑な設定を管理する高度な機能がない |
+| Extensibility | 新しいプロトコルやルーティングルールを定義でき、複雑なネットワークシナリオに適している | 拡張性が限定的で、主にHTTPベースのユースケースに焦点を当てている |
+| Use Case | 複雑なネットワークシナリオや多様な要件を持つ複数のサービスの管理に最適 | 基本的なHTTP/HTTPSルーティングが必要なシンプルなアプリケーションに最適 |
 
 ## AWS（EKS）でのGateway API
 - AWSからAWS Gateway API ControllerがOSSとして提供されていて、これを使う場合は、VPC Latticeが使用される
