@@ -114,6 +114,35 @@
       await asyncio.gather(goodbye(), hello()) # タスクも同様
   ```
 
+## `asyncio.TaskGroup`（Python 3.11+）
+- `asyncio.gather()`とは異なるアプローチで並行処理を管理するコンテキストマネージャ
+- `gather()`との主な違いは、いずれかのタスクが例外を発生させた場合に**他のタスクを自動的にキャンセル**してくれる点
+- 構造化された並行処理（Structured Concurrency）のパターンに沿っており、タスクのライフサイクルが`async with`ブロック内に閉じるため管理しやすい
+```python
+async def main():
+    try:
+        async with asyncio.TaskGroup() as tg:
+            task1 = tg.create_task(fetch_data("url1"))
+            task2 = tg.create_task(fetch_data("url2"))
+            task3 = tg.create_task(fetch_data("url3"))
+        # async withブロックを抜けた時点で全タスク完了
+        print(task1.result(), task2.result(), task3.result())
+    except* Exception as eg:
+        # いずれのタスクかが例外を出すと、他のタスクも自動キャンセルされ、ExceptionGroupがraiseされる
+        # except*はPython 3.11で追加されたExceptionGroup用の構文
+        for exc in eg.exceptions:
+            print(f"エラー: {exc}")
+```
+
+- **`gather()` との使い分け**
+
+  | | `asyncio.gather()` | `asyncio.TaskGroup` |
+  |---|---|---|
+  | 例外時の他タスク | キャンセルされない（継続） | 自動キャンセル |
+  | エラーハンドリング | `return_exceptions`で制御 | `ExceptionGroup`（`except*`）で処理 |
+  | Python バージョン | 3.4+ | 3.11+ |
+  | 向いているケース | 独立したタスクで、成功したものだけ使いたい場合 | 全タスクが揃わないと意味がない場合 |
+
 ## `asyncio.as_completed()`
 - `asyncio.gather()`はすべてのタスクが完了するまで待機するのに対し、`asyncio.as_completed()`はタスクが完了した順に結果を取得(処理)できる
 ```python
@@ -127,6 +156,7 @@ async def main():
 > [!IMPORTANT]  
 > - 複数のコルーチンを`asyncio.create_task()`でtaskに変換せずに直接`await`する場合、各コルーチンが逐次処理になるため、`asyncio.create_task()`を使って並行実行する方が効率的。
 > - 直接`await`する場合(**6秒**かかる)  
+>   - `await`は対象のコルーチンが完了するまで次の行に進まないため、各コルーチンが順番に実行される  
 >   ```python
 >   import asyncio
 >   import time
@@ -180,12 +210,12 @@ async def main():
 >       print("=== 並行実行 ===")
 >       start = time.time()
 >
->       # タスクを作成（この時点ですぐに実行開始）
+>       # この時点でスケジュール（実行予約）される
 >       task1 = asyncio.create_task(fetch_data("タスク1", 2))
 >       task2 = asyncio.create_task(fetch_data("タスク2", 3))
 >       task3 = asyncio.create_task(fetch_data("タスク3", 1))
 >
->       # 結果を待つ
+>       # awaitでevent loopに制御が戻り実行され、結果を待つ
 >       result1 = await task1
 >       result2 = await task2
 >       result3 = await task3
@@ -297,7 +327,9 @@ asyncio.run(process_files())
 
 # その他
 ## エラーハンドリング
-- `asyncio.gather()`には`return_exceptions=True`オプションがあり、これを指定するといずれかのタスクが例外を発生させても他のタスクは続行され、例外オブジェクトが結果リストに含まれる。指定しない場合は最初の例外で全体が中断される。
+- `asyncio.gather()`には`return_exceptions=True`オプションがある
+  - `return_exceptions=False`（デフォルト）: いずれかのタスクが例外を発生させると、`gather()`の`await`が即座にその例外をraiseする。ただし、他のタスクはキャンセルされずバックグラウンドで実行が継続する。
+  - `return_exceptions=True`: 例外が発生しても例外をraiseせず、全タスクの完了を待ち、例外オブジェクトを結果リストに含めて返す。
 ```python
 async def main():
     # 3つのタスクを作成して並行実行
