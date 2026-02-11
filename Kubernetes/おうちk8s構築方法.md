@@ -9,6 +9,34 @@
 - Quickstart on Kubernetesではなく、以下URLの「Manifest」の「Install Calico with Kubernetes API datastore, 50 nodes or less」の部分の手順でインストールすること
 - https://docs.tigera.io/calico/latest/getting-started/kubernetes/self-managed-onprem/onpremises#install-calico
 
+#### Calico IPIPモード
+- 現在使っているのはCalicoのIPIPモードで、各ノード上の `tunl0` デバイス（IPIPトンネルインターフェース）がIPパケットを別のIPヘッダーで包む（IP-in-IP encapsulation）。これもLinuxカーネルのIPIPモジュールが処理する（VXLANとは異なる）。
+  - VXLANはL2オーバーレイで、L2フレームをUDPパケットでカプセル化する。一方、IPIPはL3オーバーレイで、IPパケットを別のIPヘッダーで包む。
+- 各ノード上で動作する `calico-node` 内の **BIRD BGPデーモン**が、「このPod CIDRへのパケットはこのノードに送れ」というルート情報を他のノードと交換する。これにより各ノードのルーティングテーブルが構築される。
+- **IPIPトンネルの役割**： BGPで学習したルートのNext Hopに到達する際に、元のIPパケットを外側のIPヘッダーで包んでノード間を転送する。これにより、異なるノード上のPod同士が通信できるようになる。
+- **流れ**
+  1. BIRD（BGP） がノード間でPodのルート情報を交換
+  2. 各ノードのルーティングテーブルに 10.244.1.0/24 via tunl0 のようなエントリが作られる
+  3. パケット送信時に tunl0 デバイス（カーネルのIPIPモジュール） がカプセル化を実行
+- BIRD（BGP）によって学習されたルート情報はノード内で `ip route` コマンドで確認できる
+  - 例  
+    ```shell
+    root@workernode01:~# ip route
+    default via 192.168.0.1 dev enp1s0 proto static 
+    blackhole 172.16.52.128/26 proto bird 
+    172.16.52.132 dev calib472a44443d scope link # 同じノード上のPodのIPアドレス（veth pair のホスト側端点に直接ルーティングされる） 
+    172.16.52.134 dev calia863a3ed0c4 scope link # 同じノード上のPodのIPアドレス（veth pair のホスト側端点に直接ルーティングされる） 
+    172.16.52.135 dev cali6973aefed8d scope link # 同じノード上のPodのIPアドレス（veth pair のホスト側端点に直接ルーティングされる） 
+    172.16.103.64/26 via 192.168.0.146 dev tunl0 proto bird onlink # 別ノード上のPodのIPアドレス（IPIPトンネル経由でルーティングされる。172.16.103.64/26が別ノードのPod CIDRで、192.168.0.146がそのノードの物理NICのIPアドレス）
+    172.16.246.192/26 via 192.168.0.241 dev tunl0 proto bird onlink # 別ノード上のPodのIPアドレス（IPIPトンネル経由でルーティングされる。172.16.246.192/26が別ノードのPod CIDRで、192.168.0.241がそのノードの物理NICのIPアドレス）
+    ```
+    - ポイント：
+      - `proto bird` — BIRDデーモン（BGP）によって追加されたルートであることを示す
+      - `dev tunl0` — IPIPトンネルデバイス経由で送信される（カプセル化される）ことを意味する
+      - `via 192.168.0.xx` — 宛先ノードの実IPアドレス（外側IPヘッダーのdstになる）
+      - `blackhole` — 自ノードに割り当てられたPod CIDR全体に対するブラックホールルート。個々のPodが起動すると `/32` のより具体的なルート（例：`172.16.52.132 dev caliXXXX`）が追加され、ロンゲストマッチによりそちらが優先される。結果として、どのPodにも該当しないアドレス宛のパケットだけがこのblackholeルートで破棄される
+      - `onlink` — Next HopがL2的に直接到達可能でなくても強制的にそのデバイスから送出する指示
+
 ## 注意事項
 1. kubeletが正常に動作するためにはSwapを無効にしないといけない
    - Ubuntuの場合、`swapoff -a`コマンドでSwapを無効にできる
