@@ -45,6 +45,63 @@
       print(results)
   ```
 
+- **タスクはイベントループに対してフラットに登録される**
+  - コルーチンの中で別のタスクを作成しても、親子（入れ子）構造にはならない。すべてのタスクはイベントループによって平等にスケジュールされる
+  - 親タスクの役割は`create_task()`でタスクを作り、`await`で完了を待つだけ
+  ```
+  イベントループ（1つ、フラット）
+  ├── task_parent
+  ├── task_other
+  ├── task_a      ← parentの中で作られたが、イベントループに直接登録される
+  └── task_b      ← 同上
+  ```
+
+  ```python
+  async def child_work(name):
+      await asyncio.sleep(1)
+      return f"{name}の結果"
+
+  async def parent():
+      # ここで子タスクを作成するが、イベントループにフラットに登録される
+      task_a = asyncio.create_task(child_work("child_a"))
+      task_b = asyncio.create_task(child_work("child_b"))
+      # parentはtask_a, task_bの完了をawaitで待つだけ
+      results = await asyncio.gather(task_a, task_b)
+      return results
+
+  async def main():
+      task_parent = asyncio.create_task(parent())
+      task_other = asyncio.create_task(other_work())
+      await asyncio.gather(task_parent, task_other)
+  ```
+
+> [!NOTE]  
+> 通常の`create_task()`ではタスクがフラットに管理されるため、親タスクが例外で終了しても子タスクが走り続ける（野良タスクになる）問題がある。
+> ```python
+> async def parent():
+>     task_a = asyncio.create_task(child_work("a"))
+>     task_b = asyncio.create_task(child_work("b"))
+>     raise Exception("parentが死んだ")
+>     # ↓ ここに到達しないのでawaitされない
+>     await asyncio.gather(task_a, task_b)
+>     # → task_a, task_bは誰にもawaitされず走り続ける（野良タスク）
+> ```
+> `asyncio.TaskGroup`は`async with`ブロック内で作成したタスクが必ずそのブロック内で完了またはキャンセルされることを保証し、この問題を解決している。
+> ```
+> 【フラット（通常）】
+> イベントループ
+> ├── parent  ← 死んでも
+> ├── task_a  ← 走り続ける（野良）
+> └── task_b  ← 走り続ける（野良）
+>
+> 【構造化（TaskGroup）】
+> イベントループ
+> └── parent
+>     └── TaskGroup が管理
+>         ├── task_a  ← parentが死んだらキャンセル
+>         └── task_b  ← parentが死んだらキャンセル
+> ```
+
 ## イベントループ（EventLoop）
 - コルーチンの実行を管理し、I/Oイベントの発生を監視する中心的な役割を担う
 - タスクをスケジュールする
