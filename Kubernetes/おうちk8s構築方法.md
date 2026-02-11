@@ -37,6 +37,11 @@
       - `blackhole` — 自ノードに割り当てられたPod CIDR全体に対するブラックホールルート。個々のPodが起動すると `/32` のより具体的なルート（例：`172.16.52.132 dev caliXXXX`）が追加され、ロンゲストマッチによりそちらが優先される。結果として、どのPodにも該当しないアドレス宛のパケットだけがこのblackholeルートで破棄される
       - `onlink` — Next HopがL2的に直接到達可能でなくても強制的にそのデバイスから送出する指示
 
+> [!NOTE]  
+> - Calico IPIPモードはBGPによるRoutingも使うけど、Routingモードではなく、Overlayモードに分類される
+> - Routingモードの特徴として、カプセル化なしで、ルーティングのみで、Pod間通信を実現するのがあって、Calico BGP（Directモード）がそれに該当する
+> https://www.alibabacloud.com/blog/getting-started-with-kubernetes-%7C-kubernetes-cnis-and-cni-plug-ins_596330
+
 ## 注意事項
 1. kubeletが正常に動作するためにはSwapを無効にしないといけない
    - Ubuntuの場合、`swapoff -a`コマンドでSwapを無効にできる
