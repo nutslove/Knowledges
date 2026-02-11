@@ -72,7 +72,7 @@ npm update -g @anthropic-ai/claude-code
     "permission_denials": [ ... ]
   }
   ```
-- さらに **`--json-schema`フラグでStructured Outputとして出力されるJSONのSchemaを取得できる`**
+- さらに **`--json-schema`フラグでStructured Outputとして出力されるJSONのSchemaを取得できる**
   - 以下のような`--json-schema`で投げた時の例  
   ```shell
   --output-format json --json-schema '{
