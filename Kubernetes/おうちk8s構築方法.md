@@ -39,7 +39,7 @@
 
 > [!NOTE]  
 > - Calico IPIPモードはBGPによるRoutingも使うけど、Routingモードではなく、Overlayモードに分類される
-> - Routingモードの特徴として、カプセル化なしで、ルーティングのみで、Pod間通信を実現するのがあって、Calico BGP（Directモード）がそれに該当する
+> - Routingモードの特徴として、カプセル化なしで、ルーティングのみで、Pod間通信を実現するのがあって、Calico BGP（Directモード）がそれに該当する  
 > https://www.alibabacloud.com/blog/getting-started-with-kubernetes-%7C-kubernetes-cnis-and-cni-plug-ins_596330
 
 ## 注意事項
