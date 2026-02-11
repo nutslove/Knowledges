@@ -230,6 +230,9 @@
 - EKS Auto Modeで`IngressClassParams`、`IngressClass`を作成して、`Ingress`リソースを作成したら、ALBとリスナー、ターゲットグループまで作成してくれて、`TargetGroupBinding`も作成されてターゲットグループでのターゲットの登録までやってくれる。
   - https://docs.aws.amazon.com/eks/latest/userguide/auto-configure-alb.html
 
+# `Service`の`type: LoadBalancer`について
+- https://docs.aws.amazon.com/ja_jp/eks/latest/userguide/auto-configure-nlb.html
+
 ## `TargetGroupBinding`
 - すでに作成されているALB、ターゲットグループとk8sの`Service`を紐づけるリソース
 - EKS Auto Modeでは、リスナーとターゲットグループに以下のタグが設定されている必要がある（https://github.com/aws/containers-roadmap/issues/2508）
