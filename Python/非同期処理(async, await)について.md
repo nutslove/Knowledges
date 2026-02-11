@@ -4,6 +4,7 @@
 - 非同期プログラミングでは、タスクが完了するのを待つ間に他のタスクを実行できる。Pythonでは`asyncio`パッケージと`async`と`await`キーワードを使用して実装する。
 - 参考URL
   - https://zenn.dev/iharuoru/articles/45dedf1a1b8352
+  - https://nachwon.github.io/asyncio-futures/
 
 # 主要な要素
 ![](./image/coroutine_task_eventloop_1.jpg)
@@ -49,6 +50,10 @@
 - タスクをスケジュールする
 
 # コルーチンの実行方法
+## `asyncio.run()`を使用
+- 最上位レベルからコルーチンを実行するために使う。これはプログラムのエントリーポイントで一度だけ呼び出すべき。
+- **`asyncio.run`は逆に`async`内では使えない**
+
 ## `await`キーワードを使用
 - 別の非同期関数（`async def`で定義された関数）の中からコルーチンを呼び出す時に使う
 - **`await`キーワードは「この操作が完了するまで待機し、その間は他のタスクを実行できる」ことを示す**
@@ -61,10 +66,6 @@
       return {"data": "結果"}
   ```
 - **`await`は`async`内でしか使えない**
-
-## `asyncio.run()`を使用
-- 最上位レベルからコルーチンを実行するために使う。これはプログラムのエントリーポイントで一度だけ呼び出すべき。
-- **`asyncio.run`は逆に`async`内では使えない**
 
 ## `asyncio.create_task()`を使用
 - コルーチンをタスクに変換して並行実行させる方法
