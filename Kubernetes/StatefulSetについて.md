@@ -12,13 +12,15 @@
      - https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/
 
 ### StatefulSetのPodとPVの紐づけ
-- StatefulSetでは、各Podに対して一意の識別子（**ordinal index**）が割り当てられる。例えば、`my-statefulset` という名前のStatefulSetで3つのレプリカを持つ場合、Podの名前は以下のようになる  
-  ```
-  my-statefulset-0
-  my-statefulset-1
-  my-statefulset-2
-  ```
-- この**Pod名（ordinal index）をキーとして、PersistentVolumeClaim (PVC) と PersistentVolume (PV) がマッピングされる**ため、Podが削除・再作成されても同じPVがアタッチされる。
+- StatefulSetでは、各PodにPersistentVolumeClaim（PVC）が`volumeClaimTemplates`に基づいて作成され、PVCの名前は `<volumeClaimTemplate名>-<StatefulSet名>-<ordinal>` という形式で命名される
+- 一度PVCがPVにバインドされると、Podが再起動・再スケジュールされても同じPVCが再利用されるため、結果的に同じPVにマウントされる
+- これにより、StatefulSetの各Podは一貫したストレージを持ち、データの永続性が確保される
+
+#### PVCのライフサイクル
+- Podを削除してもPVCは削除されない
+  - StatefulSetのPodが削除されても、対応するPVCは自動削除されない。これは意図的な設計で、データ保護のため
+- StatefulSet自体を削除してもPVCは残る
+  - 手動でPVCを削除しない限り、PVとのバインドは維持される
 
 #### 具体的な流れ
 1. 例えば、以下のようなStatefulSet内の`volumeClaimTemplates`があるとする  
@@ -32,8 +34,7 @@
         requests:
           storage: 1Gi
   ```
-2. 例えば、`my-statefulset-0` が起動すると、自動的に`my-volume-my-statefulset-0` (`volumeClaimTemplates`の`metadata.name` + Pod名 + 番号) というPVCが作成される
-   - `<volumeClaimTemplates.metadata.name>-<statefulset名>-<ordinal番号>`
+2. 例えば、`my-statefulset-0` が起動すると、自動的に`my-volume-my-statefulset-0` (`<volumeClaimTemplates.metadata.name>-<statefulset名>-<ordinal番号>`) というPVCが作成される
 3. `PersistentVolumeClaim`が作成されるとき、`StorageClass`の設定に基づいて`PersistentVolume`が動的にプロビジョニングされる
 4. `PersistentVolume` (PV) はこのPVCにバインドされ、PodはそのPVを利用する
 5. `my-statefulset-0` が削除された後、再作成されても `my-volume-my-statefulset-0` のPVCが存続しているため、同じPVがマウントされる
