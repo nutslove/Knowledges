@@ -190,6 +190,7 @@ async def main():
         for exc in eg.exceptions:
             print(f"エラー: {exc}")
 ```
+- **TaskGroupで作成した子タスクも、イベントループにはフラットに登録される（別のイベントループに入るわけでも、優先度が変わるわけでもない）**
 
 - **`gather()` との使い分け**
 
@@ -446,4 +447,92 @@ async def main():
         print(value)
 
 asyncio.run(main())
+```
+
+## Executor
+- asyncioのイベントループ内で同期的な（ブロッキングな）処理を別スレッドや別プロセスで実行するための仕組み
+- **asyncioのイベントループはシングルスレッドなので、ブロッキング（同期）処理をそのまま呼ぶとイベントループ全体が止まる**
+```python
+  async def bad_example():
+      time.sleep(5)  # ← これでイベントループが5秒止まる。他のタスクも全部止まる
+      await some_async_work()
+```
+- **こういった同期処理を別スレッド/プロセスに逃がすのが`Executor`**
+```python
+  import asyncio
+  import concurrent.futures
+
+  def blocking_io():
+      # 同期的なブロッキング処理（例：重いファイル操作、同期ライブラリの呼び出し）
+      time.sleep(3)
+      return "結果"
+
+  async def main():
+      loop = asyncio.get_event_loop()
+
+      # ThreadPoolExecutor（I/Oバウンド向け）
+      result = await loop.run_in_executor(None, blocking_io)  # Noneはデフォルトのexecutor
+
+      # 明示的にExecutorを指定する場合
+      with concurrent.futures.ThreadPoolExecutor() as executor:
+          result = await loop.run_in_executor(executor, blocking_io)
+
+      # ProcessPoolExecutor（CPUバウンド向け）
+      with concurrent.futures.ProcessPoolExecutor() as executor:
+          result = await loop.run_in_executor(executor, heavy_computation)
+
+  asyncio.run(main())
+```
+
+- **Executorの種類**
+
+  | | `ThreadPoolExecutor` | `ProcessPoolExecutor` |
+  |---|---|---|
+  | 用途 | I/Oバウンド（ファイル操作、同期HTTPライブラリなど） | CPUバウンド（重い計算処理） |
+  | 仕組み | 別スレッドで実行 | 別プロセスで実行 |
+  | GILの影響 | 受ける（CPU処理には不向き） | 受けない |
+
+- **Pythonのスレッドとasyncioの違い**
+  - 「シングルスレッド」なのはasyncioのイベントループであり、Python自体は`threading`モジュールでマルチスレッドが使える
+  - ただしPythonにはGIL（Global Interpreter Lock）があり、Pythonバイトコードを実行できるスレッドは常に1つだけ。I/O操作中はGILが解放されるので、その間に別スレッドが動ける
+```
+    スレッド1: [Python実行] → [I/O待ち（GIL解放）] → [Python実行]
+    スレッド2: [GIL待ち]   → [Python実行]           → [GIL待ち]
+```
+  - そのため`ThreadPoolExecutor`はI/Oバウンドな同期処理に有効だが、CPUバウンドな処理には`ProcessPoolExecutor`を使う
+
+  | | マルチスレッド可能？ | 並列実行で速くなる？ |
+  |---|---|---|
+  | I/Oバウンド（ネットワーク、ファイル） | ✅ | ✅（I/O待ち中にGIL解放） |
+  | CPUバウンド（計算処理） | ✅（スレッド自体は作れる） | ❌（GILで結局1つずつ） |
+```
+  イベントループ（メインスレッド）
+  ├── async task_a
+  ├── async task_b
+  └── run_in_executor(blocking_io)
+          ↓
+      別スレッド/プロセスで実行（イベントループをブロックしない）
+          ↓
+      完了したらイベントループに結果を返す
+```
+
+### Executorはいつ使う？
+- 基本的には**使いたいライブラリがasync対応していない時**に使う
+  - async対応ライブラリがある場合はそちらを使う方がオーバーヘッドも少なく効率的（`requests` → `aiohttp`/`httpx`、`open()` → `aiofiles` など）
+  - Executorは「async対応していない同期処理をasyncioの世界で使うための最終手段」という位置づけ
+- 具体的なケース
+  1. **同期ライブラリしかない場合**（例：`requests`、一部のDBドライバ）
+  2. **CPUバウンドな処理をasyncioの中で使いたい場合**
+  3. **C拡張やOS操作などasync化できない処理**（DNSの名前解決、画像処理ライブラリなど）
+- **判断フロー**
+```
+  同期的なブロッキング処理を使いたい
+      │
+      ├── async対応のライブラリがある？
+      │       → YES → そっちを使う（Executor不要）
+      │       → NO  → Executorを使う
+      │
+      └── CPUバウンド？
+              → YES → ProcessPoolExecutor
+              → NO（I/Oバウンド） → ThreadPoolExecutor
 ```
