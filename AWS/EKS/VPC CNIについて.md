@@ -1,4 +1,4 @@
-- **https://docs.aws.amazon.com/eks/latest/best-practices/vpc-cni.html**
+- **https://docs.aws.amazon.com/ko_kr/eks/latest/best-practices/vpc-cni.html**
 
 ![vpc_cni_1](../image/VPC_CNI_1.png)
 
