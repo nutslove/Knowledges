@@ -7,15 +7,15 @@
 - `aws-node`というDaemonSet PodがVPC CNIプラグイン
 - VPC CNIは**Underlay Network**を使用
 - VPC CNIのGithub(**定期的に読むこと！**)
-  - **https://github.com/aws/amazon-vpc-cni-k8s/blob/master/docs/cni-proposal.md**
-
+  - **https://github.com/aws/amazon-vpc-cni-k8s/blob/master/docs/cni-proposal.md**  
+  ![vpc_cni_2](../image/VPC_CNI_2.png)
 ## VPC CNIの特徴
 - 各Podに対して、VPC内のセカンダリIPアドレスが直接割り当てられる。
 - PodはVPC内で他のリソースと直接通信できる。
 - PodはVPCのルーティングテーブルに従ってトラフィックをルーティングする。
 
 ## VPC CNIプラグインの動作の流れ
-1. ワーカーノードごとにElastic Network Interface (ENI) を割り当てます。各ENIには、VPC内のセカンダリIPアドレスの範囲が割り当てられる。
+1. ワーカーノードごとにElastic Network Interface (ENI) を割り当てる。各ENIには、VPC内のセカンダリIPアドレスの範囲が割り当てられる。
 2. 新しいPodが作成されると、VPC CNIプラグインはそのPodに対して、割り当て済みのENIからセカンダリIPアドレスを割り当てる。つまり、PodごとにENIを割り当てるのではなく、ENIに割り当てられたセカンダリIPアドレスの中からPodにIPアドレスを割り当てる。
 3. Podが削除されると、割り当てられていたセカンダリIPアドレスが解放され、他のPodで再利用可能になる。
 4. 割り当て可能なセカンダリIPアドレスが不足してきた場合、VPC CNIプラグインは自動的に新しいENIをワーカーノードに割り当て、セカンダリIPアドレスのプールを拡張する。
@@ -90,10 +90,16 @@
 ## Pod間通信、PodからExternalへの通信フロー
 - Pod間通信
   - https://github.com/aws/amazon-vpc-cni-k8s/blob/master/docs/cni-proposal.md#pod-to-pod-communication
-  ![](./image/pod_to_pod_communication_1.jpg)
+  ![](../image/pod_to_pod_communication_1.jpg)
     - **ワーカーノード側のvethとワーカーノード上のethは同じNetwork namespace(root namespace)上に存在するため、同じルーティングテーブルに戻づいてパケットの転送が行われる**
   - https://github.com/aws/amazon-vpc-cni-k8s/blob/master/docs/cni-proposal.md#life-of-a-pod-to-pod-ping-packet
-  ![](./image/life_of_packet_pod_to_pod.jpg)
+  ![](../image/life_of_packet_pod_to_pod.jpg)
 - PodからExternalへの通信
   - https://github.com/aws/amazon-vpc-cni-k8s/blob/master/docs/cni-proposal.md#pod-to-external-communications
-  ![](./image/life_of_packet_pod_to_external.jpg)
+  ![](../image/life_of_packet_pod_to_external.jpg)
+
+> [!NOTE]  
+> - 上記で登場する「EC2-VPC fabric」はVPCのパケット配送を担う基盤ネットワークのこと。
+> - AWSデータセンター内部のSDN（Software-Defined Networking）基盤であり、ENIに割り当てられたIPアドレス宛のパケットを正しいEC2インスタンスに届ける役割を持つ。
+> - 参考URL
+>   - https://aws.amazon.com/blogs/apn/understanding-amazon-vpc-from-a-vmware-nsx-engineers-perspective/
