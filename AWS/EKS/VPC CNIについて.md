@@ -19,6 +19,12 @@
 2. 新しいPodが作成されると、VPC CNIプラグインはそのPodに対して、割り当て済みのENIからセカンダリIPアドレスを割り当てる。つまり、PodごとにENIを割り当てるのではなく、ENIに割り当てられたセカンダリIPアドレスの中からPodにIPアドレスを割り当てる。
 3. Podが削除されると、割り当てられていたセカンダリIPアドレスが解放され、他のPodで再利用可能になる。
 4. 割り当て可能なセカンダリIPアドレスが不足してきた場合、VPC CNIプラグインは自動的に新しいENIをワーカーノードに割り当て、セカンダリIPアドレスのプールを拡張する。
+
+> [!IMPORTANT]  
+> VPC CNIでもPodごとに**veth pair**は作成される（Pod netnsとHost netnsを接続するために必須）。  
+> PodにENIが直接アタッチされるわけではなく、ENIのセカンダリIPがveth pair経由でPodに割り当てられる。  
+> 従来型CNI（Calico/Flannel）との違いは、veth pairの有無ではなく、**ブリッジ（cni0）やオーバーレイ（VXLAN/IPIP）を使わず、ホスト側の`ip rule`によるポリシーベースルーティングで直接ENIにトラフィックを流す**点にある。
+
 #### 1つのENIに割り当てることができるセカンダリIPの数
 - ENIに割り当てることができるプライマリIPアドレスは1つだけだが、**追加のセカンダリIPアドレスは複数割り当てることが可能**。
 - 1つのENIに割り当て可能なセカンダリIPアドレス数は、ENIが属するインスタンスのタイプによって決まる(異なる)。
@@ -91,7 +97,7 @@
 - Pod間通信
   - https://github.com/aws/amazon-vpc-cni-k8s/blob/master/docs/cni-proposal.md#pod-to-pod-communication
   ![](../image/pod_to_pod_communication_1.jpg)
-    - **ワーカーノード側のvethとワーカーノード上のethは同じNetwork namespace(root namespace)上に存在するため、同じルーティングテーブルに戻づいてパケットの転送が行われる**
+    - **ワーカーノード側のvethとワーカーノード上のethは同じNetwork namespace(root namespace)上に存在するため、同じルーティングテーブルに基づいてパケットの転送が行われる**
   - https://github.com/aws/amazon-vpc-cni-k8s/blob/master/docs/cni-proposal.md#life-of-a-pod-to-pod-ping-packet
   ![](../image/life_of_packet_pod_to_pod.jpg)
 - PodからExternalへの通信
