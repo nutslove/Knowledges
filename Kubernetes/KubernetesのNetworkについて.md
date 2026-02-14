@@ -17,10 +17,11 @@
   - EKSでは`aws-node`という名前でDaemonSetのPodとして作成される
   - https://aws.github.io/aws-eks-best-practices/networking/vpc-cni/
 - CNI PluginがPod作成時に(Kubeletにより)実行され、以下の処理を実施する
-  - PodのネットワークにNICの割当
-  - PodのNICへIPアドレスの割り当て
+  - Podのネットワーク（netns）にNICの割当
+  - PodのNICへIPアドレスの割り当てとルーティングの設定  
+    > CNI Pluginの中でもIPレイヤに纏る仕事(IPの割当、Routing Tableの設定など)はIP Address Management Plugin(通称IPAM)という形で切り出されていて、CNI Pluginの中でさらにIPAM Pluginを呼び出すような構造になっている。
+    - このIPAM Pluginを呼び出す責任もCNI Pluginが持つ
   - ホスト側のネットワーク設定(bridgeとの接続やRouting Tableの設定など)
-    > CNI Pluginの中でもIPレイヤに纏る仕事(IPの割当、Routing Tableの設定など)はIP Address Management Plugin(通称IPAM)という形で切り出されていて、CNI Pluginの中でさらにIPAM Pluginを呼び出すような構造になっています。
 
     https://zenn.dev/taisho6339/books/fc6facfb640d242dc7ec/viewer/9187c6  
     **https://github.com/containernetworking/cni/blob/main/SPEC.md#overview-1** (🌟CNI仕様)
@@ -34,9 +35,20 @@
 - 代表的なCNI PluginにはAWSのVPC CNIやCilium、Flannelなどがある
 
 # vethについて
-- veth(Virtual Ethernet Device)はVNICのこと
-- vethは必ずペアで作成され、2つのnetwork namespace同士にそれぞれを片方ずつvethを配置することで、２つのnetwork間で通信することができるようになる。
-- ２つのNICをそれぞれ２つの異なる端末に取り付けて、LANケーブルでそれぞれの端子を接続して直接通信しているような感じ
+- veth(Virtual Ethernet Device)は仮想NICの一種
+- vethは必ずペアで作成され、2つのnetwork namespaceに
+  それぞれ片方ずつ配置することで、2つのnamespace間で
+  通信できるようになる
+- 2つのNICをそれぞれ異なる端末に取り付けて、LANケーブルで
+  直接接続して通信しているようなイメージ
+
+## なぜvethが必要なのか
+- Podは独自のnetwork namespaceを持つため、Pod内の
+  コンテナとホストのネットワーク名前空間は分離されていて、
+  そのままではPodとホストは直接通信できない
+- vethペアの片方をPodのnamespaceに、もう片方をホストの
+  namespaceに配置することで、両者を仮想的なLANケーブルで
+  直結するように接続する
 
 # 同一Node上のPod間の通信
 - Bridge方式とNode上ルートテーブルを使ったL3ルーティング方式がある
