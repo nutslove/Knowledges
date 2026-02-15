@@ -103,6 +103,31 @@
 - PodからExternalへの通信
   - https://github.com/aws/amazon-vpc-cni-k8s/blob/master/docs/cni-proposal.md#pod-to-external-communications
   ![](../image/life_of_packet_pod_to_external.jpg)
+  - PodからExternalへの通信では、Podから出てきたパケットはEC2のPrimary ENIのPrimary IPアドレス（Private IP）に**SNAT**されてからEC2-VPC fabricに渡される。
+    - https://docs.aws.amazon.com/ja_jp/eks/latest/userguide/external-snat.html
+    - https://aws.amazon.com/jp/blogs/opensource/vpc-cni-plugin-v1-1-available/
+    - `AWS_VPC_K8S_CNI_EXTERNALSNAT`の設定（default: `false`）の設定でSNATの有無を切り替えることができる。`true`に設定すると、PodからExternalへの通信でSNATされなくなる。
+
+### PodからExternalへの通信時SNATが必要な理由
+
+- PodのIPアドレスはVPCサブネットのPrivate IPであり、VPC外部（インターネット等）のサーバーはこのIPに直接パケットを返すことができない
+- そのため、VPC外部への通信時には送信元IPを変換（SNAT）して、戻りのパケットがPodまで返ってこれるようにする必要がある
+
+#### パブリックサブネット + IGWの場合（AWS_VPC_K8S_CNI_EXTERNALSNAT=false：デフォルト）
+- IGW（インターネットゲートウェイ）は1:1 NATであり、EIP（Elastic IP）が紐づいたIPアドレスしか変換できない
+- PodのIPにはEIPが紐づいていないため、Pod IPのままIGWに到達しても変換できず通信が失敗する
+- そのため、VPC CNIがiptablesでPod IPをノードのプライマリENIのプライマリIP（EIPが紐づいている）にSNATする
+- パケットの流れ：Pod IP → **SNAT(Node IP)** → **IGW(EIP)** → インターネット
+
+#### プライベートサブネット + NAT GWの場合（AWS_VPC_K8S_CNI_EXTERNALSNAT=true）
+- NAT GW（NATゲートウェイ）はどんなPrivate IPでも変換できるため、Pod IPのままでもNAT GWが変換してくれる
+- VPC CNIによるSNATは不要（AWS_VPC_K8S_CNI_EXTERNALSNAT=trueで無効化可能）
+- パケットの流れ：Pod IP → **NAT GW(NAT GW IP)** → インターネット
+- AWS_VPC_K8S_CNI_EXTERNALSNAT=falseのままだとPod IP → Node IP → NAT GW IPと二重NATになり非効率
+
+#### AWS_VPC_K8S_CNI_EXTERNALSNAT=trueにするメリット
+- 二重NATを回避できる
+- VPN、Direct Connect、VPCピアリング先からPod IPが直接見えるため、通信元の特定やトラフィック追跡がしやすくなる
 
 > [!NOTE]  
 > - 上記で登場する「EC2-VPC fabric」はVPCのパケット配送を担う基盤ネットワークのこと。
