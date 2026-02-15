@@ -109,7 +109,6 @@
     - `AWS_VPC_K8S_CNI_EXTERNALSNAT`の設定（default: `false`）の設定でSNATの有無を切り替えることができる。`true`に設定すると、PodからExternalへの通信でSNATされなくなる。
 
 ### PodからExternalへの通信時SNATが必要な理由
-
 - PodのIPアドレスはVPCサブネットのPrivate IPであり、VPC外部（インターネット等）のサーバーはこのIPに直接パケットを返すことができない
 - そのため、VPC外部への通信時には送信元IPを変換（SNAT）して、戻りのパケットがPodまで返ってこれるようにする必要がある
 
