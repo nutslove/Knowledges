@@ -62,6 +62,97 @@
 
 ---
 
+# IPIP / VXLAN メモ
+
+## 1. デカプセル化の仕組み — ルートテーブルは使わない
+
+カプセル化されたパケットを受信したとき、デカプセル化はルートテーブルではなく**カーネルのプロトコル処理レイヤー**で行われる。
+
+### IPIP の場合
+- 外側IPヘッダの**プロトコル番号が4**（IPIP）であることをカーネルが検出
+- `ip_local_deliver_finish` でプロトコル番号を判定し、IPIPカーネルモジュール（tunl0）にパケットを直接渡す
+- tunl0が外側ヘッダを剥がして（デカプセル化）、内側パケットがルートテーブルで再検索される
+
+```
+ip_rcv → ip_local_deliver → ip_local_deliver_finish
+  → Protocol=4 を検出 → tunnel4_rcv → ip_tunnel_rcv（tunl0がデカプセル化）
+  → 内側パケットをルートテーブルで検索 → caliXXX(veth) → Pod
+```
+
+参考: https://chenchun.github.io/network/2017/10/24/ipip
+
+### VXLAN の場合
+- 外側IPヘッダのプロトコル番号は**17（UDP）**
+- UDPスタックに渡り、**ポート4789で待ち受けているVXLANモジュール（VTEP）** がパケットを受け取る
+- VXLANヘッダのVNIを確認後、デカプセル化して内側パケットがルートテーブルで再検索される
+
+```
+ip_rcv → ip_local_deliver → UDPスタック（Protocol=17）
+  → ポート4789 → VXLANモジュール（vxlan.calico）がデカプセル化
+  → 内側パケットをルートテーブルで検索 → caliXXX(veth) → Pod
+```
+
+### 共通点
+- どちらもデカプセル化にルートテーブルは関与しない
+- ルートテーブルが使われるのは**デカプセル化後**の内側パケットに対して
+
+---
+
+## 2. カプセル化は送信元IPも書き換わる
+
+カプセル化では宛先IPだけでなく、**送信元IPもノードのIPになる**。
+
+```
+Outer IP Header:  送信元 = 送信元ノードのIP    宛先 = 宛先ノードのIP
+Inner IP Header:  送信元 = 送信元PodのIP       宛先 = 宛先PodのIP
+```
+
+具体例:
+```
+[Outer: 192.168.0.176 → 192.168.0.146] [Inner: 172.16.52.132 → 172.16.103.65] [Payload]
+         自ノード        相手ノード            Pod A              Pod B
+```
+
+### なぜ送信元もノードIPにするのか
+- 物理ネットワーク上のルーターはPodのIP（172.16.x.x）への戻り経路を知らない
+- 外側の送信元がPodのIPだと応答パケットが返ってこれない
+- **内側のIPは一切書き換えていない**ので、デカプセル化すれば元のPod IPが取り出され、K8sの「NATなし通信」の要件を満たせる
+
+---
+
+## 3. IPIP と VXLAN の違い
+
+| 項目 | IPIP | VXLAN |
+|------|------|-------|
+| カプセル化レイヤー | L3（IPヘッダのみ） | L2（Ethernetフレームごと） |
+| オーバーヘッド | 20 bytes（小さい） | 50 bytes（大きい） |
+| プロトコル | IP Protocol 4 | UDP ポート 4789 |
+| MAC情報の保持 | なし | あり |
+| マルチテナント（VNI） | 非対応 | 対応（最大16M） |
+| ファイアウォール通過 | △ プロトコル4がブロックされることがある | ○ UDPなので通りやすい |
+| パフォーマンス | ◎ ヘッダ小＆シンプル | ○ 良好 |
+| CNIの例 | Calico（デフォルト） | Flannel, Calico, Cilium |
+| トンネルデバイス名（Calico） | tunl0 | vxlan.calico |
+| デカプセル化の判定 | IPヘッダのプロトコル番号 | UDPポート番号 |
+
+### パケット構造の比較
+
+**IPIP:**
+```
+[Outer IP: Node→Node] [Inner IP: Pod→Pod] [Payload]
+```
+
+**VXLAN:**
+```
+[Outer IP: Node→Node] [Outer UDP: :4789] [VXLAN Header(VNI)] [Inner Ethernet] [Inner IP: Pod→Pod] [Payload]
+```
+
+### 使い分けの目安
+- **IPIP**: 同一L3ネットワーク内でシンプルかつ高速に通信したい場合
+- **VXLAN**: クラウド環境やFW越え、L2情報の保持が必要な場合
+
+---
+
 # Trouble Shooting
 ## 1. WorkNodeがNotReadyの状態になる
 ### 事象
