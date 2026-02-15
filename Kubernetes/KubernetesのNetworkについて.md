@@ -191,6 +191,15 @@ sudo iptables -t nat -L KUBE-SEP-XXXXXXXX -n  # XXXXXXXXは実際のハッシュ
   - **KUBE-EXT-XXX** チェーンから **KUBE-SVC-XXX** チェーンにリダイレクト（以降はClusterIPタイプと同様）
   - **KUBE-EXT-XXX** チェーンには **KUBE-MARK-MASQ** チェーンもある
 
+> [!NOTE]  
+> KUBE-NODEPORTSチェーンのマッチ条件は **宛先ポート（`tcp dpt:XXX` = NodePort番号）のみ**。  
+> `destination`が`0.0.0.0/0`（任意）になっており、どのNodeのIPに来ても受け付けるため、宛先IPは問わずポート番号だけで振り分ける。  
+> ```
+> Chain KUBE-NODEPORTS (1 references)
+> target                     prot opt source       destination
+> KUBE-EXT-DNGND57GJIDW2NIJ tcp  --  0.0.0.0/0    0.0.0.0/0        /* monitoring/loki-distributor:http-metrics */ tcp dpt:31234
+> ```
+
 - `ClusterIP`の場合と同様に、**KUBE-SVC-XXX** と **KUBE-SEP-XXX** チェーンを作成  
   ただし、ノード上の特定ポートに到着したトラフィックも処理対象になる
 
