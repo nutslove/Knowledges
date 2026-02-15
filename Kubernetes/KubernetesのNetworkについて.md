@@ -238,6 +238,31 @@ KUBE-MARK-MASQは`NodePort`と`ClusterIP`の両方のiptablesルールに登場�
   2. **SNAT実行（POSTROUTING段階）**：`KUBE-POSTROUTING`チェーンで、マークが付いたパケットに対して`MASQUERADE`（SNAT）を実行し、送信元IPをNodeのIPに書き換える
 - なぜ2段階なのかというと、SNATはPOSTROUTINGでしか実行できないが、「SNATが必要かどうか」の判断はPREROUTINGの時点で行う必要があるため、一旦マークで印を付けておく必要がある
 
+##### 実際のSNAT（MASQUERADE）ルールの確認：
+```bash
+  sudo iptables -t nat -L KUBE-POSTROUTING -n -v
+```
+```
+  Chain KUBE-POSTROUTING (1 references)
+   pkts bytes target      prot opt in  out  source       destination
+      0     0 RETURN      0    --  *   *    0.0.0.0/0    0.0.0.0/0    mark match ! 0x4000/0x4000
+     12   720 MARK        0    --  *   *    0.0.0.0/0    0.0.0.0/0    MARK xor 0x4000
+     12   720 MASQUERADE  0    --  *   *    0.0.0.0/0    0.0.0.0/0    /* kubernetes service traffic requiring SNAT */ random-fully
+```
+  - 1行目（RETURN）：マーク`0x4000`が付いて**いない**パケットはここで処理終了（SNATしない）
+  - 2行目（MARK xor）：マークを外す（後続処理に影響しないように）
+  - 3行目（MASQUERADE）：**送信元IPをNodeのIPに書き換える（これが実際のSNAT）**
+  - つまり、KUBE-MARK-MASQで`0x4000`マークが付いたパケットだけが1行目のRETURNをスキップし、3行目のMASQUERADEまで到達する
+- なお、MASQUERADEルールには具体的なSNAT先IPが記載されていない。これは`MASQUERADE`が **パケットが出ていくネットワークインターフェースのIPアドレスを動的に使う** という動作をするため。明示的にIPを指定する`SNAT`（例：`SNAT --to-source 192.168.1.1`）とは異なり、NodeのIPが変わっても自動で追従できるメリットがある（クラウド環境ではIP変更の可能性があるため）
+- 実際にどのIPでSNATされたかを確認したい場合は、iptablesルールではなく**conntrackテーブル**を参照する：
+```bash
+  sudo conntrack -L -n | grep 172.16.246.240
+```
+```
+  tcp  6 117 TIME_WAIT src=203.0.113.10 dst=192.168.1.1 sport=54321 dport=31234 src=172.16.246.240 dst=192.168.1.1 sport=3100 dport=54321 [ASSURED] mark=0 use=1
+```
+  この出力から、元のパケット（`src=203.0.113.10 dst=192.168.1.1`）に対して、SNATで`192.168.1.1`（NodeのIP）が送信元として使われたことが確認できる
+
 #### NodePort/LoadBalancerの場合：外部からのトラフィックの戻りパケット問題
 - **KUBE-EXT-XXX** チェーン内のKUBE-MARK-MASQは、外部からのトラフィック全般にマーキングする
 - **なぜ必要か**：外部クライアントからNodePortに来たトラフィックが、別NodeのPodに転送される場合に、SNATをしないと応答パケットがクライアントに正しく戻らない
