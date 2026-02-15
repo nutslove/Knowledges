@@ -229,6 +229,77 @@ sudo iptables -t nat -L KUBE-SEP-XXXXXXXX -n  # XXXXXXXXは実際のハッシュ
 sudo iptables -t nat -L KUBE-MARK-MASQ -n
 ```
 
+### KUBE-MARK-MASQ（SNAT用マーキング）について
+KUBE-MARK-MASQは`NodePort`と`ClusterIP`の両方のiptablesルールに登場するが、それぞれ用途が異なる。
+
+#### そもそもKUBE-MARK-MASQとは
+- KUBE-MARK-MASQは **2段階** で動作する
+  1. **マーキング（PREROUTING段階）**：パケットにnetfilterのマーク（`0x4000`）を付けるだけ
+  2. **SNAT実行（POSTROUTING段階）**：`KUBE-POSTROUTING`チェーンで、マークが付いたパケットに対して`MASQUERADE`（SNAT）を実行し、送信元IPをNodeのIPに書き換える
+- なぜ2段階なのかというと、SNATはPOSTROUTINGでしか実行できないが、「SNATが必要かどうか」の判断はPREROUTINGの時点で行う必要があるため、一旦マークで印を付けておく必要がある
+
+#### NodePort/LoadBalancerの場合：外部からのトラフィックの戻りパケット問題
+- **KUBE-EXT-XXX** チェーン内のKUBE-MARK-MASQは、外部からのトラフィック全般にマーキングする
+- **なぜ必要か**：外部クライアントからNodePortに来たトラフィックが、別NodeのPodに転送される場合に、SNATをしないと応答パケットがクライアントに正しく戻らない
+
+- **SNATなしの場合（通信が壊れるケース）**
+  ```
+  ① 外部クライアント (203.0.113.10) → Node A (192.168.1.1:30080) にリクエスト送信
+  ② Node A でDNAT: 宛先を Node B上のPod (172.16.52.171:3100) に変換して転送
+  ③ Pod が応答を返す:
+       src: 172.16.52.171 → dst: 203.0.113.10  ← PodのIPから直接クライアントへ
+
+  ④ クライアントの視点：
+       「192.168.1.1 に送ったのに、172.16.52.171 という知らないIPから返事が来た…破棄！」
+       → TCPセッションが成立しない
+  ```
+
+- **SNATありの場合（正常動作）**
+  ```
+  ① 外部クライアント (203.0.113.10) → Node A (192.168.1.1:30080) にリクエスト送信
+  ② Node A でDNAT（宛先変換）: 宛先を Pod (172.16.52.171:3100) に変換
+     Node A でSNAT（送信元変換）: 送信元を Node A (192.168.1.1) に変換してからPodへ転送
+  ③ Pod が応答を返す:
+       src: 172.16.52.171 → dst: 192.168.1.1（Node A宛て）
+
+  ④ Node A がconntrackテーブルで逆変換:
+       送信元を Pod IP → Node A IP に戻す
+       宛先を Node A IP → クライアント (203.0.113.10) に戻す
+       → クライアントへ返送
+
+  ⑤ クライアントの視点：
+       「192.168.1.1 に送って、192.168.1.1 から返ってきた」→ 正常！
+  ```
+
+#### ClusterIP（KUBE-SEP-XXX）の場合：ヘアピン通信の問題
+- **KUBE-SEP-XXX** チェーン内のKUBE-MARK-MASQは、NodePortとは異なり **送信元がそのPod自身のIPの場合のみ** マーキングする
+- 実際のiptables出力を見ると、`source`に特定のPod IPが条件として設定されている：
+  ```bash
+  Chain KUBE-SEP-MX23SORTH2LOBGTI
+  target          prot  source            destination
+  KUBE-MARK-MASQ  0    172.16.246.240/32  0.0.0.0/0      ← sourceがPod自身のIPの場合のみ
+  DNAT            tcp   0.0.0.0/0         0.0.0.0/0       tcp to:172.16.246.240:3100
+  ```
+- **なぜ必要か**：PodがService経由で自分自身にアクセスした場合（ヘアピン通信）に、SNATをしないとルーティングが破綻する
+  ```
+  Pod A (172.16.246.240) → Service ClusterIP → DNAT → Pod A (172.16.246.240) に戻る
+
+  SNATなしだと：
+    送信元: 172.16.246.240 → 宛先: 172.16.246.240（自分から自分へ）
+    → ルーティングがおかしくなる（ループバック扱いになる等）
+
+  SNATありだと：
+    送信元: NodeのIP → 宛先: 172.16.246.240
+    → 正常にPodに到達し、応答もNode経由で戻せる
+  ```
+
+#### まとめ
+
+|シナリオ|KUBE-MARK-MASQの条件|目的|
+|---|---|---|
+|NodePort/LoadBalancer（KUBE-EXT-XXX内）|外部からのトラフィック全般|クライアントへの応答がNodePortを受けたNode経由で正しく戻るようにする|
+|ClusterIP（KUBE-SEP-XXX内）|送信元が宛先Podと同一IPの場合のみ|ヘアピン通信（Pod→Service→同じPod）でのルーティング破綻を防ぐ|
+
 ### Headless Serviceはどうなのか
 - Headless ServiceはCluster IPを持たないため、iptablesのKUBE-SVC-XXX チェーンも作成されない
 - Headless Serviceのルーティングはiptablesではなく、主にDNSによって処理される
