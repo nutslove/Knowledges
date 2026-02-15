@@ -132,6 +132,16 @@
 - **KUBE-SERVICES** チェーンにルール追加：  
   `Service`の`ClusterIP`宛てのトラフィックを **KUBE-SVC-XXX** チェーン（`Service`固有のチェーン）にリダイレクト
 
+> [!NOTE]  
+> KUBE-SERVICESチェーンのマッチ条件は、パケットの**宛先IP（= ClusterIP）** と **宛先ポート（`tcp dpt:XXX`）** の2つ。  
+> 例えば以下の出力では、`destination`列のClusterIPと`tcp dpt:`のポート番号が一致するパケットが該当する`KUBE-SVC-XXX`チェーンに送られる。  
+> ```
+> Chain KUBE-SERVICES (2 references)
+> target                     prot opt source       destination
+> KUBE-SVC-DNGND57GJIDW2NIJ tcp  --  0.0.0.0/0    10.100.45.132    /* monitoring/loki-distributor:http-metrics cluster IP */ tcp dpt:3100
+> KUBE-SVC-NPX46M4PTMTKRN6Y tcp  --  0.0.0.0/0    10.100.0.1       /* default/kubernetes:https cluster IP */ tcp dpt:443
+> ```
+
 - **KUBE-SVC-XXX** チェーン（ロードバランシング用）：  
   複数のPodがある場合、確率的に各Podに振り分けるためのルール  
   例えば3つのPodがある場合、各Podに33%の確率でトラフィックを送るルール  
