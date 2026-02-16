@@ -33,6 +33,8 @@ configReloader:
 ### `stage.timestamp`
 - https://grafana.com/docs/alloy/latest/reference/components/loki/loki.process/#stagetimestamp
 - ログのタイムスタンプを指定したフィールドから抽出して、ログエントリのタイムスタンプとして使用するためのstage。
+- `source`で指定したフィールドから値を抽出し、`format`で指定した形式でタイムスタンプを解析する。
+- **`source`で指定するフィールドが存在しない場合や、値が指定した形式で解析できない場合は、デフォルトの到着時刻のタイムスタンプが使用される。**
 - `time`フィールド（RFC3339形式）の値を抽出して、ログエントリのタイムスタンプとして使用する例  
   ```
   loki.source.awsfirehose "loki_firehose_receiver" {
