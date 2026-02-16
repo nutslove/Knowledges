@@ -141,7 +141,7 @@
 
 - 各metricごとに以下３つのmetricsが生成される
   1. `<metric名>_bucket{le=<事前に定義したleの値>}`
-     - `le`以下の値を持つmetricのカウント
+     - `le`**以下**の値を持つmetricのカウント
   2. `<metric名>_sum`
      - (すべてのバケットの)metric値の合計値
   3. `<metric名>_count`
@@ -149,6 +149,7 @@
      - **`<metric名>_bucket{le="+Inf"}`の値と同じ**
        - `{+Inf}`は(Infinity)上限なしを意味し、すべての値のカウントが入る
 - `le`は「less than or equal to」の略で以下という意味
+  - つまり、`le="0.5"` というバケットには、0.5以下の値が入る
 - Histogramメトリクスの例
   ~~~
   http_request_duration_seconds_bucket{le="0.05"} 100
