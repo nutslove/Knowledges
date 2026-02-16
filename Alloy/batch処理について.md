@@ -9,7 +9,20 @@
 > - あと、`otelcol.processor.batch`は`otelcol.processor.memory_limiter`やany sampling processorsの次に配置するように記載されている。  
 > > Define the batch processor in the pipeline after the `otelcol.processor.memory_limiter` as well as any sampling processors. Batching should happen after any processing that drops data such as sampling.
 
-- 例  
+- 基本的な設定例  
+  ```
+  otelcol.processor.batch "default" {
+    timeout         = "10s"
+    send_batch_size = 1000
+    output {
+      metrics = [otelcol.exporter.otlp.production.input]
+      logs    = [otelcol.exporter.otlp.production.input]
+      traces  = [otelcol.exporter.otlp.production.input]
+    }
+  }
+  ```
+
+- 具体的な例  
   ```
   // loki.source.awsfirehose receives logs from AWS Firehose( to alb - alloy ).
   loki.source.awsfirehose "loki_firehose_receiver" {
