@@ -181,3 +181,27 @@ Having said that, you could have this option in your loki config under:
               prefix: loki_tsdb_index_
               period: 24h
       ~~~
+
+---
+
+## GrafanaでLokiのログをクエリーしたら`context deadline exceeded (Client.Timeout exceeded while awaiting headers)`エラーが出る
+- 事象
+  - GrafanaでLokiのログをクエリーしたら以下のようなエラーが出る  
+    ```shell
+    Get "http://multi-tenant-loki-gateway.monitoring.svc/loki/api/v1/query_range?direction=backward&end=1771224937378000000&limit=1000&query=%7Bservice_name%3D%22backend%22%7D%0A++++%7C+json%0A++++%7C+level%3D~%22%28%3Fi%29%5Eerror%24%22&start=1771223137378000000&step=1000ms": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
+    ```
+  - Querierからは以下のようなエラーが出ていた  
+    ```shell
+    level=error ts=2026-02-16T07:34:58.226233423Z caller=scheduler_processor.go:254 component=querier org_id=mrpopo traceID=5d70b6750bf991f5 frontend=172.22.28.148:9095 msg="error notifying frontend about finished query" err="rpc error: code = ResourceExhausted desc = grpc: received message larger than max (6698514 vs. 4194304)"
+    ```
+- 原因
+  - Lokiのquerierがクエリ結果をfrontend（scheduler）に返そうとした際、レスポンスサイズがgRPCのデフォルトの最大値の4MB（4194304 bytes）を超えていたため、gRPCのResourceExhaustedエラーが出ていた
+- 対処
+  - https://github.com/grafana/loki/issues/2271
+  - `server`ブロックの`grpc_server_max_recv_msg_size`と`grpc_server_max_send_msg_size`の値をクエリ結果のサイズに合わせて大きくする（以下は`values.yml`の例）  
+    ```yaml
+    loki:
+      server:
+        grpc_server_max_recv_msg_size: 10485760 # default is 4194304 (4MB)
+        grpc_server_max_send_msg_size: 10485760 # default is 4194304 (4MB)
+    ```
