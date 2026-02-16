@@ -2,6 +2,13 @@
 - `otelcol.processor.batch`は、OpenTelemetry Collectorのprocessorの一種で、受信したログを一定のバッチサイズや一定の時間間隔でまとめて処理するためのコンポーネント。
 - defaultではbatch processorは有効になってないので、receiverとexporterの間に明示的にbatch processorを追加する必要がある。
 - https://grafana.com/docs/alloy/latest/reference/components/otelcol/otelcol.processor.batch/
+
+> [!IMPORTANT]  
+> - Grafana Labsは、OpenTelemetry（otelcol）コンポーネントを使用するすべてのAlloyにbatch processorを設定することを強く推奨している。  
+> > Grafana Labs strongly recommends that you configure the batch processor on every Alloy that uses OpenTelemetry (otelcol) Alloy components.
+> - あと、`otelcol.processor.batch`は`otelcol.processor.memory_limiter`やany sampling processorsの次に配置するように記載されている。  
+> > Define the batch processor in the pipeline after the `otelcol.processor.memory_limiter` as well as any sampling processors. Batching should happen after any processing that drops data such as sampling.
+
 - 例  
   ```
   // loki.source.awsfirehose receives logs from AWS Firehose( to alb - alloy ).
