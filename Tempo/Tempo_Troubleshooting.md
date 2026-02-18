@@ -78,7 +78,7 @@
           max_label_value_length: 2048
   ~~~
 
-## GrafanaのDrildownでTrace （Tempo） を選択するとエラーが発生する件
+## GrafanaのDrildownでTrace （Tempo） を選択するとエラーが発生する
 ### 事象
 - GrafanaのDrilldonwでTrace (Tempo) を選択すると以下のエラーが発生する
   ```
@@ -149,3 +149,27 @@
 > [!IMPORTANT]  
 > - Tempoがマルチテナントモードの場合、`remote_write_add_org_id_header: true`を設定すると、Headerに`X-Scope-OrgID`が追加される
 > - ただ、Remote Write先がThanosなど、テナントを識別するHeader名が異なる場合は、`inject_tenant_id_as`でテナント識別用のラベルを指定した上で、Remote Write先としてcortex-tenantを指定して、cortex-tenant側でそのラベルを元にThanos用のHeaderに変換するように設定する必要がある
+
+## Tempoのクエリで`rpc error: code = ResourceExhausted desc = grpc: received message larger than max (6698514 vs. 4194304)`エラーが出る
+- 事象
+  - GrafanaでTempoのクエリを実行したら以下の添付のようなエラーが出る  
+  ![grpc_error](./img/grpc_error.png)
+
+  - あと、TempoのQuerierからは以下のようなエラーが出ていた  
+    ```shell
+    level=error ts=2026-02-18T10:36:16.534624984Z caller=frontend_processor.go:84 msg="error processing requests" address=10.23.13.124:9095 err="rpc error: code = ResourceExhausted desc = grpc: received message after decompression larger than max 4194304"
+    ```
+- 原因
+  - レスポンスサイズがgRPCのデフォルトの最大値の4MB（4194304 bytes）を超えていたため、gRPCのResourceExhaustedエラーが出ていた
+
+> [!NOTE]  
+> https://grafana.com/docs/tempo/latest/configuration/#server
+> - Tempo自体の `server`ブロックの`grpc_server_max_recv_msg_size`と`grpc_server_max_send_msg_size`の値は `16777216`になっているけど、なぜかHelm側（https://github.com/grafana-community/helm-charts/tree/main/charts/tempo-distributed） はデフォルト値として、`4194304`を設定している。なので、Helmのvalues.ymlで明示的に大きくする必要がある。
+
+- 対処
+  - `server`ブロックの`grpc_server_max_recv_msg_size`と`grpc_server_max_send_msg_size`の値をクエリ結果のサイズに合わせて大きくする（以下は`values.yml`の例）  
+    ```yaml
+    server:
+      grpc_server_max_recv_msg_size: 16777216 # 16MB
+      grpc_server_max_send_msg_size: 16777216 # 16MB
+    ```
