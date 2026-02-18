@@ -335,8 +335,14 @@ KUBE-MARK-MASQは`NodePort`と`ClusterIP`の両方のiptablesルールに登場�
   - **https://christina04.hatenablog.com/entry/iptables-outline?utm_source=pocket_saves**
   - https://zenn.dev/kanehori/articles/4c1212c0ba477e
 - パケットフィルタリングとNATを実現するためのコマンドラインツール
-- `Chain` -> `Table` -> `Target（Rule）`の順番に処理される  
+- `Chain` → `Table`（優先順） → `Rule`（上から順） → `Target` の順に処理される 
   ![](./image/iptables_1.jpg)
+- **Table**
+  - **何をするのか（パケットフィルタリングか、NATか）**
+- **Chain**
+  - **どのタイミングでルールを適用（処理）するのか（パケットが入ってきたとき、出ていくときなど）**
+- **コマンド**
+  - **ルールをどうするのか（ルールを追加するのか、削除するのか、確認するのかなど）**
 - iptablesコマンドで良く使うパラメータ
   - `-n`: Portなどを数字で表示
   - `-L`: テーブル内のすべてのチェーンとそのルールの一覧を表示

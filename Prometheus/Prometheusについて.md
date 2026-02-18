@@ -141,7 +141,13 @@
 
 - 各metricごとに以下３つのmetricsが生成される
   1. `<metric名>_bucket{le=<事前に定義したleの値>}`
-     - `le`以下の値を持つmetricのカウント
+     - `le`**以下**の値を持つmetricのカウント
+     - ヒストグラムは**累積**カウント方式。値を1つ観測すると、条件に当てはまるすべてのバケットが同時に+1される
+       - 例：バケットが `[0.1, 0.5, 1.0]` で値 `0.2` を観測した場合
+         - `le="0.1"` → 変化なし（0.2は0.1以下ではない）
+         - `le="0.5"` → +1
+         - `le="1.0"` → +1
+         - `le="+Inf"` → +1（どんな値でも必ず+1される）
   2. `<metric名>_sum`
      - (すべてのバケットの)metric値の合計値
   3. `<metric名>_count`
@@ -149,6 +155,7 @@
      - **`<metric名>_bucket{le="+Inf"}`の値と同じ**
        - `{+Inf}`は(Infinity)上限なしを意味し、すべての値のカウントが入る
 - `le`は「less than or equal to」の略で以下という意味
+  - つまり、`le="0.5"` というバケットには、0.5以下の値が入る
 - Histogramメトリクスの例
   ~~~
   http_request_duration_seconds_bucket{le="0.05"} 100
@@ -160,6 +167,13 @@
   http_request_duration_seconds_count 350
   http_request_duration_seconds_sum 120
   ~~~
+
+> [!IMPORTANT]  
+> - `histogram_quantile`関数はクエリ式の最後のステップで使うようにすべき。
+> - 統計学的に、分位数（パーセンタイル）は集計したり、数学的操作を加えたりすることができない。そのため、集計値のヒストグラムを使う時には、**まず`sum`で集計してから、`histogram_quantile`を使う**  
+>   - 例: `histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le))`
+> - **`sum by`に`le`が必要な理由**: ヒストグラムは「0.1秒以下が何件」「0.5秒以下が何件」…というバケットごとのカウントで成り立っている。`le`なしで`sum`すると全バケットの数値がごちゃ混ぜになり、「どのバケットに何件」という情報が失われてしまう。`histogram_quantile`はこのバケット構造がないと計算できないので、`by (le)`でバケットごとに分けて集計する必要がある。
+> - **最終結果から`le`が消える理由**: `histogram_quantile`は全バケットのデータを読み取って「p95 = 0.24s」のような1つの値に変換する関数。バケット（`le`）はあくまで計算の材料なので、結果には残らない。
 
 ### Summary
 - 値の分布のquantile(percentile)（e.g. 中央値、90percentileなど）を直接計算する
