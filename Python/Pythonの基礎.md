@@ -25,30 +25,345 @@
 
 ---
 
-# `except`（例外処理）について
-- ある関数内の`except`で`raise`で上げたエラー内容は呼び出し元の関数に伝播される
-- 例
-  - 呼び出し元  
-    ```python
-    import test1
+# Pythonの例外処理について
 
-    try:
-      test1.test_func1("ng")
-    except Exception as e:
-      print(f"error: {e}")
-    ```  
-    **→ `"error: 呼び出し先でエラーが発生しました"`が出力される**
-  - 呼び出し先（`test1.py`）  
-    ```python
-    def test_func1(arg1: str):
+## 基本構文と各ブロックの役割
+
+```python
+try:
+    # 例外が発生する可能性のある処理
+except SomeException as e:
+    # 例外が発生したときの処理
+else:
+    # 例外が発生しなかったときのみ実行される処理
+finally:
+    # 例外の有無に関わらず必ず実行される処理
+```
+
+| ブロック | 実行タイミング |
+|----------|--------------|
+| `try` | 常に（途中で例外が発生するまで） |
+| `except` | 例外が発生したとき |
+| `else` | 例外が発生しなかったときのみ |
+| `finally` | 常に（例外有無・`return`があっても） |
+
+---
+
+## `except` — 例外のキャッチと伝播
+
+- `except`内で`raise`すると、例外は呼び出し元に伝播される
+- 呼び出し先（`test1.py`）  
+  ```python
+  def test_func1(arg1: str):
       try:
-        if arg1 == "ok":
-          pass
-        else:
-          raise ValueError("呼び出し先でエラーが発生しました")
-      except Exception as e:
-        raise e
-    ```
+          if arg1 == "ok":
+              pass
+          else:
+              raise ValueError("呼び出し先でエラーが発生しました")
+      except Exception:
+          raise  # 呼び出し元に伝播
+  ```
+
+- 呼び出し元  
+  ```python
+  import test1
+
+  try:
+      test1.test_func1("ng")
+  except Exception as e:
+      print(f"error: {e}")
+
+  # → "error: 呼び出し先でエラーが発生しました"
+  ```
+
+### `raise` vs `raise e` の違い
+
+`raise e` だとトレースバックが `except` 行から始まってしまい、**元の例外発生箇所が分かりにくくなる**。
+
+#### `raise e` の場合（非推奨）
+
+```python
+def test_func1(arg1: str):
+    try:
+        if arg1 != "ok":
+            raise ValueError("エラーが発生しました")  # ← 本来の発生箇所
+    except Exception as e:
+        raise e  # ← tracebackはここから始まってしまう
+```
+
+```
+Traceback (most recent call last):
+  File "main.py", line 4, in <module>
+    test1.test_func1("ng")
+  File "test1.py", line 6, in test_func1
+    raise e                        # ← ここが起点になる（本来の発生箇所ではない）
+ValueError: エラーが発生しました
+```
+
+#### `raise` の場合（推奨）
+
+```python
+def test_func1(arg1: str):
+    try:
+        if arg1 != "ok":
+            raise ValueError("エラーが発生しました")  # ← 本来の発生箇所
+    except Exception:
+        raise  # ← 元のtracebackがそのまま保たれる
+```
+
+```
+Traceback (most recent call last):
+  File "main.py", line 4, in <module>
+    test1.test_func1("ng")
+  File "test1.py", line 4, in test_func1
+    raise ValueError("エラーが発生しました")  # ← 本来の発生箇所が正しく表示される
+ValueError: エラーが発生しました
+```
+
+#### 差分まとめ
+
+| | `raise e` | `raise` |
+|---|---|---|
+| tracebackの起点 | `except`ブロックの`raise e`行 | 元の例外が発生した行 |
+| デバッグのしやすさ | 発生箇所が分かりにくい | 発生箇所がそのまま残る |
+
+---
+
+## `else` — 成功時のみ実行したい処理を分離する
+
+- `try`ブロックが例外なく完了したときだけ実行される
+- 「成功後の後処理」を`try`に含めず分離できる点がメリット
+
+```python
+def read_file(path: str):
+    try:
+        f = open(path, "r")
+    except FileNotFoundError as e:
+        print(f"ファイルが見つかりません: {e}")
+    else:
+        # openが成功したときだけ実行される
+        content = f.read()
+        f.close()
+        print(content)
+```
+
+> [!CAUTION]  
+> `else`内の処理で例外が発生しても、上の`except`はキャッチしない点に注意
+
+---
+
+## `finally` — 必ず実行したいクリーンアップ処理
+
+- 例外が発生しても、`return`があっても必ず実行される
+- ファイルのclose、DB接続の解放など後始末に使う
+
+```python
+def read_file(path: str):
+    f = None
+    try:
+        f = open(path, "r")
+        content = f.read()
+        return content
+    except FileNotFoundError as e:
+        print(f"ファイルが見つかりません: {e}")
+    finally:
+        if f:
+            f.close()  # returnがあっても必ず実行される
+```
+
+> ファイル・DB接続などは`with`文を使うとfinallyを書かずに同じことが実現できる
+> ```python
+> with open(path, "r") as f:
+>     content = f.read()  # withブロックを抜けると自動でclose
+> ```
+
+---
+
+## 例外の伝播は1回だけ（多重キャッチに注意）
+
+例外は`raise`されると、呼び出しスタックを**1段ずつ上に**伝播していく。
+途中の`except`でキャッチして`raise`しなければ、そこで止まる。
+
+以下は3層構造での例。
+
+```
+main.py  →  layer_a.py  →  layer_b.py  →  test1.py
+```
+
+### NG例：途中のlayer_aで握りつぶしてしまうケース
+
+```python
+# test1.py（最下層）
+def test_func1(arg1: str):
+    if arg1 != "ok":
+        raise ValueError("test1でエラー発生")
+```
+
+```python
+# layer_b.py
+import test1
+
+def func_b():
+    try:
+        test1.test_func1("ng")
+    except Exception:
+        raise  # layer_aには伝播する
+```
+
+```python
+# layer_a.py（ここで握りつぶす）
+import layer_b
+
+def func_a():
+    try:
+        layer_b.func_b()
+    except Exception as e:
+        print(f"[layer_a] キャッチしたがraiseしない: {e}")
+        # ← raiseがないのでmain.pyには伝播しない
+```
+
+```python
+# main.py
+import layer_a
+
+try:
+    layer_a.func_a()
+except Exception as e:
+    print(f"[main] キャッチ: {e}")  # ← ここには来ない
+```
+
+```
+# 出力
+[layer_a] キャッチしたがraiseしない: test1でエラー発生
+# [main]の出力は来ない
+```
+
+### OK例：全層でraiseして最上位まで伝播させるケース
+
+```python
+# test1.py（最下層）
+def test_func1(arg1: str):
+    if arg1 != "ok":
+        raise ValueError("test1でエラー発生")
+```
+
+```python
+# layer_b.py
+import test1
+
+def func_b():
+    try:
+        test1.test_func1("ng")
+    except Exception:
+        raise  # layer_aに伝播
+```
+
+```python
+# layer_a.py
+import layer_b
+
+def func_a():
+    try:
+        layer_b.func_b()
+    except Exception:
+        raise  # mainに伝播
+```
+
+```python
+# main.py
+import layer_a
+
+try:
+    layer_a.func_a()
+except Exception as e:
+    print(f"[main] キャッチ: {e}")  # ← ここで最終的にキャッチ
+```
+
+```
+# 出力
+[main] キャッチ: test1でエラー発生
+```
+
+tracebackを見ると、どの層を通ってきたかが全部記録されている。
+
+```
+Traceback (most recent call last):
+  File "main.py", line 4, in <module>
+    layer_a.func_a()
+  File "layer_a.py", line 5, in func_a
+    layer_b.func_b()
+  File "layer_b.py", line 5, in func_b
+    test1.test_func1("ng")
+  File "test1.py", line 3, in test_func1
+    raise ValueError("test1でエラー発生")
+ValueError: test1でエラー発生
+```
+
+### 途中でログだけ残してさらに伝播させるパターン（実務でよく使う）
+
+握りつぶしたくはないけど、各層でログを残したい場合は`raise`を忘れずに。
+
+```python
+# layer_a.py
+import logging
+import layer_b
+
+logger = logging.getLogger(__name__)
+
+def func_a():
+    try:
+        layer_b.func_b()
+    except Exception as e:
+        logger.error(f"[layer_a] エラーを検知: {e}")  # ログだけ残して
+        raise  # 握りつぶさずに上に伝播
+```
+
+---
+
+## 例外チェーン（`raise ... from`）
+
+別の例外に変換しつつ、元の例外情報も保持したい場合は`raise ... from`を使う。
+
+```python
+def func_a():
+    try:
+        layer_b.func_b()
+    except ValueError as e:
+        raise RuntimeError("layer_aレイヤーでのエラー") from e
+```
+
+```
+# tracebackに元のValueErrorとRuntimeErrorの両方が表示される
+ValueError: test1でエラー発生
+
+The above exception was the direct cause of the following exception:
+
+RuntimeError: layer_aレイヤーでのエラー
+```
+
+---
+
+## 複数の例外を使い分ける
+
+```python
+def parse_data(data: str):
+    try:
+        value = int(data)
+        result = 100 / value
+    except ValueError:
+        print("数値に変換できません")
+    except ZeroDivisionError:
+        print("0では割れません")
+    except Exception as e:
+        print(f"予期しないエラー: {e}")  # 上記以外の例外をまとめてキャッチ
+    else:
+        print(f"結果: {result}")
+    finally:
+        print("処理終了")
+```
+
+> [!IMPORTANT] 
+> `except`は上から順にマッチするため、`Exception`のような広い例外は必ず末尾に書く
 
 ---
 
