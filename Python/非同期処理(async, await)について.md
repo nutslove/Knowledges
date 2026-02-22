@@ -106,6 +106,86 @@
 - コルーチンの実行を管理し、I/Oイベントの発生を監視する中心的な役割を担う
 - タスクをスケジュールする
 
+### EventLoopの取得方法
+
+イベントループを取得・操作する方法はいくつかあり、利用シーンによって使い分ける。
+
+#### 1. `asyncio.get_running_loop()`（推奨・async関数内）
+
+```python
+import asyncio
+
+async def main():
+    loop = asyncio.get_running_loop()  # Python 3.7+
+    print(loop)
+
+asyncio.run(main())
+```
+
+- **async関数内で使う最も安全な方法**
+- 実行中のループが存在しない場合は`RuntimeError`を発生させるため、意図しない使い方を防げる
+- `get_event_loop()`との違いは、「今まさに動いているループしか返さない」点で、誤用のリスクが低い
+
+#### 2. `asyncio.get_event_loop()`（同期コードでの取得）
+
+```python
+import asyncio
+
+loop = asyncio.get_event_loop()
+loop.run_until_complete(some_coroutine())
+loop.close()
+```
+
+> [!WARNING]  
+> Python 3.10以降、実行中のループが存在しない状態でこれを呼ぶと`DeprecationWarning`が発生する。
+> 新しいコードでは後述の`asyncio.run()`や`asyncio.new_event_loop()`を使うことが推奨されている。
+
+#### 3. `asyncio.new_event_loop()`（新規ループを明示的に作成）
+
+```python
+import asyncio
+
+loop = asyncio.new_event_loop()
+asyncio.set_event_loop(loop)
+
+try:
+    loop.run_until_complete(some_coroutine())
+finally:
+    loop.close()
+```
+
+- テストコードや、既存のループとは独立したループが必要な場面で使う
+- 使い終わったら必ず`loop.close()`でリソースを解放すること
+
+#### 4. `asyncio.run()`（現代的な推奨パターン）
+
+```python
+import asyncio
+
+async def main():
+    # 必要な処理をここに書く
+    await asyncio.sleep(1)
+    print("done")
+
+asyncio.run(main())  # ループの作成・実行・クローズを自動管理
+```
+
+- Python 3.7+で推奨されるエントリーポイントのパターン
+- ループのライフサイクル（作成→実行→クローズ）を自動で管理してくれるため、手動でループを操作する必要がない
+- **`asyncio.run()`はasync関数の中では使えない**（その場合は`await`や`asyncio.create_task()`を使う）
+
+#### まとめ
+
+| 用途 | 推奨メソッド |
+|---|---|
+| async関数内でループが必要 | `asyncio.get_running_loop()` |
+| プログラムのエントリーポイント | `asyncio.run()` |
+| 新しいループを明示的に作成したい | `asyncio.new_event_loop()` |
+| 既存ループを取得（古い書き方） | `asyncio.get_event_loop()`（非推奨） |
+
+> [!TIP]  
+> 基本方針：**ループの管理は`asyncio.run()`に任せ、async関数内でループが必要な場合のみ`asyncio.get_running_loop()`を使う**。ループを直接操作するコードは、レガシーコードの維持や特殊なユースケース（テスト、マルチスレッド連携など）に限定するのがベストプラクティス。
+
 # コルーチンの実行方法
 ## `asyncio.run()`を使用
 - 最上位レベルからコルーチンを実行するために使う。これはプログラムのエントリーポイントで一度だけ呼び出すべき。
