@@ -186,6 +186,208 @@ asyncio.run(main())  # ループの作成・実行・クローズを自動管理
 > [!TIP]  
 > 基本方針：**ループの管理は`asyncio.run()`に任せ、async関数内でループが必要な場合のみ`asyncio.get_running_loop()`を使う**。ループを直接操作するコードは、レガシーコードの維持や特殊なユースケース（テスト、マルチスレッド連携など）に限定するのがベストプラクティス。
 
+### `asyncio.run()`の終了時の挙動
+
+`asyncio.run()`は`main()`が終了した後、**残っているタスクを安全にクリーンアップしてから**イベントループを閉じる。これは「`main()`が終わっても`await`していない野良タスクが残っている」ケースのリソースリークを防ぐための仕組み。
+
+#### なぜクリーンアップが必要なのか
+
+```python
+async def background_task(name):
+    print(f"{name}: 開始")
+    await asyncio.sleep(10)  # 10秒かかる処理
+    print(f"{name}: 完了")   # mainが先に終わるとここに到達しない
+
+async def main():
+    asyncio.create_task(background_task("タスクA"))  # awaitしない！
+    asyncio.create_task(background_task("タスクB"))  # awaitしない！
+
+    await asyncio.sleep(1)  # mainは1秒で終わる
+    print("mainが終了")
+    # ← タスクA・Bはまだ生きているが誰もawaitしていない（野良タスク）
+
+asyncio.run(main())
+```
+
+このままループを閉じると、タスクA・BのDB接続やファイルハンドルなどのリソースが解放されないままになってしまう。そのため`asyncio.run()`は自動でクリーンアップ処理を行う。
+
+#### クリーンアップの4ステップ
+
+```
+asyncio.run(main())
+│
+├─① main() を実行
+│
+├─② main() が終了
+│
+└─③ [クリーンアップ開始]
+     ├─ Step1: 残タスクを全部集める
+     ├─ Step2: 全タスクに cancel() を送る
+     ├─ Step3: gather() でグループ化
+     └─ Step4: 全タスクの終了を待つ
+         ↓
+     イベントループを閉じて完全終了
+```
+
+**Step1: まだ生きているタスクを全部集める**
+
+`main()`が終了した時点で、イベントループに残っているタスクをすべて把握する。
+
+```
+[main()終了時点でのイベントループの状態]
+
+イベントループ
+├── タスクA（asyncio.sleep(10)で待機中）← まだ生きてる
+└── タスクB（asyncio.sleep(10)で待機中）← まだ生きてる
+```
+
+**Step2: 全タスクにキャンセルを送る**
+
+各タスクに`cancel()`を送り、次に`await`に到達した時点で`CancelledError`を発生させる。タスク側で`try/except`を書いておけば、終了前に後片付け処理を実行できる。
+
+```python
+async def background_task(name):
+    try:
+        print(f"{name}: 開始")
+        await asyncio.sleep(10)
+    except asyncio.CancelledError:
+        # Step2でここが呼ばれる → 後片付けのチャンス
+        print(f"{name}: キャンセル受信 → クリーンアップ中...")
+        # DB接続を閉じる、ファイルを閉じるなどの処理をここに書く
+        raise  # CancelledErrorは必ずre-raiseする（マナー）
+    finally:
+        print(f"{name}: クリーンアップ完了")
+```
+
+> [!NOTE]  
+> `CancelledError`の処理は任意（`try/except`を書かなくてもいい）。書かない場合はキャンセル通知を受け取った時点でタスクがそのまま終了する。後片付け処理が必要な場合のみ書く。
+
+**Step3: gather()でグループ化**
+
+バラバラのタスクを一括管理できるようにまとめる。`return_exceptions=True`にすることで、`CancelledError`が発生しても`gather()`自体は止まらず全タスクの終了を待てる。
+
+```python
+# asyncio.run()が内部でやっていること（概念的なコード）
+group = asyncio.gather(*remaining_tasks, return_exceptions=True)
+```
+
+**Step4: 全タスクが"完了"するまで待つ**
+
+ここでの「完了」は「正常終了」だけでなく、**「CancelledErrorの処理が終わった状態」も含む**。後片付け処理が終わって初めて`asyncio.run()`が完全終了する。
+
+```
+タスクA: CancelledError発生 → except節でクリーンアップ → 終了 ✅
+タスクB: CancelledError発生 → except節でクリーンアップ → 終了 ✅
+          ↓ 全タスク完了
+        asyncio.run() が完全終了
+```
+
+#### 動作確認できる完全なサンプル
+
+```python
+import asyncio
+
+async def background_task(name):
+    try:
+        print(f"  [{name}] 開始（10秒かかる処理）")
+        await asyncio.sleep(10)
+        print(f"  [{name}] 完了")  # キャンセルされるので到達しない
+    except asyncio.CancelledError:
+        print(f"  [{name}] キャンセルを受け取った → クリーンアップ中...")
+        await asyncio.sleep(0.1)  # クリーンアップに少し時間がかかる想定
+        print(f"  [{name}] クリーンアップ完了")
+        raise  # 必ずre-raise
+
+async def main():
+    asyncio.create_task(background_task("タスクA"))
+    asyncio.create_task(background_task("タスクB"))
+
+    await asyncio.sleep(1)
+    print("=== main() 終了 ===")
+
+print("--- asyncio.run() 開始 ---")
+asyncio.run(main())
+print("--- asyncio.run() 完全終了 ---")
+
+# 出力:
+# --- asyncio.run() 開始 ---
+#   [タスクA] 開始（10秒かかる処理）
+#   [タスクB] 開始（10秒かかる処理）
+# === main() 終了 ===
+#   [タスクA] キャンセルを受け取った → クリーンアップ中...
+#   [タスクB] キャンセルを受け取った → クリーンアップ中...
+#   [タスクA] クリーンアップ完了
+#   [タスクB] クリーンアップ完了
+# --- asyncio.run() 完全終了 ---
+```
+
+#### CancelledError を re-raise しないとどうなるか
+
+`CancelledError`を`except`で捕まえて**re-raiseしないと、そのタスクは「正常終了した」とみなされる**。
+
+```python
+async def background_task(name):
+    try:
+        await asyncio.sleep(10)
+    except asyncio.CancelledError:
+        print(f"{name}: キャンセルされた（でもre-raiseしない）")
+        # raise しない ← これが問題
+        # → タスクは「正常終了」として扱われる
+```
+
+この場合、`task.cancelled()` が `False` になり、キャンセルが成功したかどうかを外側のコードが判断できなくなる。  
+具体的には Step4 のタイミングで問題が起きる。
+
+```
+Step2: cancel()を送る → CancelledError発生
+Step4: 全タスクの終了を待つ
+        ↑ re-raiseしていない場合
+          タスクが「正常終了」として返ってくる
+          → gather()は「キャンセルを送ったのに正常終了が返ってきた」という
+            矛盾した状態になる
+          → キャンセルの伝播チェーンが途中で断ち切られる
+```
+
+特に`TaskGroup`と組み合わせた場合、子タスクのキャンセルが正しく伝わらず、グループ全体のライフサイクル管理が壊れる。
+
+**「マナー」と表現した理由**：Pythonが強制しているわけではないが、慣例として守るべきルールであるため。ただし言語レベルでも設計意図が示されており、`CancelledError`はPython 3.8以降、`Exception`ではなく`BaseException`を直接継承している。
+
+```
+BaseException
+├── SystemExit
+├── KeyboardInterrupt
+├── CancelledError  ← Python 3.8+（Exceptionではない）
+└── Exception
+    ├── RuntimeError
+    └── ...
+```
+
+これは「キャンセルは通常のエラーではなく"終了シグナル"として扱うべき」という設計思想を示しており、`except Exception`では捕まえられないようになっている。re-raiseは「後片付けはするが、キャンセル要求には従う」という意思表示。
+
+#### Step4の「完了」に正常終了はあり得るか
+
+**あり得る。ただし意図的にそう書いた場合に限る。**
+
+`CancelledError`を捕まえてre-raiseせずに処理を完走させると、タスクは「正常終了」として扱われる。
+
+```python
+async def background_task():
+    try:
+        await asyncio.sleep(10)
+    except asyncio.CancelledError:
+        # キャンセルを受け取ったが、残りの処理を最後まで終わらせる
+        print("キャンセルされたが、残り処理を完走させる")
+        await finish_remaining_work()  # 追加の非同期処理も可能
+        return "正常終了の結果"  # ← re-raiseせずに正常値を返す
+```
+
+これは「途中でキャンセルされても最低限のデータだけは確実に保存したい」といった、意図的にキャンセルを無視して処理を完遂させたい場合の正当なパターン。ただし**上位のコードにキャンセルが伝わらない**という副作用があるため、`TaskGroup`と組み合わせる場合などは注意が必要。
+
+| re-raiseするか | タスクの状態 | キャンセル伝播 | 用途 |
+|---|---|---|---|
+| する（推奨） | キャンセル済み | 正常に伝わる | 後片付けだけして終わる |
+| しない | 正常終了扱い | 伝わらない | 意図的に処理を完走させたい場合のみ |
+
 # コルーチンの実行方法
 ## `asyncio.run()`を使用
 - 最上位レベルからコルーチンを実行するために使う。これはプログラムのエントリーポイントで一度だけ呼び出すべき。
