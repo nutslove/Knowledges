@@ -11,6 +11,11 @@ my-skill/
 └── assets/           # Optional: templates, resources
 ```
 
+> [!NOTE]  
+> - 上記以外のファイルやディレクトリも自由に追加可能
+>   - https://github.com/anthropics/skills/tree/main/skills/theme-factory (`themes`というディレクトリもある)
+>   - https://github.com/anthropics/skills/tree/main/skills/pptx (ルートディレクトリに`editing.md`などもある)
+
 # Frontmatter
 - https://agentskills.io/specification#frontmatter-required
 - `name`と`description`は必須
