@@ -46,3 +46,20 @@ my-skill/
   > 3. **Resources** (as needed): Files (e.g. those in `scripts/`, `references/`, or `assets/`) are loaded only when required
   >
   > Keep your main `SKILL.md` under 500 lines. Move detailed reference material to separate files.
+
+# `scripts/`
+- https://agentskills.io/specification#scripts/  
+  > Contains executable code that agents can run. Scripts should:
+  > - Be self-contained or clearly document dependencies
+  > - Include helpful error messages
+  > - Handle edge cases gracefully
+  >
+  > Supported languages depend on the agent implementation. Common options include Python, Bash, and JavaScript.
+
+
+# `assets/`
+- https://agentskills.io/specification#assets/  
+  > Contains static resources:
+  > - Templates (document templates, configuration templates)
+  > - Images (diagrams, examples)
+  > - Data files (lookup tables, schemas)
