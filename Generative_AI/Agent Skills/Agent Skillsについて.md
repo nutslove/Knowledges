@@ -2,7 +2,7 @@
 - https://agentskills.io/specification
 - skillのディレクトリに少なくても `SKILL.md`は必ず必要
 
-## ディレクトリ
+# ディレクトリ
 ```shell
 my-skill/
 ├── SKILL.md          # Required: instructions + metadata
@@ -11,7 +11,7 @@ my-skill/
 └── assets/           # Optional: templates, resources
 ```
 
-## Frontmatter
+# Frontmatter
 - https://agentskills.io/specification#frontmatter-required
 - `name`と`description`は必須
 
@@ -23,3 +23,21 @@ my-skill/
 | `compatibility` | No | Max 500 characters. Indicates environment requirements (intended product, system packages, network access, etc.). |
 | `metadata` | No | Arbitrary key-value mapping for additional metadata. |
 | `allowed-tools` | No | Space-delimited list of pre-approved tools the skill may use. (Experimental) |
+
+# Instructions
+- https://agentskills.io/specification#body-content  
+  > The Markdown body after the frontmatter contains the skill instructions. There are no format restrictions. Write whatever helps agents perform the task effectively.
+  > Recommended sections:
+  > - Step-by-step instructions
+  > - Examples of inputs and outputs
+  > - Common edge cases
+  > Note that the agent will load this entire file once it’s decided to activate a skill. Consider splitting longer SKILL.md content into referenced files.
+
+# Progressive Disclosure
+- https://agentskills.io/specification#progressive-disclosure  
+  > Skills should be structured for efficient use of context:
+  > 1. **Metadata** (~100 tokens): The `name` and `description` fields are loaded at startup for all skills
+  > 2. **Instructions** (< 5000 tokens recommended): The full `SKILL.md` body is loaded when the skill is activated
+  > 3. **Resources** (as needed): Files (e.g. those in `scripts/`, `references/`, or `assets/`) are loaded only when required
+  >
+  > Keep your main `SKILL.md` under 500 lines. Move detailed reference material to separate files.
