@@ -389,6 +389,43 @@ async def background_task():
 | しない | 正常終了扱い | 伝わらない | 意図的に処理を完走させたい場合のみ |
 
 # コルーチンの実行方法
+
+## 一般的な基本パターン
+
+実際の現場でのコードはほぼ次のパターンに収まる。
+
+```python
+def main():
+    asyncio.run(async_main())            # ① 同期の世界からasyncioを起動
+
+async def async_main():
+    task1 = asyncio.create_task(...)     # ② タスク化して並行実行をスケジュール
+    task2 = asyncio.create_task(...)
+    results = await asyncio.gather(task1, task2)  # ③ まとめて完了を待つ
+```
+
+他の方法はこの基本パターンでは対応できない要件のために存在する。
+
+| 方法 | 使う場面 |
+|---|---|
+| `await コルーチン` | 並行不要な時に直列で呼ぶ（シンプルなケース） |
+| `asyncio.gather(コルーチン直接)` | `create_task`の手間を省きたい省略記法 |
+| `TaskGroup`（3.11+） | エラー時に他タスクも確実にキャンセルしたい場合（`gather`の堅牢版） |
+| `as_completed` | 完了した順に即座に処理したい場合 |
+
+Python 3.11以降であれば`TaskGroup`が`gather`より安全なため、新規コードでは`TaskGroup`を基本とする流儀も増えている。
+
+```python
+# Python 3.11+での現代的な基本パターン
+async def async_main():
+    async with asyncio.TaskGroup() as tg:
+        task1 = tg.create_task(fetch("url1"))
+        task2 = tg.create_task(fetch("url2"))
+    # ブロックを抜けた時点で全タスクの完了が保証される
+```
+
+`gather`は使いやすいが雑、`TaskGroup`は少し書き方が増えるが堅牢、という違い。
+
 ## `asyncio.run()`を使用
 - 最上位レベルからコルーチンを実行するために使う。これはプログラムのエントリーポイントで一度だけ呼び出すべき。
 - **`asyncio.run`は逆に`async`内では使えない**
@@ -405,6 +442,20 @@ async def background_task():
       return {"data": "結果"}
   ```
 - **`await`は`async`内でしか使えない**
+
+### `await`の仕組み
+```
+コルーチンが await に到達
+      ↓
+EventLoop に制御を返す（yield）
+      ↓
+EventLoop が OS の I/O 監視機構（epoll/kqueue 等）で
+「どの I/O が完了したか」を確認
+      ↓
+準備できた別のタスクに実行権を渡す
+      ↓
+元のタスクの I/O が完了したら、次の実行サイクルで再開  
+```
 
 ## `asyncio.create_task()`を使用
 - コルーチンをタスクに変換して並行実行させる方法
