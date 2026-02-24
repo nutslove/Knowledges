@@ -178,7 +178,7 @@
 
 ---
 
-## Tempoの`tempodb_blocklist_tenant_index_errors_total`メトリクスの件数（error）が発生している
+## Tempoの`tempodb_blocklist_tenant_index_errors_total`メトリクスの件数（error）が増加していて、QuerierとQuery Frontendでエラーが出ている
 
 ### 事象
 - Tempoの`tempodb_blocklist_tenant_index_errors_total`メトリクスの件数（error）が増加していて、QuerierとQuery Frontendで以下のようなエラーが出ている  
