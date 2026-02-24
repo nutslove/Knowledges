@@ -29,6 +29,9 @@ my-skill/
 | `metadata` | No | Arbitrary key-value mapping for additional metadata. |
 | `allowed-tools` | No | Space-delimited list of pre-approved tools the skill may use. (Experimental) |
 
+> [!IMPORTANT]  
+> - 最初は`name`と`description`だけがAgentのContext Windowに入って、どのSkillを使うかは`description`だけで判断されるため、`description`は特に重要。できるだけ具体的に、どんな時にどのタスクに使うべきか、具体的に記述すること。
+
 # Instructions
 - https://agentskills.io/specification#body-content  
   > The Markdown body after the frontmatter contains the skill instructions. There are no format restrictions. Write whatever helps agents perform the task effectively.
@@ -46,6 +49,10 @@ my-skill/
   > 3. **Resources** (as needed): Files (e.g. those in `scripts/`, `references/`, or `assets/`) are loaded only when required
   >
   > Keep your main `SKILL.md` under 500 lines. Move detailed reference material to separate files.
+
+> [!NOTE]  
+> - ユーザからのInputがどのSkillにもマッチしない場合、Agentは普通のLLMのモデルが学習した知識をもとに回答する。
+> - １回のユーザからのinputで複数のSkillが読み込まれることもある
 
 # `scripts/`
 - https://agentskills.io/specification#scripts/  
