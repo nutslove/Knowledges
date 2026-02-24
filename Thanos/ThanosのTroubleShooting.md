@@ -70,5 +70,8 @@
 ### 原因
 - compaction処理時に、圧縮対象のInputブロックだけではなく、Outputブロックも同じPVに作成されるため、InputブロックとOutputブロックの両方の容量が必要になり、outputブロックのための空き容量が十分じゃなかった
 
+> [!IMPORTANT]  
+> - compactorのPVの空き容量が十分にあるように見えても、compaction処理に必要な容量が足りてない（処理に失敗する）可能性があるので、空き容量ではなく、`thanos_compact_halted`メトリクスと`critical error detected; halting`エラーログで監視すること！
+
 ### 対策
 - compactorのPVの容量を増やす
