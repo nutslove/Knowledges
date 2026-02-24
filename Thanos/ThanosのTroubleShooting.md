@@ -56,3 +56,19 @@
 > [!IMPORTANT]  
 > **以下のPromQLでPVの使用率を監視すること！**  
 > `(kubelet_volume_stats_used_bytes / kubelet_volume_stats_capacity_bytes) * 100`
+
+---
+
+# Compactorの`compactor halt`エラー
+### 事象
+- Compactorのログに以下のようなエラー(`critical error detected; halting`)が出て、`thanos_compact_halted`メトリクスも"1"になる  
+  ```shell
+  ts=2026-02-18T11:42:30.015761639Z caller=compact.go:559 level=error msg="critical error detected; halting" err="compaction: group 0@13457662937362014338: compact blocks [/tmp/thanos/compact/compact/0@13457662937362014338/01KAN0XB9C5Z67DM96WR9JGMSW /tmp/thanos/compact/compact/0@13457662937362014338/01KAT5PRPF8WESAD5FE77CXFHE /tmp/thanos/compact/compact/0@13457662937362014338/01KAZAG8695GAN40H1T6ERVJC8 /tmp/thanos/compact/compact/0@13457662937362014338/01KB4FA0B3DHZ8ZPSMKY9329QF /tmp/thanos/compact/compact/0@13457662937362014338/01KB9M3EB1KGRG7XWJFWNYKWYN /tmp/thanos/compact/compact/0@13457662937362014338/01KBERX2HNHAQMEE4DFGTNNTTW /tmp/thanos/compact/compact/0@13457662937362014338/01KBKXWRJWNG4W6RET9AAG0B80]: 2 errors: preallocate: no space left on device; sync /tmp/thanos/compact/compact/0@13457662937362014338/01KHR8WC0TY3V7CK0F8QE10FYE.tmp-for-creation/chunks/000008: file already closed"
+  ```
+- `no space left on device;`エラーが出てるけど、実際 `(kubelet_volume_stats_used_bytes / kubelet_volume_stats_capacity_bytes) * 100`で確認したPV使用率は52%程度で、空き容量は十分にあるように見える状態だった
+
+### 原因
+- compaction処理時に、圧縮対象のInputブロックだけではなく、Outputブロックも同じPVに作成されるため、InputブロックとOutputブロックの両方の容量が必要になり、outputブロックのための空き容量が十分じゃなかった
+
+### 対策
+- compactorのPVの容量を増やす
