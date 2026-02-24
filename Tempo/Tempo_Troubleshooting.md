@@ -78,6 +78,8 @@
           max_label_value_length: 2048
   ~~~
 
+---
+
 ## GrafanaのDrildownでTrace （Tempo） を選択するとエラーが発生する
 ### 事象
 - GrafanaのDrilldonwでTrace (Tempo) を選択すると以下のエラーが発生する
@@ -173,3 +175,46 @@
       grpc_server_max_recv_msg_size: 16777216 # 16MB
       grpc_server_max_send_msg_size: 16777216 # 16MB
     ```
+
+---
+
+## Tempoの`tempodb_blocklist_tenant_index_errors_total`メトリクスの件数（error）が発生している
+
+### 事象
+- Tempoの`tempodb_blocklist_tenant_index_errors_total`メトリクスの件数（error）が増加していて、QuerierとQuery Frontendで以下のようなエラーが出ている  
+  ```shell
+  level=error ts=2026-02-24T09:57:04.325960337Z caller=poller.go:291 msg="failed to pull bucket index for tenant. falling back to polling" tenant=plat err="does not exist"
+  ```
+
+### 原因
+- 途中でテナント名（`X-Scope-OrgID`）を変更したため、S3上に古いテナント名のディレクトリが残っている。Querier/Query Frontendのポーリング処理がそのディレクトリを発見し、テナントインデックスを取得しようとするが存在しないため`tempodb_blocklist_tenant_index_errors_total`が増加し続けている
+- `poller.go:149` の `Tenants()`がバックエンドストレージのルート直下の全ディレクトリ名をテナントとして列挙する（`tempo_cluster_seed.json`と`work.json` のみ除外）。特定テナントをスキップする設定は存在しない。
+
+### 対処
+- `storage.trace.empty_tenant_deletion_enabled`を`true`に設定して、空のテナントを削除するようにする。
+  ```yaml
+  storage:
+    trace:
+      empty_tenant_deletion_enabled: true
+      empty_tenant_deletion_age: 12h # default: 12h
+  ```
+
+> [!NOTE]  
+> ### ブロック
+> - テナントディレクトリ配下の `<tenant>/<block-uuid>/` ディレクトリで、中に`meta.json`（通常ブロック）または `meta.compacted.json`（コンパクション済みブロック）を持つもの。1ブロック = 一定期間のトレースデータをまとめた単位。`Blocks()` は `<tenant>/` 配下を走査し、`<uuid>/meta.json` または `<uuid>/meta.compacted.json` にマッチするものだけをブロックとして返す。
+> ### オブジェクト
+> - テナントディレクトリ配下の全ファイル。`Find()` はフィルタなしで再帰的に全ファイルを列挙する。ブロックのデータファイル、テナントインデックスファイル（`index.json.gz`,`index.pb.zst`）、フラグファイル（`nocompact.flg`）など全てが含まれる。
+
+> [!IMPORTANT]  
+> ## 削除判定のフロー
+> 1. pollTenantBlocks() でテナント配下のブロック一覧を取得
+>    - `<tenant>/<uuid>/meta.json` → 通常ブロック
+>    - `<tenant>/<uuid>/meta.compacted.json` → compactedブロック
+> 2. ブロックが1つでもある場合 → `deleteTenant()` は呼ばれない。終了。
+>    - 「ブロックが1つでもある」= `<uuid>/meta.json` または `<uuid>/meta.compacted.json` を持つ UUID ディレクトリが1つでも存在する
+> 3. ブロックが0個の場合 → `deleteTenant()` が呼ばれる
+> 4. `Find()` でテナントディレクトリ配下の全オブジェクト（全ファイル）を再帰走査
+> 5. 各オブジェクトの最終更新日時を `empty_tenant_deletion_age` と比較
+> 6. `empty_tenant_deletion_age` より新しいオブジェクトが1つでもある → 何もしない。終了。
+> 7. 全オブジェクトが `empty_tenant_deletion_age` より古い →
+> テナントインデックスが存在しないことを再確認した上で、全オブジェクトを削除
