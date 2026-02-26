@@ -400,7 +400,7 @@
 ### Overlaps
 - *Block overlap*とは  
   > Set of blocks with exactly the same external labels in meta.json and for the same time or overlapping time period.
-  - meta.jsonの`thanos.labels`のExternal labelsと`minTime`,`maxTime`がすべて同じのBlockが複数あること
+  - **`meta.json`の`thanos.labels`のExternal labelsが同じで、`minTime`〜`maxTime`の範囲が少しでも重複しているBlockが複数あること**
 - なぜBlock overlapが発生するのか？
   - Receiverでレプリケーション（`--receive.replication-factor=2`以上）を使うと、**同じメトリクスが複数のReceiverに書き込まれるため**
 - Thanosはoverlapped blocksが絶対出ないようにデザインされていて、overlapped blocksはunexpected incidentと見なしてoverlapped blocksに対してautomatic repairを実装してない。  
