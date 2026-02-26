@@ -251,3 +251,29 @@ Inner IP Header:  送信元 = 送信元PodのIP       宛先 = 宛先PodのIP
   sudo systemctl restart kubelet
   ```
 - しばらくしてからkubectlコマンドが通ることを確認
+
+## 3. 突然kubectlコマンドで認証エラーとなる
+### 事象
+- ある日突然（それまでは正常に動作していた）、kubectlコマンドで以下のような認証エラーが発生するようになった  
+  ```shell
+  E0227 01:09:47.860588   14918 memcache.go:265] "Unhandled Error" err="couldn't get current server API group list: the server has asked for the client to provide credentials"
+  error: You must be logged in to the server (the server has asked for the client to provide credentials)
+  ```
+
+### 原因
+- クラスター内の証明書の有効期限が切れていた
+- master node上で以下のコマンドで証明書の有効期限を確認できる  
+  ```shell
+  kubeadm certs check-expiration
+  ```
+
+### 対処
+- master node上でkubeadmコマンドを使用して証明書を更新する  
+  ```shell
+  kubeadm certs renew all
+  ```
+- kubeletを再起動する  
+  ```shell
+  systemctl restart kubelet
+  ```
+- master node上の`/etc/kubernetes/admin.conf`の内容をクライアント側の`~/.kube/config`に反映する  
