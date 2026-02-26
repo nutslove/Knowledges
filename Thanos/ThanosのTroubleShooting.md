@@ -119,6 +119,7 @@
     thanos tools bucket mark --id "01KJBQ0VKS66N9W7R3DW9H27DC" --details "workernode restart" --marker "deletion-mark.json" --objstore.config-file "/etc/thanos/object-store.yaml"
     ```
   - 上記を実行すると、S3上の対象ブロックのディレクトリに`deletion-mark.json`ファイルが作成されて、compactorが次の周期でそのブロックを削除するようになる
+
 - **ただ、compactorには`--delete-delay=48h`が設定されていて、削除マークをつけたブロックはすぐには削除されない。**  
   そのため、以下のいずれかの追加対策が必要！  
   1. `thanos tools bucket cleanup`コマンドで**削除マークがついている**ブロックをすぐに削除する（**`--delete-delay=0s`を指定**）  
@@ -133,6 +134,8 @@
        thanos tools bucket cleanup --objstore.config-file="/etc/thanos/object-store.yaml" --delete-delay=0s
        ```
   2. compactorの`--delete-delay=0s`に変更して、削除マークがついているブロックをすぐに削除するようにする（**ただし、compactorの再起動が必要**）
+
+- ブロックを削除したあと、compactorを再起動する
 
 > [!CAUTION]  
 > - S3上からブロックを直接削除するとcompactorなどから予期しないエラーが出る可能性があるので注意が必要
