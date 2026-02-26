@@ -276,4 +276,10 @@ Inner IP Header:  送信元 = 送信元PodのIP       宛先 = 宛先PodのIP
   ```shell
   systemctl restart kubelet
   ```
+- master node上でkube-scheduler、kube-controller-manager、kube-apiserverを再起動する（kubeletが再作成してくれる）  
+  ```shell
+  sudo crictl ps -q --name kube-scheduler | xargs sudo crictl stop
+  sudo crictl ps -q --name kube-controller-manager | xargs sudo crictl stop
+  sudo crictl ps -q --name kube-apiserver | xargs sudo crictl stop
+  ```
 - master node上の`/etc/kubernetes/admin.conf`の内容をクライアント側の`~/.kube/config`に反映する  
