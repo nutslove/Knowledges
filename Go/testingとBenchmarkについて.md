@@ -511,3 +511,106 @@
     --- PASS: Test_Func2 (0.00s)
     PASS
     ```
+
+## `testify/assert`パッケージについて
+- `testify/assert`パッケージは、Goのテストコードでアサーションを簡単に行うためのライブラリ
+- 標準の`testing`パッケージでは条件分岐とエラーメッセージを自分で書く必要があるが、`testify/assert`の`assert`を使うと宣言的にテストを書ける
+- 例  
+  ```go
+  package main
+
+  import (
+      "testing"
+      "github.com/stretchr/testify/assert"
+  )
+
+  // 標準ライブラリ
+  if got != expected {
+      t.Errorf("expected %d, got %d", expected, got)
+  }
+
+  // testify/assert
+  assert.Equal(t, expected, got)
+  ```
+- Format  
+  ```go
+  assert.XXX(t, expected, actual, msgAndArgs...)
+  // 第１引数：*testing.T（常に必須）
+  // 第２引数：期待値
+  // 第３引数：実際の値
+  // 第４引数以降：オプションのメッセージと引数（テスト失敗時に表示される）
+
+  // 例
+  assert.Equal(t, 42, result, "result should be 42")
+  ```
+
+### よく使う関数
+```go
+import "github.com/stretchr/testify/assert"
+
+func TestSomething(t *testing.T) {
+    // 等値チェック
+    assert.Equal(t, 42, result)
+    assert.NotEqual(t, 0, result)
+
+    // 真偽値
+    assert.True(t, ok)
+    assert.False(t, hasError)
+
+    // nil チェック
+    assert.Nil(t, err)
+    assert.NotNil(t, obj)
+
+    // エラー系
+    assert.NoError(t, err)
+    assert.Error(t, err)
+    assert.ErrorIs(t, err, ErrNotFound)
+    assert.ErrorContains(t, err, "not found")
+
+    // コレクション
+    assert.Contains(t, slice, item)
+    assert.Len(t, slice, 3)
+    assert.Empty(t, slice)
+    assert.ElementsMatch(t, expected, actual) // 順序無視の比較
+
+    // 型チェック
+    assert.IsType(t, &MyStruct{}, obj)
+
+    // カスタムメッセージ付き
+    assert.Equal(t, 200, resp.StatusCode, "APIが200を返すべき")
+}
+```
+
+### `require`
+- testifyに`require`パッケージもあり、**失敗時の挙動が異なる**
+
+| パッケージ | 失敗時の挙動 |
+| --- | --- |
+| `assert` | テスト失敗を記録するが、残りのテストは続行 (`t.Errorf`相当) |
+| `require` | テスト失敗を記録し、即座にテストを中断 (`t.Fatalf`相当) |
+
+- 例  
+  ```go
+  func TestExample(t *testing.T) {
+      // errがnilでなければ後続の処理は意味がないので require を使う
+      require.NoError(t, err)
+
+      // ここからは assert でOK（個別に失敗を確認したい）
+      assert.Equal(t, "hello", result.Name)
+      assert.Equal(t, 42, result.Age)
+  }
+  ```
+- 使い分けの目安として、後続のアサーションの前提条件となるチェック（nilチェックなど）には`require`、それ以外は`assert`を使う
+
+### `assert.New()`
+- 毎回tを渡すのが冗長な場合、assert.New(t)でラップできる
+- 例  
+  ```go
+  func TestWithNew(t *testing.T) {
+      a := assert.New(t)
+
+      a.Equal(42, result)
+      a.NoError(err)
+      a.Contains(name, "Go")
+  }
+  ```
