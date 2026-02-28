@@ -1,15 +1,18 @@
-# 目次 <!-- omit in toc -->
 <!-- TOC -->
 
-- [Benchmark / Test(`testing`) 共通](#benchmark--testtesting-共通)
+- [Benchmark / Testtesting 共通](#benchmark--testtesting-%E5%85%B1%E9%80%9A)
 - [Benchmark](#benchmark)
-- [`testing`](#testing)
-  - [例](#例)
-  - [table testsの他の例](#table-testsの他の例)
-  - [テストカバレッジ](#テストカバレッジ)
-  - [`t.Run()`メソッドによるサブテスト](#trunメソッドによるサブテスト)
-  - [テストの並列実行（`Parallel()`メソッド）](#テストの並列実行parallelメソッド)
-    - [`Parallel()`メソッドの特性](#parallelメソッドの特性)
+- [testing](#testing)
+  - [例](#%E4%BE%8B)
+  - [table testsの他の例](#table-tests%E3%81%AE%E4%BB%96%E3%81%AE%E4%BE%8B)
+  - [テストカバレッジ](#%E3%83%86%E3%82%B9%E3%83%88%E3%82%AB%E3%83%90%E3%83%AC%E3%83%83%E3%82%B8)
+  - [t.Runメソッドによるサブテスト](#trun%E3%83%A1%E3%82%BD%E3%83%83%E3%83%89%E3%81%AB%E3%82%88%E3%82%8B%E3%82%B5%E3%83%96%E3%83%86%E3%82%B9%E3%83%88)
+  - [TestMain関数によるテスト前後の処理追加](#testmain%E9%96%A2%E6%95%B0%E3%81%AB%E3%82%88%E3%82%8B%E3%83%86%E3%82%B9%E3%83%88%E5%89%8D%E5%BE%8C%E3%81%AE%E5%87%A6%E7%90%86%E8%BF%BD%E5%8A%A0)
+    - [testing.M](#testingm)
+    - [t.Cleanup](#tcleanup)
+      - [t.Cleanupはどこで使えるか](#tcleanup%E3%81%AF%E3%81%A9%E3%81%93%E3%81%A7%E4%BD%BF%E3%81%88%E3%82%8B%E3%81%8B)
+  - [テストの並列実行（Parallelメソッド）](#%E3%83%86%E3%82%B9%E3%83%88%E3%81%AE%E4%B8%A6%E5%88%97%E5%AE%9F%E8%A1%8Cparallel%E3%83%A1%E3%82%BD%E3%83%83%E3%83%89)
+    - [Parallelメソッドの特性](#parallel%E3%83%A1%E3%82%BD%E3%83%83%E3%83%89%E3%81%AE%E7%89%B9%E6%80%A7)
 
 <!-- /TOC -->
 # Benchmark / Test(`testing`) 共通
@@ -220,6 +223,99 @@
   ```
 - 以下のように特定のサブテストのみを実行することもできる
   - `go test -run TestExample/ケース1  # "ケース1"のみ実行`
+- **特定のテストケースで``(*testing.T).Fatal()`エラーが発生してテストが失敗したとしても、そのまま残りのテストケースを実行し、すべてのテストケースを必ず実行できるというメリットがある**
+
+## `TestMain`関数によるテスト前後の処理追加
+- `go test`コマンドでテストを実行した際、テストファイル内に`TestMain`関数が定義されている場合、`TestMain`関数が最初に呼び出されて、そこから各テスト関数が順次`Run()`で実行される。ここにテスト前後の処理を追加することができる。
+
+> [!NOTE]  
+> ### `testing.M`
+> - `TestMain`関数専用で、テスト全体の実行を制御する。`m.Run()`メソッドを呼び出すと、そのパッケージ内の全テスト関数がまとめて実行される。
+
+- 例  
+  ```go
+  func TestMain(m *testing.M) {
+      setup() // テスト前の共通処理
+      code := m.Run() // テスト関数の実行
+      teardown() // テスト後の共通処理
+      os.Exit(code) // 終了コードを指定して終了（os.Exitに戻り値を渡すのが一般的なパターン）
+      // これを省略すると、テストが失敗しても終了コードが0になり、CIなどで失敗を検知できなくなる。
+  }
+
+  func setup() {
+      // テスト前の共通処理
+      fmt.Println("テスト前の共通処理")
+  }
+
+  func teardown() {
+      // テスト後の共通処理
+      fmt.Println("テスト後の共通処理")
+  }
+
+  func TestExample(t *testing.T) {
+      // テストケースの内容
+        type args struct {
+            a int
+            b int
+        }
+        tests := []struct {
+            name string
+            args args
+            want int
+        }{
+            {"TestCase1", args{2, 3}, 5},
+            {"TestCase2", args{4, 5}, 9},
+        }
+
+        // テスト関数実行前の共通処理
+        fmt.Println("テスト関数実行前の共通処理")
+        defer func() {
+            // テスト関数実行後の共通処理
+            fmt.Println("テスト関数実行後の共通処理")
+        }()
+
+        for _, tt := range tests {
+            t.Run(tt.name, func(t *testing.T) {
+
+                // テストケースごとの実行前の共通処理
+                fmt.Println("テストケースごとの実行前の共通処理")
+                t.Cleanup(func() {
+                    // テストケースごとの実行後の共通処理
+                    fmt.Println("テストケースごとの実行後の共通処理")
+                })
+                if got := Add(tt.args.a, tt.args.b); got != tt.want {
+                    t.Errorf("Add(%d, %d) = %d, want %d", tt.args.a, tt.args.b, got, tt.want)
+                }
+            })
+        }
+  }
+  ``` 
+
+> [!NOTE]  
+> ### `t.Cleanup()`
+> - `t.Cleanup(func())`は、そのテストが終了した後に呼ばれるクリーンアップ関数を登録するメソッド
+> #### `t.Cleanup()`はどこで使えるか
+> - 個別ケース内だけではなく、テスト関数のトップレベルでも使える
+> - 例  
+>   ```go
+>   func TestExample(t *testing.T) {
+>      // テスト関数レベルのクリーンアップ → TestExample全体の後に実行
+>      t.Cleanup(func() {
+>          fmt.Println("TestExample全体の後処理")
+>      })
+>   
+>      for _, tt := range tests {
+>          t.Run(tt.name, func(t *testing.T) {
+>              // サブテストレベルのクリーンアップ → 各サブテストの後に実行
+>              t.Cleanup(func() {
+>                  fmt.Println(tt.name + " の後処理")
+>              })
+>          })
+>      }
+>   }
+>   ```
+> - **ポイントは、`t.Cleanup`は呼び出し時のtのスコープに紐づくということ。テスト関数のtで登録すればテスト関数の後に、サブテストのtで登録すればそのサブテストの後に実行される。**
+
 
 ## テストの並列実行（`Parallel()`メソッド）
 - 参考URL
