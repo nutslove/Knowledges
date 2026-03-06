@@ -10,6 +10,10 @@
 ## Tool Call
 - MCPでは、ツールの引数は常にJSON bodyとして送信される。LLMがツールを呼び出す際、引数はJSON Schemaに基づいたJSONオブジェクトとして渡される。
 
+## tools/listの取得タイミング
+- 基本的には**接続・初期化時に1回のみ取得**する
+- サーバー側のツール一覧が変化した場合は `notifications/tools/list_changed` 通知を送ることができ、Clientはそれを受けてtools/listを再取得する
+
 ## 非同期通信（async）
 - MCP自体は非同期通信のみを前提として設計されている（明記されている）わけではなさそうだが、LangChain MCP AdaptersやMCP公式のPython SDKなどは非同期通信を前提としている
   - LangChain MCP Adapters
@@ -36,16 +40,25 @@
 ## SSE（Server Sent Events）
 - MCP Serverがリモート（Host/Clientと異なるマシン上）で動いている場合のClientとServerとの通信方式
 - HTTPベースの一方向通信を使用
+
 > [!CAUTION]
-> SSEは **_Streamable HTTP_** に置き換わる予定
+> SSEはMCP仕様バージョン **2025-03-26** をもって正式に **Deprecated** となり、**Streamable HTTP** に置き換えられた。後方互換性のためSSEは引き続きサポートされるが、新規実装ではStreamable HTTPを使うことが推奨される
+
+## Streamable HTTP
+- SSEに代わるリモート通信方式（MCP仕様 2025-03-26以降の標準）
+- 単一エンドポイント（例：`/mcp`）でPOSTとGETの両方をサポート
+- SSEと異なり2つのエンドポイントが不要でシンプル
+- サーバー側の必要に応じて通常のHTTPレスポンスとSSEストリームを動的に使い分けられる
+- ステートレスな実装も可能
 
 ---
 
 # MCP Client
 - MCP ClientはMCP Hostの内部に存在する
 - MCP Serverと1対1の接続を行うプロトコルクライアント
-  - **MCP ClientとMCP Serverは１対１の関係**
-    - **１つのMCP Clientで複数のMCP Serverとやりとりすることはできない**
+  - **1つのMCP Clientは1つのMCP Serverと1対1で接続する**
+  - ただし、**Host（アプリケーション）は複数のMCP Clientを持てる**ため、結果的に複数のMCP Serverと通信できる
+    - LangChainの `MultiServerMCPClient` はその典型例（内部で各Serverに対してClientを作成する）
 
 ---
 
@@ -53,7 +66,7 @@
 - https://modelcontextprotocol.io/docs/concepts/transports
 
 ## Server-Sent Events (SSE)
-- Streamable HTTPに置き換わる予定
+- MCP仕様 2025-03-26 をもってDeprecated。Streamable HTTPに置き換えられた（後方互換性のためサポートは継続）
 
 ## Standard Input/Output (stdio)
 - MCP Client(Host)とMCP Serverが同じサーバ上にある場合の通信方式
