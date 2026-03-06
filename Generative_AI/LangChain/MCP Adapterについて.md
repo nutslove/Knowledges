@@ -525,6 +525,89 @@ _client = MultiServerMCPClient(
 )
 ```
 
+## `get_tools()` からツール実行までの全体フロー
+
+### フロー図
+
+```
+① get_tools()
+   │
+   ▼  MCPサーバーに接続して利用可能なツール一覧を取得（session.list_tools()）
+   │
+   ▼  各MCPツールに対して convert_mcp_tool_to_langchain_tool() を呼ぶ
+   │
+② convert_mcp_tool_to_langchain_tool()
+   │
+   ├── 内部関数 call_tool() を定義（クロージャ）
+   │
+   └── StructuredTool(coroutine=call_tool, ...) を返す
+       ※ call_tool が coroutine として StructuredTool に「埋め込まれる」
+   │
+   ▼  Agent に tools として渡す
+   │
+③ Agent が LLM の tool_call 応答に基づいて StructuredTool.ainvoke() を呼ぶ
+   │
+   ▼  内部的に coroutine=call_tool が実行される
+   │
+④ call_tool() の内部
+   ├── MCPToolCallRequest を作成
+   ├── インターセプターチェーンを構築・通過
+   └── 最内部の execute_tool() で session.call_tool() を実行
+       → MCP サーバーに実際のリクエストが飛ぶ
+```
+
+### 各ステップの詳細
+
+| ステップ | 誰が | 何をする |
+|---|---|---|
+| ① | `get_tools()` / `load_mcp_tools()` | MCP サーバーからツール一覧を取得 |
+| ② | `convert_mcp_tool_to_langchain_tool()` | 各 MCP ツールを `StructuredTool` に変換（`call_tool` クロージャを `coroutine` に注入） |
+| ③ | Agent（LangGraph等） | LLM の `tool_calls` を見て `StructuredTool.ainvoke()` を呼ぶ |
+| ④ | `call_tool()` → `execute_tool()` | インターセプター通過後、`session.call_tool()` で MCP サーバーに実行リクエスト |
+
+### ②の補足：`StructuredTool` と `call_tool` の関係
+
+`call_tool` は `convert_mcp_tool_to_langchain_tool` の中で定義された **ローカル関数（クロージャ）** であり、`StructuredTool` クラスが元々持っているメソッドではない。生成時に `coroutine` 引数として外から注入される：
+
+```python
+# langchain_mcp_adapters/tools.py
+return StructuredTool(
+    name=lc_tool_name,
+    description=tool.description or "",
+    args_schema=tool.inputSchema,
+    coroutine=call_tool,           # ← ここで注入
+    response_format="content_and_artifact",
+    metadata=metadata,
+)
+```
+
+### `get_tools()` の `server_name` 引数
+
+`get_tools()` には `server_name` 引数があり、特定のサーバーのツールだけを取得できる：
+
+```python
+math_tools = await client.get_tools(server_name="math")
+```
+
+ただし `server_name` は `str | None` 型のため、**複数サーバーの同時指定はできない**。
+複数サーバーのツールをまとめて取りたい場合は、複数回呼んで結合する：
+
+```python
+import asyncio
+
+target_servers = ["math", "weather", "observability"]
+tools_lists = await asyncio.gather(
+    *(client.get_tools(server_name=name) for name in target_servers)
+)
+selected_tools = [tool for tools in tools_lists for tool in tools]
+```
+
+| やりたいこと | 方法 |
+|---|---|
+| 1つだけ指定 | `get_tools(server_name="math")` |
+| 全サーバー | `get_tools()` （`server_name=None`） |
+| 2〜3個指定 | 複数回呼んで `+` で結合、または `asyncio.gather` で並行取得 |
+
 ## 参考リンク
 
 - [interceptors.py（インターフェース定義）](https://github.com/langchain-ai/langchain-mcp-adapters/blob/main/langchain_mcp_adapters/interceptors.py)
