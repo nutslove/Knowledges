@@ -45,6 +45,23 @@ native_tools = [save_user_memory, get_user_memory, delete_user_memory]
 tools = mcp_tools + native_tools
 ```
 
+> [!NOTE]  
+> - `get_tools`関数に`server_name`引数があって、特定のMCPサーバーのツールだけを取得することもできる。  
+>   ```python
+>   math_tools = await client.get_tools(server_name="math")
+>   ```
+> - ただし`server_name`は`str | None`型のため、**複数サーバーの同時指定はできない**。  
+>   複数サーバーのツールをまとめて取りたい場合は、複数回呼んで結合する：
+>   ```python
+>   import asyncio
+>   
+>   target_servers = ["math", "weather", "observability"]
+>   tools_lists = await asyncio.gather(
+>       *(client.get_tools(server_name=name) for name in target_servers)
+>   )
+>   selected_tools = [tool for tools in tools_lists for tool in tools]
+>   ```
+
 ---
 
 # `MultiServerMCPClient`の`tool_interceptors`について
