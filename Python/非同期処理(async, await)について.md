@@ -469,6 +469,50 @@ EventLoop が OS の I/O 監視機構（epoll/kqueue 等）で
 
 ## `asyncio.create_task()`を使用
 - コルーチンをタスクに変換して並行実行させる方法
+- **`create_task()`はタスクを登録（スケジュール）するだけで、実際の実行はその後の`await`のタイミング**
+  - `await`で制御をイベントループに返すと、登録済みタスクが実行される
+  ```python
+  async def my_coroutine():
+      print("実行された")
+
+  async def main():
+      print("1")
+      task = asyncio.create_task(my_coroutine())  # 登録だけ、まだ実行されない
+      print("2")
+      await asyncio.sleep(0)  # ここで制御を手放す → my_coroutineが実行される
+      print("3")
+
+  # 出力:
+  # 1
+  # 2
+  # 実行された
+  # 3
+  ```
+  実際のコードでは、`await task` や他のI/O操作で自然に制御が渡される：
+  ```python
+  async def fetch_data(name, delay):
+      print(f"{name}: 開始")
+      await asyncio.sleep(delay)
+      print(f"{name}: 完了")
+      return f"{name}の結果"
+
+  async def main():
+      task1 = asyncio.create_task(fetch_data("タスク1", 2))  # 登録
+      task2 = asyncio.create_task(fetch_data("タスク2", 1))  # 登録
+
+      # await task1 の時点で制御がイベントループに渡り、
+      # task1とtask2が並行して実行される
+      result1 = await task1
+      result2 = await task2
+      print(result1, result2)
+
+  # 出力:
+  # タスク1: 開始
+  # タスク2: 開始
+  # タスク2: 完了
+  # タスク1: 完了
+  # タスク1の結果 タスク2の結果
+  ```
 
 ## `asyncio.gather()`を使用
 - 複数のコルーチンを管理するための方法
