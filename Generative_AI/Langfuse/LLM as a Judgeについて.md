@@ -1,12 +1,29 @@
 - https://langfuse.com/docs/evaluation/evaluation-methods/llm-as-a-judge
 
 ## LanfuseでのLLM as a Judge
+
+### TraceとObservationの関係
+- **Trace** = Agentの1回の実行全体（最上位の単位）
+- **Observation** = Trace内の個別のステップ（LLM呼び出し、Tool呼び出し、Retrieval等）
+- 1つのTraceの中に複数のObservationが含まれる親子関係
+```
+  Trace（Agent実行全体）
+  ├── Observation: LLM呼び出し（推論・計画）
+  ├── Observation: Tool呼び出し（検索API）
+  ├── Observation: Retrieval（RAGのドキュメント取得）
+  └── Observation: LLM呼び出し（最終回答生成）
+```
+
+### Evaluatorのタイプ
 - Observations、Traces、Experimentsの3種類のタイプがある
   > LLM-as-a-Judge evaluators can run on three types of data: **Observations** (individual operations), **Traces** (complete workflows), or **Experiments** (controlled test datasets).
-- TracesはLegacy（非推奨となっている）で、Observationsが推奨されている
+- TracesはLegacy（非推奨となる予定）で、Observationsが推奨されている
 
-### Observations　（個別のオペレーション）
-- LLM呼び出し、Retrieval、ツールコールなど個別のステップに対して評価を行う
+### Observations （個別のオペレーション）
+- Trace内の特定のObservation（ステップ）に対して評価を行う
+- **Liveデータのみ対応**：Observationがingest（取り込み）されたタイミングで自動的に評価が実行される仕組み。既存のトレースに対して後から遡って評価を実行すること（バックフィル）は現時点（2026/03）で非対応
+- **フィルタで評価対象を絞り込む**：observation type、trace name、tags、userId、metadata等の条件を組み合わせて、どのObservationを評価するかを制御する。例えば「最終回答のLLM呼び出しだけ」や「特定タグのトレース内のgeneration stepだけ」といった指定が可能
+- **サンプリング設定**：全件ではなくX%だけ評価する設定ができ、コスト管理に有効
 
 ### Experiments （オフライン）
 - データセットに対してモデルやプロンプトのバリエーションを比較評価
