@@ -177,6 +177,12 @@ asyncio.run(main())  # ループの作成・実行・クローズを自動管理
 
 - ループのライフサイクル（作成→実行→クローズ）を自動で管理してくれるため、手動でループを操作する必要がない
 - **`asyncio.run()`はasync関数の中では使えない**（その場合は`await`や`asyncio.create_task()`を使う）
+  - `asyncio.run()`は内部で「新しいイベントループを作成→実行→クローズ」を行うが、async関数の中にいるということはすでにイベントループが実行中であり、同じスレッド上で2つ目のイベントループを実行しようとするため`RuntimeError`になる
+  - 制約は「1プロセスに1つ」ではなく **「1スレッドに同時に1つ」**（別スレッドであれば別のイベントループを実行可能）
+  ```python
+  async def bad_example():
+      asyncio.run(some_coro())  # RuntimeError: asyncio.run() cannot be called from a running event loop
+  ```
 
 #### まとめ
 
@@ -739,7 +745,18 @@ async def main():
     # results = [正常な結果, Exception('エラー'), 正常な結果]
 ```
 
+> [!WARNING]
+> `return_exceptions=False`（デフォルト）の場合、例外を発生させたタスク以外はキャンセルされず走り続ける（野良タスク化する）ことに注意。これが`TaskGroup`が推奨される理由の1つ。
+> ```python
+> # return_exceptions=Falseの場合の注意点
+> results = await asyncio.gather(task1, task2, task3)
+> # task1が例外 → gatherのawaitが即座にraise
+> # しかしtask2, task3はキャンセルされず走り続ける（野良タスク化）
+> ```
+
 ## タイムアウト処理
+
+### `asyncio.wait_for()`
 - 長時間実行されるタスクに対して`asyncio.wait_for()`を使ってタイムアウトを設定できる
 ```python
 try:
@@ -747,6 +764,92 @@ try:
 except asyncio.TimeoutError:
     print("処理がタイムアウトしました")
 ```
+
+> [!NOTE]  
+> Python 3.11以降では、後述の`asyncio.timeout()`の方が柔軟で推奨される。  
+> ```python
+> # Python 3.11以前
+> result = await asyncio.wait_for(long_running_task(), timeout=5.0)
+>
+> # Python 3.11以降は asyncio.timeout() が推奨
+> async with asyncio.timeout(5.0):
+>     result = await long_running_task()
+> ```
+
+### `asyncio.timeout()`（Python 3.11+）
+- `async with`ブロック内の**複数の処理をまとめてタイムアウト管理**できるコンテキストマネージャ
+- `wait_for()`がコルーチン1つだけを対象とするのに対し、`timeout()`はブロック内の全処理を対象にできる  
+```python
+async def main():
+    try:
+        async with asyncio.timeout(5.0):  # 5秒でタイムアウト
+            result = await long_running_task()
+            # ブロック内の複数の処理をまとめてタイムアウト管理できる
+            result2 = await another_task()
+    except TimeoutError:
+        print("処理がタイムアウトしました")
+```
+
+- **`reschedule()`でタイムアウトを動的に変更できる**
+```python
+async def main():
+    try:
+        async with asyncio.timeout(5.0) as cm:
+            result = await first_task()
+            # 最初のタスクの結果に応じてタイムアウトを延長
+            cm.reschedule(asyncio.get_running_loop().time() + 10.0)
+            result2 = await second_task()
+    except TimeoutError:
+        print("処理がタイムアウトしました")
+```
+
+- **タイムアウトを`None`に設定すると無制限になる**
+```python
+async with asyncio.timeout(None) as cm:
+    # 条件に応じてタイムアウトを後から設定
+    if should_limit:
+        cm.reschedule(asyncio.get_running_loop().time() + 5.0)
+    await some_task()
+```
+
+### `asyncio.timeout_at()`（Python 3.11+）
+- `timeout()`が**相対時間**（今から何秒後）で指定するのに対し、`timeout_at()`は**絶対時刻**（イベントループ内部時計の特定時刻）で指定する
+- **複数の関数で同じデッドラインを共有したい場合に便利**
+  - `timeout()` だと各関数に「何秒」を渡すことになり、全体の残り時間を計算する必要がある
+  - `timeout_at()` + `deadline` のパターンならその計算が不要
+```python
+async def fetch_data(deadline):
+    """deadlineを受け取り、その時刻までにデータを取得する"""
+    async with asyncio.timeout_at(deadline):
+        return await api_call()
+
+async def process_data(data, deadline):
+    """同じdeadlineを共有し、残り時間内に処理を完了する"""
+    async with asyncio.timeout_at(deadline):
+        return await heavy_process(data)
+
+async def main():
+    loop = asyncio.get_running_loop()
+    deadline = loop.time() + 10.0  # 全体で10秒以内に完了させたい
+
+    try:
+        # 各関数が同じdeadlineを意識して動作する
+        data = await fetch_data(deadline)           # 4秒かかった場合
+        result = await process_data(data, deadline) # 残り6秒以内に完了する必要がある
+    except TimeoutError:
+        print("全体の処理がデッドラインを超えました")
+```
+
+### タイムアウト関連の比較
+
+| | `asyncio.wait_for()` | `asyncio.timeout()` | `asyncio.timeout_at()` |
+|---|---|---|---|
+| 対象 | コルーチン1つ | `async with`ブロック内の複数処理 | `async with`ブロック内の複数処理 |
+| 時間指定 | 相対時間（秒） | 相対時間（秒） | 絶対時刻（`loop.time()`ベース） |
+| タイムアウトの動的変更 | 不可 | `cm.reschedule()`で可能 | `cm.reschedule()`で可能 |
+| タイムアウト時の例外 | `asyncio.TimeoutError` | `TimeoutError` | `TimeoutError` |
+| Python バージョン | 3.4+ | 3.11+ | 3.11+ |
+| タスクのキャンセル挙動 | 内部で新しいタスクを作る場合がありエッジケースあり | 現在のタスクに直接`CancelledError`を投げるためシンプル | 同左 |
 
 ## キャンセル処理
 ```python
@@ -760,6 +863,7 @@ except asyncio.CancelledError:
 ```
 
 ## セマフォを使った並行処理の制限
+- 同時に実行するタスクの数を制限したい場合（例：APIのレートリミット対応）に使う
 ```python
 # 最大5つのタスクを同時実行
 semaphore = asyncio.Semaphore(5)
@@ -767,6 +871,52 @@ semaphore = asyncio.Semaphore(5)
 async def limited_task(n):
     async with semaphore:  # セマフォを獲得
         await some_heavy_task(n)  # リソースを消費する処理
+```
+
+- **実用例：APIレートリミット対応**
+```python
+import asyncio
+import aiohttp
+
+async def fetch_with_limit(session, url, semaphore):
+    async with semaphore:  # 同時リクエスト数を制限
+        async with session.get(url) as response:
+            return await response.text()
+
+async def main():
+    semaphore = asyncio.Semaphore(5)  # 同時に5リクエストまで
+    urls = [f"https://api.example.com/data/{i}" for i in range(100)]
+
+    async with aiohttp.ClientSession() as session:
+        tasks = [fetch_with_limit(session, url, semaphore) for url in urls]
+        results = await asyncio.gather(*tasks)
+    
+    print(f"取得完了: {len(results)} 件")
+```
+
+## `asyncio.sleep(0)` によるイベントループへの明示的な制御譲渡
+- `asyncio.sleep(0)`は「待機時間0秒」ではなく、**明示的にイベントループに制御を返す**イディオム
+- CPU負荷が高くないが長時間かかるループ処理の中で、他のタスクに実行機会を与えたい場合に使う
+```python
+async def cpu_light_but_long():
+    for i in range(10000):
+        do_something(i)
+        if i % 100 == 0:
+            await asyncio.sleep(0)  # 明示的にイベントループに制御を返す
+```
+
+- `await`がないループ処理はイベントループを占有し続けるため、他のタスクが一切実行されなくなる
+```python
+async def bad_example():
+    # この間、他のタスクは一切動けない
+    for i in range(1000000):
+        heavy_sync_work(i)  # awaitがないのでイベントループが止まる
+
+async def good_example():
+    for i in range(1000000):
+        heavy_sync_work(i)
+        if i % 1000 == 0:
+            await asyncio.sleep(0)  # 定期的に他のタスクに実行機会を与える
 ```
 
 ## 非同期ジェネレータ
