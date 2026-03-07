@@ -488,7 +488,7 @@ EventLoop が OS の I/O 監視機構（epoll/kqueue 等）で
   # 実行された
   # 3
   ```
-  実際のコードでは、`await task` や他のI/O操作で自然に制御が渡される：
+  実際のコードでは、`await task` や他のI/O操作で自然に制御が渡される
   ```python
   async def fetch_data(name, delay):
       print(f"{name}: 開始")
