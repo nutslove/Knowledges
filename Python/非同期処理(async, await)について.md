@@ -591,6 +591,7 @@ async def main():
             task1 = tg.create_task(fetch_data("url1"))
             task2 = tg.create_task(fetch_data("url2"))
             task3 = tg.create_task(fetch_data("url3"))
+        # ここでブロックを抜ける時に__aexit__内でawait → タスクが実行される
         # async withブロックを抜けた時点で全タスク完了
         print(task1.result(), task2.result(), task3.result())
     except* Exception as eg:
