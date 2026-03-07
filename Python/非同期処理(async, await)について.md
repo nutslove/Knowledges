@@ -459,8 +459,7 @@ async def async_main():
       ↓
 EventLoop に制御を返す（yield）
       ↓
-EventLoop が OS の I/O 監視機構（epoll/kqueue 等）で
-「どの I/O が完了したか」を確認
+EventLoop が OS の I/O 監視機構（epoll/kqueue 等）で「どの I/O が完了したか」を確認
       ↓
 準備できた別のタスクに実行権を渡す
       ↓
