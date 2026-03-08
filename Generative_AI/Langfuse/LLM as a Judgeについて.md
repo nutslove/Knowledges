@@ -23,7 +23,11 @@
 - Trace内の特定のObservation（ステップ）に対して評価を行う
 - **Liveデータのみ対応**：Observationがingest（取り込み）されたタイミングで自動的に評価が実行される仕組み。既存のトレースに対して後から遡って評価を実行すること（バックフィル）は現時点（2026/03）で非対応
 - **フィルタで評価対象を絞り込む**：observation type、trace name、tags、userId、metadata等の条件を組み合わせて、どのObservationを評価するかを制御する。例えば「最終回答のLLM呼び出しだけ」や「特定タグのトレース内のgeneration stepだけ」といった指定が可能
-- **サンプリング設定**：全件ではなくX%だけ評価する設定ができ、コスト管理に有効
+- **Sampling設定**：全件ではなくX%だけ評価する設定ができ、コスト管理に有効
+
+> [!CAUTION]  
+> Samplingの設定は、Trace単位ではなく、Observation単位で行われる。  
+> つまり、Sampling率が50%に設定されている場合、2つのTrace（２回の独立したAgentの実行）があったとして、片方のTraceのすべてのObservationが評価され、もう片方のTraceのすべてのObservationが評価されない、ということはなく、両方のTrace内のObservationが（Samplingに設定した確率に基づいて）ランダムに選ばれて評価されることになる。
 
 ### Experiments （オフライン）
 - データセットに対してモデルやプロンプトのバリエーションを比較評価
