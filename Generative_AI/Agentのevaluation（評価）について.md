@@ -92,9 +92,35 @@
 # Agent評価のライブラリ
 ## DeepEval
 - https://deepeval.com/guides/guides-ai-agent-evaluation
+- オープンソースのLLM評価フレームワーク。pytestライクなインターフェースでLLMの出力をユニットテストできる
+- 50以上のリサーチベースのメトリクスを提供（G-Eval、Hallucination検出、Tool Correctness、Answer Relevancy等）
+- Agent評価には`@observe`デコレータによるトレースが必須（End-to-End / Component-Level両方とも）
+- Agent専用メトリクス: PlanQualityMetric、PlanAdherenceMetric、ToolCorrectnessMetric、ArgumentCorrectnessMetric、TaskCompletionMetric、StepEfficiencyMetric等
+- End-to-End eval: `evals_iterator(metrics=[...])`にメトリクスを渡してAgent全体のトレースを分析
+- Component-Level eval: `@observe(metrics=[...])`で特定のコンポーネントに直接メトリクスを付与して個別に評価
+- **開発時のAgent評価はローカルで完結**（`@observe` + `evals_iterator`でConfident AIなしで動作）。Confident AIが必要なのは本番での非同期評価（`metric_collection`経由）と結果の可視化ダッシュボード。Confident AIには無料プランもあり
+- **Langfuseとの連携**: GEvalなどの汎用メトリクスは`LLMTestCase`にinput/outputを手動で渡すだけでトレース不要で使える。ただしAgent専用メトリクス（PlanQuality等）はDeepEvalの`@observe`トレースが必須のため、Langfuseのトレースとは別系統になる
 
 ## AgentEvals
-- https://docs.langchain.com/langsmith/trajectory-evals
+- https://github.com/langchain-ai/agentevals
+- LangChain製。Agentのtrajectory（中間ステップの軌跡）評価に特化したパッケージ
+- 主な評価方法:
+  - **Trajectory Match**: 期待されるtrajectoryとの比較（strict / unordered / subset / superset のマッチングモード）
+  - **Trajectory LLM-as-Judge**: LLMに軌跡を判定させる（参照trajectoryなしでも可能）
+  - **Graph Trajectory**: LangGraphのノード単位でのtrajectory評価。LangGraphのスレッドからtrajectoryを抽出するユーティリティも提供
+- モデルは`"プロバイダー:モデル名"`のLangChain形式で指定（OpenAI以外も使用可能。Anthropic、Bedrock等）
+- **LangSmith統合が前提の設計**だが、evaluator自体はただのPython関数なので、スコアをLangfuseに`create_score()`で書き戻すことは可能（ただしtrajectoryのフォーマット変換などグルーコードが必要）
+
+## OpenEvals
+- https://github.com/langchain-ai/openevals
+- LangChain製。AgentEvalsの兄弟パッケージ
+- **汎用LLM評価**のプリビルトプロンプト: Correctness、Conciseness、Hallucination、Toxicity、Answer Relevance、Plan Adherence
+- **RAG評価**: Correctness、Helpfulness、Groundedness、Retrieval Relevance
+- **コード評価**: Pyright/Mypy型チェック、サンドボックス実行
+- **Agent trajectory評価**も含む（Trajectory Match、Trajectory LLM-as-Judge）。ただしREADMEではAgent特化のevalsについてはAgentEvalsを参照するよう案内されている
+- AgentEvalsと同様にLangSmith統合が前提だが、evaluator自体はPython関数なのでLangfuseにスコアを書き戻し可能
+- Langfuse Managed Evaluatorと機能が重複する部分が多い。Langfuseにないもの（Plan Adherence等）を補完する使い方が効率的。プロンプトはGitHubで公開されているので、Langfuse Custom Evaluatorへの移植も容易
 
 ## LangfuseのLLM as a Judge
 - https://langfuse.com/docs/evaluation/evaluation-methods/llm-as-a-judge
+- 詳細は「Langfuse」フォルダの「LLM as a Judgeについて.md」を参照
