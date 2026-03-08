@@ -24,6 +24,8 @@
   > - **Trajectory**: Evaluate whether the agent took the expected path (e.g., of tool calls) to arrive at the final answer.
   > - **Single step**: Evaluate any agent step in isolation (e.g., whether it selects the appropriate first tool for a given step).
 
+---
+
 # Agentの評価基準
 - 参考URL
   - https://docs.cloud.google.com/vertex-ai/generative-ai/docs/models/evaluation-agents
