@@ -102,6 +102,7 @@
 - **Langfuseとの連携**: GEvalなどの汎用メトリクスは`LLMTestCase`にinput/outputを手動で渡すだけでトレース不要で使える。ただしAgent専用メトリクス（PlanQuality等）はDeepEvalの`@observe`トレースが必須のため、Langfuseのトレースとは別系統になる
 
 ### Agent専用メトリクス一覧
+- https://deepeval.com/guides/guides-ai-agent-evaluation-metrics
 
 | メトリクス | 評価内容 | スコア計算式 | `@observe`トレース必須 | `expected_tools`必須 |
 |---|---|---|---|---|
