@@ -101,6 +101,67 @@
 - **開発時のAgent評価はローカルで完結**（`@observe` + `evals_iterator`でConfident AIなしで動作）。Confident AIが必要なのは本番での非同期評価（`metric_collection`経由）と結果の可視化ダッシュボード。Confident AIには無料プランもあり
 - **Langfuseとの連携**: GEvalなどの汎用メトリクスは`LLMTestCase`にinput/outputを手動で渡すだけでトレース不要で使える。ただしAgent専用メトリクス（PlanQuality等）はDeepEvalの`@observe`トレースが必須のため、Langfuseのトレースとは別系統になる
 
+### Agent専用メトリクス一覧
+
+| メトリクス | 評価内容 | スコア計算式 | `@observe`トレース必須 | `expected_tools`必須 |
+|---|---|---|---|---|
+| **TaskCompletionMetric** | タスクを達成できたか | `AlignmentScore(Task, Outcome)` | Yes | No |
+| **StepEfficiencyMetric** | 冗長なステップなく効率的に完了したか | `AlignmentScore(Task, Execution Steps)` | Yes | No |
+| **PlanQualityMetric** | 計画の論理性・完全性 | `AlignmentScore(Task, Plan)` | Yes | No |
+| **PlanAdherenceMetric** | 計画通りに実行したか | `AlignmentScore((Task, Plan), Execution Steps)` | Yes | No |
+| **ToolCorrectnessMetric** | 正しいツールを選択したか | `Correctly Used Tools / Total Tools Called` | No | **Yes** |
+| **ArgumentCorrectnessMetric** | ツール引数が正しいか | `Correctly Generated Input Parameters / Total Tool Calls` | No | No |
+
+### 各メトリクスの詳細
+
+#### TaskCompletionMetric
+- Agentがタスクを完了できたかをLLM-as-judgeで評価
+- TraceからTask（目標）とOutcome（結果）を自動抽出し、整合性を評価
+- `task`パラメータを省略するとトレースから自動推論される
+- **`@observe`デコレータ + `evals_iterator`が必須。事前記録済みメッセージリストでは使えない**
+
+#### StepEfficiencyMetric
+- タスク完了に不要なステップがあればペナルティを課す
+- TraceからTaskとExecution Stepsを抽出して評価
+- **`@observe`デコレータ必須。スタンドアロンでは使えない**
+
+#### PlanQualityMetric
+- Agentの推論/思考から計画を抽出し、タスクとの整合性を評価
+- 明確な計画が検出されない場合はスコア1.0（デフォルトpass）になる
+- **`@observe`デコレータ必須。トレースのみで動作するメトリクス**
+
+#### PlanAdherenceMetric
+- 計画を立てた後、実際にその計画通りに実行したかを評価
+- 計画が検出されない場合はスコア1.0になる
+- **`@observe`デコレータ必須**
+
+#### ToolCorrectnessMetric
+- 期待されるツールが実際に呼ばれたかを評価（決定論的 + LLM判定のハイブリッド）
+- **`expected_tools`（正解ツールリスト）が必須**
+- `available_tools`を渡すと、選択が最適だったかもLLMで評価し、最終スコアは両者の最小値
+- `should_consider_ordering`: ツール呼び出し順序も考慮するか（デフォルト: False）
+- `should_exact_match`: `tools_called`と`expected_tools`が完全一致を求めるか（デフォルト: False）
+- `evaluation_params`: `INPUT_PARAMETERS`や`OUTPUT`を指定して、名前だけでなく引数や出力の一致も要求可能
+- **`@observe`不要。`LLMTestCase`にinput, actual_output, tools_called, expected_toolsを渡せば動作する**
+
+#### ArgumentCorrectnessMetric
+- 各ツール呼び出しの引数がinput（ユーザー入力）に対して正しいかをLLM-as-judgeで評価
+- Reference-free（正解リスト不要）
+- **`@observe`不要。`LLMTestCase`にinput, actual_output, tools_calledを渡せば動作する**
+- `ToolCall`オブジェクトには`name`と`input_parameters`を設定する
+- LLMによる判定のため非決定論的。決定論的な評価が必要ならToolCorrectnessMetricを使う
+
+### 共通パラメータ（全メトリクス共通）
+
+| パラメータ | デフォルト | 説明 |
+|---|---|---|
+| `threshold` | 0.5 | pass/fail判定の閾値。スコアがこの値以上ならpass |
+| `model` | `gpt-4o` or `gpt-4.1` | 評価用LLM。`str`（OpenAIモデル名）か`DeepEvalBaseLLM`インスタンス |
+| `include_reason` | True | スコアの理由・根拠を出力するか |
+| `strict_mode` | False | Trueにするとスコアが0か1の二値になり、thresholdは1.0に上書きされる |
+| `async_mode` | True | `measure()`/`a_measure()`で非同期実行を有効にするか |
+| `verbose_mode` | False | 計算の中間ステップをコンソールに出力するか |
+
 ## AgentEvals
 - https://github.com/langchain-ai/agentevals
 - LangChain製。Agentのtrajectory（中間ステップの軌跡）評価に特化したパッケージ
