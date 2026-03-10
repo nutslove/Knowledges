@@ -31,3 +31,44 @@
 
 ### Experiments （オフライン）
 - データセットに対してモデルやプロンプトのバリエーションを比較評価
+
+
+### SDKからのスコア取得 
+Langfuseに保存されたスコア（LLM-as-a-Judge、API経由、手動アノテーション等）はPython SDKで取得可能。
+評価結果をThanosやLokiにメトリクス・ログとして転送する用途などに使える。
+
+#### スコア取得方法
+##### 方法1: score_v_2 APIでフィルタして取得
+```python
+from langfuse import Langfuse
+
+langfuse = Langfuse()
+
+# trace_idとスコア名でフィルタ
+response = langfuse.api.score_v_2.get(trace_id="<trace_id>", name="Helpfulness")
+for score in response.data:
+    print(score.value)      # スコア値（例: 0.95）
+    print(score.comment)    # 評価理由
+    print(score.source)     # ScoreSource.EVAL / ScoreSource.API / ScoreSource.ANNOTATION
+    print(score.data_type)  # NUMERIC / CATEGORICAL / BOOLEAN
+    print(score.timestamp)
+```
+
+##### 方法2: トレースごと取得（全スコア埋め込み）
+```python
+trace = langfuse.api.trace.get(trace_id="<trace_id>")
+for s in trace.scores:
+    print(s.name, s.value, s.comment)
+```
+
+##### フィルタパラメータ（`api.score_v_2.get()`）
+
+| パラメータ | 説明 |
+|------------|------|
+| `trace_id` | 特定トレースのスコアのみ取得 |
+| `name` | スコア名でフィルタ（例: `"Helpfulness"`） |
+| `source` | スコアソース（`EVAL`: Managed Evaluator, `API`: SDK経由, `ANNOTATION`: UI手動） |
+| `data_type` | `NUMERIC` / `CATEGORICAL` / `BOOLEAN` |
+| `from_timestamp` / `to_timestamp` | 期間指定 |
+| `trace_tags` | トレースのタグでフィルタ |
+| `page` / `limit` | ページネーション |
