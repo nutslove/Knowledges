@@ -6,4 +6,4 @@
 ```
   {'ok': False, 'error': 'invalid_blocks', 'errors': ['only_one_table_allowed'], 'response_metadata': {'messages': ['[ERROR] only_one_table_allowed']}}
 ```
-- ブロック定義側にテーブルを明示的に書いていなくても（`"type": "markdown"`でも）、テキスト内容に複数のMarkdownテーブルがあれば発生する点に注意
+- **ブロック定義側にテーブルを明示的に書いていなくても（`"type": "markdown"`でも）、テキスト内容に複数のMarkdownテーブルがあれば発生する点に注意**
