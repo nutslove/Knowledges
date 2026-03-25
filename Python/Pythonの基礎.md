@@ -64,6 +64,24 @@ finally:
           raise  # 呼び出し元に伝播
   ```
 
+> [!NOTE]  
+> `try`ブロック内で`raise`した例外は`except`ブロックでキャッチされる。
+> ```python
+> def inner():
+>     try:
+>         raise ValueError("エラー発生")
+>     except ValueError:
+>         print("inner で一旦キャッチ")
+>         raise  # 再送出 → 呼び出し元へ伝播
+>
+> try:
+>     inner()
+> except ValueError as e:
+>     print(f"呼び出し元でキャッチ: {e}")
+> # => inner で一旦キャッチ
+> # => 呼び出し元でキャッチ: エラー発生
+> ```
+
 - 呼び出し元  
   ```python
   import test1
