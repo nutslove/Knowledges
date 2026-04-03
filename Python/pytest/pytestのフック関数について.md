@@ -29,9 +29,10 @@ def pytest_unconfigure(config):
     print("テスト終了")
 ```
 
-##### `config`引数について
-- pytestの設定オブジェクト（`pytest.Config`オブジェクト）
-- pytestの設定情報やコマンドラインオプションにアクセス可能
+> [!NOTE]
+> #### `config`引数について
+> - pytestの設定オブジェクト（`pytest.Config`オブジェクト）
+> - pytestの設定情報やコマンドラインオプションにアクセス可能
 
 ```python
   def pytest_configure(config):
