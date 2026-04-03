@@ -3,6 +3,22 @@
 # 1. `unittest.mock`（標準ライブラリ）
 - Python標準の`unittest.mock`モジュールで、pytestでも広く使われる
 
+### Mockオブジェクトとは
+- **任意の属性やメソッドの呼び出しを受け入れる「偽物」のオブジェクト**
+- 存在しない属性にアクセスしてもエラーにならず、新しいMockオブジェクトが自動的に返される
+- 戻り値の設定（`return_value`）、呼び出し履歴の記録・検証ができる
+- テストで外部依存（API、DB、ファイルI/Oなど）を実際に呼び出さずに、振る舞いを制御するために使う
+
+```python
+from unittest.mock import Mock
+
+mock = Mock()
+mock.some_method()           # ✅ 存在しないメソッドでもエラーにならない
+mock.any_attr.nested.call()  # ✅ ネストしたアクセスも自動でMockが返る
+mock.some_method.return_value = 42  # 戻り値を設定
+assert mock.some_method() == 42
+```
+
 ```python
 from unittest.mock import Mock, MagicMock, patch
 
@@ -20,7 +36,7 @@ def test_something(mock_class):
     mock_class.return_value.method.return_value = "mocked"
 ```
 
-> [!NOTE]  
+> [!NOTE]
 > `patch`の第２引数に置き換える値を指定できる（省略すると自動的にMagicMockが作られる）  
 > ```python
 > # conftest.py
@@ -141,6 +157,38 @@ mock_func.assert_called_once_With("hello")  # ❌ タイポ！エラーになら
 
 Mockは存在しないメソッド名でもエラーにならないため、テストが常にパスしてしまう。`autospec=True` を使うと防げる。
 
+### `autospec=True`
+- `patch`に`autospec=True`を指定すると、**元のオブジェクトの仕様（メソッド名・引数の数）に基づいたMock**が作られる
+- 存在しないメソッド名の呼び出しや、引数の数が合わない呼び出しが**エラーになる**ため、より安全なテストが書ける
+
+```python
+# service.py
+class UserService:
+    def get_user(self, user_id: int) -> dict:
+        ...
+
+# test_service.py
+from unittest.mock import patch
+
+# autospec=Trueなし → 存在しないメソッドでもエラーにならない
+@patch("service.UserService")
+def test_without_autospec(mock_cls):
+    instance = mock_cls.return_value
+    instance.get_usr()  # ✅ タイポだがエラーにならない（テストが通ってしまう）
+
+# autospec=Trueあり → 元のクラスの仕様に基づいてチェックされる
+@patch("service.UserService", autospec=True)
+def test_with_autospec(mock_cls):
+    instance = mock_cls.return_value
+    instance.get_usr()              # ❌ AttributeError（存在しないメソッド）
+    instance.get_user()             # ❌ TypeError（引数が足りない）
+    instance.get_user(1)            # ✅ 正しい呼び出し
+```
+
+> [!TIP]
+> `mocker.patch()`でも同様に`mocker.patch("module.Class", autospec=True)`で使える。
+> 特にタイポによるテストのすり抜けを防ぎたい場合は積極的に使うとよい。
+
 ## 1-6. `MagicMock`（マジックメソッド）
 
 ```python
@@ -213,12 +261,16 @@ def get_time():
 from unittest.mock import patch
 
 @patch("service.now")
-def test_patch_function(mock_now):
+def test_patch_function(mock_now):  # ← patchが作成したMockオブジェクトが引数として渡される（引数名は任意）
     mock_now.return_value = "2025-01-01"
 
     from service import get_time
     assert get_time() == "2025-01-01"
 ```
+
+> [!NOTE]
+> `@patch`デコレータは、テスト実行前に対象をMockオブジェクトに差し替え、そのMockをテスト関数の**引数として自動的に渡す**。テスト終了後は自動的に元に戻る。
+> context managerの場合は`with patch(...) as mock_func`で同じMockオブジェクトを受け取れる。
 
 ## 1-8. `patch` を context manager で使う
 
@@ -348,7 +400,33 @@ def test_called_with(mocker):
     mock.assert_called_with(1, 2)
 ```
 
-## 2-6. `spy`（実装を動かしつつ監視）
+## 2-6. `patch.object()`（特定インスタンス/クラスのメソッドだけモック）
+
+- `mocker.patch()`は文字列でパスを指定するのに対し、`mocker.patch.object()`は**オブジェクトを直接指定**してそのメソッドや属性をモックする
+- クラスの一部のメソッドだけモックし、他はそのまま動かしたい場合に便利
+
+```python
+class EmailClient:
+    def connect(self):
+        ...  # 実際の接続処理
+
+    def send(self, to, body):
+        self.connect()
+        ...  # 実際の送信処理
+
+def test_send_without_connect(mocker):
+    client = EmailClient()
+    # connectだけモックし、sendは実際の処理を動かす
+    mocker.patch.object(client, "connect")
+
+    client.send("user@example.com", "Hello")
+    client.connect.assert_called_once()
+```
+
+> [!NOTE]
+> `mocker.patch("module.EmailClient.connect")`でも同じことができるが、`patch.object()`はインスタンスを直接指定できるため、特定のインスタンスだけモックしたい場合に適している。
+
+## 2-7. `spy`（実装を動かしつつ監視）
 
 ```python
 def test_spy(mocker):
