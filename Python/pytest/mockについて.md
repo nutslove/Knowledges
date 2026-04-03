@@ -367,7 +367,29 @@ def test_spy(mocker):
 
 👉 **副作用は残したいが、呼び出しは確認したい**とき
 
-## 2-7. `reset_mock`
+## 2-7. `mocker.MagicMock()`
+
+- `mocker.patch()`は既存のモジュール内の関数やクラスを**置き換える**のに対し、`mocker.MagicMock()`は**独立したモックオブジェクトを新規作成**する
+- patchする対象がなく、関数の引数として渡すモックや、メソッドチェーンの途中に差し込むモックが必要な場合に使う
+
+```python
+def test_with_magic_mock(mocker):
+    # 独立したモックオブジェクトを作成
+    mock_cursor = mocker.MagicMock()
+    mock_cursor.fetchone.return_value = (1500,)
+
+    # 関数の引数として渡す、patchの戻り値に設定するなどして使う
+    mock_conn = mocker.patch("myapp.db.get_connection")
+    mock_conn.return_value.cursor.return_value = mock_cursor
+
+    result = get_order_total(123)
+    assert result == 1500
+```
+
+> [!NOTE]
+> `mocker.MagicMock()`は`unittest.mock.MagicMock()`と同じものだが、`mocker`経由で作成することでコードの統一感が保たれる。
+
+## 2-8. `reset_mock`
 
 ```python
 def test_reset_mock(mocker):
