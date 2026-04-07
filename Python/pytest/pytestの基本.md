@@ -487,6 +487,28 @@ class TestMathOperations:
 - `@pytest.mark.skipif(condition, reason="...")`: 条件が`True`の場合にテストをスキップする
 - `@pytest.mark.xfail`: テストが失敗すると想定する
 
+### `@pytest.mark.asyncio`（非同期テスト）
+- `async def`で定義された非同期テスト関数をpytestで実行するためのデコレータ
+- `pytest-asyncio`プラグインが提供（`pip install pytest-asyncio`が必要）
+- 通常pytestは同期関数しか実行できないため、このデコレータでイベントループを自動的に作成・管理する
+
+```python
+import pytest
+
+# 同期テスト → そのまま実行できる
+def test_sync():
+    assert 1 + 1 == 2
+
+# 非同期テスト → @pytest.mark.asyncioが必要
+@pytest.mark.asyncio
+async def test_async():
+    result = await some_async_function()
+    assert result == "ok"
+```
+
+> [!NOTE]
+> `@pytest.mark.asyncio`がないと`async def`のテストは実行されずスキップされるか、エラーになる。
+
 ## テスト関数の構造化
 - Arrange-Act-Assert（Given-When-Then）パターンを使うと、テスト関数の構造が明確になる
   1. **Arrange（Given）（準備）**: テストに必要なデータや状態を準備する
