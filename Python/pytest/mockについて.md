@@ -82,6 +82,103 @@ def test_side_effect_by_args():
     assert mock_func(3) == 6
 ```
 
+### 引数の値に応じて異なる戻り値を返す
+- `side_effect`に条件分岐を含む関数を渡すことで、**引数の値ごとに異なるレスポンス**を返せる
+
+```python
+from unittest.mock import Mock
+
+def test_side_effect_by_value():
+    def fake_get_item(**kwargs):
+        tracking_id = kwargs["Key"]["tracking_id"]
+        responses = {
+            "id-001": {"Item": {"tracking_id": "id-001", "status": "completed", "result": "success"}},
+            "id-002": {"Item": {"tracking_id": "id-002", "status": "failed", "result": "error"}},
+        }
+        return responses.get(tracking_id, {})
+
+    mock_table = Mock()
+    mock_table.get_item.side_effect = fake_get_item
+
+    res1 = mock_table.get_item(Key={"tracking_id": "id-001"})
+    assert res1["Item"]["status"] == "completed"
+
+    res2 = mock_table.get_item(Key={"tracking_id": "id-002"})
+    assert res2["Item"]["status"] == "failed"
+```
+
+`conftest.py`にfixtureとして切り出せば、複数のテストファイルから共通で使える。
+
+```python
+# conftest.py
+@pytest.fixture
+def mock_dynamodb_table(mocker):
+    def fake_get_item(**kwargs):
+        tracking_id = kwargs["Key"]["tracking_id"]
+        responses = {
+            "id-001": {"Item": {"tracking_id": "id-001", "status": "completed", "result": "success"}},
+            "id-002": {"Item": {"tracking_id": "id-002", "status": "failed", "result": "error"}},
+        }
+        return responses.get(tracking_id, {})
+
+    mock_table = mocker.MagicMock()
+    mock_table.get_item.side_effect = fake_get_item
+    return mock_table
+
+# test_something.py
+def test_get_completed(mock_dynamodb_table):
+    res = mock_dynamodb_table.get_item(Key={"tracking_id": "id-001"})
+    assert res["Item"]["status"] == "completed"
+```
+
+### リストを渡して呼び出しごとに異なる値を返す
+- `side_effect`にリストを渡すと、**呼び出し順に1つずつ値が返される**
+- ステータスのポーリングやリトライ処理のテストで便利
+
+```python
+from unittest.mock import Mock
+
+def test_side_effect_list():
+    mock_func = Mock(side_effect=["pending", "in_progress", "completed"])
+
+    assert mock_func() == "pending"      # 1回目
+    assert mock_func() == "in_progress"  # 2回目
+    assert mock_func() == "completed"    # 3回目
+    # mock_func()  # 4回目 → StopIteration（リストを使い切るとエラー）
+```
+
+```python
+# 実践例：DynamoDBのステータスポーリングをテスト
+def test_polling_status(mocker):
+    mock_table = mocker.MagicMock()
+    mock_table.get_item.side_effect = [
+        # 1回目の呼び出し（処理中）
+        {
+            "Item": {
+                "tracking_id": "test-tracking-id",
+                "status": "in_progress",
+            }
+        },
+        # 2回目の呼び出し（完了）
+        {
+            "Item": {
+                "tracking_id": "test-tracking-id",
+                "status": "completed",
+                "result": "test-analysis-result"
+            }
+        },
+    ]
+
+    # 1回目の呼び出し
+    response = mock_table.get_item(Key={"tracking_id": "test-tracking-id"})
+    assert response["Item"]["status"] == "in_progress"
+
+    # 2回目の呼び出し
+    response = mock_table.get_item(Key={"tracking_id": "test-tracking-id"})
+    assert response["Item"]["status"] == "completed"
+    assert response["Item"]["result"] == "test-analysis-result"
+```
+
 ## 1-3. 例外を発生させる
 
 ```python
