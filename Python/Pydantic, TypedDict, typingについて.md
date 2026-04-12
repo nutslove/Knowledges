@@ -177,6 +177,59 @@
       get_user(product_id)     # 型チェックツールでエラーになる（実行時は問題ない）
       ```
 
+# `Enum`
+- Python標準ライブラリ`enum`モジュールで提供される、**列挙型**を定義するためのクラス
+- `typing`の`Literal`と似た用途で使えるが、**ランタイムで強制力を持つ**点が大きく異なる
+  - `Literal`は型チェッカー（mypyなど）を通さないと不正値を検出できない
+  - `Enum`は実行時に未定義のメンバーへアクセスすると例外が発生する
+- 基本構文
+```python
+  from enum import Enum
+
+  class Status(Enum):
+      PENDING = "pending"
+      RUNNING = "running"
+      DONE = "done"
+
+  s = Status.RUNNING
+  print(s)        # Status.RUNNING
+  print(s.name)   # "RUNNING"
+  print(s.value)  # "running"
+```
+- **存在しないメンバーへのアクセスはランタイムで弾かれる**
+```python
+  Status.UNKNOWN       # AttributeError
+  Status("invalid")    # ValueError: 'invalid' is not a valid Status
+  Status["UNKNOWN"]    # KeyError
+```
+- メンバーのイテレートが可能
+```python
+  for s in Status:
+      print(s.name, s.value)
+```
+- `str`や`int`を継承させると、生の値としても扱える
+```python
+  class Status(str, Enum):
+      PENDING = "pending"
+      RUNNING = "running"
+
+  Status.RUNNING == "running"  # True
+```
+- `IntEnum`、`StrEnum`（Python 3.11以降）など派生クラスもある
+
+## `Enum` と `Literal` の使い分け
+| 観点 | `Enum` | `Literal` |
+|---|---|---|
+| ランタイムでの強制力 | あり（例外発生） | なし（型チェッカーのみ） |
+| 値の実体 | 専用のオブジェクト | 生の文字列/整数など |
+| メンバーのイテレート | 可能 | 不可 |
+| メソッドの追加 | 可能 | 不可 |
+| 軽量さ | クラス定義が必要 | 型エイリアスのみで済む |
+
+- **外部入力（APIレスポンス、webhookペイロード、環境変数など）を扱う境界**では、`Enum`にして`Status(payload["status"])`のように変換時点で弾くほうが安全
+- **内部的な選択肢を型ヒントで示すだけ**であれば、`Literal`のほうが軽量で十分
+- なお、`pydantic`の`BaseModel`のフィールドに使う場合は、`Enum`でも`Literal`でもどちらもランタイム検証されるので安全
+
 # `TypedDict`
 - Python 3.8で公式に`typing`モジュールに追加されたので
   - Python 3.8以降の場合は`from typing import TypedDict`
