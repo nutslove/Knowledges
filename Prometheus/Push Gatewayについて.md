@@ -151,6 +151,51 @@ spec:
 > - **PUT (`push_to_gateway`)**: 「このジョブのメトリクスはこれで全部です。前回の情報はもう要りません」と言いたいとき。バッチジョブの最後にまとめて送信する場合はこちらが自然。
 > - **POST (`pushadd_to_gateway`)**: 「既存のメトリクスはそのままで、今送ったものだけ追加・更新してください」と言いたいとき。複数の処理から別々のメトリクスを同じグルーピングキーに送る場合などに使う。
 
+> [!IMPORTANT]
+> ## グルーピングキーと通常ラベルの違い
+> Pushgatewayには2種類の「ラベル的なもの」があり、混同しやすいので注意が必要。
+>
+> | 種類 | どこで決まる | 役割 |
+> |---|---|---|
+> | **グルーピングキー** | URLパスの `/job/xxx/instance/yyy/...`<br>(Pythonなら `grouping_key` 引数) | Pushgateway内部の「箱」の識別子。POST/PUT/DELETEの単位。 |
+> | **通常のメトリクスラベル** | メトリクス本文の `{sid="...", type="..."}`<br>(Pythonなら `labelnames`) | Prometheusの時系列を分けるラベル。 |
+>
+> ### POST/PUTの上書き判定はグルーピングキー単位
+> POST/PUTの上書き判定は**グルーピングキー**でのみ行われ、通常ラベル（`sid`, `type` など）は一切関係しない。
+>
+> 例えば、Pushgatewayに既に以下が入っているとする:
+> ```
+> [箱: job=myapp]
+>   ├─ events_total{sid="A", type="click"} = 10
+>   ├─ events_total{sid="A", type="view"}  = 50
+>   └─ events_total{sid="B", type="click"} = 3
+> ```
+> ここに POST で `events_total{sid="A", type="click"} 99` を送ると、結果は:
+> ```
+> [箱: job=myapp]
+>   └─ events_total{sid="A", type="click"} = 99   ← これだけ残る
+>      (他は全部消える)
+> ```
+> つまりPOSTは「同じグルーピングキー + 同じメトリクス名(メトリクスファミリ)」の時系列を**まるごと**置き換える。ラベルの組み合わせごとに個別に上書きされるわけではない。
+>
+> | 操作 | 上書きされる範囲 |
+> |---|---|
+> | POST (`pushadd_to_gateway`) | 同じグルーピングキー配下の、**同じメトリクス名**の時系列すべて |
+> | PUT (`push_to_gateway`) | 同じグルーピングキー配下の**全メトリクス** |
+> | DELETE | 同じグルーピングキー配下の全メトリクス |
+
+> [!NOTE]
+> ## グルーピングキーの構成
+> - **`job` は必須**。URLの `/metrics/job/<JOB>` 部分は省略できない。
+> - **それ以外は任意**。`instance` は慣習的によく使われる例に過ぎず、`/key/value/key/value/...` の形で好きなラベルを好きな数だけ追加できる。
+> - グルーピングキーの順序はPushgateway側でラベル名ソートされて正規化されるため、`/job/etl/env/prod/region/apne1` と `/job/etl/region/apne1/env/prod` は同じ箱として扱われる。
+>
+> ### グルーピングキーに入れるべきもの / 入れるべきでないもの
+> グルーピングキーの組み合わせごとに別々の「箱」が作られ、明示的にDELETEしない限り残り続けるため、カーディナリティに注意する必要がある。
+>
+> - ✅ 向いているもの: `job`, `instance`, `pod`, `env`, `region`, `cluster`, `shard` など**固定的で値の種類が限られるもの**
+> - ❌ 向かないもの: ユーザーID、セッションID、リクエストID、タイムスタンプなど**動的に無数に発生するもの** → これらは `labelnames` 側（通常ラベル）に入れる
+
 ## Prometheus Client Libraryを使う方法（Python例）
 - https://github.com/prometheus/client_python
 - コード例  
