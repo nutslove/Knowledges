@@ -100,12 +100,56 @@ spec:
 
 # Push Gatewayへのメトリクスのプッシュ方法
 ## curlコマンドを使う方法
-```bash
-PUT/POST http://pushgateway.monitoring.svc.cluster.local:9091/metrics/job/<JOB_NAME>/<LABEL>/<VALUE>/...
-```
+- 基本フォーマット  
+  ```bash
+  PUT/POST http://<pushgateway>:9091/metrics/job/<JOB>[/<LABEL>/<VALUE>]...
+  ```
+- 例  
+  ```shell
+  echo "metric_1 3.14" | curl --data-binary @- http://localhost:9091/metrics/job/my_job
+  ```
+
+  ```shell
+  # POST: 同じ名前のメトリクスだけ上書き、他は残る
+  echo "batch_job_duration_seconds 42.3" | curl --data-binary @- \
+    http://pushgateway:9091/metrics/job/nightly_etl/instance/pod-xyz
+
+  # PUT: このグルーピングキー配下を総入れ替え
+  echo "batch_job_duration_seconds 42.3" | curl -X PUT --data-binary @- \
+    http://pushgateway:9091/metrics/job/nightly_etl/instance/pod-xyz
+  ```
+
 - **POST**: 同じラベルのメトリクスのみ上書き（既存のグルーピングキーの他のメトリクスは残る）
 - **PUT**: そのグルーピングキー配下の全メトリクスを置き換え
 - **DELETE**: 削除
+
+> [!IMPORTANT]
+> ## POSTとPUTの違い
+> - Pushgatewayでは「グルーピングキー」という単位でメトリクスが管理されている。グルーピングキーは、`job` ラベルと任意の数の追加ラベル（例: `instance`、`env` など）で構成される。
+> 例えば、`job="nightly_etl", instance="pod-xyz"` というグルーピングキーがあり、Pushgatewayに既に以下が入っているとする:  
+> ```
+> [箱: job=nightly_etl, instance=pod-xyz]
+>   ├─ batch_job_duration_seconds = 42.3
+>   ├─ batch_job_processed_total  = 100
+>   └─ batch_job_errors_total     = 2
+> ```
+> ここに `batch_job_duration_seconds = 50.0` だけを送った場合：
+> #### POSTの場合（送ったメトリクスだけ上書き）
+> ```
+> [箱: job=nightly_etl, instance=pod-xyz]
+>   ├─ batch_job_duration_seconds = 50.0   ← 上書きされた
+>   ├─ batch_job_processed_total  = 100    ← そのまま残る
+>   └─ batch_job_errors_total     = 2      ← そのまま残る
+> ```
+> #### PUTの場合（箱ごと総入れ替え）
+> ```
+> [箱: job=nightly_etl, instance=pod-xyz]
+>   └─ batch_job_duration_seconds = 50.0   ← これだけ
+>     (他のメトリクスは消える)
+> ```
+> ### 使い分け
+> - **PUT (`push_to_gateway`)**: 「このジョブのメトリクスはこれで全部です。前回の情報はもう要りません」と言いたいとき。バッチジョブの最後にまとめて送信する場合はこちらが自然。
+> - **POST (`pushadd_to_gateway`)**: 「既存のメトリクスはそのままで、今送ったものだけ追加・更新してください」と言いたいとき。複数の処理から別々のメトリクスを同じグルーピングキーに送る場合などに使う。
 
 ## Prometheus Client Libraryを使う方法（Python例）
 - https://github.com/prometheus/client_python
@@ -134,16 +178,13 @@ PUT/POST http://pushgateway.monitoring.svc.cluster.local:9091/metrics/job/<JOB_N
   # PUT: このグルーピングキー配下を total 入れ替え
   push_to_gateway(PUSHGATEWAY, job=JOB, registry=registry, grouping_key=GROUPING)
 
-
   # --- 2. 後から追加のメトリクスだけ送る(POSTで追記) ---
   extra_registry = CollectorRegistry()
   rows_exported = Gauge('batch_job_rows_exported', 'Rows exported to S3',registry=extra_registry)
   rows_exported.set(12345)
 
-  # POST: 上で送った duration/processed/last_success はそのまま残り、
-  #       rows_exported だけが箱に追加される
+  # POST: 上で送った duration/processed/last_success はそのまま残り、rows_exported だけが箱に追加される
   pushadd_to_gateway(PUSHGATEWAY, job=JOB, registry=extra_registry, grouping_key=GROUPING)
-
 
   # --- 3. ジョブが不要になったらグルーピングキーごと削除 ---
   # delete_from_gateway(PUSHGATEWAY, job=JOB, grouping_key=GROUPING)
@@ -155,7 +196,35 @@ PUT/POST http://pushgateway.monitoring.svc.cluster.local:9091/metrics/job/<JOB_N
 > `inc()` は Counter の値をインクリメントするメソッド。引数なしで呼ぶと1ずつ増える。引数に数値を渡すとその数だけ増える。`set()` は Gauge の値を指定した数値にセットするメソッド
 
 > [!NOTE]
-> `Counter`と`Gauge`の引数
+> ## `Counter`と`Gauge`の引数
+> #### 第1引数: name（メトリクス名）
+> - 必須。Prometheusのメトリクス名。  
+>   ```python
+>   Counter('http_requests_total', ...)
+>   Gauge('queue_size', ...)
+>   ```
+> - Counterには慣習的に `_total` を付ける
+> #### 第2引数: documentation（説明文）
+> - 必須。Prometheusの exposition formatの `# HELP` 行になる。  
+>   ```python
+>   Counter('http_requests_total', 'Total number of HTTP requests')
+>   Gauge('queue_size', 'Current size of the queue')
+>   ```
+> #### `labelnames`（ラベル名）
+> - ラベル名のリスト/タプル。ここで宣言したラベルは、値を記録するときに `.labels()` で指定する。  
+>   ```python
+>   requests = Counter(
+>     'http_requests_total',
+>     'Total HTTP requests',
+>     labelnames=['method', 'status', 'endpoint'],
+>   )
+>
+>   # キーワード引数で指定
+>   requests.labels(method='GET', status='200', endpoint='/api/users').inc()
+>
+>   # 位置引数でもOK（labelnamesで宣言した順）
+>   requests.labels('POST', '500', '/api/login').inc()
+>   ```
 
 # 運用上の注意点
 - **複数起動してもHA構成にならない**
