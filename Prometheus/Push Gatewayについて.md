@@ -328,6 +328,25 @@ pushadd_to_gateway(
 > [!NOTE]
 > prom-aggregation-gatewayも**永続化はしない**ため、gateway自体が再起動すると累計がリセットされる。ただしPrometheus側ではreset検知が効くため、`increase()` や `rate()` の計算には影響しない。「これまでの総累計」を絶対値で見たい場合は、DynamoDBやRedisなどの外部ストレージでアトミックに加算し、その合計値をGaugeとしてPushgatewayに送る方式を検討する。
 
+- prom-aggregation-gatewayのメトリクスをPrometheusでスクレイピングするためのPrometheusのscrape config例  
+  ```yaml
+  # `prom-aggregation-gateway`にpushされるメトリクス
+  - job_name: 'prom-aggregation-gateway'
+    honor_labels: true
+    static_configs:
+      - targets: ['prom-aggregation-gateway.monitoring.svc.cluster.local:80']
+        labels:
+          component: prom-aggregation-gateway
+
+  # `prom-aggregation-gateway`自身のメトリクス
+  # `prom-aggregation-gateway`自身のメトリクスなのでhonor_labels: true は不要
+  - job_name: 'prom-aggregation-gateway-internal'
+    static_configs:
+      - targets: ['prom-aggregation-gateway.monitoring.svc.cluster.local:8888']
+        labels:
+          component: prom-aggregation-gateway
+  ```
+
 ## その他の代替手段
 | 手段 | 概要 | メリット | デメリット |
 |---|---|---|---|
