@@ -278,3 +278,60 @@ spec:
   - 一度pushされたメトリクスは、明示的にDELETEするかPushgateway自体を再起動するまで残り続ける。ジョブ終了時に古いメトリクスを消す運用が必要なこともある。
 - **タイムスタンプを持たない**
   - Pushgatewayにプッシュされたメトリクスはタイムスタンプを持たないため、Prometheusがスクレイピングした時点のタイムスタンプが付与される。ジョブの実行時間など、タイムスタンプを持たせたい場合は、メトリクスの値としてUnixタイムスタンプをプッシュするなどの工夫が必要。
+
+# Pushgatewayの苦手分野: 分散カウンター
+- Pushgatewayは**アグリゲーターでも分散カウンターでもなく、単なるメトリクスキャッシュ**として設計されている。受け取った値をそのまま保存するだけで、「前の値 + 今回送った値」という加算計算はしてくれない。
+  > The Pushgateway is explicitly not an aggregator or distributed counter but rather a metrics cache. It does not have statsd-like semantics. The metrics pushed are exactly the same as you would present for scraping in a permanently running program.
+
+- つまり、LambdaやECS Standalone Taskのような短命ジョブが毎回 `Counter.inc(1)` してPushgatewayに送っても、**最後に送った値で上書きされるだけ**で、Pushgateway側で累計が増えていくわけではない。
+
+> [!WARNING]
+> ## Pushgatewayで分散カウントができない具体例
+> Lambda が3回起動して、それぞれ `inc(1)` して `pushadd_to_gateway()` を呼んだ場合:
+> ```
+> Lambda実行1: Counter=1 → Pushgatewayに送信 → Pushgateway側: events_total = 1
+> Lambda実行2: Counter=1 → Pushgatewayに送信 → Pushgateway側: events_total = 1 (２ではなく１!)
+> Lambda実行3: Counter=1 → Pushgatewayに送信 → Pushgateway側: events_total = 1 (３ではなく１!)
+> ```
+> 各Lambdaは新しいプロセスなのでCounterは毎回0から始まり、`inc(1)` で1になったものを送る。Pushgatewayは受け取った値で置き換えるだけなので、結果は常に1のまま。
+>
+> **同一プロセス内**でCounterを保持し続けて `inc()` を繰り返してから送る場合は累計が反映されるが、プロセスが再起動すると値は0にリセットされる。
+
+## 対策: prom-aggregation-gateway
+- https://github.com/zapier/prom-aggregation-gateway
+- PushgatewayのAPIと互換性を持ちつつ、**Counterをちゃんと合算してくれる**代替コンポーネント。
+  - Counterは送られてきた値を**加算**
+  - Gaugeは**最新値**で上書き
+  - Histogramはbucketごとに**加算**
+- クライアント側のコード（`prometheus_client` の `push_to_gateway` / `pushadd_to_gateway`）はそのまま使える。Prometheusのscrape設定も `honor_labels: true` 付きで同じ。
+
+```python
+# クライアント側のコードはPushgatewayと全く同じ
+from prometheus_client import CollectorRegistry, Counter, pushadd_to_gateway
+
+registry = CollectorRegistry()
+users = Counter(
+    'myapp_users_processed_total', 'Users processed',
+    labelnames=['tenant', 'plan'],
+    registry=registry,
+)
+users.labels(tenant='acme', plan='pro').inc()  # 毎回1ずつ
+
+# 送り先をprom-aggregation-gatewayに変えるだけ
+pushadd_to_gateway(
+    'prom-aggregation-gateway.monitoring.svc.cluster.local:80',
+    job='user_counter',
+    registry=registry,
+)
+```
+
+> [!NOTE]
+> prom-aggregation-gatewayも**永続化はしない**ため、gateway自体が再起動すると累計がリセットされる。ただしPrometheus側ではreset検知が効くため、`increase()` や `rate()` の計算には影響しない。「これまでの総累計」を絶対値で見たい場合は、DynamoDBやRedisなどの外部ストレージでアトミックに加算し、その合計値をGaugeとしてPushgatewayに送る方式を検討する。
+
+## その他の代替手段
+| 手段 | 概要 | メリット | デメリット |
+|---|---|---|---|
+| **prom-aggregation-gateway** | Pushgateway互換でCounterを合算 | クライアントコードそのまま、PromQLの `rate()`/`increase()` が使える | 永続化なし、再起動で累計リセット |
+| **外部ストレージ(DynamoDB/Redis)** | アトミックINCRで累計を管理し、合計値をGaugeで送る | 永続化される、正確な累計 | 追加インフラが必要、PromQLのCounter関数が使えない(Gaugeになるため) |
+| **ログベースメトリクス(Loki LogQL)** | ログから `count_over_time()` で集計 | 追加コンポーネント不要、後から集計軸を変えられる | Loki retention期間しか遡れない、PromQLの世界で完結しない |
+| **CloudWatch EMF + YACE** | Lambda EMFでCloudWatchに送り、YACEでPrometheusに取り込む | AWS Lambdaとの親和性が高い | 運用が重い、AWS ↔ Prometheus間の変換が必要 |
