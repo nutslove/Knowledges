@@ -21,7 +21,32 @@ Envoy AI Gateway は Envoy Gateway の上に構築された **拡張（extension
 > [!NOTE]
 > `Gateway` CR が apply された瞬間に Envoy Gateway Controller が Envoy Proxy Pod を生成するが、その際に AI Gateway Controller の MutatingWebhook が割り込んで ExtProc サイドカーを注入するイメージ。以降、プロバイダ API 変換やトークンカウントはこのサイドカーが担当し、AIGatewayRoute 等による AI 固有のルーティング設定は AI Gateway Controller の Extension Server が Envoy Gateway に提供する。
 
-![](image/relationship.png)
+#### コンポーネント間の関係性
+
+```mermaid
+flowchart TB
+  subgraph CP["Control plane"]
+    EG["Envoy Gateway controller<br/>ns: envoy-gateway-system"]
+    AI["AI Gateway controller<br/>ns: envoy-ai-gateway-system"]
+  end
+  EG -. "xDS 生成時に呼び出し<br/>Extension Server :1063" .-> AI
+
+  subgraph Pod["Envoy Proxy Pod (ns: envoy-gateway-system)"]
+    EP["Envoy Proxy<br/>main container"]
+    XP["ExtProc<br/>sidecar"]
+  end
+  EP -. "ext_proc 呼び出し (UDS)" .-> XP
+
+  EG == "Pod 作成 + xDS 配信" ==> EP
+  AI == "Webhook で注入" ==> XP
+
+  classDef eg fill:#B5D4F4,stroke:#185FA5,color:#042C53
+  classDef ai fill:#CECBF6,stroke:#534AB7,color:#26215C
+  class EG,EP eg
+  class AI,XP ai
+```
+
+#### 通信の流れ
 
 ```mermaid
 sequenceDiagram
