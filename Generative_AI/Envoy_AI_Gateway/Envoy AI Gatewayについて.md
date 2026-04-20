@@ -501,6 +501,8 @@ spec:
 
 **③ AI Gateway CRDs**（sync wave 0）
 
+- https://aigateway.envoyproxy.io/docs/getting-started/installation
+
 ```yaml
 apiVersion: argoproj.io/v1alpha1
 kind: Application
