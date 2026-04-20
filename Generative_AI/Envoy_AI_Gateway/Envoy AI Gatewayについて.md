@@ -396,6 +396,9 @@ platform-config/                          # ArgoCD が参照する Git リポジ
 
 `values/envoy-gateway/values.yaml` は AI Gateway 公式の `envoy-gateway-values.yaml` の中身をコピーして、自社のリソース設定等を追記したもの：
 
+- https://aigateway.envoyproxy.io/docs/getting-started/prerequisites/
+- https://raw.githubusercontent.com/envoyproxy/ai-gateway/main/manifests/envoy-gateway-values.yaml
+
 ```yaml
 # AI Gateway 連携に必須の部分（公式 envoy-gateway-values.yaml より）
 config:
@@ -417,19 +420,25 @@ config:
           hostname: ai-gateway-controller.envoy-ai-gateway-system.svc.cluster.local
           port: 1063
 
-# 自社カスタマイズ
 deployment:
   replicas: 2
-  envoyGateway:
-    resources:
-      requests: {cpu: 100m, memory: 256Mi}
-      limits:   {cpu: 500m, memory: 1Gi}
+  pod:
+    nodeSelector:
+      karpenter.sh/nodepool: arm64-nodepool
+      karpenter.sh/capacity-type: on-demand
+    topologySpreadConstraints:
+      - maxSkew: 1
+        topologyKey: topology.kubernetes.io/zone
+        whenUnsatisfiable: ScheduleAnyway
+        labelSelector:
+          matchLabels:
+            control-plane: envoy-gateway
 ```
 
 #### Application マニフェスト
 
 **① Envoy Gateway CRDs**（sync wave 0）
-
+- https://gateway.envoyproxy.io/docs/install/install-helm/
 ```yaml
 apiVersion: argoproj.io/v1alpha1
 kind: Application
