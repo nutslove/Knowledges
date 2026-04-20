@@ -21,6 +21,36 @@ Envoy AI Gateway は Envoy Gateway の上に構築された **拡張（extension
 > [!NOTE]
 > `Gateway` CR が apply された瞬間に Envoy Gateway Controller が Envoy Proxy Pod を生成するが、その際に AI Gateway Controller の MutatingWebhook が割り込んで ExtProc サイドカーを注入するイメージ。以降、プロバイダ API 変換やトークンカウントはこのサイドカーが担当し、AIGatewayRoute 等による AI 固有のルーティング設定は AI Gateway Controller の Extension Server が Envoy Gateway に提供する。
 
+![](image/relationship.png)
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant C as Client
+    participant E as Envoy Proxy
+    participant X as ExtProc
+    participant L as LLM Provider
+
+    C->>E: HTTP POST /v1/chat/completions<br/>body: { "model": "gpt-4o-mini", ... }
+    activate E
+    E->>X: ext_proc 呼び出し (UDS)
+    activate X
+    Note right of X: model フィールド抽出<br/>AIGatewayRoute とマッチング<br/>宛先 AIServiceBackend 決定<br/>API スキーマ変換<br/>認証情報付与<br/>入力トークンカウント
+    X-->>E: 変換結果 + ルーティング指示
+    deactivate X
+    E->>L: 変換済みリクエスト (HTTPS)
+    activate L
+    L-->>E: レスポンス (SSE ストリーミング可)
+    deactivate L
+    E->>X: レスポンスボディを渡す
+    activate X
+    Note right of X: 出力トークンカウント<br/>必要ならスキーマ逆変換
+    X-->>E: 処理済みレスポンス
+    deactivate X
+    E-->>C: 最終レスポンス
+    deactivate E
+```
+
 ## 前提知識: xDS とは
 
 xDS = 「x Discovery Service」の総称。Envoy Proxy が設定情報を **動的に gRPC API 経由で受け取る仕組み**。静的 YAML ではなくコントロールプレーンから pull してくる形になっているため、設定変更時に Envoy の再起動が不要。
