@@ -23,6 +23,10 @@ Envoy AI Gateway は Envoy Gateway の上に構築された **拡張（extension
 > [!NOTE]
 > `Gateway` CR が apply された瞬間に Envoy Gateway Controller が Envoy Proxy Pod を生成するが、その際に AI Gateway Controller の MutatingWebhook が割り込んで ExtProc サイドカーを注入するイメージ。以降、プロバイダ API 変換やトークンカウントはこのサイドカーが担当し、AIGatewayRoute 等による AI 固有のルーティング設定は AI Gateway Controller の Extension Server が Envoy Gateway に提供する。
 
+- https://github.com/envoyproxy/ai-gateway
+
+![usage](image/usage.png)
+
 #### コンポーネント間の関係性
 
 ```mermaid
