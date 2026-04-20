@@ -53,25 +53,58 @@ sequenceDiagram
     autonumber
     participant C as Client
     participant E as Envoy Proxy
-    participant X as ExtProc
+    participant XR as ExtProc<br/>(router-level)
+    participant XU as ExtProc<br/>(upstream-level)
+    participant RL as Rate Limit<br/>Service
     participant L as LLM Provider
+
+    Note over XR,XU: 物理的には同一 sidecar プロセス<br/>(session affinity で同一インスタンス)
 
     C->>E: HTTP POST /v1/chat/completions<br/>body: { "model": "gpt-4o-mini", ... }
     activate E
-    E->>X: ext_proc 呼び出し (UDS)
-    activate X
-    Note right of X: model フィールド抽出<br/>AIGatewayRoute とマッチング<br/>宛先 AIServiceBackend 決定<br/>API スキーマ変換<br/>認証情報付与<br/>入力トークンカウント
-    X-->>E: 変換結果 + ルーティング指示
-    deactivate X
-    E->>L: 変換済みリクエスト (HTTPS)
+
+    rect rgba(100,100,200,0.08)
+    Note over E,XR: フェーズ 1: Router-level 処理
+    E->>XR: ext_proc (UDS)<br/>request body + headers
+    activate XR
+    Note right of XR: model フィールドを body から抽出<br/>宛先 AIServiceBackend を決定<br/>x-ai-eg-model 等の header を設定
+    XR-->>E: header 変更指示
+    deactivate XR
+    Note over E: Envoy の router filter が<br/>header を元に cluster 選択
+    end
+
+    rect rgba(100,200,100,0.08)
+    Note over E,XU: フェーズ 2: Upstream-level 処理
+    E->>XU: ext_proc (UDS)<br/>選択された backend 向け
+    activate XU
+    Note right of XU: API スキーマ変換<br/>(OpenAI → Bedrock 等)<br/>認証情報を付与<br/>(API Key / SigV4)
+    XU-->>E: 変換済み request
+    deactivate XU
+    end
+
+    opt token rate limit 有効時
+    E->>RL: 使用量チェック
+    RL-->>E: 許可 or 拒否
+    end
+
+    E->>L: HTTPS request (変換済み)
     activate L
-    L-->>E: レスポンス (SSE ストリーミング可)
+    L-->>E: response (SSE ストリーミング可)
     deactivate L
-    E->>X: レスポンスボディを渡す
-    activate X
-    Note right of X: 出力トークンカウント<br/>必要ならスキーマ逆変換
-    X-->>E: 処理済みレスポンス
-    deactivate X
+
+    rect rgba(200,100,100,0.08)
+    Note over E,XU: フェーズ 3: Response 処理
+    E->>XU: response body を渡す
+    activate XU
+    Note right of XU: 出力トークン数を抽出<br/>レスポンスを OpenAI 互換形式に正規化<br/>dynamic metadata に保存
+    XU-->>E: 処理済み response
+    deactivate XU
+    end
+
+    opt token rate limit 有効時
+    E->>RL: 使用量を加算 (metadata 経由)
+    end
+
     E-->>C: 最終レスポンス
     deactivate E
 ```
