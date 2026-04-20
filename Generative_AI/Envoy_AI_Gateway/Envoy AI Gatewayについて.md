@@ -4,7 +4,9 @@
 > 2026年4月時点の情報なので、今後変更される可能性があります。
 > - 対象バージョン: 
 >   - Envoy AI Gateway v0.5.x
->   - Envoy Gateway v1.6.x+
+>   - Envoy Gateway v1.6.x+（Envoy Proxy v1.35.x）
+>   - Kubernetes v1.32+
+>   - Gateway API v1.4.x
 
 ## 全体像
 
@@ -145,7 +147,7 @@ Envoy Gateway プロジェクト本体のコントローラ。Kubernetes Gateway
 | Namespace | `envoy-gateway-system` |
 | Helm チャート | `oci://docker.io/envoyproxy/gateway-helm` |
 | 必要バージョン | v1.6.x 以上（AI Gateway v0.5 連携時） |
-| 主な監視リソース | `GatewayClass`, `Gateway`, `HTTPRoute`, `GRPCRoute`, `EnvoyProxy`, `ClientTrafficPolicy`, `BackendTrafficPolicy`, `SecurityPolicy`, `EnvoyExtensionPolicy`, `Backend` |
+| 主な監視リソース | `GatewayClass`, `Gateway`, `HTTPRoute`, `GRPCRoute`, `ReferenceGrant`, `EnvoyProxy`, `ClientTrafficPolicy`, `BackendTrafficPolicy`, `SecurityPolicy`, `EnvoyExtensionPolicy`, `EnvoyPatchPolicy`, `Backend`, `BackendTLSPolicy`, `HTTPRouteFilter` |
 | 主な役割 | Gateway API リソースを監視し、Envoy Proxy の Deployment / Service / ConfigMap を生成。xDS で Envoy Proxy に設定配信 |
 | 設定ファイル | `EnvoyGateway` CR（通常は Helm values から生成される ConfigMap） |
 
@@ -300,7 +302,30 @@ metadata:
     aigateway.envoyproxy.io/gateway-config: my-gateway-config
 ```
 
-なお v0.4 以前の `AIGatewayRoute.spec.filterConfig.externalProcessor.resources` は非推奨で v0.6 で削除予定。
+なお v0.5 で GatewayConfig CRD が導入されたのに伴い、従来の `AIGatewayRoute.spec.filterConfig.externalProcessor.resources` は非推奨化された（v0.6 で削除予定）。既存の設定はそのまま動くが、GatewayConfig 方式への移行推奨。
+
+> [!NOTE]
+> 公式ドキュメント内で GatewayConfig の spec 階層に表記揺れがある：
+> - `spec.extProc.kubernetes.resources`（API Reference / Release Notes が採用、本ドキュメントもこれを採用）
+> - `spec.extProc.resources`（capabilities/gateway-config ページが採用）
+> 
+> 実際の動作確認は `kubectl explain gatewayconfig.spec.extProc` で etcd 上のスキーマを見るのが確実。
+
+---
+
+### 5. Rate Limit Service（オプション）
+
+Token-based rate limiting を使う場合に必要な、独立した Data Plane コンポーネント。
+
+| 項目 | 内容 |
+|---|---|
+| 用途 | プロンプト／応答のトークン数に基づくレート制限 |
+| 必須度 | オプション（`BackendTrafficPolicy` の rate limit 機能を使う場合のみ） |
+| 実体 | Envoy の rate limit service（Redis バックエンドが一般的） |
+| 有効化 | Envoy Gateway 起動時に `examples/token_ratelimit/envoy-gateway-values-addon.yaml` を追加で `-f` で渡す |
+| Envoy からの呼び出し | リクエスト処理中にクォータチェック。レスポンス処理後にトークン使用量を加算 |
+
+トークンカウント自体は ExtProc が行い、dynamic metadata に保存した値を Envoy が Rate Limit Service に渡す構成。
 
 ---
 
@@ -312,6 +337,9 @@ metadata:
 | `envoyproxy/gateway-helm` | v1.7.2（v1.6.x+ が AI Gateway の要件） | Envoy Gateway Controller 本体 |
 | `envoyproxy/ai-gateway-crds-helm` | v0.5.x | AI Gateway 用 CRD |
 | `envoyproxy/ai-gateway-helm` | v0.5.x | AI Gateway Controller + Webhook + ExtProc イメージ |
+
+> [!NOTE]
+> 公式 Compatibility Matrix で AI Gateway v0.5 と組み合わせて officially tested なのは **Envoy Gateway v1.6.x（Envoy Proxy v1.35.x 同梱）**。v1.7.x は互換範囲内（"v1.6.x+" の "+"）だが公式テスト対象外のため、production では v1.6.x 系の使用が無難。lab/検証環境で v1.7.x を使う場合は、問題発生時に v1.6.x に戻せるようにしておくこと。
 
 ### インストール手順（Helm 直接実行）
 
@@ -582,7 +610,7 @@ spec:
 
 | CRD | API バージョン | 役割 |
 |---|---|---|
-| `AIGatewayRoute` | v1alpha1（非推奨）/ v1beta1 | AI 固有ルーティング（モデル名マッチ、フェイルオーバー、トークンレート制限）。v0.4+ で `schema` フィールドは不要に |
+| `AIGatewayRoute` | v1alpha1（非推奨）/ v1beta1 | AI 固有ルーティング（モデル名マッチ、フェイルオーバー、トークンレート制限）。v0.3+ で `schema` フィールドは不要化（v0.4 までに削除推奨）。v0.3+ で `targetRefs` → `parentRefs` に変更 |
 | `AIServiceBackend` | v1alpha1（非推奨）/ v1beta1 | LLM プロバイダの定義（OpenAI / Bedrock / Azure / Anthropic / GCP Vertex AI 等） |
 | `BackendSecurityPolicy` | v1alpha1（非推奨）/ v1beta1 | プロバイダ認証。v0.3+ で `targetRefs` 方式に変更（旧 `AIServiceBackend.backendSecurityPolicyRef` は非推奨） |
 | `GatewayConfig` | v1alpha1（非推奨）/ v1beta1 | **v0.5 新規**。Gateway 単位での ExtProc 設定（リソース、env 等） |
