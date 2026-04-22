@@ -476,6 +476,114 @@ Client
 
 ---
 
+## リソース間の関係図
+
+Envoy AI Gateway 環境で登場する各 CRD が、**誰を参照し、誰に attach されるか** を整理する。
+
+```mermaid
+flowchart TB
+  %% ========== Gateway API 標準層 ==========
+  subgraph Layer1["🟦 Layer 1: Gateway API 標準 (データプレーン基盤)"]
+    direction LR
+    GC["GatewayClass─────controllerName:gateway.envoyproxy.io/gatewayclass-controller"]
+    GW["Gateway─────listeners:- port / protocol / TLS(Envoy Proxy Pod の生成トリガー)"]
+    GC -. "gatewayClassName で選択" .-> GW
+  end
+
+  %% ========== AI Gateway 層 ==========
+  subgraph Layer2["🟪 Layer 2: AI Gateway (ルーティング + スキーマ)"]
+    direction LR
+    AGR["AIGatewayRoute─────rules[].matches.headers:x-ai-eg-model マッチ(body の model から自動付与)"]
+    ASB["AIServiceBackend─────schema.name:OpenAI / AWSBedrock /AzureOpenAI / GCPVertexAI ..."]
+    BSP["BackendSecurityPolicy─────type: APIKey / AWSCredentials /AzureCredentials / GCPCredentials"]
+
+    AGR -- "backendRefs[](複数 backend / 重み / priority)" --> ASB
+    BSP -. "targetRefs(v0.3+ 方式)" .-> ASB
+  end
+
+  %% ========== Envoy Gateway 拡張層 ==========
+  subgraph Layer3["🟩 Layer 3: Envoy Gateway 拡張 (宛先 + 通信ポリシー)"]
+    direction LR
+    BK["Backend─────endpoints[].fqdn:api.openai.com:443(要 enableBackend: true)"]
+    BTLS["BackendTLSPolicy─────hostname / CA cert /SNI 検証設定"]
+    CTP["ClientTrafficPolicy─────connection.bufferLimit: 50Mi(AI レスポンス用)"]
+
+    BTLS -. "targetRefs(BackendRef 単位)" .-> BK
+  end
+
+  %% ========== カスタマイズ層 ==========
+  subgraph Layer4["⬜ Layer 4: Pod カスタマイズ"]
+    EP["EnvoyProxy─────provider.kubernetes:- envoyDeployment (resources, topology...)- envoyService (NLB annotations...)(オプション)"]
+  end
+
+  %% ========== セキュリティ / 設定 補助層 ==========
+  subgraph Layer5["🟥 Layer 5: Gateway 単位の補助設定"]
+    direction LR
+    SP["SecurityPolicy─────クライアント認証JWT / OIDC / CORS"]
+    GCF["GatewayConfig (v0.5+)─────ExtProc のresources / env / tracing"]
+  end
+
+  %% ========== 層間の主な参照 ==========
+  AGR -- "parentRefs(v0.3+ 方式)" --> GW
+  ASB -- "backendRef(AIServiceBackend 1:1)" --> BK
+  CTP -. "targetRefs" .-> GW
+  EP -- "infrastructure.parametersRef" --- GW
+  SP -. "targetRefs" .-> GW
+  GCF -. "annotation:aigateway.envoyproxy.io/gateway-config" .-> GW
+
+  %% ========== 外部 Secret ==========
+  SEC["Secret(API Key / AWS creds /Azure client-secret /GCP SA key)"]
+  BSP -- "secretRef" --> SEC
+
+  %% ========== スタイル ==========
+  classDef std fill:#B5D4F4,stroke:#185FA5,color:#042C53
+  classDef ai fill:#CECBF6,stroke:#534AB7,color:#26215C
+  classDef eg fill:#C8E6C9,stroke:#2E7D32,color:#1B5E20
+  classDef cfg fill:#FFE0B2,stroke:#E65100,color:#3E2723
+  classDef sec fill:#FFCDD2,stroke:#C62828,color:#4A0E0E
+  classDef ext fill:#ECEFF1,stroke:#546E7A,color:#263238,stroke-dasharray: 5 5
+
+  class GC,GW std
+  class AGR,ASB,BSP,GCF ai
+  class BK,BTLS,CTP eg
+  class EP cfg
+  class SP sec
+  class SEC ext
+```
+
+### 矢印の読み方
+
+| 矢印スタイル | 意味 |
+|---|---|
+| `──>` 実線 | リソース自身の `backendRefs` / `backendRef` / `gatewayClassName` 等の **直接参照** |
+| `-.->` 点線 | Policy attachment パターンの **`targetRefs` / annotation** 経由の attach |
+| `───` 無方向 | `parametersRef` のような **双方向参照**（Gateway 側から EnvoyProxy を指す + EnvoyProxy は Gateway を前提にする）|
+
+### 各リソースが「誰を参照するか」（直接参照）
+
+| 参照元 | 参照フィールド | 参照先 | 備考 |
+|---|---|---|---|
+| `Gateway` | `gatewayClassName` | `GatewayClass` | 標準 |
+| `Gateway` | `infrastructure.parametersRef` | `EnvoyProxy` | オプション（なくてもデフォルトで Pod 生成）|
+| `AIGatewayRoute` | `parentRefs` | `Gateway` | v0.3+（旧 `targetRefs` 非推奨）|
+| `AIGatewayRoute` | `rules[].backendRefs` | `AIServiceBackend` | 複数指定可、重み・priority 対応 |
+| `AIServiceBackend` | `backendRef` | `Backend` | 1:1 関係（k8s Service も将来対応予定）|
+| `Backend` | `endpoints[].fqdn` | 外部 URL | 参照ではなく実体定義 |
+| `BackendSecurityPolicy` | `secretRef` (type 別) | `Secret` | API Key / credentials 等を格納 |
+
+### 各リソースが「誰にアタッチされるか」（Policy Attachment）
+
+| ポリシー | `targetRefs` / annotation の指す先 | 用途 |
+|---|---|---|
+| `BackendSecurityPolicy` | `AIServiceBackend`（v0.3+）| アップストリーム認証 |
+| `BackendTLSPolicy` | `Backend`（BackendRef 単位）| 上流への TLS 検証 |
+| `ClientTrafficPolicy` | `Gateway` | クライアント→Gateway のバッファ・タイムアウト |
+| `BackendTrafficPolicy` | `HTTPRoute` / `Backend` | Gateway→上流の retry / circuit breaker / rate limit |
+| `SecurityPolicy` | `Gateway` / `HTTPRoute` | JWT / OIDC / CORS 等の **クライアント側**認証 |
+| `GatewayConfig` | `Gateway`（annotation 経由）| ExtProc サイドカーの設定（v0.5+）|
+
+---
+
 ## AI プロバイダ認証（BackendSecurityPolicy）
 
 LLM プロバイダへのアップストリーム認証は `BackendSecurityPolicy` CRD で設定する。`targetRefs` で `AIServiceBackend` を指定して紐付ける。
