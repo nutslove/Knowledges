@@ -432,6 +432,158 @@ spec:
 
 これが AI Gateway の最大の価値の一つ。**クライアントは OpenAI SDK のまま、バックエンドだけを差し替えられる**。
 
+### モデルIDは「実際のプロバイダのモデル名」で書く
+
+`AIGatewayRoute.rules.matches.headers.value` に書く値は、**プロバイダが実際に受け付ける正式なモデルID**である必要がある。**任意のエイリアスではない**。
+
+**具体例**: AWS Bedrock の Llama 3.2 にルーティングする場合
+
+```bash
+curl -d '{
+  "model": "us.meta.llama3-2-1b-instruct-v1:0",
+  "messages": [...]
+}' http://gateway/v1/chat/completions
+```
+
+処理の流れ：
+
+1. body の `"model": "us.meta.llama3-2-1b-instruct-v1:0"` が ExtProc により `x-ai-eg-model` ヘッダーに自動付与
+2. `AIGatewayRoute` が `value: us.meta.llama3-2-1b-instruct-v1:0` でマッチ → Bedrock の `AIServiceBackend` へ
+3. OpenAI → Bedrock 形式にスキーマ変換時、**そのモデルIDが Bedrock の URL パスに埋め込まれる**
+
+このため、クライアントが送る `model` 値 = `matches.headers.value` = **Bedrock の正式モデルID** の三点一致が必須になる。「my-llama」のような独自エイリアスをクライアント側で使っても、そのままだとマッチしないし、マッチしたとしても Bedrock 側でモデル不明エラーになる。
+
+### エイリアス（クライアント向けのモデル名）を使いたい場合
+
+クライアントには `my-llama` のようなシンプルな名前で送らせたいが、上流には `us.meta.llama3-2-1b-instruct-v1:0` を送りたい — という要件には **`modelNameOverride`** を使う。
+
+```yaml
+apiVersion: aigateway.envoyproxy.io/v1beta1
+kind: AIGatewayRoute
+spec:
+  rules:
+    - matches:
+        - headers:
+            - type: Exact
+              name: x-ai-eg-model
+              value: my-llama                       # ← クライアントが送るエイリアス
+      backendRefs:
+        - name: bedrock-backend
+          modelNameOverride: us.meta.llama3-2-1b-instruct-v1:0  # ← 上流に送る実モデルID
+```
+
+これにより「クライアントは `my-llama`、上流は `us.meta.llama3-2-1b-instruct-v1:0`」という名前の付け替えが成立する。複数プロバイダで同じモデルを使う際の **モデル名の抽象化**（Model Name Virtualization）にも使える（例: `claude-4-sonnet` というエイリアスを AWS Bedrock では `anthropic.claude-sonnet-4-20250514-v1:0`、GCP Vertex AI では `claude-sonnet-4@20250514` にマップする等）。
+
+> [!NOTE]
+> `AIGatewayRoute.rules.modelsOwnedBy` / `modelsCreatedAt` は OpenAI 互換の `/models` エンドポイントで返す `owned_by` / `created` フィールドを制御するためのもので、モデル名変換には関係しない。名前の付け替えには必ず `modelNameOverride` を使うこと。
+
+### エージェントフレームワークからの呼び出し
+
+LangChain / Strands Agents / Google ADK などのフレームワークで Envoy AI Gateway を利用する場合、クライアント側は **OpenAI 互換エンドポイントを叩く形で統一**できる。プロバイダ別のクラス（`ChatBedrock` / `ChatAnthropic` 等）を使い分ける必要はなく、全部 OpenAI クライアントで通す。
+
+このとき **フレームワークの `model=` に書いた値は、そのまま HTTP body の `"model"` フィールドに載るだけ**で、フレームワーク側で正規化やエイリアス解決はされない。つまり前項で整理した三点一致（クライアントの `model` = `matches.headers.value` = 実モデルID または `modelNameOverride` で定義したエイリアス）のルールがそのまま適用される。
+
+各フレームワークで Envoy AI Gateway を base_url に指定する方法：
+
+**LangChain (Python)**
+```python
+from langchain_openai import ChatOpenAI
+
+llm = ChatOpenAI(
+    base_url="http://ai-gateway.example.com/v1",
+    api_key="dummy",              # Gateway 側で認証するのでダミーでよい
+    model="gpt-4o-mini",           # または AIGatewayRoute で定義したエイリアス
+)
+```
+
+**Strands Agents**
+```python
+from strands.models.openai import OpenAIModel
+from strands import Agent
+
+model = OpenAIModel(
+    client_args={
+        "base_url": "http://ai-gateway.example.com/v1",
+        "api_key": "dummy",
+    },
+    model_id="gpt-4o-mini",
+)
+agent = Agent(model=model)
+```
+
+**Google ADK**（LiteLLM 経由）
+```python
+from google.adk.agents import LlmAgent
+from google.adk.models.lite_llm import LiteLlm
+
+agent = LlmAgent(
+    model=LiteLlm(
+        model="openai/gpt-4o-mini",   # "openai/" プレフィックスが必要
+        api_base="http://ai-gateway.example.com/v1",
+        api_key="dummy",
+    ),
+    name="my_agent",
+)
+```
+
+#### パラメータ名の対応表
+
+`base_url` 指定は各フレームワークにあるが、**パラメータ名は統一されていない**ので注意：
+
+| フレームワーク | クラス | base_url パラメータ |
+|---|---|---|
+| LangChain (Python) | `ChatOpenAI` | `base_url=` （旧: `openai_api_base=`）|
+| LangChain (JS/TS) | `ChatOpenAI` | 第 2 引数 `configuration: { baseURL: ... }` |
+| Strands Agents | `OpenAIModel` | `client_args={"base_url": ...}` |
+| Google ADK | `LiteLlm` | `api_base=` |
+| OpenAI Agents SDK | `AsyncOpenAI` | `base_url=`（クライアント注入方式）|
+
+### フレームワーク経由で使う際の注意点
+
+#### ① `/v1` の付け方に注意
+
+`base_url` 末尾に `/v1` を含めるかは SDK により異なる：
+
+- **OpenAI SDK 系（LangChain / Strands / OpenAI Agents SDK）**: `/v1` を **含める**のが慣習（`http://gateway/v1`）
+- **LiteLLM（ADK 経由）**: `api_base` に `/v1` を **含める**（LiteLLM が内部で `/chat/completions` を append する）
+
+間違えると `404 Not Found` になる典型的な罠。最初に curl で疎通確認するのが安全：
+
+```bash
+curl http://ai-gateway.example.com/v1/chat/completions \
+  -d '{"model": "gpt-4o-mini", "messages": [{"role":"user","content":"hi"}]}'
+```
+
+これが通ってから SDK から叩くと base_url の切れ目問題でハマらずに済む。
+
+#### ② `endpointConfig.rootPrefix` との整合性
+
+Helm values で `endpointConfig.rootPrefix` を `/` 以外に変えている場合、クライアントの base_url も合わせる必要がある：
+
+| Gateway 側 `rootPrefix` | クライアント `base_url` |
+|---|---|
+| `"/"`（デフォルト）| `http://gateway/v1` |
+| `"/ai"` | `http://gateway/ai/v1` |
+
+#### ③ LangChain `ChatOpenAI` の非 OpenAI プロバイダ対応の制約
+
+LangChain 公式ドキュメントに明確な注意書きがある：
+
+> "ChatOpenAI targets official OpenAI API specifications only. Non-standard response fields from third-party providers (e.g., reasoning_content, reasoning, reasoning_details) are not extracted or preserved."
+
+つまり **Envoy AI Gateway 経由で Bedrock / Vertex AI 等の非 OpenAI プロバイダを使う場合、プロバイダ固有のレスポンスフィールド（Claude の `reasoning_content` 等）が ChatOpenAI で落とされる可能性がある**。基本的な chat completion なら問題ないが、reasoning モデルや cache 情報を取りたい場合は個別検証が必要。
+
+#### ④ Google ADK は LiteLLM 経由が事実上の前提
+
+ADK は以下の二重構造：
+- **Google モデル（Gemini）**: `model="gemini-2.5-flash"` のように direct string
+- **それ以外**: `LiteLlm(model="openai/...")` ラッパー経由
+
+Envoy AI Gateway 経由では後者のパスを使い、`"openai/"` プレフィックスを model 文字列に付ける必要がある。
+
+> [!NOTE]
+> フレームワーク側のパラメータ名の違いはあっても、**「OpenAI 互換エンドポイントとして Envoy AI Gateway を指せる」こと自体は全主要フレームワークで共通**。「プロバイダ別クラスの使い分けを消せる」という AI Gateway の価値は、どのフレームワークを選んでも享受できる。
+
 ### `Backend` CR の位置づけ
 
 Gateway API 標準の `backendRefs` は Kubernetes `Service` しか指定できないが、実際には外部 FQDN（例: `api.openai.com`、Bedrock endpoint）を宛先にしたいケースが多い。`Backend` CR はこのギャップを埋める。
