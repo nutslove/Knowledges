@@ -626,6 +626,91 @@ Client
 [LLM Provider] (OpenAI / Bedrock / Azure / Vertex AI / ...)
 ```
 
+### 複数プロバイダ構成でのリソース展開
+
+4 リソースのセット（`AIServiceBackend` + `BackendSecurityPolicy` + `Backend` + `BackendTLSPolicy`）は **API エンドポイント（FQDN）単位で 1 セット** 必要になる。通常は「プロバイダ数 = セット数」と考えてほぼ合っているが、厳密には下記のルールで決まる。
+
+| リソース | 分割の単位 |
+|---|---|
+| `Backend` | FQDN + port 単位 |
+| `BackendTLSPolicy` | `Backend` と 1:1 |
+| `AIServiceBackend` | 同じ Backend でも schema が異なれば別（例: `AWSBedrock` と `AWSAnthropic`）|
+| `BackendSecurityPolicy` | 認証情報単位。`targetRefs` は配列なので複数 AIServiceBackend で共有可 |
+
+#### 3 プロバイダ構成の典型例
+
+AWS Bedrock + GCP Vertex AI + Azure OpenAI の 3 つを使う場合、4 × 3 = **12 リソース**。これに `AIGatewayRoute`、`Gateway`、`GatewayClass`、`EnvoyProxy`、`ClientTrafficPolicy` を加えて完成形。
+
+```
+[AWS Bedrock] 1 セット
+  AIServiceBackend       (schema.name: AWSBedrock)
+  BackendSecurityPolicy  (type: AWSCredentials)
+  Backend                (bedrock-runtime.<region>.amazonaws.com)
+  BackendTLSPolicy
+
+[GCP Vertex AI] 1 セット
+  AIServiceBackend       (schema.name: GCPVertexAI)
+  BackendSecurityPolicy  (type: GCPCredentials)
+  Backend                (<region>-aiplatform.googleapis.com)
+  BackendTLSPolicy
+
+[Azure OpenAI] 1 セット
+  AIServiceBackend       (schema.name: AzureOpenAI)
+  BackendSecurityPolicy  (type: AzureCredentials)
+  Backend                (<resource-name>.openai.azure.com)
+  BackendTLSPolicy
+```
+
+#### AIGatewayRoute は 1 つで全部束ねる
+
+`AIGatewayRoute` は `rules` を複数並べられるため、**プロバイダが増えても 1 リソースのまま**。プロバイダ数分作る必要はない。
+
+```yaml
+apiVersion: aigateway.envoyproxy.io/v1beta1
+kind: AIGatewayRoute
+spec:
+  parentRefs:
+    - name: envoy-ai-gateway
+      kind: Gateway
+      group: gateway.networking.k8s.io
+  rules:
+    - matches:
+        - headers:
+            - type: Exact
+              name: x-ai-eg-model
+              value: claude-sonnet-4
+      backendRefs:
+        - name: envoy-ai-gateway-aws
+          modelNameOverride: anthropic.claude-sonnet-4-20250514-v1:0
+    - matches:
+        - headers:
+            - type: Exact
+              name: x-ai-eg-model
+              value: gemini-2.5-pro
+      backendRefs:
+        - name: envoy-ai-gateway-gcp
+          modelNameOverride: gemini-2.5-pro
+    - matches:
+        - headers:
+            - type: Exact
+              name: x-ai-eg-model
+              value: gpt-4o
+      backendRefs:
+        - name: envoy-ai-gateway-azure
+          modelNameOverride: gpt-4o
+```
+
+#### 同一プロバイダでも複数セットが必要なケース
+
+| ケース | 分かれる理由 |
+|---|---|
+| 複数リージョン（例: Bedrock の us-east-1 + us-west-2） | FQDN が異なる → Backend / BackendTLSPolicy が別 |
+| 同一 Backend で複数 schema（例: `AWSBedrock` と `AWSAnthropic` 両方使う） | AIServiceBackend のみ 2 つ。Backend / BackendTLSPolicy は共有可 |
+| Azure の複数リソース | リソースごとに FQDN が変わるため Backend が別 |
+
+> [!NOTE]
+> ざっくり「プロバイダ数 = 4 リソースのセット数」で大体合う。より正確には **「Backend は FQDN 単位で 1 つ」** が原則で、リージョン分割やマルチテナント展開時の設計判断はこの原則に立ち返れば迷わない。
+
 ---
 
 ## リソース間の関係図
