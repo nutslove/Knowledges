@@ -227,6 +227,12 @@ controller:
     tlsCertSecretName: self-signed-cert-for-mutating-webhook
     certManager:
       enable: false                  # production では true + cert-manager 推奨
+  # 注: topologySpreadConstraints は v0.5 時点で未対応（後述のハマりどころ参照）
+  # スケジューリング制御は以下 4 つのみ:
+  resources: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
   image:
     repository: docker.io/envoyproxy/ai-gateway-controller
 
@@ -260,11 +266,19 @@ endpointConfig:
 | 中身 | Envoy Proxy バイナリ + xDS クライアント |
 | カスタマイズ | `EnvoyProxy` CR を Gateway の `infrastructure.parametersRef` で紐付け |
 
+> [!IMPORTANT]
+> **Gateway CR をどの namespace に作っても、生成される Envoy Proxy Pod は `envoy-gateway-system` namespace に作られる**。これは Envoy Gateway のデフォルトの "Controller namespace mode" の挙動で、Controller のインストール namespace に Envoy Proxy Pod が集約される仕様。探すときは以下のラベルセレクタを使う：
+> ```bash
+> kubectl get pods -n envoy-gateway-system \
+>   -l gateway.envoyproxy.io/owning-gateway-name=<gateway-name>
+> ```
+
 #### よく触るカスタマイズポイント
 
 - **NLB アノテーション**: `EnvoyProxy.spec.provider.kubernetes.envoyService.annotations` に `service.beta.kubernetes.io/aws-load-balancer-*` を設定
 - **リソース**: `EnvoyProxy.spec.provider.kubernetes.envoyDeployment.container.resources`
 - **バッファ上限**: `ClientTrafficPolicy` の `connection.bufferLimit` でデフォルト 32KB から 50MB 程度に引き上げ（AI レスポンス用）
+- **topologySpreadConstraints**: `EnvoyProxy.spec.provider.kubernetes.envoyDeployment.pod.topologySpreadConstraints` で Envoy Proxy Pod のゾーン分散が可能（Controller 側と違ってフルサポート）
 
 ---
 
@@ -278,7 +292,7 @@ Envoy Proxy Pod に同居する、AI 固有のリクエスト/レスポンス処
 | 注入方法 | AI Gateway の MutatingWebhook が Pod 作成時に挿入 |
 | イメージ | `docker.io/envoyproxy/ai-gateway-extproc` |
 | Envoy との通信 | **Unix Domain Socket (UDS)**（ネットワーク gRPC ではない。v0.2 以降でサイドカー + UDS 方式に変更） |
-| 主な処理 | モデル名ベースのルーティング判定、プロバイダ API スキーマ変換（OpenAI ↔ Bedrock 等）、トークンカウント、プロバイダ認証情報の付与、トークン使用量のメトリクス発行 |
+| 主な処理 | モデル名ベースのルーティング判定、プロバイダ API スキーマ変換（OpenAI ↔ Bedrock 等)、トークンカウント、プロバイダ認証情報の付与、トークン使用量のメトリクス発行 |
 | リソース等の設定 | `GatewayConfig` CRD（v0.5 新規）経由で Gateway ごとに指定 |
 
 #### GatewayConfig での ExtProc 設定例（v0.5 の新方式）
@@ -333,6 +347,248 @@ Token-based rate limiting を使う場合に必要な、独立した Data Plane 
 
 ---
 
+## リクエスト処理の具体例（基本マニフェストで理解する）
+
+公式 basic-usage のマニフェストを題材に、各 CRD の責務とリクエストフローを整理する。
+
+公式サンプル: https://aigateway.envoyproxy.io/docs/getting-started/basic-usage
+
+### 登場する CRD の責務分離
+
+| Kind | API group | 責務 |
+|---|---|---|
+| `GatewayClass` | `gateway.networking.k8s.io` | 「Envoy Gateway Controller がこのクラスを管理する」という宣言（Pod は作らない）|
+| `Gateway` | `gateway.networking.k8s.io` | リスナー（port/protocol）定義。**Envoy Proxy Pod 生成のトリガー** |
+| `ClientTrafficPolicy` | `gateway.envoyproxy.io` | クライアント側のバッファ・タイムアウト等の設定 |
+| `EnvoyProxy` | `gateway.envoyproxy.io` | 生成される Envoy Proxy Pod の挙動カスタマイズ |
+| `AIGatewayRoute` | `aigateway.envoyproxy.io` | **AI 固有のルーティングルール**（モデル名マッチ等）|
+| `AIServiceBackend` | `aigateway.envoyproxy.io` | **バックエンドの API スキーマ定義**（OpenAI / Bedrock 等）|
+| `Backend` | `gateway.envoyproxy.io` | **ネットワーク宛先（FQDN）定義**。`enableBackend: true` 必須 |
+
+**「ルーティングルール → API スキーマ → ネットワーク宛先」という 3 層の抽象**で責務が分離されているのがポイント。この分離により、同じ `AIServiceBackend` を複数の `AIGatewayRoute` から使い回したり、同じ `Backend`（FQDN）に対して複数の `AIServiceBackend`（異なる schema）を紐付けたりできる。
+
+### `x-ai-eg-model` ヘッダーによる自動ルーティング
+
+AI Gateway の核心的な仕組みの一つ。クライアントは **普通に OpenAI 互換の JSON body を送るだけ**で、body の `model` フィールドに基づくルーティングが効く。
+
+```
+Client → POST /v1/chat/completions
+         body: {"model": "gpt-4o-mini", ...}
+         ↓
+ExtProc (router-level) が body の model フィールドを抽出
+         ↓
+Envoy の内部ヘッダーとして x-ai-eg-model: gpt-4o-mini を自動で付与
+         ↓
+AIGatewayRoute.rules.matches.headers でマッチング判定
+         ↓
+マッチしたルールの backendRefs へ転送
+```
+
+→ **ユーザーはヘッダーを自分で付ける必要はない**。OpenAI 互換クライアントのまま、モデル名に応じて異なる backend へルーティングできる。
+
+典型的な AIGatewayRoute 記述：
+
+```yaml
+apiVersion: aigateway.envoyproxy.io/v1beta1
+kind: AIGatewayRoute
+metadata:
+  name: multi-model-route
+spec:
+  parentRefs:
+    - name: ai-gateway
+      kind: Gateway
+      group: gateway.networking.k8s.io
+  rules:
+    - matches:
+        - headers:
+            - type: Exact
+              name: x-ai-eg-model         # body の "model" が自動でここに反映
+              value: gpt-4o-mini
+      backendRefs:
+        - name: openai-backend            # OpenAI の AIServiceBackend へ
+    - matches:
+        - headers:
+            - type: Exact
+              name: x-ai-eg-model
+              value: claude-3-5-sonnet
+      backendRefs:
+        - name: bedrock-backend           # AWS Bedrock の AIServiceBackend へ
+```
+
+### `AIServiceBackend.schema.name` によるスキーマ変換
+
+`AIGatewayRoute` への入力は **暗黙的に OpenAI 互換形式**。これに対して `AIServiceBackend.schema.name` で宣言されたバックエンド種別が異なる場合、ExtProc が自動的に JSON body を変換する。
+
+| `schema.name` の値 | 意味 | 変換の有無 |
+|---|---|---|
+| `OpenAI` | OpenAI API 互換 | 変換なし（そのまま転送） |
+| `AWSBedrock` | AWS Bedrock Runtime API | OpenAI → Bedrock 形式に変換 |
+| `AzureOpenAI` | Azure OpenAI | OpenAI → Azure OpenAI 形式に変換 |
+| `GCPVertexAI` | GCP Vertex AI (Gemini) | OpenAI → Vertex AI 形式に変換 |
+| `Anthropic` | Anthropic 本家 API | OpenAI → Anthropic Messages 形式に変換 |
+| `AWSAnthropic` | Bedrock 上の Anthropic（native）| Anthropic Messages 形式のまま、Bedrock に転送 |
+| `GCPAnthropic` | Vertex AI 上の Anthropic（native）| Anthropic Messages 形式のまま、Vertex AI に転送 |
+| `Cohere` | Cohere API | OpenAI → Cohere 形式に変換 |
+
+これが AI Gateway の最大の価値の一つ。**クライアントは OpenAI SDK のまま、バックエンドだけを差し替えられる**。
+
+### `Backend` CR の位置づけ
+
+Gateway API 標準の `backendRefs` は Kubernetes `Service` しか指定できないが、実際には外部 FQDN（例: `api.openai.com`、Bedrock endpoint）を宛先にしたいケースが多い。`Backend` CR はこのギャップを埋める。
+
+```yaml
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: Backend
+metadata:
+  name: openai-backend
+spec:
+  endpoints:
+    - fqdn:
+        hostname: api.openai.com
+        port: 443
+```
+
+> [!NOTE]
+> `Backend` CR を使うには Envoy Gateway インストール時に `config.envoyGateway.extensionApis.enableBackend: true` が必要。AI Gateway 連携時は必須。
+
+### 全体のデータフロー
+
+```
+Client
+  │ POST /v1/chat/completions
+  │ body: {"model": "gpt-4o-mini", ...}
+  ▼
+[Envoy Proxy Pod + ExtProc サイドカー]
+  │ ① ExtProc が body の "model" を抽出して x-ai-eg-model ヘッダー付与
+  ▼
+[AIGatewayRoute マッチング]
+  │ ② headers.x-ai-eg-model == "gpt-4o-mini" → backendRefs
+  ▼
+[AIServiceBackend]
+  │ ③ schema.name で変換要否を判定
+  │    例: OpenAI → Bedrock なら body を変換
+  ▼
+[Backend CR]
+  │ ④ fqdn で定義された外部エンドポイント
+  ▼
+[LLM Provider] (OpenAI / Bedrock / Azure / Vertex AI / ...)
+```
+
+---
+
+## AI プロバイダ認証（BackendSecurityPolicy）
+
+LLM プロバイダへのアップストリーム認証は `BackendSecurityPolicy` CRD で設定する。`targetRefs` で `AIServiceBackend` を指定して紐付ける。
+
+### サポートされる認証タイプ
+
+v0.5 時点で `spec.type` に指定可能な値：
+
+| `type` | 対象 |
+|---|---|
+| `APIKey` | OpenAI、その他 OpenAI 互換 API（Mistral 等）|
+| `AWSCredentials` | AWS Bedrock |
+| `AzureAPIKey` | Azure OpenAI（API Key 方式）|
+| `AzureCredentials` | Azure OpenAI（Entra ID 方式）|
+| `GCPCredentials` | GCP Vertex AI |
+| `AnthropicAPIKey` | Anthropic 本家 API（AWS/GCP 経由でない直接連携）|
+
+### AWS Bedrock
+
+```yaml
+spec:
+  type: AWSCredentials
+  awsCredentials:
+    region: us-east-1
+    credentialsFile: {...}      # オプション（Static）
+    oidcExchangeToken: {...}    # オプション（OIDC → STS）
+```
+
+**認証方式は実質 3 パターン**：
+
+| # | 方式 | `credentialsFile` | `oidcExchangeToken` | 実体 |
+|---|---|---|---|---|
+| 1 | Static Credentials | 設定 | 空 | Secret 内の credentials ファイル |
+| 2 | OIDC → STS | 空 | 設定 | 外部 OIDC → STS → 一時クレデンシャル |
+| 3 | **Default Credential Chain** | 空 | 空 | AWS SDK の自動検出（下記 5 種類を順にトライ）|
+
+**Default Credential Chain の内訳**（API Reference 原文より）:
+1. 環境変数（`AWS_ACCESS_KEY_ID` 等）
+2. **EKS Pod Identity**
+3. **IRSA (IAM Roles for Service Accounts)**
+4. EC2 IAM Instance Profile
+5. ECS Task Role
+
+> [!IMPORTANT]
+> 「EKS Pod Identity、IRSA、Static Credentials の 3 つ」という分類は粗い。正確には「Static / OIDC 交換 / Default Credential Chain の 3 パターン」であり、Pod Identity と IRSA は Default Chain 内の 2 選択肢という位置関係。
+
+**Kubernetes 環境では Default Credential Chain（Pod Identity または IRSA）が推奨**。自動ローテーションが効き、Secret 管理不要。
+
+### Azure OpenAI
+
+Azure は他のクラウドと異なり、`spec.type` レベルで 2 つの独立したタイプに分かれる：
+
+| `spec.type` | 用途 |
+|---|---|
+| `AzureAPIKey` | API Key 方式（`api-key` ヘッダーに注入） |
+| `AzureCredentials` | Entra ID 方式（Enterprise 向け） |
+
+`AzureCredentials` の場合：
+
+```yaml
+spec:
+  type: AzureCredentials
+  azureCredentials:
+    clientID: <Azure App Client ID>
+    tenantID: <Azure AD Tenant ID>
+    clientSecretRef: {...}       # 排他 A: Client Secret
+    oidcExchangeToken: {...}     # 排他 B: OIDC Federation
+```
+
+**API Reference の制約**: "Only one of ClientSecretRef or OIDCExchangeToken must be specified"
+
+| サブ方式 | 設定 | 用途 |
+|---|---|---|
+| Client Secret | `clientSecretRef` | Service Principal の client secret（OAuth 2.0 client credentials flow）|
+| OIDC Federation | `oidcExchangeToken` | Workload Identity Federation（K8s SA token を Entra ID と federate） |
+
+> [!WARNING]
+> **AKS 専用の Workload Identity タイプは v0.5 では未対応**。v0.5 リリースノートの Future Work に「Azure/AKS workload identity」が明記されている。現状 AKS から使うには `oidcExchangeToken` に AKS の OIDC issuer を指定する形で Workload Identity Federation として組むのが最も近い。
+
+### GCP Vertex AI
+
+```yaml
+spec:
+  type: GCPCredentials
+  gcpCredentials:
+    projectName: my-project
+    region: us-central1
+    credentialsFile: {...}                  # 排他 A: Service Account Key
+    workloadIdentityFederationConfig: {...} # 排他 B: Workload Identity Federation
+```
+
+認証方式は **2 択**:
+
+| 方式 | 設定フィールド | 実体 |
+|---|---|---|
+| Service Account Key File (Static) | `credentialsFile.secretRef` | JSON キーファイルを Secret に保存 |
+| Workload Identity Federation (Keyless) | `workloadIdentityFederationConfig` | 外部 OIDC → Google STS → SA impersonation |
+
+Secret のキー名は `service_account.json`。
+
+> [!WARNING]
+> GCP では **「GKE Workload Identity」専用タイプや ADC 自動検出モードは存在しない**。必ず `credentialsFile` か `workloadIdentityFederationConfig` のどちらかを明示的に設定する必要がある。GKE 上で動かす場合でも `workloadIdentityFederationConfig` に GKE cluster の OIDC issuer を指定する形になる。
+
+### 3 プロバイダ比較
+
+| プロバイダ | Static | Keyless / Federation | 自動検出モード |
+|---|---|---|---|
+| AWS Bedrock | `credentialsFile` | `oidcExchangeToken` (OIDC → STS) | ✅ **あり**: Default Credential Chain |
+| Azure OpenAI | `AzureAPIKey` または `clientSecretRef` | `azureCredentials.oidcExchangeToken` | ❌ なし（明示設定必須）|
+| GCP Vertex AI | `credentialsFile` (SA Key JSON) | `workloadIdentityFederationConfig` | ❌ なし（明示設定必須）|
+
+---
+
 ## Helm チャート一覧
 
 | チャート | 代表バージョン（2026-04） | 内容 |
@@ -364,6 +620,13 @@ helm upgrade -i aieg oci://docker.io/envoyproxy/ai-gateway-helm \
   --version v0.5.0 \
   --namespace envoy-ai-gateway-system
 ```
+
+> [!NOTE]
+> **CRD と Controller を分ける vs まとめる**: `gateway-helm` は CRD を `/crds` フォルダに同梱しているため、Quickstart では `helm install gateway-helm` 1 コマンドで CRD + Controller が入る。ただし公式 install-helm ページでは以下の理由で **分離を推奨**:
+> - **Helm 仕様**: `/crds` フォルダ内の CRD は **初回 install 時にしか apply されない**。upgrade 時に自動更新されない。
+> - **大きな CRD の制約**: gateway-helm の CRD は 2MB 超があり、client-side apply では `metadata.annotations: Too long` エラーになる。`helm template | kubectl apply --server-side` が必要。
+> 
+> ArgoCD で GitOps 運用する場合は、**CRD と Controller を分離した 2 Application 構成が事実上必須**（後述）。
 
 ### アドオン（必要な場合のみ）
 
@@ -592,6 +855,7 @@ spec:
 #### 運用上の注意
 
 - **Sync wave の設計**: CRD（wave 0）→ Envoy Gateway Controller（wave 1）→ AI Gateway Controller（wave 2）の順で起動する。AI Gateway Controller は Envoy Gateway の Extension Server 登録を前提とするため、後段に置く。
+- **CRD と Controller を分離する理由**: Helm の仕様で `/crds` フォルダ内の CRD は upgrade 時に自動更新されないため、ArgoCD で GitOps 運用する場合は CRD 用 Application を分離して `targetRevision` を独立管理するのが定石。`helm install` 1 コマンドでも動くが、production では非推奨。
 - **ServerSideApply=true は CRD で必須**: gateway-crds-helm の CRD は 2MB を超えるため、client-side apply では `metadata.annotations: Too long` エラーで失敗する。
 - **OCI リポジトリの事前登録**: `docker.io/envoyproxy` は匿名アクセス可能だが、ArgoCD によっては `argocd repo add --type helm --enable-oci` で事前登録が必要な場合がある。
 - **values.yaml の同期**: Git 側の values を変更すると ArgoCD が自動で Helm テンプレートを再生成して差分適用する。Envoy Gateway の場合は ConfigMap 更新に伴い Deployment の rollout が必要なこともあるので、必要に応じて `kubectl rollout restart` で明示的に再起動する。
@@ -747,15 +1011,70 @@ helm upgrade -i aieg oci://docker.io/envoyproxy/ai-gateway-helm \
 
 OTel sink や Prometheus metrics の有効化手順は ConfigMap を直接編集する形で案内されている箇所があるが、Helm values に対応パラメータがないため、ArgoCD / Flux で管理すると Helm upgrade のたびにドリフトが発生する可能性がある。運用方針を事前に決めておく。
 
+### ⑧ ai-gateway-helm は topologySpreadConstraints 未対応
+
+`gateway-helm` (Envoy Gateway 本体) は `deployment.pod.topologySpreadConstraints` で AI Gateway Controller Pod のゾーン分散が可能だが、**`ai-gateway-helm` の values では `topologySpreadConstraints` キーが未対応**（v0.5 時点）。
+
+公式 values.yaml で提供されているスケジューリング系オプションは以下の 4 つのみ：
+
+```yaml
+controller:
+  resources: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  # ← topologySpreadConstraints は未対応
+```
+
+**回避策**:
+
+1. **`controller.affinity` で `podAntiAffinity` を使う**（推奨、2 レプリカ程度なら十分）
+   ```yaml
+   controller:
+     replicaCount: 2
+     affinity:
+       podAntiAffinity:
+         preferredDuringSchedulingIgnoredDuringExecution:
+         - weight: 100
+           podAffinityTerm:
+             labelSelector:
+               matchLabels:
+                 app.kubernetes.io/name: ai-gateway-controller  # 要確認
+             topologyKey: topology.kubernetes.io/zone
+   ```
+   `weight` は他のルールとの相対的な重み付け。単独ルールしかない場合は絶対値に意味はなく、慣習的に `100` と書く。
+   
+   `labelSelector.matchLabels` の値は **実際の Deployment の selector と合わせる必要がある**ので、`kubectl describe deployment ai-gateway-controller -n envoy-ai-gateway-system` で確認して合わせること。
+
+2. **absolutely に分散させたいなら `required` を使う**（2 ゾーン以上確実にあるクラスタ前提）
+   ```yaml
+   affinity:
+     podAntiAffinity:
+       requiredDuringSchedulingIgnoredDuringExecution:
+       - labelSelector:
+           matchLabels:
+             app.kubernetes.io/name: ai-gateway-controller
+         topologyKey: topology.kubernetes.io/zone
+   ```
+   ただしゾーン数 < レプリカ数のとき Pending になる点に注意。
+
+3. **Upstream に PR / Issue**: `gateway-helm` と同じ template パターンをコピーする PR で通る可能性が高い。
+
+なお **Data Plane 側（Envoy Proxy Pod）は `EnvoyProxy.spec.provider.kubernetes.envoyDeployment.pod.topologySpreadConstraints` でフルサポート**。実運用上のインパクトは Data Plane 側の方が大きいので、そちらを優先する。
+
 ---
 
 ## 参考リンク（公式一次ソース）
 
 - Envoy AI Gateway Docs (latest): https://aigateway.envoyproxy.io/docs/
+- Envoy AI Gateway API Reference: https://aigateway.envoyproxy.io/docs/api/
 - Envoy AI Gateway v0.5 Installation: https://aigateway.envoyproxy.io/docs/0.5/getting-started/installation
 - Envoy AI Gateway Compatibility Matrix: https://aigateway.envoyproxy.io/docs/0.5/compatibility
 - Envoy AI Gateway Release Notes: https://aigateway.envoyproxy.io/release-notes/
+- Envoy AI Gateway Upstream Auth: https://aigateway.envoyproxy.io/docs/capabilities/security/upstream-auth/
+- Envoy AI Gateway Connecting to AI Providers: https://aigateway.envoyproxy.io/docs/capabilities/llm-integrations/connect-providers/
 - Envoy Gateway Docs: https://gateway.envoyproxy.io/
+- Envoy Gateway Install Helm: https://gateway.envoyproxy.io/docs/install/install-helm/
 - Envoy Gateway Helm values 全リファレンス: https://github.com/envoyproxy/gateway/blob/main/charts/gateway-helm/values.tmpl.yaml
 - Envoy AI Gateway Helm values 全リファレンス: https://github.com/envoyproxy/ai-gateway/blob/main/manifests/charts/ai-gateway-helm/values.yaml
 - AI Gateway 用 Envoy Gateway values（公式）: https://github.com/envoyproxy/ai-gateway/blob/main/manifests/envoy-gateway-values.yaml
