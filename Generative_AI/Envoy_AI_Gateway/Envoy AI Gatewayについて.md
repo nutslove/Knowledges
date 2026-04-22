@@ -451,7 +451,7 @@ curl -d '{
 2. `AIGatewayRoute` が `value: us.meta.llama3-2-1b-instruct-v1:0` でマッチ → Bedrock の `AIServiceBackend` へ
 3. OpenAI → Bedrock 形式にスキーマ変換時、**そのモデルIDが Bedrock の URL パスに埋め込まれる**
 
-このため、クライアントが送る `model` 値 = `matches.headers.value` = **Bedrock の正式モデルID** の三点一致が必須になる。「my-llama」のような独自エイリアスをクライアント側で使っても、そのままだとマッチしないし、マッチしたとしても Bedrock 側でモデル不明エラーになる。
+このため、**クライアントが送る `model` 値 = `matches.headers.value` = Bedrock の正式モデルID の三点一致が必須** になる。「my-llama」のような独自エイリアスをクライアント側で使っても、そのままだとマッチしないし、マッチしたとしても Bedrock 側でモデル不明エラーになる。
 
 ### エイリアス（クライアント向けのモデル名）を使いたい場合
 
