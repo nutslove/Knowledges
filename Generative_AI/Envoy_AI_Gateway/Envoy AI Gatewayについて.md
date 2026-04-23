@@ -584,6 +584,114 @@ Envoy AI Gateway 経由では後者のパスを使い、`"openai/"` プレフィ
 > [!NOTE]
 > フレームワーク側のパラメータ名の違いはあっても、**「OpenAI 互換エンドポイントとして Envoy AI Gateway を指せる」こと自体は全主要フレームワークで共通**。「プロバイダ別クラスの使い分けを消せる」という AI Gateway の価値は、どのフレームワークを選んでも享受できる。
 
+#### LangChainの例
+```python
+from langchain_openai import ChatOpenAI
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.output_parsers import StrOutputParser
+
+llm = ChatOpenAI(
+    model="claude-haiku-4-5",  # AIGatewayRouteで定義したmodel名
+    base_url="http://localhost:8080/v1",  # AI GatewayのListener
+    api_key="dummy",  # Gateway側で認証する場合はダミーでOK、必要なら実トークン(パラメータは必須項目なので必要)
+    streaming=True,
+)
+
+prompt = ChatPromptTemplate.from_messages([
+    ("system", "あなたは親切なアシスタントです。日本語で回答してください。"),
+    ("user", "{question}"),
+])
+
+chain = prompt | llm | StrOutputParser()
+
+user_input = input("質問を入力してください: ")
+for chunk in chain.stream({"question": user_input}):
+    print(chunk, end="", flush=True)
+print()
+```
+
+> [!NOTE]
+> `stream()`で自動で `streaming=True`になる
+
+#### Strands Agentの例
+```python
+from strands import Agent
+from strands.models.openai import OpenAIModel
+
+model = OpenAIModel(
+    client_args={
+        "base_url": "http://localhost:8080/v1",  # kubectl port-forward svc/envoy-... 8080:80
+        "api_key": "dummy",  # OpenAI SDKの必須パラメータ。Gateway側で認証する場合は実トークンを指定
+    },
+    model_id="claude-haiku-4-5",  # AIGatewayRouteで定義したmodel名(modelNameOverrideのエイリアス)
+)
+
+agent = Agent(
+    model=model,
+    system_prompt="あなたは親切なアシスタントです。日本語で回答してください。",
+)
+
+user_input = input("質問を入力してください: ")
+
+# stream_async は非同期ジェネレータでイベントを流してくる
+import asyncio
+
+async def main():
+    async for event in agent.stream_async(user_input):
+        # テキストデルタだけを取り出して表示
+        if "data" in event:
+            print(event["data"], end="", flush=True)
+    print()
+
+asyncio.run(main())
+```
+
+#### ADKの例
+```python
+import asyncio
+from google.adk.agents import LlmAgent
+from google.adk.agents.run_config import RunConfig, StreamingMode
+from google.adk.models.lite_llm import LiteLlm
+from google.adk.runners import InMemoryRunner
+from google.genai import types
+
+agent = LlmAgent(
+    name="test_agent",
+    model=LiteLlm(
+        model="openai/claude-haiku-4-5",
+        api_base="http://localhost:8080/v1",
+        api_key="dummy",
+    ),
+    instruction="あなたは親切なアシスタントです。日本語で回答してください。",
+)
+
+async def main():
+    runner = InMemoryRunner(agent=agent, app_name="test_app")
+    session = await runner.session_service.create_session(
+        app_name="test_app", user_id="test_user"
+    )
+
+    user_input = input("質問を入力してください: ")
+    content = types.Content(role="user", parts=[types.Part(text=user_input)])
+
+    # ストリーミングを有効化
+    run_config = RunConfig(streaming_mode=StreamingMode.SSE)
+
+    async for event in runner.run_async(
+        user_id="test_user",
+        session_id=session.id,
+        new_message=content,
+        run_config=run_config,  # ← これを追加
+    ):
+        if event.content and event.content.parts:
+            for part in event.content.parts:
+                if part.text:
+                    print(part.text, end="", flush=True)
+    print()
+
+asyncio.run(main())
+```
+
 ### `Backend` CR の位置づけ
 
 Gateway API 標準の `backendRefs` は Kubernetes `Service` しか指定できないが、実際には外部 FQDN（例: `api.openai.com`、Bedrock endpoint）を宛先にしたいケースが多い。`Backend` CR はこのギャップを埋める。
