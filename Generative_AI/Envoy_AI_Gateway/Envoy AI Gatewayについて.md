@@ -1457,7 +1457,22 @@ controller:
 
 ### ⑨ ストリーミング（SSE）は対応、WebSocket は非対応
 
-Envoy AI Gateway は **LLM の SSE ストリーミングに完全対応** している。OpenAI / Bedrock / Anthropic / Vertex AI / Gemini すべての chat completion の `{"stream": true}` リクエストは追加設定なしで動く。`ClientTrafficPolicy.connection.bufferLimit` を 50Mi 程度に上げておけば、長いレスポンスでも途中で切れない。
+Envoy AI Gateway は **LLM の SSE ストリーミングに完全対応** している。OpenAI / Bedrock / Anthropic / Vertex AI / Gemini すべての chat completion の **`{"stream": true}`** リクエストは追加設定なしで動く。`ClientTrafficPolicy.connection.bufferLimit` を 50Mi 程度に上げておけば、長いレスポンスでも途中で切れない。
+
+- curlの例  
+  ```bash
+  curl -N \
+  -H "Authorization: Bearer sk-rca-agent-xxx" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "claude-sonnet-4-6",
+    "messages": [
+      {"role": "user", "content": "東京の観光名所を5つ教えて"}
+    ],
+    "stream": true
+  }' \
+  http://<ai-gateway>/v1/chat/completions
+  ```
 
 ### ⑩ 対応 API エンドポイント一覧
 
