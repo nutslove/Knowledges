@@ -538,52 +538,6 @@ agent = LlmAgent(
 | Google ADK | `LiteLlm` | `api_base=` |
 | OpenAI Agents SDK | `AsyncOpenAI` | `base_url=`（クライアント注入方式）|
 
-### フレームワーク経由で使う際の注意点
-
-#### ① `/v1` の付け方に注意
-
-`base_url` 末尾に `/v1` を含めるかは SDK により異なる：
-
-- **OpenAI SDK 系（LangChain / Strands / OpenAI Agents SDK）**: `/v1` を **含める**のが慣習（`http://gateway/v1`）
-- **LiteLLM（ADK 経由）**: `api_base` に `/v1` を **含める**（LiteLLM が内部で `/chat/completions` を append する）
-
-間違えると `404 Not Found` になる典型的な罠。最初に curl で疎通確認するのが安全：
-
-```bash
-curl http://ai-gateway.example.com/v1/chat/completions \
-  -d '{"model": "gpt-4o-mini", "messages": [{"role":"user","content":"hi"}]}'
-```
-
-これが通ってから SDK から叩くと base_url の切れ目問題でハマらずに済む。
-
-#### ② `endpointConfig.rootPrefix` との整合性
-
-Helm values で `endpointConfig.rootPrefix` を `/` 以外に変えている場合、クライアントの base_url も合わせる必要がある：
-
-| Gateway 側 `rootPrefix` | クライアント `base_url` |
-|---|---|
-| `"/"`（デフォルト）| `http://gateway/v1` |
-| `"/ai"` | `http://gateway/ai/v1` |
-
-#### ③ LangChain `ChatOpenAI` の非 OpenAI プロバイダ対応の制約
-
-LangChain 公式ドキュメントに明確な注意書きがある：
-
-> "ChatOpenAI targets official OpenAI API specifications only. Non-standard response fields from third-party providers (e.g., reasoning_content, reasoning, reasoning_details) are not extracted or preserved."
-
-つまり **Envoy AI Gateway 経由で Bedrock / Vertex AI 等の非 OpenAI プロバイダを使う場合、プロバイダ固有のレスポンスフィールド（Claude の `reasoning_content` 等）が ChatOpenAI で落とされる可能性がある**。基本的な chat completion なら問題ないが、reasoning モデルや cache 情報を取りたい場合は個別検証が必要。
-
-#### ④ Google ADK は LiteLLM 経由が事実上の前提
-
-ADK は以下の二重構造：
-- **Google モデル（Gemini）**: `model="gemini-2.5-flash"` のように direct string
-- **それ以外**: `LiteLlm(model="openai/...")` ラッパー経由
-
-Envoy AI Gateway 経由では後者のパスを使い、`"openai/"` プレフィックスを model 文字列に付ける必要がある。
-
-> [!NOTE]
-> フレームワーク側のパラメータ名の違いはあっても、**「OpenAI 互換エンドポイントとして Envoy AI Gateway を指せる」こと自体は全主要フレームワークで共通**。「プロバイダ別クラスの使い分けを消せる」という AI Gateway の価値は、どのフレームワークを選んでも享受できる。
-
 #### LangChainの例
 ```python
 from langchain_openai import ChatOpenAI
@@ -691,6 +645,52 @@ async def main():
 
 asyncio.run(main())
 ```
+
+### フレームワーク経由で使う際の注意点
+
+#### ① `/v1` の付け方に注意
+
+`base_url` 末尾に `/v1` を含めるかは SDK により異なる：
+
+- **OpenAI SDK 系（LangChain / Strands / OpenAI Agents SDK）**: `/v1` を **含める**のが慣習（`http://gateway/v1`）
+- **LiteLLM（ADK 経由）**: `api_base` に `/v1` を **含める**（LiteLLM が内部で `/chat/completions` を append する）
+
+間違えると `404 Not Found` になる典型的な罠。最初に curl で疎通確認するのが安全：
+
+```bash
+curl http://ai-gateway.example.com/v1/chat/completions \
+  -d '{"model": "gpt-4o-mini", "messages": [{"role":"user","content":"hi"}]}'
+```
+
+これが通ってから SDK から叩くと base_url の切れ目問題でハマらずに済む。
+
+#### ② `endpointConfig.rootPrefix` との整合性
+
+Helm values で `endpointConfig.rootPrefix` を `/` 以外に変えている場合、クライアントの base_url も合わせる必要がある：
+
+| Gateway 側 `rootPrefix` | クライアント `base_url` |
+|---|---|
+| `"/"`（デフォルト）| `http://gateway/v1` |
+| `"/ai"` | `http://gateway/ai/v1` |
+
+#### ③ LangChain `ChatOpenAI` の非 OpenAI プロバイダ対応の制約
+
+LangChain 公式ドキュメントに明確な注意書きがある：
+
+> "ChatOpenAI targets official OpenAI API specifications only. Non-standard response fields from third-party providers (e.g., reasoning_content, reasoning, reasoning_details) are not extracted or preserved."
+
+つまり **Envoy AI Gateway 経由で Bedrock / Vertex AI 等の非 OpenAI プロバイダを使う場合、プロバイダ固有のレスポンスフィールド（Claude の `reasoning_content` 等）が ChatOpenAI で落とされる可能性がある**。基本的な chat completion なら問題ないが、reasoning モデルや cache 情報を取りたい場合は個別検証が必要。
+
+#### ④ Google ADK は LiteLLM 経由が事実上の前提
+
+ADK は以下の二重構造：
+- **Google モデル（Gemini）**: `model="gemini-2.5-flash"` のように direct string
+- **それ以外**: `LiteLlm(model="openai/...")` ラッパー経由
+
+Envoy AI Gateway 経由では後者のパスを使い、`"openai/"` プレフィックスを model 文字列に付ける必要がある。
+
+> [!NOTE]
+> フレームワーク側のパラメータ名の違いはあっても、**「OpenAI 互換エンドポイントとして Envoy AI Gateway を指せる」こと自体は全主要フレームワークで共通**。「プロバイダ別クラスの使い分けを消せる」という AI Gateway の価値は、どのフレームワークを選んでも享受できる。
 
 ### `Backend` CR の位置づけ
 
