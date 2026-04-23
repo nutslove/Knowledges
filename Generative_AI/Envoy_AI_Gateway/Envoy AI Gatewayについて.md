@@ -1455,6 +1455,36 @@ controller:
 
 なお **Data Plane 側（Envoy Proxy Pod）は `EnvoyProxy.spec.provider.kubernetes.envoyDeployment.pod.topologySpreadConstraints` でフルサポート**。実運用上のインパクトは Data Plane 側の方が大きいので、そちらを優先する。
 
+### ⑨ ストリーミング（SSE）は対応、WebSocket は非対応
+
+Envoy AI Gateway は **LLM の SSE ストリーミングに完全対応** している。OpenAI / Bedrock / Anthropic / Vertex AI / Gemini すべての chat completion の `{"stream": true}` リクエストは追加設定なしで動く。`ClientTrafficPolicy.connection.bufferLimit` を 50Mi 程度に上げておけば、長いレスポンスでも途中で切れない。
+
+### ⑩ 対応 API エンドポイント一覧
+
+**✅ 対応済み（v0.5 時点）**
+
+| エンドポイント | 用途 | 備考 |
+|---|---|---|
+| `/v1/chat/completions` | チャット完了（同期・SSE 両対応）| メイン機能 |
+| `/v1/completions` | レガシー補完 | |
+| `/v1/embeddings` | エンベディング生成 | |
+| `/v1/images/generations` | 画像生成 | v0.4+ |
+| `/cohere/v2/rerank` | Rerank | |
+| `/anthropic/v1/messages` | Anthropic Messages API | v0.4+ |
+| `/v1/responses` | OpenAI Responses API | v0.5+ で部分対応 |
+
+**❌ 非対応**
+
+| エンドポイント | 用途 | 代替案 |
+|---|---|---|
+| `/v1/batches` | OpenAI Batch API | SDK 直接、または v0.6+ 待ち |
+| `/v1/files` | OpenAI Files（Batch 前提）| SDK 直接 |
+| Bedrock `CreateModelInvocationJob` | Bedrock バッチ推論 | boto3 直接 |
+| `/v1/messages/batches` | Anthropic Message Batches | SDK 直接 |
+| Realtime API | WebSocket | Gateway 範囲外 |
+
+**判断基準**: 「同期 HTTP リクエスト＋レスポンス」の形になる API は対応、「ジョブ登録 → 非同期処理 → 結果取得」型は非対応。
+
 ---
 
 ## 参考リンク（公式一次ソース）
