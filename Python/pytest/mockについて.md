@@ -56,6 +56,7 @@ def test_something(mock_class):
 >    # slack_bolt.Appのモック（トークン検証をスキップ）
 >    config._slack_app_mock = patch("slack_bolt.App")
 >    config._slack_app_mock.start()
+> ```
 
 ## 1-1. 関数の戻り値を固定する
 
@@ -415,7 +416,7 @@ def test_mock_class(mock_client):
 > patcher.start()   # モックを開始
 > # ... モックが有効な状態 ...
 > patcher.stop()    # モックを停止
-
+> ```
 
 ---
 
