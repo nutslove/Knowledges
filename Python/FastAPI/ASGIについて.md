@@ -8,7 +8,7 @@ WSGIの非同期版にあたる。
 - 非同期処理 (`async/await`)、WebSocket、HTTP/2 などに対応するために設計された
 
 > [!NOTE]
-> #### 補足: ここで言う「サーバー」とは？**
+> #### 補足: ここで言う「サーバー」とは？
 >
 > ASGI仕様の文脈での「サーバー」は **ASGIサーバー（Uvicorn, Hypercorn, Daphne）** を指す。
 > NginxやALB、EC2のような物理/仮想マシンは含まれない。
