@@ -1,14 +1,15 @@
 ## 1. uvとは
 
-- **Astral** (Ruff の開発元) が開発する Rust 製の Python パッケージマネージャー
+- **Astral** (Ruff の開発元) が開発する Rust 製の Python パッケージ＆プロジェクトマネージャー
 - `pip` / `pip-tools` / `pipx` / `poetry` / `pyenv` / `virtualenv` / `twine` を **1つに統合**
 - pip比 **10〜100倍** 高速 (warm cache 時はほぼ瞬時)
 - Python 不要で curl 1発でインストール可能 (単一バイナリ)
 - macOS / Linux / Windows 対応
+- ライセンス: MIT OR Apache-2.0
 
 ### なぜ速いのか
 - Rust の並列処理 (parallel metadata fetch & wheel download)
-- グローバルキャッシュ + ハードリンクでdeduplication(重複排除)
+- グローバルキャッシュ + ハードリンクでdeduplication（重複排除）
 - 効率的な依存解決アルゴリズム
 
 ---
@@ -73,8 +74,8 @@ cd my-project
 生成されるファイル:
 ```
 my-project/
-├── .git
-├── .gitignore
+├── .git/              # gitリポジトリ (親がgitリポジトリでない場合のみ作成)
+├── .gitignore         # Python向けの定番エントリが自動投入される
 ├── .python-version    # Pythonバージョン固定
 ├── README.md
 ├── main.py
@@ -83,7 +84,27 @@ my-project/
 
 最初に `uv run` / `uv sync` / `uv lock` を実行すると `.venv/` と `uv.lock` が生成される。
 
+> [!NOTE]
+> #### `uv init` のVCS関連オプション
+> ※ VCS = Version Control System (バージョン管理システム)。git / Mercurial (hg) / Subversion (svn) などの総称。今はほぼgitと同義。
+>
+> - デフォルトで `git init` 相当が走り `.git/` と `.gitignore` が作られる
+> - 既に親ディレクトリがgitリポジトリ配下の場合は新規作成しない (既存リポジトリを尊重)
+> - `--vcs none` でgit初期化を無効化
+> - `--vcs git` で明示的に有効化 (既存リポジトリ内でも強制したい場合に使う)
+> - `--bare` で `.git/`、`.gitignore`、`.python-version`、`README.md`、`main.py` も含めて全部スキップし `pyproject.toml` のみ生成
+
 ### 依存追加・削除
+
+`uv add` / `uv remove` を実行すると、**3つが連動して更新される**:
+
+1. **`pyproject.toml`** ← `[project].dependencies` (またはグループ指定時は `[dependency-groups]`) が自動更新される
+2. **`uv.lock`** ← 解決済みバージョンと依存ツリーを記録
+3. **`.venv/`** ← 実際にインストール (またはアンインストール)
+
+> [!NOTE]
+> `uv pip install` は **環境にインストールするだけで `pyproject.toml` は更新しない**。プロジェクトでは基本 `uv add` を使う。
+
 ```bash
 uv add requests                       # 通常の依存
 uv add 'httpx>=0.27,<1.0'             # バージョン制約付き
@@ -97,13 +118,103 @@ uv remove requests
 uv remove pytest --group test
 ```
 
+例: `uv add fastapi` の前後の `pyproject.toml`:
+```toml
+# 実行前
+[project]
+dependencies = []
+
+# 実行後
+[project]
+dependencies = [
+    "fastapi>=0.115.0",
+]
+```
+
 ### 環境同期 (lock + install)
+
+`uv sync` は **`pyproject.toml` と `uv.lock` の内容に従って `.venv/` を完全に同期させる** コマンド。具体的には以下の3ステップを連続で実行する:
+
+1. **lockファイルの整合性チェック** — `pyproject.toml` と `uv.lock` がズレていないか確認 (ズレていれば `uv.lock` を更新)
+2. **不足しているパッケージをインストール** — `.venv/` に無いものを追加
+3. **余分なパッケージを削除** — `uv.lock` に無いのに `.venv/` にあるものを削除
+
+つまり `.venv/` の状態を `uv.lock` に **完全に一致させる** (= synchronize する) のが `uv sync`。
+
+#### いつ使うか
+- `git pull` した後 (他の人が依存を追加・削除している可能性あり)
+- `pyproject.toml` を手で編集した後
+- プロジェクトを clone した直後
+
+> [!NOTE]
+> `uv add` も `uv run` も内部で `uv sync` 相当の処理を呼んでいるので、明示的に `uv sync` を打つ機会はそんなに多くない。
+
+| コマンド | sync | lockに反映 | venvに反映 |
+|---|---|---|---|
+| `uv add pkg` | ✅ | 追加 | 追加 |
+| `uv remove pkg` | ✅ | 削除 | 削除 |
+| `uv run cmd` | ✅ | (変更なし) | 必要なら更新 |
+| `uv sync` | ✅ | (変更なし) | 完全同期 |
+
 ```bash
 uv sync                               # lock + 環境を最新化 (基本これでOK)
-uv sync --frozen                      # ロックファイルを変更せずインストール
-uv sync --no-dev                      # devグループを除外
+uv sync --frozen                      # ロックファイルを変更せずインストール (CI/Docker向け)
+uv sync --no-dev                      # devグループを除外 (本番Docker向け / 8章参照)
 uv sync --extra build                 # optional-dependenciesを含める
 ```
+
+### lockファイル (`uv.lock`) とは
+
+**プロジェクトの依存関係を、解決済みの正確なバージョンで記録したファイル。再現性のために存在する。**
+
+#### なぜ必要か (pyproject.tomlだけでは足りない理由)
+`pyproject.toml` に書くのは「ゆるい制約」:
+```toml
+dependencies = [
+    "fastapi>=0.115",   # 0.115以上ならOK = 0.115.0でも0.118.2でも入る
+    "requests",         # バージョン無指定 = 最新が入る
+]
+```
+これだけだと、インストールするタイミングで違うバージョンが入ってしまい、「自分のマシンでは動くのに本番では動かない」現象が起きる。
+
+#### `uv.lock` が解決すること
+**実際に解決された全パッケージ (transitive dependencies含む) の正確なバージョン** を記録:
+```toml
+# uv.lock (抜粋・簡略化)
+[[package]]
+name = "fastapi"
+version = "0.115.0"           # ← 正確なバージョン
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pydantic" },
+    { name = "starlette" },
+]
+
+[[package]]
+name = "pydantic"             # ← 間接依存も記録
+version = "2.9.2"
+...
+```
+これがあれば、誰がどこで `uv sync` しても **完全に同じバージョン** がインストールされる。
+
+#### `pyproject.toml` と `uv.lock` の役割の違い
+
+| ファイル | 内容 | 役割 |
+|---|---|---|
+| `pyproject.toml` | ゆるい制約 (`>=`, `~=`) | 「何を」使いたいか宣言 |
+| `uv.lock` | 厳密なバージョン (全依存ツリー) | 「正確に何を」インストールするかの記録 |
+
+#### 運用ルール
+1. **`uv.lock` は必ずgit commitする** ← 再現性のため
+2. **手動で編集しない** ← uvが管理する
+3. **CIでは `uv sync --frozen`** ← lockを変更させずに厳密同期
+4. **依存を更新したいときだけ `uv lock --upgrade`** ← 通常はlockを尊重
+
+#### 他ツールとの対比
+- pip → lockなし (or `pip-tools` で `requirements.txt` を生成)
+- go → `go.sum`
+- Terraform → `.terraform.lock.hcl`
+- **uv → `uv.lock`** ← 同じ思想
 
 ### lockファイル操作
 ```bash
@@ -121,6 +232,7 @@ uv run --no-project ruff check        # プロジェクトを無視して実行
 uv run --with rich python -c "..."    # 一時的に依存を追加して実行
 ```
 
+> [!NOTE]
 > `uv run` は実行前に毎回 `pyproject.toml` ↔ `uv.lock` ↔ 環境 の整合性を自動チェックする。venvのactivate不要。
 
 ---
@@ -205,33 +317,51 @@ import requests
 
 ## 8. 依存グループ (dev / production / test 等)
 
-PEP 735 に準拠した `[dependency-groups]` をサポート。
+PEP 735 に準拠した `[dependency-groups]` をサポート。アプリ本体の依存と、開発時だけ必要な依存を分けて管理できる。
 
 ```toml
 [project]
-name = "my-project"
-version = "0.1.0"
-requires-python = ">=3.12"
 dependencies = [
-    "fastapi>=0.115",
+    "fastapi>=0.115",        # 本番でも必要
+    "sqlalchemy>=2.0",       # 本番でも必要
 ]
 
 [dependency-groups]
 dev = [
-    "pytest>=8",
-    "ruff",
-    "mypy",
+    "pytest>=8",             # テスト用 (本番には不要)
+    "ruff",                  # linter (本番には不要)
+    "mypy",                  # type check (本番には不要)
 ]
 production = [
     "gunicorn>=23",
 ]
 ```
 
+- `[project].dependencies` → アプリ本体が動くのに必要なもの
+- `[dependency-groups].dev` → 開発時だけ必要なもの
+
+### `--no-dev` とは
+
+**devグループの依存をインストールしない** オプション。**本番Docker や CI の本番ビルド** で使う。
+
+| | `uv sync` | `uv sync --no-dev` |
+|---|---|---|
+| インストールされるもの | main + dev | main のみ |
+| イメージサイズ | 大きい (pytest, ruff等込み) | 小さい |
+| 攻撃対象面 | 広い (devツールが攻撃経路に) | 狭い |
+| 用途 | 開発者のローカル | 本番Docker / CIの本番ビルド |
+
+Dockerでは **`uv sync --frozen --no-dev`** の組み合わせがお作法 (lockを変更せず + devを除外)。
+
+### 関連オプション一覧
+
 ```bash
 uv sync                       # main + dev (デフォルト)
 uv sync --no-dev              # main のみ
-uv sync --group production    # production を含める
-uv sync --only-group dev      # devだけ
+uv sync --only-dev            # dev のみ
+uv sync --group production    # main + dev + production
+uv sync --only-group test     # test グループだけ
+uv sync --no-default-groups   # グループを一切入れない
 ```
 
 ---
