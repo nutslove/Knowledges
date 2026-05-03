@@ -88,6 +88,482 @@ my_app/
 
 ポイントは **api → services → infrastructure** の単方向依存にすること。services層が外部APIの詳細を知らないようにする。
 
+## 各サブディレクトリの役割と実装例
+
+LangGraphベースのRCA Agentを題材に、各レイヤーのコード例を示す。
+
+### 全体の依存関係
+
+```
+api  →  services  →  agents  →  infrastructure
+              ↓           ↓
+           domain     schemas
+              ↑
+          config（全レイヤーから参照可）
+```
+
+矢印は「依存する方向」。`services`は`infrastructure`を呼ぶが、逆はNG。`domain`は誰にも依存しない純粋なモデル層。
+
+### `config.py` — 設定管理
+
+環境変数や設定値を一元管理する。`pydantic-settings`を使うのが定番。
+
+```python
+# src/my_app/config.py
+from functools import lru_cache
+from pydantic import Field
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        case_sensitive=False,
+    )
+
+    # AWS
+    aws_region: str = "ap-northeast-1"
+    bedrock_model_id: str = "anthropic.claude-3-5-sonnet-20241022-v2:0"
+
+    # Langfuse
+    langfuse_public_key: str
+    langfuse_secret_key: str
+    langfuse_host: str = "https://cloud.langfuse.com"
+
+    # Prometheus
+    prometheus_url: str = "http://prometheus:9090"
+
+    # App
+    log_level: str = "INFO"
+    max_iterations: int = Field(default=10, ge=1, le=50)
+
+
+@lru_cache
+def get_settings() -> Settings:
+    return Settings()
+```
+
+ポイント:
+
+- `@lru_cache`でシングルトン化
+- 利用側は `from my_app.config import get_settings` で取得
+
+### `domain/` — ドメインモデル
+
+ビジネスの本質を表現する層。**外部ライブラリやフレームワークに依存しない** 純粋なPythonコード。
+
+```python
+# src/my_app/domain/models.py
+from dataclasses import dataclass
+from datetime import datetime
+from enum import Enum
+
+
+class IncidentSeverity(str, Enum):
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+    CRITICAL = "critical"
+
+
+@dataclass(frozen=True)
+class Incident:
+    """インシデントを表すドメインモデル"""
+    id: str
+    title: str
+    severity: IncidentSeverity
+    started_at: datetime
+    affected_services: list[str]
+
+    def is_critical(self) -> bool:
+        return self.severity == IncidentSeverity.CRITICAL
+
+
+@dataclass(frozen=True)
+class RootCause:
+    """RCA分析の結果"""
+    incident_id: str
+    summary: str
+    contributing_factors: list[str]
+    confidence_score: float  # 0.0 - 1.0
+
+    def is_high_confidence(self) -> bool:
+        return self.confidence_score >= 0.8
+```
+
+ポイント:
+
+- `@dataclass(frozen=True)`で不変オブジェクトに
+- ビジネスルール（`is_critical`、`is_high_confidence`）はモデル自身に持たせる
+- ここでPydanticを使ってもよいが、I/O境界（API/DB）とドメインを混ぜたくない場合は分ける
+
+### `schemas/` — Pydanticスキーマ（I/O境界）
+
+API入出力やLLM出力のバリデーション用。**domainとは別物** として扱う。
+
+```python
+# src/my_app/schemas/api_schemas.py
+from datetime import datetime
+from pydantic import BaseModel, Field
+
+
+class RCARequest(BaseModel):
+    """RCA分析リクエスト"""
+    incident_id: str = Field(..., description="インシデントID")
+    time_range_minutes: int = Field(default=60, ge=5, le=1440)
+    services: list[str] = Field(default_factory=list)
+
+
+class RCAResponse(BaseModel):
+    """RCA分析レスポンス"""
+    incident_id: str
+    summary: str
+    contributing_factors: list[str]
+    confidence_score: float
+    analyzed_at: datetime
+```
+
+```python
+# src/my_app/schemas/agent_schemas.py
+from pydantic import BaseModel, Field
+
+
+class RCASummary(BaseModel):
+    """LLMに構造化出力させるためのスキーマ"""
+    root_cause: str = Field(..., description="根本原因の説明")
+    evidence: list[str] = Field(..., description="根拠となる観測事実")
+    recommended_actions: list[str] = Field(..., description="推奨される対応策")
+    confidence: float = Field(..., ge=0.0, le=1.0)
+```
+
+`domain`と`schemas`を分ける理由は、API仕様の変更がドメインに波及しないようにするため。両者の変換は`services`層で行う。
+
+### `infrastructure/` — 外部連携
+
+外部API、DB、メッセージキュー等とのやり取りを担当。**実装の詳細を隠蔽** することが目的。
+
+```python
+# src/my_app/infrastructure/bedrock_client.py
+from langchain_aws import ChatBedrock
+from my_app.config import get_settings
+
+
+def create_bedrock_chat() -> ChatBedrock:
+    """LangChain用のBedrockクライアントを生成"""
+    settings = get_settings()
+    return ChatBedrock(
+        model_id=settings.bedrock_model_id,
+        region_name=settings.aws_region,
+        model_kwargs={"temperature": 0.0, "max_tokens": 4096},
+    )
+```
+
+```python
+# src/my_app/infrastructure/prometheus_client.py
+import httpx
+from datetime import datetime
+from my_app.config import get_settings
+
+
+class PrometheusClient:
+    def __init__(self, base_url: str | None = None) -> None:
+        self.base_url = base_url or get_settings().prometheus_url
+        self.client = httpx.AsyncClient(base_url=self.base_url, timeout=30.0)
+
+    async def query_range(
+        self,
+        query: str,
+        start: datetime,
+        end: datetime,
+        step: str = "30s",
+    ) -> dict:
+        """PromQLクエリをレンジで実行"""
+        response = await self.client.get(
+            "/api/v1/query_range",
+            params={
+                "query": query,
+                "start": start.timestamp(),
+                "end": end.timestamp(),
+                "step": step,
+            },
+        )
+        response.raise_for_status()
+        return response.json()
+
+    async def close(self) -> None:
+        await self.client.aclose()
+```
+
+```python
+# src/my_app/infrastructure/langfuse_client.py
+from langfuse import Langfuse
+from my_app.config import get_settings
+
+
+def create_langfuse() -> Langfuse:
+    settings = get_settings()
+    return Langfuse(
+        public_key=settings.langfuse_public_key,
+        secret_key=settings.langfuse_secret_key,
+        host=settings.langfuse_host,
+    )
+```
+
+ポイント:
+
+- 外部ライブラリ（boto3、httpx、langfuse）への依存はここに閉じ込める
+- `services`や`agents`からは抽象化されたインターフェースだけ見せる
+
+### `agents/` — LangGraphエージェント定義
+
+エージェントのグラフ構造、ノード、ツールを置く。
+
+#### `tools.py` — Toolの定義
+
+```python
+# src/my_app/agents/tools.py
+from datetime import datetime, timedelta
+from langchain_core.tools import tool
+from my_app.infrastructure.prometheus_client import PrometheusClient
+
+
+@tool
+async def query_metrics(promql: str, minutes_ago: int = 60) -> str:
+    """Prometheusにメトリクスクエリを実行する。
+
+    Args:
+        promql: PromQLクエリ式
+        minutes_ago: 何分前から取得するか（デフォルト60分）
+    """
+    client = PrometheusClient()
+    try:
+        end = datetime.now()
+        start = end - timedelta(minutes=minutes_ago)
+        result = await client.query_range(promql, start, end)
+        return _format_metrics_result(result)
+    finally:
+        await client.close()
+
+
+def _format_metrics_result(result: dict) -> str:
+    # LLMに渡しやすい形式に整形
+    ...
+```
+
+#### `nodes.py` — グラフのノード
+
+```python
+# src/my_app/agents/nodes.py
+from langchain_core.messages import SystemMessage
+from langgraph.graph import MessagesState
+from my_app.infrastructure.bedrock_client import create_bedrock_chat
+from my_app.agents.tools import query_metrics, search_logs
+
+
+def planner_node(state: MessagesState) -> dict:
+    """次に取るべきアクションを計画する"""
+    llm = create_bedrock_chat().bind_tools([query_metrics, search_logs])
+    system = SystemMessage(content=(
+        "あなたはSREエンジニアです。インシデントの根本原因を特定するため、"
+        "必要なメトリクスやログを順次調査してください。"
+    ))
+    response = llm.invoke([system, *state["messages"]])
+    return {"messages": [response]}
+
+
+def summarizer_node(state: MessagesState) -> dict:
+    """調査結果をまとめる"""
+    from my_app.schemas.agent_schemas import RCASummary
+
+    llm = create_bedrock_chat().with_structured_output(RCASummary)
+    summary = llm.invoke(state["messages"])
+    return {"summary": summary}
+```
+
+#### `graph.py` — グラフの組み立て
+
+```python
+# src/my_app/agents/graph.py
+from langgraph.graph import StateGraph, START, END
+from langgraph.prebuilt import ToolNode
+from my_app.agents.nodes import planner_node, summarizer_node
+from my_app.agents.tools import query_metrics, search_logs
+from my_app.agents.state import RCAState
+
+
+def should_continue(state: RCAState) -> str:
+    """ループ継続判定"""
+    last_message = state["messages"][-1]
+    if last_message.tool_calls:
+        return "tools"
+    if state.get("iteration", 0) >= 10:
+        return "summarize"
+    return "summarize"
+
+
+def build_rca_graph():
+    workflow = StateGraph(RCAState)
+
+    workflow.add_node("planner", planner_node)
+    workflow.add_node("tools", ToolNode([query_metrics, search_logs]))
+    workflow.add_node("summarize", summarizer_node)
+
+    workflow.add_edge(START, "planner")
+    workflow.add_conditional_edges("planner", should_continue)
+    workflow.add_edge("tools", "planner")
+    workflow.add_edge("summarize", END)
+
+    return workflow.compile()
+```
+
+### `services/` — ビジネスロジック
+
+ユースケースを実装する層。**APIとエージェントの橋渡し** をする。
+
+```python
+# src/my_app/services/rca_service.py
+from datetime import datetime
+from my_app.agents.graph import build_rca_graph
+from my_app.domain.models import RootCause
+from my_app.schemas.api_schemas import RCARequest, RCAResponse
+
+
+class RCAService:
+    def __init__(self) -> None:
+        self.graph = build_rca_graph()
+
+    async def analyze(self, request: RCARequest) -> RCAResponse:
+        # 1. リクエストをエージェント入力に変換
+        initial_message = self._build_initial_prompt(request)
+
+        # 2. エージェント実行
+        result = await self.graph.ainvoke({
+            "messages": [initial_message],
+            "incident_id": request.incident_id,
+        })
+
+        # 3. ドメインモデルへ変換
+        summary = result["summary"]
+        root_cause = RootCause(
+            incident_id=request.incident_id,
+            summary=summary.root_cause,
+            contributing_factors=summary.evidence,
+            confidence_score=summary.confidence,
+        )
+
+        # 4. APIレスポンス形式に変換
+        return RCAResponse(
+            incident_id=root_cause.incident_id,
+            summary=root_cause.summary,
+            contributing_factors=root_cause.contributing_factors,
+            confidence_score=root_cause.confidence_score,
+            analyzed_at=datetime.now(),
+        )
+
+    def _build_initial_prompt(self, request: RCARequest) -> str:
+        services = ", ".join(request.services) or "全サービス"
+        return (
+            f"インシデント {request.incident_id} の根本原因を分析してください。"
+            f"対象サービス: {services}、"
+            f"調査範囲: 過去{request.time_range_minutes}分。"
+        )
+```
+
+ポイント:
+
+- `services`は **ユースケース単位** で分ける（`rca_service.py`、`alert_service.py`等）
+- API層とエージェント層を疎結合にする変換役
+- ドメインモデル（`RootCause`）を経由することで、エージェント出力の変更がAPIに直接波及しないようにする
+
+### `api/` — ルーター層（FastAPI）
+
+HTTPエンドポイントの定義。**ロジックは持たず、`services`を呼ぶだけ**。
+
+#### `deps.py` — 依存性注入
+
+```python
+# src/my_app/api/deps.py
+from functools import lru_cache
+from my_app.services.rca_service import RCAService
+
+
+@lru_cache
+def get_rca_service() -> RCAService:
+    return RCAService()
+```
+
+#### `routes.py` — エンドポイント
+
+```python
+# src/my_app/api/routes.py
+from fastapi import APIRouter, Depends, HTTPException
+from my_app.api.deps import get_rca_service
+from my_app.schemas.api_schemas import RCARequest, RCAResponse
+from my_app.services.rca_service import RCAService
+
+router = APIRouter(prefix="/api/v1")
+
+
+@router.post("/rca/analyze", response_model=RCAResponse)
+async def analyze_incident(
+    request: RCARequest,
+    service: RCAService = Depends(get_rca_service),
+) -> RCAResponse:
+    try:
+        return await service.analyze(request)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e)) from e
+
+
+@router.get("/health")
+async def health() -> dict:
+    return {"status": "ok"}
+```
+
+### `main.py` — エントリポイント
+
+アプリケーションの起動。
+
+```python
+# src/my_app/main.py
+from contextlib import asynccontextmanager
+from fastapi import FastAPI
+from my_app.api.routes import router
+from my_app.config import get_settings
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # 起動時の処理
+    settings = get_settings()
+    print(f"Starting app in {settings.aws_region}")
+    yield
+    # 終了時の処理
+
+
+app = FastAPI(
+    title="RCA Agent API",
+    version="0.1.0",
+    lifespan=lifespan,
+)
+app.include_router(router)
+
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("my_app.main:app", host="0.0.0.0", port=8000, reload=True)
+```
+
+### レイヤー設計の効果
+
+この分け方により以下が実現できる。
+
+1. **テストしやすさ** — `services`をテストする際、`infrastructure`をモックすればLLMやPrometheusに繋がずテスト可能
+2. **変更の局所化** — Bedrockから別のLLMに切り替えても、影響は`infrastructure`内に閉じる
+3. **再利用性** — 同じ`RCAService`をHTTP API経由でもCLI経由でもSlack Bot経由でも呼べる
+4. **責務の明確化** — レビュー時に「このコードはここに置くべきか？」の判断がしやすい
+
 ## `__init__.py`について
 
 `__init__.py`は、そのディレクトリを **Pythonパッケージとして扱うためのマーカーファイル**。空ファイルでも構わない。
