@@ -407,7 +407,10 @@ uv export --no-dev > requirements.txt
 
 ## 12. CI/CD・Docker での使い方
 
-### Docker (推奨パターン)
+### Docker: シングルステージ (簡易・開発向け)
+
+シンプルさ優先。`uv` バイナリも最終イメージに残るが、書きやすい。
+
 ```dockerfile
 FROM python:3.13-slim
 
@@ -427,6 +430,83 @@ COPY . .
 CMD ["uv", "run", "python", "-m", "myapp"]
 ```
 
+### Docker: マルチステージ (本番推奨)
+
+ビルド用ステージで `.venv/` を作り、ランタイムステージには **venvとアプリのソースだけ** をコピーする。`uv` バイナリは最終イメージに含めない。
+
+```dockerfile
+# ===== Builder stage =====
+FROM python:3.13-slim AS builder
+
+# uvバイナリをコピー
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+
+# uvの環境変数 (Docker推奨設定)
+ENV UV_COMPILE_BYTECODE=1 \
+    UV_LINK_MODE=copy \
+    UV_PYTHON_DOWNLOADS=0
+
+WORKDIR /app
+
+# 1. 依存だけ先にインストール (キャッシュ効率化)
+#    --no-install-project でプロジェクト本体は入れない
+COPY pyproject.toml uv.lock ./
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --locked --no-install-project --no-dev
+
+# 2. ソースをコピーしてプロジェクト本体をインストール
+COPY . .
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --locked --no-dev
+
+# ===== Runtime stage =====
+FROM python:3.13-slim
+
+WORKDIR /app
+
+# builderから .venv/ とソースだけコピー (uvバイナリは含めない)
+COPY --from=builder /app /app
+
+# venvのbinをPATHに追加 → python が venv の python を指すようになる
+ENV PATH="/app/.venv/bin:$PATH"
+
+# uv run ではなく python を直接呼ぶ (uvが無いので)
+CMD ["python", "-m", "myapp"]
+```
+
+#### 各設定の意味
+
+- **`UV_COMPILE_BYTECODE=1`** — `.pyc` を事前生成して起動を高速化
+- **`UV_LINK_MODE=copy`** — uvがhardlinkを使おうとしてDocker層間で警告が出るのを防ぐ
+- **`UV_PYTHON_DOWNLOADS=0`** — uvがPythonを勝手にダウンロードしないようにする (ベースイメージのPythonを使う)
+- **`--mount=type=cache`** — BuildKitのキャッシュマウント。`uv` のグローバルキャッシュをビルド間で再利用
+- **`--locked`** — `uv.lock` と `pyproject.toml` の整合性を厳密に検証 (CI/本番ビルド向け、`--frozen` より安全)
+- **`--no-install-project`** — プロジェクト本体は入れず、依存だけインストール (Docker層キャッシュを効かせるため)
+
+#### `CMD` で `uv run` を使うか、`python` を直接呼ぶか
+
+| | `CMD ["uv", "run", "python", "-m", "myapp"]` | `CMD ["python", "-m", "myapp"]` |
+|---|---|---|
+| 起動速度 | 整合性チェックが入る分わずかに遅い | 最速 (venvのpythonを直接実行) |
+| イメージサイズ | `uv` バイナリ (~35MB) を含む | `uv` 不要 |
+| 起動時の挙動 | `pyproject.toml` ↔ `lock` ↔ 環境 を毎回チェック | 何もチェックしない (immutable) |
+| ネットワーク | lockがズレていると外部参照する可能性 | 一切しない |
+| 推奨用途 | シングルステージ / 開発・CI | マルチステージ / 本番 (K8s等) |
+
+**K8sのようなimmutableなコンテナ運用では、起動時に外部状態を参照しないほうが望ましい**ので、マルチステージ + `python` 直接呼びが推奨される。
+
+#### マルチステージのメリット
+- 最終イメージに `uv` バイナリ、ビルドキャッシュ、ビルド用ツールが含まれない → サイズが小さい
+- 攻撃対象面が小さい (本番に不要なものが入っていない)
+- `pyproject.toml` / `uv.lock` も最終イメージから除外できる (上記例ではコピーしているが、必要なら省ける)
+
+#### 非rootユーザーで動かす (本番では推奨)
+```dockerfile
+# Runtime stageに追加
+RUN useradd -m -u 1000 app && chown -R app:app /app
+USER app
+```
+
 ### GitHub Actions
 ```yaml
 - uses: astral-sh/setup-uv@v3
@@ -444,6 +524,7 @@ CMD ["uv", "run", "python", "-m", "myapp"]
 |------|------|
 | `UV_COMPILE_BYTECODE=1` | インストール時に `.pyc` を生成 (Dockerで推奨) |
 | `UV_LINK_MODE=copy` | hardlinkではなくcopyを使う (Dockerで推奨) |
+| `UV_PYTHON_DOWNLOADS=0` | uvがPython本体をダウンロードしない (Dockerで推奨) |
 | `UV_NO_CACHE=1` | キャッシュを使わない |
 | `UV_INDEX_URL` | PyPIインデックスURL |
 | `UV_EXTRA_INDEX_URL` | 追加のインデックスURL |
