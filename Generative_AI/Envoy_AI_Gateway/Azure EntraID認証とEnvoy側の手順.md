@@ -1,6 +1,5 @@
 # Envoy AI Gateway - Azure OpenAI 連携手順
-
-> Envoy AI Gateway を Azure OpenAI に Microsoft Entra ID（OAuth 2.0 Client Credentials Grant）で接続する設定手順をまとめる。Client Secret は AWS Secrets Manager に保管し、External Secrets Operator (ESO) 経由で Kubernetes Secret として展開する。
+Envoy AI Gateway を Azure OpenAI に Microsoft Entra ID（OAuth 2.0 Client Credentials Grant）で接続する設定手順をまとめる。Client Secret は AWS Secrets Manager に保管し、External Secrets Operator (ESO) 経由で Kubernetes Secret として展開する。
 
 ## 構成概要
 
