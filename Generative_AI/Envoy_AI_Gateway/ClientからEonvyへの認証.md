@@ -1028,6 +1028,168 @@ class TokenProvider:
 
 ---
 
+## JWTクレームの由来と認可制御での活用
+
+Envoy AI Gateway の `SecurityPolicy.authorization` でロールベース認可を実装する際、
+JWTのどのクレームが「何の設定」「誰の属性」から来るのかを理解しておくと、
+認可ルールの設計や設定ミスのデバッグがスムーズになる。
+
+### クレームの由来は4種類に分類できる
+
+JWTのクレームは厳密に分けると以下のいずれかから来る:
+
+| 由来 | 意味 |
+|---|---|
+| **API側のEntraIDアプリケーション** | API側のApp registrationの設定(App rolesのValue、Application ID URIなど)から決まる |
+| **クライアント側のEntraIDアプリケーション** | クライアント側のApp registrationから決まる(主に「誰が呼んでいるか」の識別情報) |
+| **テナント** | Entra IDテナント自体の属性。App registrationとは無関係に、テナントが決まれば自動的に決まる |
+| **ユーザー** | ログインしたユーザーアカウント自体の属性。App registrationとは無関係に、ユーザーアカウントが決まれば自動的に決まる(認可コードフローのみ) |
+
+#### 「テナント」由来とは
+
+Entra IDは組織ごとに「テナント」という単位で分かれており、テナントには一意のGUID(Tenant ID)が振られている。
+App registrationを作る前から、**テナントそのものの属性**として決まっているものが「テナント由来」のクレーム。
+
+| クレーム | 値の例 | なぜテナント由来か |
+|---|---|---|
+| `iss` | `https://sts.windows.net/<TENANT_ID>/` または `https://login.microsoftonline.com/<TENANT_ID>/v2.0` | トークンの発行者URL。テナントが決まれば自動的に決まる |
+| `tid` | `<TENANT_ID>` (GUID) | トークンを発行したテナントのID |
+
+これらは、同じテナント内ならAPI側アプリを変えても、クライアント側アプリを変えても、ユーザーが違っても**同じ値**になる。
+
+> [!NOTE]
+> 厳密には `iss` の v1/v2 形式は **API側アプリ**の `requestedAccessTokenVersion` 設定の影響も受ける。
+> ホスト部分(`sts.windows.net` vs `login.microsoftonline.com`)はトークンバージョンで決まり、
+> テナントID部分はテナントで決まる、という分担。
+
+#### 「ユーザー」由来とは
+
+**認可コードフロー(ユーザーがブラウザでログインするフロー)でのみ**入るクレーム。
+Entra IDのディレクトリに登録されているユーザーアカウント自体の属性から来る。
+
+| クレーム | 値の例 | なぜユーザー由来か |
+|---|---|---|
+| `oid` (認可コードフロー時) | `<USER_OBJECT_ID>` (GUID) | ログインしたユーザーアカウントの一意なObject ID |
+| `sub` (認可コードフロー時) | (アプリごとにハッシュされた値、またはoidと同じ) | ログインユーザーのsubject識別子 |
+| `name` | "Lee Joon-ki" | Entra IDにそのユーザーアカウントが登録されているときの表示名 |
+| `preferred_username` | "leejoonki@kinto-technologies.com" | ユーザーアカウントのメアド / UPN |
+| `email` | "leejoonki@kinto-technologies.com" | ユーザーアカウントのメール属性(Optional Claim) |
+| `upn` | UPN形式 | ユーザーのプリンシパル名 |
+| `roles` (認可コードフロー時) | `["Gateway.User"]` | API側で**定義**されたApp roleのうち、**そのユーザーに割り当てられている**もの |
+
+クライアント側アプリの設定にも、API側アプリの設定にも書かれていない、**ユーザー自身のプロパティ**が入る。
+
+> [!NOTE]
+> クライアントクレデンシャルフローは M2M 認証で、ブラウザもユーザーもログイン操作も介在しないため、
+> `name` / `preferred_username` / `email` / `upn` のような**ユーザー属性は入らない**。
+> `oid` / `sub` は入るが、これは**クライアント側のサービスプリンシパルのObject ID**であって、ユーザー由来ではない。
+
+### クレーム別: 由来とフロー別の値
+
+両フローのクレームを「何由来か」で整理した完全版:
+
+| クレーム | 由来 | クライアントクレデンシャル | 認可コード |
+|---|---|---|---|
+| `iss` | テナント(+ API側のトークンバージョン設定) | テナント発行者URL | テナント発行者URL(同じ) |
+| `tid` | テナント | テナントID | テナントID |
+| `aud` | API側 | API側のApplication ID URI | API側のApplication ID URI |
+| `appid` / `azp` | クライアント側 | クライアント側CLIENT_ID | クライアント側CLIENT_ID |
+| `oid` (CC時) | クライアント側のサービスプリンシパル | クライアント側SPのObject ID | — |
+| `sub` (CC時) | クライアント側のサービスプリンシパル | クライアント側SPのObject ID | — |
+| `oid` (AuthCode時) | ユーザー | — | ログインユーザーのObject ID |
+| `sub` (AuthCode時) | ユーザー(アプリ固有にハッシュ) | — | ユーザーのsubject識別子 |
+| `name` | ユーザー | — | ユーザーの表示名 |
+| `preferred_username` | ユーザー | — | ユーザーのUPN/メール |
+| `scp` | API側で定義、ユーザーへの委任 | — | 委任されたスコープ名 |
+| `roles` | API側で定義、誰に割り当てたかで内容が決まる | クライアント側SPに割り当てられたロール | ログインユーザーに割り当てられたロール |
+| `idtyp` | Entra IDが自動付与(オプショナルクレーム) | `"app"` | `"user"` または存在しない |
+
+### App roleとScopeの「定義場所」と「割り当て先」を分けて考える
+
+認可制御で `roles` / `scp` クレームを使うとき、最も混乱しやすいのが
+**「ロール/スコープを定義する場所」と「誰に割り当てるか」が別**という点。
+
+| 観点 | クライアントクレデンシャル | 認可コード |
+|---|---|---|
+| **App role / Scope の定義場所** | API側 | API側 |
+| **割り当て先(誰に付与するか)** | クライアント側のサービスプリンシパル | ユーザー(または所属グループ) |
+| **割り当て方** | クライアント側で「Application permissions」として追加 + Grant admin consent | ユーザーをAPI側のEnterprise ApplicationでApp roleに直接割り当て、もしくはDelegated permissionsで委任 |
+| **トークンに入るクレーム** | `roles` | `roles`(ユーザーへのApp role割り当て時) / `scp`(Delegated permission時) |
+
+つまり「**保護対象API(=Gateway)が『こういうロールがあります』と宣言し、それを誰に与えるかを後から決める**」モデル。
+直感的にも、`Gateway.Access` というロール名を定義する権限を持つのは Gateway 自身(=API側)と考えると自然。
+
+> [!CAUTION]
+> クライアント側のEntraIDアプリケーションにも「App roles」タブはあるが、
+> **そこにロールを定義しても、Gatewayへのアクセス制御には使われない**。
+> クライアント側のApp rolesは「このクライアント自身が**保護対象になる場合**(=別のクライアントから呼ばれる側になる場合)」のためのもの。
+> 今回Gatewayを呼ぶバッチアプリは「呼ぶ側」なので、自分のApp rolesは使われない。
+
+> [!CAUTION]
+> **グループ経由のApp role割り当ては、クライアントクレデンシャルフローでは機能しない。**  
+> クライアント側のサービスプリンシパルをセキュリティグループに入れて、そのグループにApp roleを割り当てても、
+> `roles` クレームには入らない。**サービスプリンシパルに直接割り当てる必要がある**
+> (「Grant admin consent」がこれを実行している)。
+> 公式ドキュメント: "Currently, if you add a service principal to a group, and then assign an app role to that group, Microsoft Entra ID doesn't add the roles claim to tokens it issues"
+
+> [!TIP]
+> API側のEnterprise Applicationで「**Assignment required: Yes**」にしておくと、
+> 明示的にApp roleを割り当てられていないクライアント/ユーザーは
+> そもそもトークン取得自体ができなくなる(`AADSTS501051`)。
+> 本番運用ではYesにしておくのが推奨。
+
+### Envoy AI Gateway での認可ルール設計の指針
+
+`SecurityPolicy.authorization` でクレームを使って制御する場合、目的別に「どのクレームを見るか」が変わる。
+
+| 目的 | 見るべきクレーム | 備考 |
+|---|---|---|
+| どのテナントから来たか | `iss` または `tid` | マルチテナント運用時、または検証目的 |
+| どのAPI向けのトークンか | `aud` | `SecurityPolicy.jwt.audiences` での照合で済むが、追加で見ることも可能 |
+| どのクライアントアプリから来たか | `appid` / `azp` | M2M用途で「バッチA だけ許可、バッチB は不可」のような制御 |
+| ログインユーザーが誰か | `oid`(永続ID、推奨) / `preferred_username`(メアドベース、人間に読みやすい) | 認可コードフロー時のみ |
+| M2Mロールベース認可 | `roles` | API側で定義 + クライアント側SPに割り当て |
+| ユーザーロールベース認可 | `roles` または `scp` | `roles`: API側で定義 + ユーザーに割り当て / `scp`: API側で定義 + ユーザーに委任 |
+| フロー識別(M2M vs ユーザー) | `idtyp`(オプショナルクレーム) | v2.0トークンの場合、Token Configurationで明示的にOptional claimとして追加が必要なケースあり |
+
+#### クライアント識別 + ロールベース認可の併用例
+
+「クライアントAは `Gateway.Access` ロールを持っているが、Gatewayを呼べるのは特定のクライアントだけ」のような細かい制御:
+
+```yaml
+spec:
+  authorization:
+    defaultAction: Deny
+    rules:
+      # 特定のクライアントアプリ かつ Gateway.Access ロール保持者のみ許可
+      - name: "allow-specific-batch-app"
+        action: Allow
+        principal:
+          jwt:
+            provider: entra
+            claims:
+              - name: appid  # クライアント側EntraIDアプリケーションのCLIENT_ID
+                valueType: "String"
+                values:
+                  - "<batch-app-client-id>"
+              - name: roles
+                valueType: "StringArray"
+                values:
+                  - "Gateway.Access"
+```
+
+#### ハマりやすいポイント: 同名のScopeとApp role
+
+同じValue名(例 `Gateway.Access`)をScopeとApp roleの両方で定義すると、
+フローによって入るクレームが違う(クライアントクレデンシャル → `roles`、認可コード → `scp`)ため、
+SecurityPolicy.authorization で両方の場合を書き分ける必要がある。
+
+運用上のおすすめは:
+- **名前を分ける**(例: App role → `Gateway.Access.App`、Scope → `Gateway.Access.User`)
+- もしくは**同名のままにする場合は、`scp` と `roles` の両方を見る認可ルールを書く**
+
+---
+
 ## クライアントクレデンシャルフロー vs 認可コードフロー まとめ
 
 | 項目 | クライアントクレデンシャル | 認可コード |
