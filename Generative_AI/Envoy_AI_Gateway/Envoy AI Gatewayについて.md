@@ -280,6 +280,85 @@ endpointConfig:
 - **バッファ上限**: `ClientTrafficPolicy` の `connection.bufferLimit` でデフォルト 32KB から 50MB 程度に引き上げ（AI レスポンス用）
 - **topologySpreadConstraints**: `EnvoyProxy.spec.provider.kubernetes.envoyDeployment.pod.topologySpreadConstraints` で Envoy Proxy Pod のゾーン分散が可能（Controller 側と違ってフルサポート）
 
+#### Envoy Proxy の Service タイプ（デフォルトと変更方法）
+
+Envoy Gateway は `Gateway` CR の apply 時に **Envoy Proxy Pod 用の Service を自動生成する**。このとき **デフォルトの Service タイプは `LoadBalancer`**。EKS / GKE / AKS であればクラウドプロバイダの LB（NLB / GCLB / ALB）が即座にプロビジョニングされる。
+
+EKS 内部利用前提（クラスタ内からの呼び出しのみ）や、別途 Ingress / ALB Controller を前段に置く構成では、LB を生成せずに `ClusterIP` に変えたいケースが多い。**設定は 2 層あり、用途で使い分ける**。
+
+##### 層 1: Helm values（クラスタ全体のデフォルト）
+
+`gateway-helm` の values で **Envoy Gateway Controller 自身の Service タイプ**を制御する。AI Gateway 連携時はこれを `ClusterIP` にしておくのが定石。
+
+```yaml
+# envoy-gateway-values.yaml
+service:
+  type: ClusterIP                # NLB は EnvoyProxy CR / Gateway 側の annotation で個別に付ける
+```
+
+> [!NOTE]
+> ここで設定するのは **Envoy Gateway Controller の Service**（xDS / extension API の窓口）であり、データプレーンの Envoy Proxy Pod の Service ではない点に注意。
+> 
+> ただし AI Gateway 公式の `envoy-gateway-values.yaml` には `service` キーは含まれていないため、`-f` で重ねる values 側で明示的に追記する必要がある。
+
+##### 層 2: EnvoyProxy CR（Gateway ごとの上書き、推奨）
+
+**データプレーン側の Service タイプを変えたい場合はこちら**。Gateway ごとに `EnvoyProxy` CR を作成し、`spec.provider.kubernetes.envoyService.type` で指定する。
+
+```yaml
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: EnvoyProxy
+metadata:
+  name: internal-envoy-proxy
+  namespace: envoy-gateway-system
+spec:
+  provider:
+    type: Kubernetes
+    kubernetes:
+      envoyService:
+        type: ClusterIP            # デフォルトは LoadBalancer
+        # 内部 NLB にしたい場合は annotations を併用
+        # annotations:
+        #   service.beta.kubernetes.io/aws-load-balancer-scheme: internal
+        #   service.beta.kubernetes.io/aws-load-balancer-type: nlb
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: internal-ai-gateway
+spec:
+  gatewayClassName: envoy-gateway
+  infrastructure:
+    parametersRef:                 # ← ここで EnvoyProxy を紐付け
+      group: gateway.envoyproxy.io
+      kind: EnvoyProxy
+      name: internal-envoy-proxy
+  listeners:
+    - name: http
+      protocol: HTTP
+      port: 80
+```
+
+##### 設定可能な Service タイプ
+
+| 値 | 用途 |
+|---|---|
+| `LoadBalancer` | **デフォルト**。クラウド LB を自動プロビジョニング |
+| `ClusterIP` | クラスタ内部のみで利用。`kubectl port-forward` や別 Ingress 経由でアクセス |
+| `NodePort` | 各ノードのポートで公開。NLB を手動管理する構成等で稀に使う |
+
+##### 使い分けの典型パターン
+
+| パターン | Helm `service.type` | EnvoyProxy CR | 備考 |
+|---|---|---|---|
+| 全 Gateway を外部公開（最小構成） | デフォルト（`LoadBalancer`）| 未指定 | 簡単だが Gateway 増えると LB コスト増 |
+| 全 Gateway を内部利用 | `ClusterIP` | 未指定 | 社内 AI Gateway 等 |
+| Gateway ごとに公開／内部を使い分け | `ClusterIP`（保守的に）| Gateway ごとに作成して個別上書き | **推奨**。柔軟性が高い |
+| ALB Ingress Controller を前段に置く | `ClusterIP` | 未指定 or `ClusterIP` | LB は ALB Controller 側で管理 |
+
+> [!IMPORTANT]
+> **Helm values 側を `ClusterIP` にしても、`EnvoyProxy` CR で `LoadBalancer` を指定すれば上書きされる**。Helm 側はあくまでデフォルト値で、CR 側が常に優先される。GitOps で運用する場合は「Helm = 安全側のデフォルト（ClusterIP）」「EnvoyProxy CR = Gateway ごとの個別判断」と整理しておくとレビューしやすい。
+
 ---
 
 ### 4. ExtProc サイドカー（AI 処理担当）
@@ -653,7 +732,7 @@ asyncio.run(main())
 `base_url` 末尾に `/v1` を含めるかは SDK により異なる：
 
 - **OpenAI SDK 系（LangChain / Strands / OpenAI Agents SDK）**: `/v1` を **含める**のが慣習（`http://gateway/v1`）
-- **LiteLLM（ADK 経由）**: `api_base` に `/v1` を **含める**（LiteLLM が内部で `/chat/completions` を append する）
+- **LiteLLM（ADK 経由）**: `api_base` に `/v1` を **含める**(LiteLLM が内部で `/chat/completions` を append する）
 
 間違えると `404 Not Found` になる典型的な罠。最初に curl で疎通確認するのが安全：
 
@@ -1187,6 +1266,12 @@ config:
         fqdn:
           hostname: ai-gateway-controller.envoy-ai-gateway-system.svc.cluster.local
           port: 1063
+
+# Envoy Gateway Controller 自身の Service タイプ
+# デフォルトは LoadBalancer だが、Controller は xDS / Extension API の窓口で
+# 外部公開する必要がないため ClusterIP に絞っておくのが安全
+service:
+  type: ClusterIP
 
 deployment:
   replicas: 2
