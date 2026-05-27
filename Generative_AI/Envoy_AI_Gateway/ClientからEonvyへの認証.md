@@ -141,6 +141,98 @@ API側のEntraIDアプリケーション (envoy-ai-gateway):
 | Secret漏洩時の影響範囲 | ❌ API側の設定にも影響 | ✅ 該当クライアントのみ無効化で済む |
 | 認可コードフローとの共存 | ❌ Delegated/Application両permissionの設定問題が再発しやすい | ✅ クライアントアプリを分けて共存可能 |
 
+### Callback URL（Redirect URI）はどちらのEntraIDアプリケーションに設定するか
+
+認可コードフローを使う場合、**Redirect URI は「クライアント側のEntraIDアプリケーション」に設定する**。  
+API側（Envoy AI Gateway用）には設定不要。
+
+#### 理由：Redirect URI の役割を踏まえると自明
+
+Redirect URI は OAuth 2.0 の認可コードフローにおいて、**「認可エンドポイントが認可コードを返す宛先」** を指す。
+認可フローを開始するのはクライアントアプリ自身であり、認可コードを受け取って
+アクセストークンに交換するのもクライアントアプリ。したがって Redirect URI は
+**認可フローを実行するクライアント側のEntraIDアプリケーション**に紐付ける必要がある。
+
+一方、Envoy AI Gateway（API側）は OAuth 認可フローには一切関与せず、
+クライアントから受け取った JWT を `SecurityPolicy.jwt` で検証するだけ。
+したがって API側のEntraIDアプリケーションに Redirect URI を設定する必要はない（設定しても使われない）。
+
+```
+[ユーザーのブラウザ]
+    │
+    │ 1. クライアントアプリにアクセス
+    ↓
+[クライアントアプリ]
+    │
+    │ 2. EntraID認可エンドポイントへリダイレクト
+    │    client_id=<クライアント側のEntraIDアプリケーションのCLIENT_ID>
+    │    redirect_uri=http://localhost:8765/callback  ← クライアント側に登録したURI
+    │    scope=api://<APP_ID_URI>/Gateway.Access
+    ↓
+[EntraID 認可エンドポイント]
+    │
+    │ 3. ユーザー認証 + 同意
+    │ 4. redirect_uri に認可コードを付けてリダイレクト
+    ↓
+[クライアントアプリの /callback]
+    │
+    │ 5. 認可コードをアクセストークンに交換
+    │ 6. Bearer トークンで Envoy AI Gateway を呼ぶ
+    ↓
+[Envoy AI Gateway]
+    │ JWT検証のみ（Redirect URI は無関係）
+    ↓
+[LLMプロバイダー]
+```
+
+#### 設定項目の対応表
+
+| 設定項目 | API側 (envoy-ai-gateway) | クライアント側 (Webアプリ等) |
+|---|---|---|
+| Application ID URI | ✅ 設定する（例: `api://kinto-technologies.com/envoy-ai-gateway`） | ❌ |
+| Expose an API → Scope | ✅ 設定する（例: `Gateway.Access`） | ❌ |
+| App roles | ✅ 設定する（クライアントクレデンシャルでroles使う場合） | ❌ |
+| Authentication → Platform | ❌ | ✅ Web または Mobile and desktop |
+| **Redirect URI** | ❌ | ✅ 設定する（例: `http://localhost:8765/callback`） |
+| Client secret | ❌（通常不要） | ✅ 設定する（Web プラットフォームの場合必須） |
+| API permissions | ❌ | ✅ API側のScope/App roleを参照 |
+
+#### クライアントクレデンシャルフロー併用時の補足
+
+パターン2（API側 + 用途別のクライアント側）構成で、認可コードフローと
+クライアントクレデンシャルフローを併用する場合：
+
+- **バッチ用クライアントアプリ（クライアントクレデンシャル）**: Redirect URI **不要**。
+  トークンエンドポイントを直接叩くだけなのでリダイレクトが発生しない
+- **Webアプリ用クライアントアプリ（認可コード）**: Redirect URI **必須**
+
+つまり Redirect URI を設定するのは **「認可コードフローを使うクライアント側のEntraIDアプリケーションだけ」**。
+
+#### パターン1（単一アプリ兼任）の場合
+
+API側＝クライアント側＝同じアプリなので、**その単一アプリに Redirect URI を設定する**。
+「API側に設定する」というよりは「クライアント役割を兼ねているから設定する」と捉えると整理しやすい。
+
+#### 複数のRedirect URIを登録するケース
+
+EntraIDは1つのアプリに複数のRedirect URIを登録できる（最大256個）。
+ローカル開発・ステージング・本番で別URIになる場合、同じクライアント側アプリに
+複数登録するのが一般的：
+
+```
+http://localhost:8765/callback                # ローカル開発
+https://myapp-staging.example.com/callback    # ステージング
+https://myapp.example.com/callback            # 本番
+```
+
+ただし、**環境ごとにクライアント側EntraIDアプリケーション自体を分ける**運用もある
+（Client secret 漏洩時の影響範囲を環境単位で限定したい場合や、テナント分離要件がある場合）。
+
+> [!NOTE]
+> ローカル開発で `http://localhost` を使うのは EntraID 側で例外的に許可されているが、
+> 本番では必ず `https://` を使うこと（EntraIDのポリシーで強制される）。
+> ワイルドカードURI（`https://*.example.com/callback` のような形）は基本的に使えない。
+
 ### API側とクライアント側の「紐づけ」について
 
 EntraID上には**明示的な「紐づけ」ボタンや操作はない**。  
