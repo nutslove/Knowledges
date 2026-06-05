@@ -100,17 +100,32 @@
 ## Lazy Listenerパターン
 - Slack BoltがAWS Lambda向けに用意している非同期実行機構
 - 参考URL
+  - https://docs.slack.dev/tools/bolt-python/concepts/lazy-listeners/
   - https://tools.slack.dev/bolt-python/concepts/lazy-listeners/
   - https://github.com/slackapi/bolt-python/tree/main/examples/aws_lambda
 
 ### 仕組み
-1. Slack → Lambda にイベント送信
-2. Lambda起動 → `ack`関数（軽い処理のみ）を実行 → Slackに即200応答
-3. **Bolt が自動的に「別のLambda invocation」を非同期発火**（同じLambda関数を自己呼び出し）
-4. その second invocation で `lazy` の関数を実行（重い処理）
-5. first invocation は ack 後すぐ終了 ＝ Slackは即応答受け取り
+
+- 「ack に加えて別Lambda invocationで」実行される仕組み
+- ack関数とlazy関数は両方ともすべての action 受信時に呼ばれる
+
+- 流れ
+  1. Slack → Lambda にイベント送信
+  2. Lambda起動 → `ack`関数（軽い処理のみ）を実行 → Slackに即200応答
+  3. **Bolt が自動的に「別のLambda invocation」を非同期発火**（同じLambda関数を自己呼び出し）
+  4. その second invocation で `lazy` の関数を実行（重い処理）
+  5. first invocation は ack 後すぐ終了 ＝ Slackは即応答受け取り
 
 → Slack側のタイムアウト問題は実質解消、重い処理は別Lambdaで最大15分まで実行可能
+
+> [!NOTE]
+> >**`ack: Callable`**: Responsible for calling ack() within 3 seconds
+> >**`lazy: List[Callable]`**: Responsible for handling time-consuming processes related to the request. The lazy function does not have access to ack().
+>
+> - `ack`関数 =「Slackに3秒以内に返事しなきゃいけない場所」
+>   - 軽い処理または trigger_id を消費する処理（モーダル開きなど）を入れる
+> - `lazy`関数 = 「時間のかかる処理を入れる場所（最大15分）」
+>   - HTTP コールが複数発、外部API、DB処理など
 
 ### 書き方
 ```python
