@@ -279,6 +279,59 @@ Python 3.3以降、**Namespace Packages**（PEP 420）が導入され、`__init_
 
 `pyproject.toml`は **テーブル（`[...]`の見出し）ごとに役割が分かれている**のがポイント。まず全体像を示し、その後で各テーブルに何をどう書くかを解説する。
 
+### `pyproject.toml`は手動作成ではなく `uv init` で自動作成される
+
+uvを使う場合、**`uv init` を実行すると、必要最小限の `pyproject.toml` が自動作成される**（あわせて `.python-version` / `README.md` / エントリポイント用の `main.py` なども作成される）。下の「全体像」は、そこから `uv add` などで依存やツール設定を育てていった結果のイメージだと捉えるとよい。
+
+`uv init` のモードによって作成される内容が変わる:
+
+| コマンド | レイアウト | `[build-system]` | 用途 |
+|---|---|---|---|
+| `uv init`（= `--app`、既定） | ルート直下に `main.py` | なし（非パッケージ） | スクリプト・CLI・Webサーバなど、配布しないアプリ |
+| `uv init --package` | `src/` レイアウト | あり（`uv_build`） | テスト付き・配布する（=インストールする）アプリ |
+| `uv init --lib` | `src/` レイアウト | あり（`uv_build`）＋ `py.typed` | ライブラリとして配布する |
+
+> このドキュメントの構成（src layout・テスト同梱）なら `uv init --package` または `uv init --lib` を使う。素の `uv init` は `[build-system]` を作成しないため、インストールして使うパッケージには向かない。
+
+`uv init --package my_app` 直後に自動作成される `pyproject.toml` は、おおむね次のような **最小の状態**になっている:
+
+```toml
+[project]
+name = "my_app"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"   # 実行環境の.python-versionに応じた値
+dependencies = []            # 依存はまだ空
+
+[project.scripts]
+my-app = "my_app:main"
+
+[build-system]
+requires = ["uv_build>=0.11,<0.12"]
+build-backend = "uv_build"
+```
+
+- **ビルドバックエンド**: 最近のuvが既定で入れるのは `uv_build`。`hatchling` を使いたい場合は `--build-backend hatchling` を付けて `uv init` するか、あとから `[build-system]` を書き換える（このドキュメントの全体像では `hatchling` の例を採用している）。
+- `dependencies` や各ツール設定（`[tool.ruff]` など）は **初期状態では入っていない**。次の「自動作成後の修正方法」で育てていく。
+
+### `uv init` で自動作成された後の修正方法（特に依存関係）
+
+自動作成された `pyproject.toml` は、**基本はCLIコマンドで編集し、`pyproject.toml`は自動で書き換わる**。手で直接編集してもよいが、その場合は最後に `uv sync` で環境とロックファイルを合わせる。
+
+- **本番依存を追加**: `uv add fastapi` → `[project].dependencies` に `"fastapi>=0.115"` のように **自動で追記される**。同時に `uv.lock` 更新と `.venv` へのインストールも行われる
+- **バージョン制約を付けて追加**: `uv add "fastapi>=0.115"`（PEP 508の指定子。範囲は `"pkg>=1.2,<2"`、extrasは `"pkg[a,b]"`、環境マーカーは `"pkg; python_version < '3.10'"`）
+- **開発依存を追加**: `uv add --dev pytest` → `[dependency-groups].dev` に追記。本番ビルドでは `uv sync --no-dev` で除外できる
+- **任意のグループに追加**: `uv add --group lint ruff` → `[dependency-groups].lint` に追記（`docs` など独自グループも作れる）
+- **optional依存（extras）を追加**: `uv add httpx --optional network` → `[project.optional-dependencies]` に追記（配布パッケージ向け）
+- **依存を削除**: `uv remove fastapi`（`--dev` / `--group <name>` / `--optional <extra>` で対象セクションを指定）
+- **バージョン制約を変更**: 新しい制約で `uv add` をやり直す（例 `uv add "fastapi>=0.116"`）。最新へ上げたいだけなら `uv add --upgrade-package fastapi`
+- **`requires-python` や `[tool.*]` 設定**: これらはCLIでは触れないので **`pyproject.toml`を直接編集**し、依存に関わる変更なら `uv sync` を実行して反映する
+
+> まとめ: **依存は `uv add` / `uv remove`（手書きしない）、ツール設定やメタ情報（`requires-python`・`[tool.ruff]`など）は直接編集 → `uv sync`**。どちらの場合も `uv.lock` は自動でメンテされるのでコミットすればよい。
+
+以下が、こうして育てた `pyproject.toml` の全体像:
+
 ```toml
 [project]
 name = "my_app"
