@@ -373,7 +373,7 @@ python_version = "3.12"
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
-addopts = "--import-mode=importlib --cov=src --cov-report=term-missing"
+addopts = "--import-mode=importlib --cov=my_app --cov-report=term-missing"
 ```
 
 ### 各テーブルに何を・どう書くか
@@ -428,7 +428,7 @@ addopts = "--import-mode=importlib --cov=src --cov-report=term-missing"
 #### `[tool.pytest.ini_options]` — テスト
 
 - **何を**: テストの探索パス（`testpaths`）、importモード（`--import-mode`）、デフォルトオプション（`addopts`）、pytest-asyncioのモード（`asyncio_mode`）
-- **どう**: `addopts` に常用フラグ（カバレッジ等）を入れておくと毎回打たずに済む。`--cov=src` でカバレッジ計測対象を`src/`配下に限定している
+- **どう**: `addopts` に常用フラグ（カバレッジ等）を入れておくと毎回打たずに済む。カバレッジは **`--cov=src`（パス指定）ではなく `--cov=my_app`（パッケージ名指定）** にする。src layoutでは「インストール済みパッケージ」を対象にテストするため、パスではなく `import` 名で計測対象を指す方がインストール先に追従して正確（CIやDockerで実際にwheelを入れてテストしてもズレない）
 - **`--import-mode=importlib` を推奨**: src layoutではpytest公式（Good Integration Practices）が `importlib` モードを推奨。これにより **`tests/`配下に `__init__.py` を一切置かなくても、同名のテストファイル（`unit/test_x.py` と `integration/test_x.py`）が衝突しない**。既定の `prepend` モードだと衝突回避のために `__init__.py` が必要になる
 
 > どこに書くか迷ったら原則: **ツール固有の設定は `[tool.<ツール名>]`、パッケージ自体の情報は `[project]`、依存は `[project]`（本番）か `[dependency-groups]`（開発）**。
