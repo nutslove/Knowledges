@@ -134,6 +134,69 @@ async def get_users(page: dict = Depends(pagination)):
 - `pagination` のクエリパラメータ（`skip`, `limit`）はそのままエンドポイントのクエリパラメータとしてOpenAPIにも反映される
 - 同じ依存を複数のエンドポイントで使い回せる
 
+#### `Depends` 関数の引数はどこから渡される？ → リクエストから（本体と同じルール）
+
+FastAPIは **依存関数の引数も、エンドポイント本体の引数とまったく同じルールで解決する**。引数の **型注釈の種類** に応じて、リクエストの各部分から自動で値を取り出して渡す。つまり依存関数は「小さなエンドポイント」のように振る舞う。
+
+| 引数の宣言 | どこから渡されるか |
+|---|---|
+| `x: int = 0`（パスに無い単純な型） | クエリパラメータ |
+| パスに `{id}` があり `id: int` | パスパラメータ |
+| `token: str = Header()` | ヘッダー |
+| `session: str = Cookie()` | Cookie |
+| `body: SomeModel`（Pydanticモデル） | リクエストボディ |
+| `y = Depends(other)` | サブ依存（別の依存の戻り値） |
+| `request: Request` | リクエスト全体（自分で取り出す） |
+
+- クエリに無ければ **デフォルト値**（`skip=0` など）が使われる
+- `skip=abc` のように型変換できない値なら、自動で **422 エラー**（バリデーションエラー）が返る
+- これらの引数はエンドポイントのOpenAPI（Swagger UI）にもマージされて表示される
+
+##### 具体例: `skip` / `limit`（→ クエリパラメータ）
+
+`pagination(skip, limit)` の引数は「パスに含まれない・単純な型（`int`）」なので **クエリパラメータ** と解釈され、URLの `?skip=...&limit=...` から自動で渡される。
+
+呼び出しの流れ（`/users?skip=20&limit=5` の場合）:
+
+1. リクエストが届く
+2. FastAPIが `Depends(pagination)` を見て、`pagination` のシグネチャ（`skip: int = 0, limit: int = 10`）を調べる
+3. クエリ文字列から `skip=20`, `limit=5` を取り出して型変換（`int`）し、`pagination(skip=20, limit=5)` を呼ぶ
+4. 戻り値 `{"skip": 20, "limit": 5}` を引数 `page` に注入する
+5. `get_users` 本体が実行される
+
+##### `Request` オブジェクトから直接取ることもできる
+
+ここまでは `skip: int = 0` のように**型注釈で宣言して自動抽出**する方法だったが、依存関数の引数に `Request` を取れば、**リクエストの中身を自分で直接**取り出すこともできる。
+
+```python
+from fastapi import Depends, Request
+
+
+def pagination(request: Request) -> dict:
+    skip = int(request.query_params.get("skip", 0))
+    limit = int(request.query_params.get("limit", 10))
+    return {"skip": skip, "limit": limit}
+
+
+@app.get("/users")
+async def get_users(page: dict = Depends(pagination)):
+    return page
+```
+
+`Request` から取れる主なもの:
+
+| アクセス | 内容 |
+|---|---|
+| `request.query_params` | クエリ文字列（`?skip=20` など） |
+| `request.path_params` | パスパラメータ |
+| `request.headers` | ヘッダー |
+| `request.cookies` | Cookie |
+| `await request.json()` / `await request.body()` | ボディ |
+| `request.client.host` | クライアントIP |
+| `request.state` | ミドルウェア等で詰めた値 |
+
+ただし `Request` から手で取ると **型変換・バリデーション・OpenAPIへの反映が効かない**（すべて自前になる）。通常は `skip: int = 0` のように型注釈で宣言するほうが楽で安全。`Request` 直アクセスは「任意のヘッダーを横断的に見たい」「ミドルウェアが `request.state` に詰めた値を使いたい」など、**宣言的に書けないケース**で使う。
+
 > **補足: `Depends` は「引数」に注入するだけで、レスポンスには関与しない**
 >
 > `Depends(pagination)` がするのは、`pagination()` の戻り値を **引数 `page` に渡す** ことだけ。レスポンスに自動で追記したり置き換えたりはしない。上の例で `page` がそのままレスポンスになっているのは、エンドポイントが `return page` と **明示的に返している** からにすぎない。**何がレスポンスになるかは「`return` で何を返すか」だけで決まり、`Depends` とは無関係**。
