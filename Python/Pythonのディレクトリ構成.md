@@ -31,8 +31,7 @@ my_project/
 │           ├── __init__.py
 │           └── helpers.py
 ├── tests/
-│   ├── __init__.py
-│   ├── conftest.py
+│   ├── conftest.py          # tests/配下に__init__.pyは置かない（後述）
 │   ├── unit/
 │   │   └── test_logic.py
 │   └── integration/
@@ -77,16 +76,16 @@ my_app/                  ← プロジェクト（リポジトリ）全体の入
 
 #### 内側に同名パッケージを置く理由
 
-1. **import可能な「パッケージ」の単位だから**
+1. **import可能な「パッケージ」の単位だから**  
    `__init__.py` を持つ内側のディレクトリがパッケージの実体。`import my_app` で読み込まれるのはこの内側であり、外側は単なる入れ物にすぎない。
 
-2. **`src/` を挟むことで「インストールせずに誤ってローカルのソースをimportする事故」を防げる（src layout最大の利点）**
+2. **`src/` を挟むことで「インストールせずに誤ってローカルのソースをimportする事故」を防げる（src layout最大の利点）**  
    `src/`を挟まないフラットレイアウト（`my_app/my_app/`）だと、プロジェクトルートで作業しているときカレントディレクトリの `my_app/` がそのままimportできてしまう。すると「パッケージング設定が壊れていてインストールでは動かないのに、開発環境ではたまたま動いていた」という不整合に気づけない。`src/`を挟むとルートから直接importできなくなり、**必ず `uv sync` / `pip install -e .`（editable install）してからimportする**形になるため、テストやCIが「実際にユーザーがインストールした状態」と同じ条件で走る。
 
-3. **テストが確実にインストール済みパッケージを対象にする**
+3. **テストが確実にインストール済みパッケージを対象にする**  
    `tests/`から `import my_app` したとき、src layoutならカレントディレクトリのソースではなくインストール済みパッケージを参照する。「テストは通るのに配布したら壊れている」を防げる。
 
-4. **ルートが散らからない**
+4. **ルートが散らからない**  
    ルート直下にパッケージコードを置くと、`tests/`・`docs/`・設定ファイルとコードが混在する。`src/`に閉じ込めることでコードと周辺ファイルが明確に分離される。
 
 > シンプルなスクリプトや小さなツールであれば `src/` を挟まないフラットレイアウトでもよい。**ライブラリとして配布する・きちんとテストしたい場合**に src layout が推奨される（PyPA公式も推奨）。
@@ -189,8 +188,8 @@ my_app/
 │   ├── conftest.py
 │   ├── unit/
 │   └── integration/
-├── docker/
-│   └── Dockerfile
+├── Dockerfile              # プロジェクトルートに置く（後述）
+├── .dockerignore
 ├── .env.example
 ├── pyproject.toml
 ├── uv.lock
@@ -263,15 +262,15 @@ Python 3.3以降、**Namespace Packages**（PEP 420）が導入され、`__init_
 
 ### `tests/`配下の`__init__.py`は別
 
-`tests/`ディレクトリには **`__init__.py`を置かないのが推奨**。pytestの挙動（rootdir方式）と相性が良く、テストをパッケージ化しないことで余計な依存関係が発生しない。
+`tests/`ディレクトリには **`__init__.py`を置かないのが推奨**。テストをパッケージ化しないことで余計な依存関係が発生せず、src layoutの「インストール済みパッケージを対象にテストする」という利点を濁さない。
 
-ただし、テストファイル間で同名のモジュールがある場合（例: `tests/unit/test_logic.py` と `tests/integration/test_logic.py`）は、衝突回避のために`__init__.py`を置く必要がある。
+注意点として、pytest既定の `prepend` importモードでは、テストファイルのベース名が一意でないと衝突する（例: `tests/unit/test_logic.py` と `tests/integration/test_logic.py` はどちらも `test_logic` でモジュール名が衝突しエラーになる）。これを避けるには各ディレクトリに `__init__.py` を置く方法もあるが、**`pyproject.toml`で `--import-mode=importlib` を指定するのが現代的な推奨**（前掲の `[tool.pytest.ini_options]` 参照）。importlibモードなら **`__init__.py` を一切置かずに同名衝突も回避できる**ので、`tests/`は常に `__init__.py` なしで統一できる。
 
 ### まとめ
 
 - `src/my_package/`配下のディレクトリには **必ず`__init__.py`を置く**（空でOK）
-- `tests/`配下は **基本置かない**。名前衝突がある場合のみ置く
-- 必須ではないが、ツール互換性と意図の明確化のために置くのが現代的なベストプラクティス
+- `tests/`配下は **置かない**。`--import-mode=importlib` を設定すれば名前衝突も起きないので常に不要（既定モードのまま同名ファイルを衝突させたくない場合のみ置く）
+- 必須ではないが、ツール互換性と意図の明確化のために（`src/`配下では）置くのが現代的なベストプラクティス
 
 ## pyproject.tomlの設定例
 
@@ -374,7 +373,7 @@ python_version = "3.12"
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
-addopts = "--cov=src --cov-report=term-missing"
+addopts = "--import-mode=importlib --cov=src --cov-report=term-missing"
 ```
 
 ### 各テーブルに何を・どう書くか
@@ -401,8 +400,8 @@ addopts = "--cov=src --cov-report=term-missing"
 #### `[build-system]` — ビルドバックエンド
 
 - **何を**: パッケージをビルドするツール（バックエンド）の指定
-- **どう**: `hatchling` が標準的でシンプル。`uv init` で自動生成されるので通常はそのままでよい
-- **補足（src layoutの注意）**: **プロジェクト名（正規化後）とパッケージのディレクトリ名が一致していれば** hatchlingは `src/<name>/` を自動検出するので追加設定は不要。一致しない場合（例: `name = "my-cool-app"` だがディレクトリが `src/coolapp/`）は明示が必要
+- **どう**: uvが既定で生成するのは `uv_build`（uv公式のビルドバックエンド）。`hatchling` もシンプルで広く使われており、`uv init --build-backend hatchling` で選べる。いずれも `uv init`（`--package`/`--lib`）が自動生成するので通常はそのままでよい（この全体像の例では `hatchling` を採用）
+- **補足（src layoutの注意・hatchlingの場合）**: **プロジェクト名（正規化後）とパッケージのディレクトリ名が一致していれば** hatchlingは `src/<name>/` を自動検出するので追加設定は不要。一致しない場合（例: `name = "my-cool-app"` だがディレクトリが `src/coolapp/`）は明示が必要
 
   ```toml
   [tool.hatch.build.targets.wheel]
@@ -428,8 +427,9 @@ addopts = "--cov=src --cov-report=term-missing"
 
 #### `[tool.pytest.ini_options]` — テスト
 
-- **何を**: テストの探索パス（`testpaths`）、デフォルトオプション（`addopts`）、pytest-asyncioのモード（`asyncio_mode`）
+- **何を**: テストの探索パス（`testpaths`）、importモード（`--import-mode`）、デフォルトオプション（`addopts`）、pytest-asyncioのモード（`asyncio_mode`）
 - **どう**: `addopts` に常用フラグ（カバレッジ等）を入れておくと毎回打たずに済む。`--cov=src` でカバレッジ計測対象を`src/`配下に限定している
+- **`--import-mode=importlib` を推奨**: src layoutではpytest公式（Good Integration Practices）が `importlib` モードを推奨。これにより **`tests/`配下に `__init__.py` を一切置かなくても、同名のテストファイル（`unit/test_x.py` と `integration/test_x.py`）が衝突しない**。既定の `prepend` モードだと衝突回避のために `__init__.py` が必要になる
 
 > どこに書くか迷ったら原則: **ツール固有の設定は `[tool.<ツール名>]`、パッケージ自体の情報は `[project]`、依存は `[project]`（本番）か `[dependency-groups]`（開発）**。
 
@@ -575,13 +575,32 @@ RUN uv sync --frozen --no-dev
 # 仮想環境のPythonを使う
 ENV PATH="/app/.venv/bin:$PATH"
 
-CMD ["python", "-m", "my_app.main"]
+# 本番起動はuvicornを直接呼ぶ（reloadは付けない）
+CMD ["uvicorn", "my_app.main:app", "--host", "0.0.0.0", "--port", "8000"]
 ```
 
 ポイント:
 
 - `--frozen`は`uv.lock`を変更しないモード、`--no-dev`は開発依存をスキップする
 - **`uv sync`はデフォルトでプロジェクト自身も（editableで）インストールしようとする**ため、ソースをコピーする前に実行すると失敗する。そこで依存だけ入れる層で`--no-install-project`を付け、ソースをコピーした後にもう一度`uv sync`してプロジェクト本体を入れる（uv公式のDocker統合ガイド推奨の2段構成）。これにより依存関係の層がソース変更で無効化されず、ビルドキャッシュが効く
+
+### .dockerignore
+
+Dockerはビルド時に**コンテキスト（＝ルート）全体をデーモンに送る**ため、`.venv/`や`.git/`を除外しないとビルドが遅くなり、ホストの`.venv`がイメージに紛れ込む事故も起きる。`.gitignore`とは別に **`.dockerignore` を必ず置く**。
+
+```dockerignore
+.venv/
+.git/
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.env
+tests/
+docs/
+*.md
+```
 
 ## 各サブディレクトリの役割と実装例
 
@@ -833,6 +852,23 @@ def create_langfuse() -> Langfuse:
 
 エージェントのグラフ構造、ノード、ツールを置く。
 
+#### `state.py` — グラフのState定義
+
+グラフ全体で受け渡す状態を定義する。`MessagesState` を継承して `messages` を引き継ぎつつ、独自フィールド（`summary`・`iteration` など）を足す。
+
+```python
+# src/my_app/agents/state.py
+from langgraph.graph import MessagesState
+from my_app.schemas.agent_schemas import RCASummary
+
+
+class RCAState(MessagesState):
+    """messages（MessagesState由来）に加え、RCA固有の状態を持つ"""
+    incident_id: str
+    iteration: int          # ループ回数（should_continueの打ち切り判定に使う）
+    summary: RCASummary | None
+```
+
 #### `tools.py` — Toolの定義
 
 ```python
@@ -863,6 +899,9 @@ async def query_metrics(promql: str, minutes_ago: int = 60) -> str:
 def _format_metrics_result(result: dict) -> str:
     # LLMに渡しやすい形式に整形
     ...
+
+
+# search_logs も同様に @tool で定義する（ログ検索ツール。本書では省略）
 ```
 
 #### `nodes.py` — グラフのノード
@@ -870,12 +909,13 @@ def _format_metrics_result(result: dict) -> str:
 ```python
 # src/my_app/agents/nodes.py
 from langchain_core.messages import SystemMessage
-from langgraph.graph import MessagesState
 from my_app.infrastructure.bedrock_client import create_bedrock_chat
+from my_app.agents.state import RCAState
 from my_app.agents.tools import query_metrics, search_logs
+from my_app.schemas.agent_schemas import RCASummary
 
 
-def planner_node(state: MessagesState) -> dict:
+def planner_node(state: RCAState) -> dict:
     """次に取るべきアクションを計画する"""
     llm = create_bedrock_chat().bind_tools([query_metrics, search_logs])
     system = SystemMessage(content=(
@@ -883,13 +923,12 @@ def planner_node(state: MessagesState) -> dict:
         "必要なメトリクスやログを順次調査してください。"
     ))
     response = llm.invoke([system, *state["messages"]])
-    return {"messages": [response]}
+    # iterationを進める（should_continueの打ち切り判定が機能するように）
+    return {"messages": [response], "iteration": state.get("iteration", 0) + 1}
 
 
-def summarizer_node(state: MessagesState) -> dict:
+def summarizer_node(state: RCAState) -> dict:
     """調査結果をまとめる"""
-    from my_app.schemas.agent_schemas import RCASummary
-
     llm = create_bedrock_chat().with_structured_output(RCASummary)
     summary = llm.invoke(state["messages"])
     return {"summary": summary}
@@ -908,11 +947,13 @@ from my_app.agents.state import RCAState
 
 def should_continue(state: RCAState) -> str:
     """ループ継続判定"""
+    # 反復上限に達したら、ツール呼び出しが残っていても打ち切ってまとめへ（無限ループ防止）
+    if state.get("iteration", 0) >= 10:
+        return "summarize"
+    # ツール呼び出しが残っていればツール実行へ、なければまとめへ
     last_message = state["messages"][-1]
     if last_message.tool_calls:
         return "tools"
-    if state.get("iteration", 0) >= 10:
-        return "summarize"
     return "summarize"
 
 
@@ -1065,6 +1106,8 @@ app.include_router(router)
 
 
 if __name__ == "__main__":
+    # ローカル開発用の起動（reload=Trueはホットリロード）。
+    # 本番はDockerのCMDでuvicornを直接起動し、reloadは付けない。
     import uvicorn
     uvicorn.run("my_app.main:app", host="0.0.0.0", port=8000, reload=True)
 ```
@@ -1082,7 +1125,7 @@ if __name__ == "__main__":
 
 新規プロジェクトを始めるときの推奨フロー:
 
-1. `uv init --lib my_project` でsrc layoutで作成
+1. `uv init --package my_project`（アプリ）/ `uv init --lib my_project`（配布ライブラリ）でsrc layoutで作成
 2. `uv python pin 3.12` でPythonバージョン固定
 3. `pyproject.toml`にruff/mypy/pytestの設定を集約
 4. `uv add --dev pytest ruff mypy pre-commit` で開発ツール導入
