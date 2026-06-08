@@ -539,6 +539,17 @@ tests/
 
 ## Dockerでの利用
 
+**`Dockerfile` はプロジェクトルート（`pyproject.toml` と同じ階層）に置く**のが標準。イメージが1つならわざわざ `docker/` を切らず直下に置く。こうすると `docker build -t my_app .` だけでよく、`COPY pyproject.toml uv.lock ./` や `COPY src/ ./src/` がコンテキスト（＝ルート）基準でそのまま解決される。
+
+```text
+my_app/
+├── src/
+├── tests/
+├── pyproject.toml
+├── uv.lock
+└── Dockerfile          ← ルート直下
+```
+
 uvの公式イメージを使うと、本番デプロイ用のイメージも軽量に作れる。
 
 ```dockerfile
