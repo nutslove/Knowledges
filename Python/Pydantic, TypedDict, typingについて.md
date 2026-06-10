@@ -415,3 +415,135 @@
   # price
   #   ensure this value is greater than 0 (type=value_error.number.not_gt; limit_value=0)
   ```
+
+### `field_validator`
+- **`Field`の宣言的な制約（`ge`、`max_length`など）では表現しきれない、カスタムなバリデーションや変換ロジックを書くためのデコレータ**
+  - Pydantic v2で導入（v1の`@validator`の後継）。v1を使っている場合は`@validator`を使う
+- 基本構文  
+  ```python
+  from pydantic import BaseModel, field_validator
+
+  class User(BaseModel):
+      name: str
+      age: int
+
+      @field_validator("name")
+      @classmethod
+      def name_must_not_be_empty(cls, v: str) -> str:
+          if not v.strip():
+              raise ValueError("name は空にできません")
+          return v  # ★検証後の値を必ず return する（return した値がフィールドにセットされる）
+  ```
+  - **必ず`@classmethod`と一緒に使う**（第一引数は`self`ではなく`cls`）
+  - **検証した値を`return`する必要がある**。`return`した値がそのままフィールドに格納されるため、変換（正規化）も同時に行える  
+    ```python
+    @field_validator("name")
+    @classmethod
+    def normalize_name(cls, v: str) -> str:
+        return v.strip().title()  # 前後の空白を除去し、先頭を大文字に変換してセット
+    ```
+  - **エラーは`ValueError`（または`AssertionError`）を`raise`する**と、Pydanticがそれを補足して`ValidationError`に変換してくれる
+
+- **`mode`引数による実行タイミングの制御**
+  - `mode="after"`（**デフォルト**）: Pydanticの**型変換・型チェックが終わった後**に実行される。引数`v`は型変換済みの値  
+    ```python
+    class Product(BaseModel):
+        price: int
+
+        @field_validator("price", mode="after")
+        @classmethod
+        def check_price(cls, v: int) -> int:
+            # ここに来る時点で v は int に変換済み
+            if v <= 0:
+                raise ValueError("price は正の数である必要があります")
+            return v
+    ```
+  - `mode="before"`: Pydanticの**型変換が行われる前**に実行される。引数`v`はユーザーが渡した**生の値**（型は不定）。型変換前に値を整形したい場合に使う  
+    ```python
+    class Item(BaseModel):
+        tags: list[str]
+
+        @field_validator("tags", mode="before")
+        @classmethod
+        def split_str_to_list(cls, v):
+            # "a,b,c" のような文字列を受け取ってリストに変換してから型チェックさせる
+            if isinstance(v, str):
+                return v.split(",")
+            return v
+
+    Item(tags="a,b,c")  # tags=['a', 'b', 'c']
+    ```
+
+  | `mode` | 実行タイミング | 引数`v`の型 | 主な用途 |
+  |---|---|---|---|
+  | `"before"` | 型変換の**前** | 生の入力値（不定） | 型変換前の前処理・整形 |
+  | `"after"` | 型変換の**後** | 変換済みの型 | 変換後の値に対する検証 |
+
+- **複数フィールドへの適用**
+  - デコレータに複数のフィールド名を渡すと、同じバリデータをまとめて適用できる  
+    ```python
+    class Account(BaseModel):
+        username: str
+        password: str
+
+        @field_validator("username", "password")
+        @classmethod
+        def not_blank(cls, v: str) -> str:
+            if not v.strip():
+                raise ValueError("空にできません")
+            return v
+    ```
+  - 全フィールドに適用したい場合は`"*"`を指定できる  
+    ```python
+    @field_validator("*")
+    @classmethod
+    def no_none(cls, v):
+        ...
+    ```
+
+- **他フィールドの値を参照する（`ValidationInfo`）**
+  - 第二引数に`ValidationInfo`を受け取ると、`info.data`から**それまでに検証済みのフィールド**の値を参照できる  
+    ```python
+    from pydantic import BaseModel, field_validator, ValidationInfo
+
+    class Event(BaseModel):
+        start: int
+        end: int
+
+        @field_validator("end")
+        @classmethod
+        def end_after_start(cls, v: int, info: ValidationInfo) -> int:
+            # info.data には end より前に定義・検証済みのフィールド（start）が入っている
+            if "start" in info.data and v <= info.data["start"]:
+                raise ValueError("end は start より大きい必要があります")
+            return v
+    ```
+  - **注意**: `info.data`には**自分より前に定義され、かつ検証に成功したフィールドだけ**が入る。後に定義されたフィールドは参照できない → 複数フィールドにまたがる検証は次の`model_validator`の方が適している
+
+### `field_validator` と `model_validator` の使い分け
+- `model_validator`は**モデル全体（複数フィールドの組み合わせ）**を検証するためのデコレータ
+- フィールドの定義順に依存せず、全フィールドが揃った状態で相互関係をチェックできる  
+  ```python
+  from pydantic import BaseModel, model_validator
+
+  class Event(BaseModel):
+      start: int
+      end: int
+
+      @model_validator(mode="after")
+      def check_range(self):
+          # mode="after" では self（モデルインスタンス）が渡され、全フィールドにアクセスできる
+          if self.end <= self.start:
+              raise ValueError("end は start より大きい必要があります")
+          return self
+  ```
+
+| 観点 | `field_validator` | `model_validator` |
+|---|---|---|
+| 検証対象 | 個別のフィールド | モデル全体（複数フィールドの関係） |
+| 受け取る値 | そのフィールドの値`v` | `mode="after"`では`self`、`mode="before"`では生のdict |
+| 他フィールド参照 | `info.data`で**定義済みのものだけ**参照可 | すべてのフィールドを参照可 |
+| 主な用途 | 単一フィールドの検証・正規化 | 「AとBのどちらか必須」など項目間の整合性チェック |
+
+- **単一フィールドの値そのものを検証・変換**したい → `field_validator`
+- **複数フィールドの組み合わせ（相関）を検証**したい → `model_validator`
