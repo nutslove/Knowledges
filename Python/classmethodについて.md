@@ -36,7 +36,7 @@
   print(my_dog.what_kind())  # 出力: 犬
   ```
 
-> [!CAUTION]  
+> [!CAUTION]
 > `classmethod`からインスタンス変数（`self.name`）にはアクセスできない
 
 ### 主な用途（よくある使い方）
