@@ -520,6 +520,31 @@ uv add --dev pre-commit
 uv run pre-commit install
 ```
 
+#### `pre-commit install` が具体的にすること
+
+`pre-commit install` は、**`.pre-commit-config.yaml` に書いたチェックを `git commit` のたびに自動実行するよう Git に登録する**コマンド。
+
+- 実行すると、リポジトリ内の **`.git/hooks/pre-commit`** スクリプトを生成（上書き）する。
+- Git にはもともと「commit 前に `.git/hooks/pre-commit` があれば実行する」仕組みがあり、そこに pre-commit ツールを呼び出すスクリプトを書き込む。
+- 以降 `git commit` するたびに、変更ファイルに対して `ruff` / `mypy` などのチェックが自動で走り、**失敗すると commit が中断される**。
+
+```
+git commit
+   ↓ .git/hooks/pre-commit が起動
+   ↓ pre-commit が .pre-commit-config.yaml を読む
+   ↓ ruff / mypy などを変更ファイルに実行
+全部パス → commit 成立 ／ 失敗 → commit が中断（修正してやり直し）
+```
+
+ポイント:
+
+- **1回だけ実行すればよい**。リポジトリを clone した直後などに1度実行すれば以降ずっと有効。
+- **`.git/hooks/` は Git 管理外**なので、clone した人は各自 `pre-commit install` を実行する必要がある（README に書いておく）。
+- `pip install pre-commit`（＝ツール本体の導入）とは別物。`pre-commit install` は**そのツールを今のリポジトリの Git フックに組み込む**操作。
+- 解除は `pre-commit uninstall`。
+- commit せず手動で全ファイルをチェックするには `uv run pre-commit run --all-files`。
+- push 時に走らせたい場合は `pre-commit install --hook-type pre-push`。
+
 ## テストの構成
 
 ```
