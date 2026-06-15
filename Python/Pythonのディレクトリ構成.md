@@ -292,6 +292,23 @@ uvを使う場合、**`uv init` を実行すると、必要最小限の `pyproje
 
 > このドキュメントの構成（src layout・テスト同梱）なら `uv init --package` または `uv init --lib` を使う。素の `uv init` は `[build-system]` を作成しないため、インストールして使うパッケージには向かない。
 
+#### `--package` と `--lib` の使い分け
+
+判断軸は「**自分で動かすもの**」か「**他人に import させるもの**」か。
+
+- **`--package`（アプリ）** … 最終的に "実行する" もの。Webサーバ（FastAPI/Django）、CLIツール、バッチ・ジョブ、社内サービスなど。`src/`レイアウトでちゃんと作りたいが、PyPI等に配って他人に import させるわけではないケース。
+- **`--lib`（ライブラリ）** … 最終的に `import` されることが目的のもの。PyPI公開パッケージ、複数プロジェクトから使われる社内共通ライブラリ、SDK・ユーティリティ群など。実行エントリポイントより**公開APIの提供**が主目的のケース。
+
+```
+そのコードのゴールは？
+├─ 実行する（サーバ/CLI/バッチ） ……… --package
+└─ import される（共通部品/SDK/公開pkg） … --lib
+```
+
+両者の構成（src layout＋`[build-system]`あり）はほぼ同じで、**実質的な違いは `py.typed` の有無だけ**。`py.typed` は「このパッケージは型ヒント付き」というマーカーで、**import側の型チェッカー（mypy等）が型情報を読み取れるようにする**もの。他人に import される前提の `--lib` には付き、自分で動かす `--package` には付かない。
+
+> 「アプリだが他プロジェクトからも import される」中間ケースは、`--package` で作って後から `py.typed` を手で追加すればよい（差はそれだけ）。
+
 `uv init --package my_app` 直後に自動作成される `pyproject.toml` は、おおむね次のような **最小の状態**になっている:
 
 ```toml
@@ -519,6 +536,20 @@ repos:
 uv add --dev pre-commit
 uv run pre-commit install
 ```
+
+#### `.pre-commit-config.yaml` は手動で作成する
+
+`.pre-commit-config.yaml` は `pip install` などで自動生成されるファイルではなく、**プロジェクトルートに自分で作成する**。使いたいフックを記述していく（各ツールの README に pre-commit 用の設定例が載っていることが多いので、それをコピペして組み立てるのが実際の流れ）。
+
+ゼロから書くのが面倒な場合は、最小の雛形を生成するコマンドもある:
+
+```bash
+pre-commit sample-config > .pre-commit-config.yaml
+```
+
+ただし結局そこから自分で編集して使うフックを足していくことになる。
+
+> 設定ファイルが無い状態で `pre-commit install` してもフックは何も実行されない（むしろ commit 時にエラーになる）。**「設定ファイルを手動で用意」→「install で Git に組み込む」** の2段構え。
 
 #### `pre-commit install` が具体的にすること
 
