@@ -345,22 +345,26 @@ production = [
 
 **devグループの依存をインストールしない** オプション。**本番Docker や CI の本番ビルド** で使う。
 
+> [!NOTE]
+> ここでの **「本体依存」= `[project].dependencies` に書かれた依存**（アプリが動くのに必須なもの）のこと。uvでは慣用的に「main」「mainグループ」とも呼ばれる。`main.py` やgitの `main` ブランチとは無関係。
+
 | | `uv sync` | `uv sync --no-dev` |
 |---|---|---|
-| インストールされるもの | main + dev | main のみ |
+| インストールされるもの | 本体依存 + dev | 本体依存のみ |
 | イメージサイズ | 大きい (pytest, ruff等込み) | 小さい |
 | 攻撃対象面 | 広い (devツールが攻撃経路に) | 狭い |
 | 用途 | 開発者のローカル | 本番Docker / CIの本番ビルド |
 
-Dockerでは **`uv sync --frozen --no-dev`** の組み合わせがお作法 (lockを変更せず + devを除外)。
+> [!IMPORTANT]
+> Dockerでは **`uv sync --frozen --no-dev`** の組み合わせがお作法 (lockを変更せず + devを除外)。
 
 ### 関連オプション一覧
 
 ```bash
-uv sync                       # main + dev (デフォルト)
-uv sync --no-dev              # main のみ
+uv sync                       # 本体依存 + dev (デフォルト)
+uv sync --no-dev              # 本体依存のみ
 uv sync --only-dev            # dev のみ
-uv sync --group production    # main + dev + production
+uv sync --group production    # 本体依存 + dev + production
 uv sync --only-group test     # test グループだけ
 uv sync --no-default-groups   # グループを一切入れない
 ```
