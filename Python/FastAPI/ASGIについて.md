@@ -78,6 +78,71 @@ Gunicorn（プロセスマネージャ）
 gunicorn main:app -k uvicorn.workers.UvicornWorker -w 4 --bind 0.0.0.0:8000
 ```
 
+## Uvicorn と Gunicorn は同じ役割？
+
+一見すると「両方ともアプリケーションサーバーでしょ？」と思えるが、
+実は**設計の中心がずれていて、よく一緒に使われる相補的な関係**。
+
+### 核心的な違い：対応プロトコルと得意分野
+
+| 項目 | Gunicorn | Uvicorn |
+|------|----------|---------|
+| 対応仕様 | WSGI（同期） | ASGI（非同期） |
+| 主な対象アプリ | Flask, Django(従来) | FastAPI, Starlette |
+| 強み | **プロセスマネージャーとしての成熟度** | **uvloop + httptools による高速性** |
+| async/WebSocket | ネイティブには扱えない | ネイティブ対応 |
+
+- **Gunicorn**: master/worker の pre-fork モデル、worker のグレースフルリスタート、
+  タイムアウト管理、シグナルハンドリングなどが堅牢。
+  ただし単体は同期処理なので、FastAPI のような ASGI アプリはネイティブには動かせない。
+- **Uvicorn**: ASGI サーバーとして高速で、`async def` エンドポイントや WebSocket をネイティブに扱える。
+  一方で、プロセス管理（マルチワーカーの統制やグレースフルな再起動など）の作り込みは、
+  伝統的には Gunicorn ほど厚くなかった。
+
+### 古典的な組み合わせ
+
+両者の強みを足し合わせる構成として、以下が長らく定番だった:
+
+```bash
+gunicorn -k uvicorn.workers.UvicornWorker app:app
+```
+
+Gunicorn に頑健なプロセス管理を任せつつ、worker クラスを Uvicorn にすることで
+ASGI/async 対応を得る、という構成。
+
+### 最近の状況（変化点）
+
+- **`uvicorn.workers` は非推奨化** され、別パッケージの `uvicorn-worker` に切り出された。
+  - 新しいインポートパス: `uvicorn_worker.UvicornWorker`
+- **Uvicorn 自身も `uvicorn --workers N` でマルチワーカーをまともに扱えるようになった**。
+  - 以前ほど Gunicorn を挟む必然性は薄れている。
+
+### EKS / Kubernetes 環境での選択
+
+K8s 上で動かすなら、**そもそも Gunicorn を挟まない選択も合理的**。
+
+| 役割 | 担い手 |
+|------|--------|
+| worker の多重化 | Deployment の `replicas` / HPA |
+| 再起動・ヘルスチェック | liveness / readiness probe |
+| ASGI プロトコル実装 | Uvicorn |
+
+→ コンテナ内は **Uvicorn 1プロセス**（あるいは `--workers` 控えめ）にして、
+  スケールは Pod の水平展開に任せる、という整理がよく取られる。
+
+**利点**: in-process の worker 多重化と Pod レプリカが二重管理になって
+リソース設計が読みにくくなるのを避けられる。
+
+### まとめ
+
+レイヤーで見ると、
+
+- **Gunicorn** = プロセスマネージャー寄り
+- **Uvicorn** = ASGI プロトコル実装寄り
+
+という違いで、K8s 環境では前者の役割をオーケストレーターが肩代わりするので、
+**Uvicorn 単体運用も十分アリ**、という関係性。
+
 ## WSGI との対比
 
 同じ構造がWSGIの世界にもある。
