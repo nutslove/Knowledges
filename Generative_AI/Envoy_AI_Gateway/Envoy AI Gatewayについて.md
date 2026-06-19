@@ -1329,8 +1329,10 @@ Secret のキー名は `service_account.json`。
 
 ### インストール手順（Helm 直接実行）
 
+#### A. Quickstart（lab / 検証用、CRD を `gateway-helm` 同梱で済ませる）
+
 ```bash
-# 1. Envoy Gateway を AI Gateway 用 values で起動
+# 1. Envoy Gateway を AI Gateway 用 values で起動（CRD も同時に install される）
 helm upgrade -i eg oci://docker.io/envoyproxy/gateway-helm \
   --version v1.8.1 \
   --namespace envoy-gateway-system --create-namespace \
@@ -1347,21 +1349,57 @@ helm upgrade -i aieg oci://docker.io/envoyproxy/ai-gateway-helm \
   --namespace envoy-ai-gateway-system
 ```
 
+> [!WARNING]
+> v1.8.0 以降の `gateway-helm` は **内蔵サブチャート経由で `channel: experimental` の Gateway API CRDs をバンドルする**。Quickstart 路線でこれをそのまま入れると、後から「standard チャネルに揃えたい」となったときに `safe-upgrades` ValidatingAdmissionPolicy にブロックされて切り替えが非常に面倒になる。**本番運用前提なら次の B 案を選ぶこと**。詳細は後述の「Envoy Gateway v1.8 アップグレード時の CRD 衝突問題」セクション参照。
+
+#### B. production 推奨（CRD を `gateway-crds-helm` で別管理 + Controller は `--skip-crds`）
+
+```bash
+# 1. Gateway API + Envoy Gateway CRDs（standard チャネル）
+helm upgrade -i eg-crd oci://docker.io/envoyproxy/gateway-crds-helm \
+  --version v1.8.1 \
+  --namespace envoy-gateway-system --create-namespace \
+  --set crds.gatewayAPI.enabled=true \
+  --set crds.gatewayAPI.channel=standard \
+  --set crds.envoyGateway.enabled=true
+
+# 2. Envoy Gateway Controller のみ（CRDs と safe-upgrades policy はスキップ）
+helm upgrade -i eg oci://docker.io/envoyproxy/gateway-helm \
+  --version v1.8.1 \
+  --namespace envoy-gateway-system --create-namespace \
+  --skip-crds \
+  --set crds.gatewayAPI.safeUpgradePolicy.enabled=false \
+  -f https://raw.githubusercontent.com/envoyproxy/ai-gateway/main/manifests/envoy-gateway-values.yaml
+
+# 3. AI Gateway CRD
+helm upgrade -i aieg-crd oci://docker.io/envoyproxy/ai-gateway-crds-helm \
+  --version v0.7.0 \
+  --namespace envoy-ai-gateway-system --create-namespace
+
+# 4. AI Gateway 本体
+helm upgrade -i aieg oci://docker.io/envoyproxy/ai-gateway-helm \
+  --version v0.7.0 \
+  --namespace envoy-ai-gateway-system
+```
+
 > [!NOTE]
-> **CRD と Controller を分ける vs まとめる**: `gateway-helm` は CRD を `/crds` フォルダに同梱しているため、Quickstart では `helm install gateway-helm` 1 コマンドで CRD + Controller が入る。ただし公式 install-helm ページでは以下の理由で **分離を推奨**:
-> - **Helm 仕様**: `/crds` フォルダ内の CRD は **初回 install 時にしか apply されない**。upgrade 時に自動更新されない。
-> - **大きな CRD の制約**: gateway-helm の CRD は 2MB 超があり、client-side apply では `metadata.annotations: Too long` エラーになる。`helm template | kubectl apply --server-side` が必要。
-> 
+> **CRD と Controller を分ける理由**（v1.8.x 時点）:
+> - **Helm 仕様**: `crds/` ディレクトリ内の CRD は **初回 install 時にしか apply されない**。upgrade 時に自動更新されないため、CRD バンプを安全に行うには別チャート管理が必須。
+> - **大きな CRD の制約**: `gateway-crds-helm` の CRD は 2MB 超があり、client-side apply では `metadata.annotations: Too long` エラーになる。`helm template | kubectl apply --server-side` または ArgoCD の `ServerSideApply=true` が必要。
+> - **チャネル制御**: v1.8.0+ では `gateway-helm` 内蔵サブチャートの CRDs が experimental 固定。standard チャネルで揃えたい場合は `gateway-crds-helm` 側で明示的に指定する必要がある（B 案）。
+>
 > ArgoCD で GitOps 運用する場合は、**CRD と Controller を分離した 2 Application 構成が事実上必須**（後述）。
 
 ### アドオン（必要な場合のみ）
 
-Rate Limiting / InferencePool は別途 addon values ファイルを重ね掛けする：
+Rate Limiting / InferencePool は別途 addon values ファイルを重ね掛けする。**B 案の構成を前提に `--skip-crds` を付ける**：
 
 ```bash
 helm upgrade -i eg oci://docker.io/envoyproxy/gateway-helm \
   --version v1.8.1 \
   --namespace envoy-gateway-system --create-namespace \
+  --skip-crds \
+  --set crds.gatewayAPI.safeUpgradePolicy.enabled=false \
   -f https://raw.githubusercontent.com/envoyproxy/ai-gateway/main/manifests/envoy-gateway-values.yaml \
   -f https://raw.githubusercontent.com/envoyproxy/ai-gateway/main/examples/token_ratelimit/envoy-gateway-values-addon.yaml \
   -f https://raw.githubusercontent.com/envoyproxy/ai-gateway/main/examples/inference-pool/envoy-gateway-values-addon.yaml
@@ -1486,6 +1524,16 @@ spec:
     helm:
       valueFiles:
       - $values/values/envoy-gateway/values.yaml
+      # gateway-helm v1.8.0 以降は内蔵サブチャート (crds/配下) で experimental チャネルの
+      # Gateway API CRDs をバンドルしている。CRDs は envoy-gateway-crds Application
+      # (standard チャネル) で管理しているため、こちらでは skipCrds: true でスキップする。
+      # 同時に、サブチャート templates/ が重複作成しようとする safe-upgrades
+      # ValidatingAdmissionPolicy も無効化する（envoy-gateway-crds 側で既にインストール済み）。
+      # 詳細は「Envoy Gateway v1.8 アップグレード時の CRD 衝突問題」セクション参照。
+      skipCrds: true
+      parameters:
+      - name: crds.gatewayAPI.safeUpgradePolicy.enabled
+        value: "false"
   - repoURL: https://github.com/<org>/platform-config.git
     targetRevision: main
     ref: values
@@ -1592,6 +1640,101 @@ spec:
 - **OCI リポジトリの事前登録**: `docker.io/envoyproxy` は匿名アクセス可能だが、ArgoCD によっては `argocd repo add --type helm --enable-oci` で事前登録が必要な場合がある。
 - **values.yaml の同期**: Git 側の values を変更すると ArgoCD が自動で Helm テンプレートを再生成して差分適用する。Envoy Gateway の場合は ConfigMap 更新に伴い Deployment の rollout が必要なこともあるので、必要に応じて `kubectl rollout restart` で明示的に再起動する。
 - **targetRevision の固定**: production では `targetRevision: v1.8.1` のように固定バージョンを指定すること。`HEAD` や branch 指定だとチャート提供側の更新に引きずられて意図しない変更が入る。
+
+---
+
+## Envoy Gateway v1.8 アップグレード時の CRD 衝突問題
+
+> [!WARNING]
+> **v1.7.x → v1.8.x のバンプを伴う Sync で必ず踏むトラップ**。CRD を別 Application で管理している（本ドキュメント推奨の運用方式）場合、`gateway-helm` を v1.8.0 以降に上げた瞬間に同期失敗する。
+
+### 症状
+
+ArgoCD で `gateway-helm` を v1.7.x → v1.8.1 に上げると、`envoy-gateway` Application の Sync が下記エラーで失敗する：
+
+```
+customresourcedefinitions.apiextensions.k8s.io "<crd-name>" is forbidden:
+ValidatingAdmissionPolicy 'safe-upgrades.gateway.networking.k8s.io' with binding
+'safe-upgrades.gateway.networking.k8s.io' denied request: Installing experimental
+CRDs on top of standard channel CRDs is prohibited by default.
+```
+
+対象 CRD: `backendtlspolicies` / `gatewayclasses` / `gateways` / `grpcroutes` / `httproutes` / `listenersets` / `referencegrants` / `tlsroutes`
+
+### 原因
+
+3 つの変更が同時にぶつかって発生する：
+
+1. **`gateway-helm` v1.8.0 から内蔵 `crds` サブチャート（依存）が追加された**（PR [envoyproxy/gateway#8283](https://github.com/envoyproxy/gateway/pull/8283)「Use sub-chart for CRDs to reduce chart size」）。バンドルされた Gateway API CRDs は **`channel: experimental` ラベル固定**。
+2. CRD は `charts/gateway-helm/charts/crds/crds/` に配置されており、**Helm の `crds/` ディレクトリ仕様によりテンプレート化されず、values からチャネルを切り替える術がない**。
+3. **Gateway API v1.5.0 で標準チャネルに新設された `safe-upgrades.gateway.networking.k8s.io` ValidatingAdmissionPolicy** が、「既存 standard CRD を experimental で上書きする操作」を明示的に拒否する。
+
+CEL 判定式の挙動：
+
+| 新マニフェスト | 既存オブジェクト | 結果 |
+|---|---|---|
+| `channel: standard` | 任意 | OK |
+| 任意 | `channel: experimental` | OK（experimental からの脱却は許可） |
+| `channel: experimental` | `channel: standard` | **拒否** ← 今回のケース |
+
+つまり「v1.7.x → v1.8.x のバンプによって `gateway-helm` が突然 CRDs まで一緒に入れに行くようになり、しかもそれが experimental だった」というのが根本要因。CRD を別 Application（standard チャネル）で集中管理している運用と真っ向から衝突する。
+
+### 解決方法
+
+公式 `gateway-helm` README も同じ状況向けに **「`--skip-crds` + `crds.gatewayAPI.safeUpgradePolicy.enabled=false`」** を案内している。本ドキュメント推奨の運用方針（`envoy-gateway-crds` Application で standard チャネル CRDs を集中管理）はそのまま維持し、**`envoy-gateway` Application 側で内蔵 CRDs を抑止する**。
+
+#### ArgoCD Application の差分
+
+`envoy-gateway` Application に 2 箇所追加：
+
+```yaml
+  - repoURL: docker.io/envoyproxy
+    chart: gateway-helm
+    targetRevision: v1.8.1
+    helm:
+      valueFiles:
+      - $values/values/envoy-gateway/values.yaml
+      # gateway-helm v1.8.0 以降は内蔵サブチャート (crds/配下) で experimental チャネルの
+      # Gateway API CRDs をバンドルしている。本リポジトリでは envoy-gateway-crds Application
+      # (standard チャネル) で CRDs を管理しているため、こちらでは skipCrds: true でスキップする。
+      # 同時に、サブチャート templates/ が重複作成しようとする safe-upgrades
+      # ValidatingAdmissionPolicy も無効化する（envoy-gateway-crds 側の standard CRDs バンドルで
+      # 既にインストール済みのため）。
+      skipCrds: true
+      parameters:
+      - name: crds.gatewayAPI.safeUpgradePolicy.enabled
+        value: "false"
+```
+
+#### 各設定の役割
+
+| 設定 | スコープ | 役割 |
+|---|---|---|
+| `helm.skipCrds: true` | `crds/` ディレクトリ配下のリソース全般 | サブチャート同梱の experimental Gateway API CRDs および Envoy Gateway CRDs を **両方ともスキップ**。これらは `envoy-gateway-crds` Application が standard チャネルで別途インストール済み |
+| `crds.gatewayAPI.safeUpgradePolicy.enabled=false` | サブチャート `templates/` 配下 | サブチャートが `templates/gatewayapi-safe-upgrade-policy.yaml` から重複生成しようとする `safe-upgrades` ValidatingAdmissionPolicy / Binding を抑止。`envoy-gateway-crds` 側（standard CRDs バンドル）が既に同名リソースを所有しているため、ArgoCD の ownership 衝突回避の意味でも必要 |
+
+### 最終的な責務分担
+
+| Application | 役割 | CRD チャネル |
+|---|---|---|
+| `envoy-gateway-crds` | Gateway API CRDs + Envoy Gateway CRDs + `safe-upgrades` policy | **standard** |
+| `envoy-ai-gateway-crds` | AI Gateway CRDs | — |
+| `envoy-gateway` | Envoy Gateway Controller のみ（CRDs と policy はスキップ） | — |
+| `envoy-ai-gateway` | AI Gateway Controller | — |
+
+### 検討した代替案と却下理由
+
+| 案 | 却下理由 |
+|---|---|
+| `envoy-gateway-crds` Application を削除し、`gateway-helm` 同梱 CRDs に一本化 | 同梱 CRDs は **experimental 固定** で values からチャネル変更不可。既存 standard CRDs を上書きしようとして同じエラーになる。さらに `safe-upgrades` ポリシーを一旦削除する必要があり、本番運用上のリスクが大きい。副作用として `TCPRoute` / `UDPRoute` など experimental 専用 API も流入する |
+| `envoy-gateway-crds` 側を experimental チャネルに変更 | 上と同じ理由（policy が standard → experimental 上書きをブロック）。ポリシーを外して入れ替える運用負荷とトレードオフが見合わない |
+| `gateway-helm` を v1.7.x に rollback | AI Gateway v0.7.x のコンパチビリティ要件（Envoy Gateway v1.8.x+）を満たさなくなる |
+
+### 横展開時の注意点
+
+- 同じ問題は **lab 以外の環境（dev / stg / prd）の ArgoCD Application でも `gateway-helm` を v1.8.0+ に上げるタイミングで必ず発生する**。各環境の Application 定義に上記の 2 箇所を同じように入れる必要がある。
+- **v1.7.x → v1.8.x のバンプを伴わない単なる Sync では発生しない**（既存クラスタの CRD 状態は変わらないため）。
+- **`ai-gateway-helm` 側は v0.7.0 時点で CRD バンドルなし**（`Chart.yaml` に `dependencies` 記載なし、`crds/` ディレクトリも存在しない）ため対応不要。同じ理屈で同じ罠を踏むことはない。
 
 ---
 
@@ -1909,7 +2052,13 @@ spec:
 > [!NOTE]
 > v0.7 時点ではあくまで **単一 backend に対するレート制限の注入**のみ。「クォータ枯渇時に別 backend へ自動フェイルオーバー」という本来の quota-aware routing は v0.8 以降の予定。
 
-### ⑬ MCP（Model Context Protocol）対応の拡張
+### ⑬ Envoy Gateway v1.7.x → v1.8.x アップグレード時の CRD 衝突
+
+`gateway-helm` を v1.8.0 以降に上げた瞬間、ArgoCD で CRD を別 Application 管理している場合に `safe-upgrades.gateway.networking.k8s.io` ValidatingAdmissionPolicy によって Sync が拒否される。v1.8.0 から内蔵サブチャートが experimental チャネルの Gateway API CRDs をバンドルするようになったことが原因。
+
+対処は `envoy-gateway` Application に `helm.skipCrds: true` と `crds.gatewayAPI.safeUpgradePolicy.enabled=false` を追加する。詳細・ArgoCD diff・代替案検討は **「Envoy Gateway v1.8 アップグレード時の CRD 衝突問題」** セクション参照。
+
+### ⑭ MCP（Model Context Protocol）対応の拡張
 
 MCPRoute は v0.4 で追加されたが、v0.6 / v0.7 で大幅に拡張された。
 
