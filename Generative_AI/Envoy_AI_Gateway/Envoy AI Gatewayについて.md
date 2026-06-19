@@ -1,12 +1,14 @@
 # Envoy Gateway / Envoy AI Gateway コンポーネント整理
 
 > [!CAUTION]
-> 2026年4月時点の情報なので、今後変更される可能性があります。
+> 2026年6月時点の情報なので、今後変更される可能性があります。
 > - 対象バージョン: 
->   - Envoy AI Gateway v0.5.x
->   - Envoy Gateway v1.6.x+（Envoy Proxy v1.35.x）
+>   - Envoy AI Gateway v0.7.x（2026-06-06 リリース）
+>   - Envoy Gateway v1.8.x+（Envoy Proxy v1.38.x）
 >   - Kubernetes v1.32+
->   - Gateway API v1.4.x
+>   - Gateway API v1.5.x
+>
+> v0.6 → v0.7 で破壊的変更が複数あるため、まず直下の「v0.5 → v0.6 → v0.7 の主な変化（要点）」セクションを必ず確認すること。
 
 ## 全体像
 
@@ -26,6 +28,43 @@ Envoy AI Gateway は Envoy Gateway の上に構築された **拡張（extension
 - https://github.com/envoyproxy/ai-gateway
 
 ![usage](image/usage.png)
+
+### v0.5 → v0.6 → v0.7 の主な変化（要点）
+
+過去数ヶ月で核となる API が `v1beta1` に昇格し、いくつか破壊的変更が入った。アップグレードする際の必読項目を先にまとめる。
+
+#### v0.6（2026-05-05 リリース）
+
+- **コア CRD が `v1beta1` に昇格**: `AIGatewayRoute` / `AIServiceBackend` / `BackendSecurityPolicy` / `GatewayConfig` / `MCPRoute` が production-ready API として `aigateway.envoyproxy.io/v1beta1` で提供される。`v1alpha1` も併存するが deprecation 警告が出る。
+- **破壊的変更 ①**: `AIGatewayRoute.spec.filterConfig` が **削除**。ExtProc のリソース・env 設定は `GatewayConfig` CRD に移行必須（v0.5 で deprecate されていたものの完全削除）。
+- **破壊的変更 ②**: `VersionedAPISchema.version` を **パスプレフィックスとして使う旧挙動が削除**。`prefix` フィールドを使う必要がある（例: Gemini OpenAI 互換 API の `/v1beta/openai`、Cohere の `/compatibility/v1`）。
+- **GKE Workload Identity (ADC) 対応**: GCP `BackendSecurityPolicy` で `credentialsFile` / `workloadIdentityFederationConfig` を未設定にすると、Application Default Credentials の自動検出が効くようになった。
+- **`QuotaPolicy` CRD 新設**（API のみ、enforcement は v0.7 から）
+- **リクエスト/レスポンス body の redaction** 機能追加（コンプライアンス用途）
+- **Webhook の host network 対応**: `controller.hostNetwork: true` で GKE プライベートクラスタなど restricted ネットワーク環境に対応。`controller.mutatingWebhook.port` も指定可能に。
+- **AI ExtProc 後段の Lua フィルタスロット** 追加
+- **`LLMRequestCostType.ReasoningToken`** 追加（thinking トークンの個別計上）
+- **MCP**: per-backend header forwarding、JWT claim forwarding、`MCPToolFilter.exclude` / `excludeRegex`、per-backend capability tracking
+
+#### v0.7（2026-06-06 リリース）
+
+- **ホスト名ベースルーティング**: `AIGatewayRoute.spec.hostnames` 新設。マルチテナント構成で 1 つの Gateway から hostname ごとに別モデルセットを公開できる。`/v1/models` レスポンスも hostname に応じてフィルタされる。
+- **破壊的変更**: `AIGatewayRoute.spec.rules` の上限が **128 → 15** に縮小（Gateway API HTTPRoute の制約に合わせる）。超過する場合は複数の `AIGatewayRoute` に分割する。
+- **`QuotaPolicy` ランタイム動作開始**: `AIServiceBackend` に attach すると backend rate limit filter が注入されるようになった（quota-aware routing の第一歩）。
+- **Anthropic Messages → AWS Bedrock Converse 変換** 追加（text / images / tool use / thinking blocks / streaming すべて対応）
+- **音声系エンドポイント追加**: `/v1/audio/transcriptions`、`/v1/audio/translations`
+- **Azure OpenAI Responses API** 対応（`/v1/responses` を Azure バックエンドにルーティング可能に）
+- **Claude Opus 4.7 reasoning** フルサポート: `display` パラメータ（`summarized` / `omitted`）、`xhigh` effort tier 対応
+- **Anthropic → OpenAI 変換**で reasoning content / 画像ブロックがエンドツーエンドで通るように
+- **`VersionedAPISchema.prefix`** が Anthropic schema backend にも適用可能に（`AWSAnthropic` / `GCPAnthropic` は内部上書きのため無視）
+- **マルチモーダル content types**: chat completion で `audio_url` / `video_url` を扱えるように
+- **MCP `tools/list` の認可フィルタ**: 認可されていないツールはリストから除外
+- **`anthropic-beta` ヘッダ → AWSAnthropic への自動転送**（`anthropic_beta` body フィールドにマッピング）
+
+> [!NOTE]
+> 公式コンパチビリティマトリクス上、v0.7.x は **Envoy Gateway v1.8.x+（Envoy Proxy v1.38.x）/ Gateway API v1.5.x / Kubernetes v1.32+** が公式テスト対象。実際 v0.7.0 タグの `go.mod` も `envoyproxy/gateway v1.8.1` をピン留めしており、Envoy Gateway v1.8.1 は Envoy Proxy v1.38.1 を同梱する。
+>
+> 一方で v0.7.0 リリースノート末尾の "Dependency Versions" 表には Envoy Gateway v1.7.0 / Envoy Proxy v1.37 / Gateway API v1.4.1 と記載されているが、これは v0.6 のリリースノートテンプレートからコピーされたままの誤記と思われる。**コンパチビリティマトリクスと `go.mod` の v1.8.x 側を信用すること**。
 
 #### コンポーネント間の関係性
 
@@ -150,7 +189,7 @@ Envoy Gateway プロジェクト本体のコントローラ。Kubernetes Gateway
 |---|---|
 | Namespace | `envoy-gateway-system` |
 | Helm チャート | `oci://docker.io/envoyproxy/gateway-helm` |
-| 必要バージョン | v1.6.x 以上（AI Gateway v0.5 連携時） |
+| 必要バージョン | **v1.8.x 以上**（AI Gateway v0.7 連携時、Envoy Proxy v1.38.x 同梱）。v0.6 を使う場合は v1.7.x+ / v0.5 は v1.6.x+ |
 | 主な監視リソース | `GatewayClass`, `Gateway`, `HTTPRoute`, `GRPCRoute`, `ReferenceGrant`, `EnvoyProxy`, `ClientTrafficPolicy`, `BackendTrafficPolicy`, `SecurityPolicy`, `EnvoyExtensionPolicy`, `EnvoyPatchPolicy`, `Backend`, `BackendTLSPolicy`, `HTTPRouteFilter` |
 | 主な役割 | Gateway API リソースを監視し、Envoy Proxy の Deployment / Service / ConfigMap を生成。xDS で Envoy Proxy に設定配信 |
 | 設定ファイル | `EnvoyGateway` CR（通常は Helm values から生成される ConfigMap） |
@@ -200,7 +239,7 @@ Envoy Gateway の拡張として動作する、AI 特化機能のコントロー
 | CRD チャート | `oci://docker.io/envoyproxy/ai-gateway-crds-helm` |
 | Deployment 名 | `ai-gateway-controller` |
 | Service | ポート 9443（mutating-webhook）, 1063（grpc）, 8080（http-metrics） |
-| 主な監視リソース | `AIGatewayRoute`, `AIServiceBackend`, `BackendSecurityPolicy`, `GatewayConfig`, `MCPRoute`, `QuotaPolicy` |
+| 主な監視リソース | `AIGatewayRoute`, `AIServiceBackend`, `BackendSecurityPolicy`, `GatewayConfig`, `MCPRoute`, `QuotaPolicy`（v0.7 でランタイム動作開始） |
 | 主な役割 | AI 固有リソースの監視 + **MutatingWebhook による ExtProc サイドカー注入** + Envoy Gateway Controller への拡張 xDS 情報の提供（Extension Server） |
 | 依存 | Envoy Gateway が先にインストール済みで、かつ AI Gateway 用の values で起動していること |
 
@@ -227,7 +266,9 @@ controller:
     tlsCertSecretName: self-signed-cert-for-mutating-webhook
     certManager:
       enable: false                  # production では true + cert-manager 推奨
-  # 注: topologySpreadConstraints は v0.5 時点で未対応（後述のハマりどころ参照）
+    port: 9443                       # v0.6+ で指定可能。GKE プライベートクラスタ等で衝突回避用
+  hostNetwork: false                 # v0.6+。GKE プライベートクラスタなど restricted webhook ネットワークで true
+  # 注: topologySpreadConstraints は v0.7 時点でも未対応（後述のハマりどころ参照）
   # スケジューリング制御は以下 4 つのみ:
   resources: {}
   nodeSelector: {}
@@ -374,10 +415,10 @@ Envoy Proxy Pod に同居する、AI 固有のリクエスト/レスポンス処
 | 主な処理 | モデル名ベースのルーティング判定、プロバイダ API スキーマ変換（OpenAI ↔ Bedrock 等)、トークンカウント、プロバイダ認証情報の付与、トークン使用量のメトリクス発行 |
 | リソース等の設定 | `GatewayConfig` CRD（v0.5 新規）経由で Gateway ごとに指定 |
 
-#### GatewayConfig での ExtProc 設定例（v0.5 の新方式）
+#### GatewayConfig での ExtProc 設定例（v0.6+ で `v1beta1` 推奨）
 
 ```yaml
-apiVersion: aigateway.envoyproxy.io/v1alpha1
+apiVersion: aigateway.envoyproxy.io/v1beta1
 kind: GatewayConfig
 metadata:
   name: my-gateway-config
@@ -399,7 +440,41 @@ metadata:
     aigateway.envoyproxy.io/gateway-config: my-gateway-config
 ```
 
-なお v0.5 で GatewayConfig CRD が導入されたのに伴い、従来の `AIGatewayRoute.spec.filterConfig.externalProcessor.resources` は非推奨化された（v0.6 で削除予定）。既存の設定はそのまま動くが、GatewayConfig 方式への移行推奨。
+なお v0.5 で GatewayConfig CRD が導入され、**v0.6 で `AIGatewayRoute.spec.filterConfig` は完全に削除された（破壊的変更）**。v0.5 以前の `filterConfig.externalProcessor.resources` をまだ使っている場合は、アップグレード前に `GatewayConfig` 方式へ移行必須。
+
+**v0.5 → v0.6 移行例**:
+
+```yaml
+# Before (v0.5)
+apiVersion: aigateway.envoyproxy.io/v1alpha1
+kind: AIGatewayRoute
+metadata:
+  name: my-route
+spec:
+  filterConfig:
+    externalProcessor:
+      resources:
+        requests: {cpu: "100m", memory: "128Mi"}
+
+---
+# After (v0.6+)
+apiVersion: aigateway.envoyproxy.io/v1beta1
+kind: GatewayConfig
+metadata:
+  name: my-gateway-config
+spec:
+  extProc:
+    kubernetes:
+      resources:
+        requests: {cpu: "100m", memory: "128Mi"}
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: ai-gateway
+  annotations:
+    aigateway.envoyproxy.io/gateway-config: my-gateway-config
+```
 
 > [!NOTE]
 > 公式ドキュメント内で GatewayConfig の spec 階層に表記揺れがある：
@@ -555,6 +630,67 @@ spec:
 
 > [!NOTE]
 > `AIGatewayRoute.rules.modelsOwnedBy` / `modelsCreatedAt` は OpenAI 互換の `/models` エンドポイントで返す `owned_by` / `created` フィールドを制御するためのもので、モデル名変換には関係しない。名前の付け替えには必ず `modelNameOverride` を使うこと。
+
+### ホスト名ベースのマルチテナント分離（v0.7 新機能）
+
+v0.7 で `AIGatewayRoute.spec.hostnames` が追加され、**1 つの Gateway で hostname ごとに別のモデルセットを公開できる**ようになった。チームごと・テナントごとに異なるモデルを見せたい SaaS / 共有プラットフォーム用途を、Gateway を増やさずに実現できる。
+
+```yaml
+# Team A 用ルート（gpt-4o のみ公開）
+apiVersion: aigateway.envoyproxy.io/v1beta1
+kind: AIGatewayRoute
+metadata:
+  name: team-a-route
+spec:
+  parentRefs:
+    - name: ai-gateway
+      kind: Gateway
+      group: gateway.networking.k8s.io
+  hostnames:                              # ← v0.7 新フィールド
+    - "team-a.ai.example.com"
+  rules:
+    - matches:
+        - headers:
+            - type: Exact
+              name: x-ai-eg-model
+              value: gpt-4o
+      backendRefs:
+        - name: openai-backend
+---
+# Team B 用ルート（claude-opus-4-7 のみ公開）
+apiVersion: aigateway.envoyproxy.io/v1beta1
+kind: AIGatewayRoute
+metadata:
+  name: team-b-route
+spec:
+  parentRefs:
+    - name: ai-gateway
+      kind: Gateway
+      group: gateway.networking.k8s.io
+  hostnames:
+    - "team-b.ai.example.com"
+  rules:
+    - matches:
+        - headers:
+            - type: Exact
+              name: x-ai-eg-model
+              value: claude-opus-4-7
+      backendRefs:
+        - name: bedrock-backend
+```
+
+挙動のポイント：
+
+- **`hostnames` を指定しないルート**は従来通り全ホストに有効。混在も可能。
+- **`/v1/models` レスポンスもホスト名でスコープされる**。`team-a.ai.example.com` を叩いたクライアントには gpt-4o のみが見える。
+- ワイルドカードホスト名（`*.ai.example.com`）は Gateway API のホスト名マッチセマンティクスに従う。
+- DNS 側で複数の hostname を同じ Envoy Proxy Service に向けておく必要がある。NLB / ALB の場合は両方の hostname を ACM 証明書に含めて SNI で振り分ける構成。
+
+### `AIGatewayRoute.spec.rules` の上限（v0.7 で 15 に縮小）
+
+> [!WARNING]
+> v0.7 で **1 つの `AIGatewayRoute` あたりの rules 数上限が 128 → 15 に縮小**された（Gateway API HTTPRoute の制約に合わせるため。1 スロットはコントローラ注入の catch-all 用に予約される）。
+> 16 個以上のモデルを束ねたい場合は、複数の `AIGatewayRoute` を **同じ `Gateway` を parentRefs に指定して** 分割する必要がある。ホスト名ベース分離（前項）と組み合わせると分割の単位が自然に決まる。
 
 ### エージェントフレームワークからの呼び出し
 
@@ -944,7 +1080,7 @@ flowchart LR
 
   CTP["ClientTrafficPolicy<br/>bufferLimit / timeout"]
   SP["SecurityPolicy<br/>JWT / OIDC / CORS"]
-  GCF["GatewayConfig (v0.5+)<br/>ExtProc resources / env"]
+  GCF["GatewayConfig (v1beta1 in v0.6+)<br/>ExtProc resources / env / global costs"]
   BSP["<b>BackendSecurityPolicy</b><br/>APIKey / AWSCreds /<br/>AzureCreds / GCPCreds"]
   BTLS["BackendTLSPolicy<br/>CA / hostname 検証"]
 
@@ -1025,7 +1161,7 @@ flowchart LR
 | `ClientTrafficPolicy` | `Gateway` | クライアント→GW のバッファ・タイムアウト |
 | `BackendTrafficPolicy` | `HTTPRoute` / `Backend` | 上流への retry / rate limit |
 | `SecurityPolicy` | `Gateway` / `HTTPRoute` | JWT / OIDC / CORS 等 |
-| `GatewayConfig` | `Gateway`（annotation）| ExtProc 設定（v0.5+）|
+| `GatewayConfig` | `Gateway`（annotation）| ExtProc 設定（v0.5+）+ `globalLLMRequestCosts`（v0.6+）|
 
 ### 3 層の責務分離
 
@@ -1062,7 +1198,7 @@ LLM プロバイダへのアップストリーム認証は `BackendSecurityPolic
 
 ### サポートされる認証タイプ
 
-v0.5 時点で `spec.type` に指定可能な値：
+v0.7 時点で `spec.type` に指定可能な値（v0.5 から追加・変更なし）：
 
 | `type` | 対象 |
 |---|---|
@@ -1070,7 +1206,7 @@ v0.5 時点で `spec.type` に指定可能な値：
 | `AWSCredentials` | AWS Bedrock |
 | `AzureAPIKey` | Azure OpenAI（API Key 方式）|
 | `AzureCredentials` | Azure OpenAI（Entra ID 方式）|
-| `GCPCredentials` | GCP Vertex AI |
+| `GCPCredentials` | GCP Vertex AI（**v0.6 から ADC 自動検出モード対応**）|
 | `AnthropicAPIKey` | Anthropic 本家 API（AWS/GCP 経由でない直接連携）|
 
 ### AWS Bedrock
@@ -1133,7 +1269,7 @@ spec:
 | OIDC Federation | `oidcExchangeToken` | Workload Identity Federation（K8s SA token を Entra ID と federate） |
 
 > [!WARNING]
-> **AKS 専用の Workload Identity タイプは v0.5 では未対応**。v0.5 リリースノートの Future Work に「Azure/AKS workload identity」が明記されている。現状 AKS から使うには `oidcExchangeToken` に AKS の OIDC issuer を指定する形で Workload Identity Federation として組むのが最も近い。
+> **AKS 専用の Workload Identity タイプは v0.7 時点でも未対応**。Azure 側だけ ADC モードが提供されていない。AKS から使う場合は `oidcExchangeToken` に AKS の OIDC issuer を指定する形で Workload Identity Federation として組むのが現実的な選択肢。GCP は v0.6 で ADC（GKE Workload Identity）対応、AWS は元から Default Credential Chain あり、という三者比較ではまだ Azure だけ取り残されている形。
 
 ### GCP Vertex AI
 
@@ -1145,59 +1281,69 @@ spec:
     region: us-central1
     credentialsFile: {...}                  # 排他 A: Service Account Key
     workloadIdentityFederationConfig: {...} # 排他 B: Workload Identity Federation
+    # 排他 C（v0.6+）: 両方未設定 → Application Default Credentials (ADC) 自動検出
 ```
 
-認証方式は **2 択**:
+認証方式は **3 択**（v0.6 で ADC モードが追加）:
 
 | 方式 | 設定フィールド | 実体 |
 |---|---|---|
 | Service Account Key File (Static) | `credentialsFile.secretRef` | JSON キーファイルを Secret に保存 |
-| Workload Identity Federation (Keyless) | `workloadIdentityFederationConfig` | 外部 OIDC → Google STS → SA impersonation |
+| Workload Identity Federation (Keyless) | `workloadIdentityFederationConfig` | 外部 OIDC → Google STS → SA impersonation（EKS など GKE 以外から GCP へつなぐ用途） |
+| **Application Default Credentials (ADC)** ⭐ v0.6+ | **両方未設定** | GKE Workload Identity を自動検出。`gcpCredentials.projectName` / `region` だけ書けば良い |
 
 Secret のキー名は `service_account.json`。
 
-> [!WARNING]
-> GCP では **「GKE Workload Identity」専用タイプや ADC 自動検出モードは存在しない**。必ず `credentialsFile` か `workloadIdentityFederationConfig` のどちらかを明示的に設定する必要がある。GKE 上で動かす場合でも `workloadIdentityFederationConfig` に GKE cluster の OIDC issuer を指定する形になる。
+> [!NOTE]
+> v0.6 から **GKE Workload Identity が ADC 経由でネイティブサポートされた**。GKE 上で動かす場合は `credentialsFile` も `workloadIdentityFederationConfig` も書かずに、Controller の ServiceAccount に Workload Identity を bind するだけで動く。Secret 管理が不要になるため、GKE 環境では強く推奨。
 
-### 3 プロバイダ比較
+### 3 プロバイダ比較（v0.6+ 反映版）
 
 | プロバイダ | Static | Keyless / Federation | 自動検出モード |
 |---|---|---|---|
-| AWS Bedrock | `credentialsFile` | `oidcExchangeToken` (OIDC → STS) | ✅ **あり**: Default Credential Chain |
+| AWS Bedrock | `credentialsFile` | `oidcExchangeToken` (OIDC → STS) | ✅ **あり**: Default Credential Chain（IRSA / Pod Identity / EC2 IMDS / ECS） |
 | Azure OpenAI | `AzureAPIKey` または `clientSecretRef` | `azureCredentials.oidcExchangeToken` | ❌ なし（明示設定必須）|
-| GCP Vertex AI | `credentialsFile` (SA Key JSON) | `workloadIdentityFederationConfig` | ❌ なし（明示設定必須）|
+| GCP Vertex AI | `credentialsFile` (SA Key JSON) | `workloadIdentityFederationConfig` | ✅ **v0.6 から**: Application Default Credentials（GKE Workload Identity 等を自動検出）|
 
 ---
 
 ## Helm チャート一覧
 
-| チャート | 代表バージョン（2026-04） | 内容 |
+| チャート | 代表バージョン（2026-06） | 内容 |
 |---|---|---|
-| `envoyproxy/gateway-crds-helm` | v1.7.2 | Envoy Gateway 用 CRD（Gateway API + Envoy Gateway 独自） |
-| `envoyproxy/gateway-helm` | v1.7.2（v1.6.x+ が AI Gateway の要件） | Envoy Gateway Controller 本体 |
-| `envoyproxy/ai-gateway-crds-helm` | v0.5.x | AI Gateway 用 CRD |
-| `envoyproxy/ai-gateway-helm` | v0.5.x | AI Gateway Controller + Webhook + ExtProc イメージ |
+| `envoyproxy/gateway-crds-helm` | v1.8.x | Envoy Gateway 用 CRD（Gateway API + Envoy Gateway 独自） |
+| `envoyproxy/gateway-helm` | v1.8.x（v0.7 の要件） | Envoy Gateway Controller 本体（Envoy Proxy v1.38.x 同梱）|
+| `envoyproxy/ai-gateway-crds-helm` | v0.7.0 | AI Gateway 用 CRD |
+| `envoyproxy/ai-gateway-helm` | v0.7.0 | AI Gateway Controller + Webhook + ExtProc イメージ |
 
 > [!NOTE]
-> 公式 Compatibility Matrix で AI Gateway v0.5 と組み合わせて officially tested なのは **Envoy Gateway v1.6.x（Envoy Proxy v1.35.x 同梱）**。v1.7.x は互換範囲内（"v1.6.x+" の "+"）だが公式テスト対象外のため、production では v1.6.x 系の使用が無難。lab/検証環境で v1.7.x を使う場合は、問題発生時に v1.6.x に戻せるようにしておくこと。
+> 公式 Compatibility Matrix では下記の組み合わせが officially tested。version をズラすと挙動保証外になる：
+>
+> | AI Gateway | Envoy Gateway | Envoy Proxy | Kubernetes | Gateway API |
+> |---|---|---|---|---|
+> | v0.7.x | v1.8.x+ | v1.38.x | v1.32+ | v1.5.x |
+> | v0.6.x | v1.7.x+ | v1.37.x | v1.32+ | v1.4.x |
+> | v0.5.x | v1.6.x+ | v1.35.x | v1.32+ | v1.4.x |
+>
+> 注: v0.7.0 のリリースノート末尾 "Dependency Versions" 表には Envoy Gateway v1.7.0 / Envoy Proxy v1.37 / Gateway API v1.4.1 と記載されているが、実際の `go.mod` は `envoyproxy/gateway v1.8.1` をピン留めしており、表側が古い情報のまま放置されているだけと思われる。公式サポート対象の組み合わせはコンパチマトリクス（v1.8.x+ 側）を信用すること。
 
 ### インストール手順（Helm 直接実行）
 
 ```bash
 # 1. Envoy Gateway を AI Gateway 用 values で起動
 helm upgrade -i eg oci://docker.io/envoyproxy/gateway-helm \
-  --version v1.7.2 \
+  --version v1.8.1 \
   --namespace envoy-gateway-system --create-namespace \
   -f https://raw.githubusercontent.com/envoyproxy/ai-gateway/main/manifests/envoy-gateway-values.yaml
 
 # 2. AI Gateway CRD
 helm upgrade -i aieg-crd oci://docker.io/envoyproxy/ai-gateway-crds-helm \
-  --version v0.5.0 \
+  --version v0.7.0 \
   --namespace envoy-ai-gateway-system --create-namespace
 
 # 3. AI Gateway 本体
 helm upgrade -i aieg oci://docker.io/envoyproxy/ai-gateway-helm \
-  --version v0.5.0 \
+  --version v0.7.0 \
   --namespace envoy-ai-gateway-system
 ```
 
@@ -1214,7 +1360,7 @@ Rate Limiting / InferencePool は別途 addon values ファイルを重ね掛け
 
 ```bash
 helm upgrade -i eg oci://docker.io/envoyproxy/gateway-helm \
-  --version v1.7.2 \
+  --version v1.8.1 \
   --namespace envoy-gateway-system --create-namespace \
   -f https://raw.githubusercontent.com/envoyproxy/ai-gateway/main/manifests/envoy-gateway-values.yaml \
   -f https://raw.githubusercontent.com/envoyproxy/ai-gateway/main/examples/token_ratelimit/envoy-gateway-values-addon.yaml \
@@ -1305,7 +1451,7 @@ spec:
   source:
     repoURL: docker.io/envoyproxy
     chart: gateway-crds-helm
-    targetRevision: v1.7.2
+    targetRevision: v1.8.1
     helm:
       parameters:
       - {name: crds.gatewayAPI.enabled,  value: "true"}
@@ -1336,7 +1482,7 @@ spec:
   sources:
   - repoURL: docker.io/envoyproxy
     chart: gateway-helm
-    targetRevision: v1.7.2
+    targetRevision: v1.8.1
     helm:
       valueFiles:
       - $values/values/envoy-gateway/values.yaml
@@ -1369,7 +1515,7 @@ spec:
   source:
     repoURL: docker.io/envoyproxy
     chart: ai-gateway-crds-helm
-    targetRevision: v0.5.0
+    targetRevision: v0.7.0
   destination:
     server: https://kubernetes.default.svc
     namespace: envoy-ai-gateway-system
@@ -1395,7 +1541,7 @@ spec:
   sources:
   - repoURL: docker.io/envoyproxy
     chart: ai-gateway-helm
-    targetRevision: v0.5.0
+    targetRevision: v0.7.0
     helm:
       valueFiles:
       - $values/values/ai-gateway/values.yaml
@@ -1445,7 +1591,7 @@ spec:
 - **ServerSideApply=true は CRD で必須**: gateway-crds-helm の CRD は 2MB を超えるため、client-side apply では `metadata.annotations: Too long` エラーで失敗する。
 - **OCI リポジトリの事前登録**: `docker.io/envoyproxy` は匿名アクセス可能だが、ArgoCD によっては `argocd repo add --type helm --enable-oci` で事前登録が必要な場合がある。
 - **values.yaml の同期**: Git 側の values を変更すると ArgoCD が自動で Helm テンプレートを再生成して差分適用する。Envoy Gateway の場合は ConfigMap 更新に伴い Deployment の rollout が必要なこともあるので、必要に応じて `kubectl rollout restart` で明示的に再起動する。
-- **targetRevision の固定**: production では `targetRevision: v1.7.2` のように固定バージョンを指定すること。`HEAD` や branch 指定だとチャート提供側の更新に引きずられて意図しない変更が入る。
+- **targetRevision の固定**: production では `targetRevision: v1.8.1` のように固定バージョンを指定すること。`HEAD` や branch 指定だとチャート提供側の更新に引きずられて意図しない変更が入る。
 
 ---
 
@@ -1475,14 +1621,16 @@ spec:
 
 | CRD | API バージョン | 役割 |
 |---|---|---|
-| `AIGatewayRoute` | v1alpha1（非推奨）/ v1beta1 | AI 固有ルーティング（モデル名マッチ、フェイルオーバー、トークンレート制限）。v0.3+ で `schema` フィールドは不要化（v0.4 までに削除推奨）。v0.3+ で `targetRefs` → `parentRefs` に変更 |
-| `AIServiceBackend` | v1alpha1（非推奨）/ v1beta1 | LLM プロバイダの定義（OpenAI / Bedrock / Azure / Anthropic / GCP Vertex AI 等） |
-| `BackendSecurityPolicy` | v1alpha1（非推奨）/ v1beta1 | プロバイダ認証。v0.3+ で `targetRefs` 方式に変更（旧 `AIServiceBackend.backendSecurityPolicyRef` は非推奨） |
-| `GatewayConfig` | v1alpha1（非推奨）/ v1beta1 | **v0.5 新規**。Gateway 単位での ExtProc 設定（リソース、env 等） |
-| `MCPRoute` | v1alpha1 のみ | **v0.4 新規**。MCP サーバへのルーティング（OAuth、ツールフィルタ等） |
-| `QuotaPolicy` | v1alpha1 のみ | 推論サービス向けのトークンクォータ設定 |
+| `AIGatewayRoute` | v1alpha1（非推奨）/ **v1beta1**（v0.6 から production-ready） | AI 固有ルーティング（モデル名マッチ、フェイルオーバー、トークンレート制限）。**v0.7 で `spec.hostnames` 追加**、**`spec.rules` の上限が 128 → 15 に縮小**。**v0.6 で `spec.filterConfig` 削除**（→ `GatewayConfig` へ移行） |
+| `AIServiceBackend` | v1alpha1（非推奨）/ **v1beta1** | LLM プロバイダの定義（OpenAI / Bedrock / Azure / Anthropic / GCP Vertex AI 等）。**v0.6 で `VersionedAPISchema.version`-as-prefix 削除**（`prefix` を使うこと）。**v0.7 で `prefix` が Anthropic schema にも適用可能に** |
+| `BackendSecurityPolicy` | v1alpha1（非推奨）/ **v1beta1** | プロバイダ認証。v0.3+ で `targetRefs` 方式。**v0.6 で GCP に ADC（GKE Workload Identity）対応追加** |
+| `GatewayConfig` | v1alpha1（非推奨）/ **v1beta1** | Gateway 単位での ExtProc 設定（リソース、env 等）。**v0.6 で `spec.globalLLMRequestCosts` 追加**（フリート全体のコスト設定デフォルト）|
+| `MCPRoute` | v1alpha1（非推奨）/ **v1beta1** | MCP サーバへのルーティング。**v0.6 で per-backend header forwarding、JWT claim 転送、`MCPToolFilter.exclude`/`excludeRegex` 追加**。**v0.7 で `tools/list` の認可フィルタ追加** |
+| `QuotaPolicy` | v1alpha1 のみ | 推論サービス向けのトークンクォータ設定。**v0.6 で CRD 追加（API のみ）→ v0.7 でランタイム動作開始**（`AIServiceBackend` attach で backend rate limit filter が注入される）|
 
-**ストレージバージョン移行**: v0.5 で v1beta1 が追加されたが、既存リソースの etcd 上のストレージバージョンは自動移行されない。新規は `v1beta1` を使い、既存は `kubectl apply` で再適用すること。
+**API バージョン整理（v0.6 で v1beta1 昇格）**: コア CRD は `aigateway.envoyproxy.io/v1beta1` が production-ready API として提供される。`v1alpha1` も併存するが deprecation 警告が出る。`QuotaPolicy` のみ v1alpha1 のまま。
+
+**ストレージバージョン移行**: 既存リソースの etcd 上のストレージバージョンは **自動移行されない**。CRD アップグレード後も古いリソースは v1alpha1 storage のまま etcd に残り、API server が両 version で serve する状態になる。明示的に移行するには `kubectl apply` で再適用するか、Kubernetes の storage migration API を使う。
 
 ---
 
@@ -1578,7 +1726,7 @@ spec:
 
 ### ⑤ `v0.0.0-latest` タグは production 非推奨
 
-公式ドキュメントは `--version v0.0.0-latest` を例示しているが、このタグは継続的に上書きされるため予期せぬ変更を被る。production では必ず `v0.5.0` のような固定バージョンを指定する。
+公式ドキュメントは `--version v0.0.0-latest` を例示しているが、このタグは継続的に上書きされるため予期せぬ変更を被る。production では必ず `v0.7.0` のような固定バージョンを指定する。
 
 ### ⑥ v0.2 以前からのアップグレード
 
@@ -1586,9 +1734,9 @@ CRD 所有権の移管のため `--take-ownership` フラグが必要：
 
 ```bash
 helm upgrade -i aieg-crd oci://docker.io/envoyproxy/ai-gateway-crds-helm \
-  --version v0.5.0 --namespace envoy-ai-gateway-system --take-ownership
+  --version v0.7.0 --namespace envoy-ai-gateway-system --take-ownership
 helm upgrade -i aieg oci://docker.io/envoyproxy/ai-gateway-helm \
-  --version v0.5.0 --namespace envoy-ai-gateway-system
+  --version v0.7.0 --namespace envoy-ai-gateway-system
 ```
 
 また、v0.1-v0.2 時代の `envoy-gateway-config/redis.yaml` + `config.yaml` を手動適用していた場合は、v0.3+ では不要なので整理すること。
@@ -1599,7 +1747,7 @@ OTel sink や Prometheus metrics の有効化手順は ConfigMap を直接編集
 
 ### ⑧ ai-gateway-helm は topologySpreadConstraints 未対応
 
-`gateway-helm` (Envoy Gateway 本体) は `deployment.pod.topologySpreadConstraints` で AI Gateway Controller Pod のゾーン分散が可能だが、**`ai-gateway-helm` の values では `topologySpreadConstraints` キーが未対応**（v0.5 時点）。
+`gateway-helm` (Envoy Gateway 本体) は `deployment.pod.topologySpreadConstraints` で AI Gateway Controller Pod のゾーン分散が可能だが、**`ai-gateway-helm` の values では `topologySpreadConstraints` キーが未対応**（v0.7 時点でも未対応のまま）。
 
 公式 values.yaml で提供されているスケジューリング系オプションは以下の 4 つのみ：
 
@@ -1669,23 +1817,26 @@ Envoy AI Gateway は **LLM の SSE ストリーミングに完全対応** して
 
 ### ⑩ 対応 API エンドポイント一覧
 
-**✅ 対応済み（v0.5 時点）**
+**✅ 対応済み（v0.7 時点）**
 
 | エンドポイント | 用途 | 備考 |
 |---|---|---|
-| `/v1/chat/completions` | チャット完了（同期・SSE 両対応）| メイン機能 |
+| `/v1/chat/completions` | チャット完了（同期・SSE 両対応）| メイン機能。**v0.7 で `audio_url` / `video_url` content type サポート追加**（マルチモーダル入力）|
 | `/v1/completions` | レガシー補完 | |
-| `/v1/embeddings` | エンベディング生成 | |
+| `/v1/embeddings` | エンベディング生成 | **v0.6 で AWS Bedrock Titan embeddings / Gemini embeddings 対応追加** |
 | `/v1/images/generations` | 画像生成 | v0.4+ |
+| `/v1/audio/speech` | テキスト → 音声合成 | **v0.6 新規** |
+| `/v1/audio/transcriptions` | 音声 → テキスト（Whisper）| **v0.7 新規**。`multipart/form-data` 対応 |
+| `/v1/audio/translations` | 音声翻訳（Whisper translation） | **v0.7 新規** |
 | `/cohere/v2/rerank` | Rerank | |
-| `/anthropic/v1/messages` | Anthropic Messages API | v0.4+ |
-| `/v1/responses` | OpenAI Responses API | v0.5+ で部分対応 |
+| `/anthropic/v1/messages` | Anthropic Messages API | v0.4+。**v0.6 で OpenAI 互換 backend にも対応**。**v0.7 で AWS Bedrock Converse へのネイティブ変換追加**（text / images / tool use / thinking blocks / streaming すべて対応）|
+| `/v1/responses` | OpenAI Responses API | v0.5+ で部分対応。**v0.6 で context management と streaming 改善**、**v0.7 で Azure OpenAI backend 対応追加** |
 
 **❌ 非対応**
 
 | エンドポイント | 用途 | 代替案 |
 |---|---|---|
-| `/v1/batches` | OpenAI Batch API | SDK 直接、または v0.6+ 待ち |
+| `/v1/batches` | OpenAI Batch API | SDK 直接 |
 | `/v1/files` | OpenAI Files（Batch 前提）| SDK 直接 |
 | Bedrock `CreateModelInvocationJob` | Bedrock バッチ推論 | boto3 直接 |
 | `/v1/messages/batches` | Anthropic Message Batches | SDK 直接 |
@@ -1693,15 +1844,95 @@ Envoy AI Gateway は **LLM の SSE ストリーミングに完全対応** して
 
 **判断基準**: 「同期 HTTP リクエスト＋レスポンス」の形になる API は対応、「ジョブ登録 → 非同期処理 → 結果取得」型は非対応。
 
+### ⑪ Reasoning（thinking）モデル対応（v0.6 / v0.7 で大幅拡張）
+
+v0.6 で **`reasoning_effort` パラメータが Anthropic / OpenAI / Gemini で統一**された。クライアント側は OpenAI スタイルの `reasoning_effort: low|medium|high|xhigh` を 1 つ書くだけで、Anthropic の thinking budget と Gemini 3 の thinking control にも自動でマップされる。
+
+v0.7 で **Claude Opus 4.7 / Claude Mythos Preview の reasoning** がフルサポートされ、以下の機能が追加：
+
+| 機能 | 値 | 説明 |
+|---|---|---|
+| `display` パラメータ | `summarized` / `omitted` | thinking content の可視性制御。**Claude Opus 4.7 はデフォルト `omitted`**（従来モデルは `summarized` がデフォルト）|
+| `xhigh` effort tier | `reasoning_effort: xhigh` | 長時間のエージェント/コーディングタスク向け。最も深い思考 |
+
+```bash
+# Claude Opus 4.7 で summarized thinking を受け取りたい場合
+curl -d '{
+  "model": "claude-opus-4-7",
+  "messages": [...],
+  "reasoning_effort": "xhigh",
+  "display": "summarized"
+}' http://<ai-gateway>/v1/chat/completions
+```
+
+> [!IMPORTANT]
+> v0.7 で **Anthropic → OpenAI 変換時に reasoning content / 画像ブロックがエンドツーエンドで通る**ようになった。それ以前は thinking blocks や image blocks が silently drop されていた。マルチターン会話で思考過程を保持したい場合はこの変換パスを通すこと。
+
+### ⑫ クォータ認識ルーティング（v0.7 で初期実装）
+
+`QuotaPolicy` CRD は v0.6 で API のみ追加されていたが、**v0.7 でランタイム動作開始**。`AIServiceBackend` に attach すると backend rate limit filter が注入され、upstream プロバイダのクォータに基づくスロットリングが効くようになる。
+
+```yaml
+apiVersion: aigateway.envoyproxy.io/v1alpha1
+kind: QuotaPolicy
+metadata:
+  name: bedrock-claude-quota
+spec:
+  targetRefs:
+    - group: aigateway.envoyproxy.io
+      kind: AIServiceBackend
+      name: bedrock-backend
+  # モデル単位のクォータ（modelName は AIGatewayRoute の modelNameOverride と一致させる）
+  perModelQuotas:
+    - modelName: "claude-opus-4-7"
+      quota:
+        mode: Shared
+        defaultBucket:
+          limit: 1000000          # 1h あたりのトークン上限
+          duration: "1h"
+  # 全モデル横断のサービス全体クォータ（任意）
+  # serviceQuota:
+  #   costExpression: "input_tokens + output_tokens * 3"
+  #   quota:
+  #     limit: 5000000
+  #     duration: "1h"
+```
+
+仕様のポイント（v0.7 タグ時点の `api/v1alpha1/quota_policy.go` より）:
+
+- **burndown の単位はトークン数**。`costExpression`（CEL 式）未指定時は `total_tokens` が burndown 対象になる。
+- **`duration` は enum**: `1s` / `1m` / `1h` / `1d` のいずれか。任意秒数は指定不可。
+- **別途 Rate Limit Service Deployment が必要**。`CONFIG_TYPE=GRPC_XDS_SOTW` で AI Gateway Controller の port 18002 から QuotaPolicy 設定を受け取り、Redis をバックエンドとしてカウンタを保持する（公式 e2e サンプル `tests/e2e/testdata/backend_quota_ratelimit.yaml` 参照）。
+- **`AIGatewayRoute.spec.llmRequestCosts`** で `InputToken` / `OutputToken` / `TotalToken` を dynamic metadata key にマッピングしておくこと（ExtProc が抽出したトークン数を Rate Limit Service に渡すため）。
+- **`mode` は v0.7 時点で `Shared` のみ**。コード上 `Exclusive` モードは TODO として残っているが未実装。
+
+> [!NOTE]
+> v0.7 時点ではあくまで **単一 backend に対するレート制限の注入**のみ。「クォータ枯渇時に別 backend へ自動フェイルオーバー」という本来の quota-aware routing は v0.8 以降の予定。
+
+### ⑬ MCP（Model Context Protocol）対応の拡張
+
+MCPRoute は v0.4 で追加されたが、v0.6 / v0.7 で大幅に拡張された。
+
+**v0.6 で追加**:
+- `MCPRouteBackendRef.forwardHeaders`: 受信ヘッダーを backend ごとに転送（リネーム可）
+- `MCPRouteOAuth.claimToHeaders`: 検証済み JWT claim を outbound header に投影
+- `MCPToolFilter.exclude` / `excludeRegex`: include だけでなく deny パターンも書ける
+- per-backend capability tracking（`tools` / `prompts` / `resources` / `logging` / `completions`）
+
+**v0.7 で追加**:
+- `tools/list` レスポンスの認可フィルタ: 認可されていないツールを一覧から除外（権限を持たない呼び出し元にツール名すら見せない）
+
 ---
 
 ## 参考リンク（公式一次ソース）
 
 - Envoy AI Gateway Docs (latest): https://aigateway.envoyproxy.io/docs/
 - Envoy AI Gateway API Reference: https://aigateway.envoyproxy.io/docs/api/
-- Envoy AI Gateway v0.5 Installation: https://aigateway.envoyproxy.io/docs/0.5/getting-started/installation
-- Envoy AI Gateway Compatibility Matrix: https://aigateway.envoyproxy.io/docs/0.5/compatibility
+- Envoy AI Gateway v0.7 Installation: https://aigateway.envoyproxy.io/docs/getting-started/installation
+- Envoy AI Gateway Compatibility Matrix: https://aigateway.envoyproxy.io/docs/compatibility
 - Envoy AI Gateway Release Notes: https://aigateway.envoyproxy.io/release-notes/
+- Envoy AI Gateway v0.7 Release Notes: https://github.com/envoyproxy/ai-gateway/releases/tag/v0.7.0
+- Envoy AI Gateway v0.6 Release Notes: https://github.com/envoyproxy/ai-gateway/releases/tag/v0.6.0
 - Envoy AI Gateway Upstream Auth: https://aigateway.envoyproxy.io/docs/capabilities/security/upstream-auth/
 - Envoy AI Gateway Connecting to AI Providers: https://aigateway.envoyproxy.io/docs/capabilities/llm-integrations/connect-providers/
 - Envoy Gateway Docs: https://gateway.envoyproxy.io/
