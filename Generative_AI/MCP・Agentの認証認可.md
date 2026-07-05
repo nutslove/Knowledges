@@ -98,7 +98,10 @@ MCPが「Agent ↔ Tool」なのに対し、A2Aは「Agent ↔ Agent」の通信
 ## コアコンセプト: Agent Card
 
 各AgentはJSONの「名刺」を `/.well-known/agent-card.json` (RFC 8615準拠) で公開する。
-※ `/.well-known/agent.json` はv0.2.x以前の古いパス。現行SDK/仕様では `agent-card.json` に変更されており、古いパスのままだとクライアントのディスカバリが壊れる。
+
+> [!CAUTION]
+> `/.well-known/agent.json` はv0.2.x以前の古いパス。  
+> 現行SDK/仕様では `agent-card.json` に変更されており、古いパスのままだとクライアントのディスカバリが壊れる。
 
 認証は、A2A初期(v0.1系)の `authentication` フィールドではなく、**現行仕様(v0.3.0)ではOpenAPI 3.0準拠の `securitySchemes` + `security`** で表現する。
 `security` は「OR of ANDs」(例: OAuth または (APIKey かつ mTLS)) を表す。
