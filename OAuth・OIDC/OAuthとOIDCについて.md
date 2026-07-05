@@ -11,7 +11,7 @@ sequenceDiagram
     
     Note over C: scope=openid profile email<br/>response_type=code
     C->>U: 2a. 認可サーバーへリダイレクト（302）
-    U->>AS: 2b. 認可リクエスト（認可エンドポイントにアクセス）<br/>GET /oauth/authorize?<br/>response_type=code&<br/>scope=openid profile email&<br/>client_id=xxx&<br/>redirect_uri=xxx&<br/>state=xyz789
+    U->>AS: 2b. 認可リクエスト（認可エンドポイントにアクセス）<br/>GET /oauth/authorize?<br/>response_type=code&<br/>scope=openid profile email&<br/>client_id=xxx&<br/>redirect_uri=xxx&<br/>state=xyz789&<br/>nonce=n-abc123
 
     AS->>U: 3. 認証画面表示<br/>ログインフォーム
     
@@ -29,7 +29,7 @@ sequenceDiagram
     
     AS->>C: 9. IDトークン・アクセストークン発行<br/>・access_token <br/>・id_token (JWT)<br/>・refresh_token
     
-    Note over C: IDトークン（JWT）を検証<br/>・署名検証<br/>・有効期限確認<br/>・audience確認
+    Note over C: IDトークン（JWT）を検証<br/>・署名検証<br/>・iss（発行者）確認<br/>・audience（aud）確認<br/>・有効期限（exp）確認<br/>・nonce確認（認可リクエストで送った値と一致するか）
     
     Note over C: IDトークン（JWT）のペイロードから<br/>基本的なユーザー情報を取得<br/>{"sub":"12345","name":"田中太郎","email":"tanaka@example.com"}
     
@@ -108,6 +108,7 @@ sequenceDiagram
   - `redirect_uri`: リダイレクト先URL
   - `scope`: 要求するスコープ
   - `state`: CSRF対策用のランダム値
+  - `nonce`: （OIDC）IDトークンのリプレイ攻撃対策用のランダム値。認可リクエストで送った値がIDトークンにそのまま含まれて返るため、クライアントは一致を検証する
 
 ### **トークンエンドポイント（Token Endpoint）**
 - **提供**: 認可サーバー側
@@ -141,9 +142,37 @@ sequenceDiagram
   - SSO
   - ユーザログイン
 
+## nonce（ノンス）
+- **IDトークンのリプレイ攻撃を防ぐための、OIDC固有のパラメータ**
+- クライアントがランダムな値を生成して認可リクエストの `nonce` パラメータに含める
+- OpenIDプロバイダーは、その値を署名済みIDトークンの `nonce` クレームにそのまま含めて返す
+- クライアントはIDトークン内の `nonce` が自分が送った値と一致するかを検証し、「このIDトークンは今回のログイン試行のために発行されたものか」を確認する
+- `state` と `nonce` は守る対象が異なる別物であり、両方必要
+  - **`state`**: 認可レスポンス（リダイレクト）を元のリクエストに紐付ける → CSRF対策
+  - **`nonce`**: IDトークンを「今回のログイン試行」に紐付ける → IDトークンのリプレイ攻撃対策
+- 仕様上の必須度はフローによって異なる
+  - **認可コードフロー**: `nonce` は任意（OPTIONAL）。ただしリプレイ対策として送信が推奨される
+  - **Implicit / Hybrid フロー**: `nonce` は必須（REQUIRED）
+  - `nonce` を送信した場合は、IDトークンの `nonce` クレームの検証が必須
+
+## IDトークンの検証項目
+- **署名検証**: OpenIDプロバイダーの公開鍵で署名を検証
+- **`iss`（発行者）**: 期待するOpenIDプロバイダーの識別子と一致するか
+- **`aud`（Audience）**: 自分の `client_id` が含まれているか
+- **`exp`（有効期限）**: 有効期限が切れていないか
+- **`nonce`**: 認可リクエストで送った値と一致するか（`nonce` を送った場合は検証必須）
+
 ## IDトークンの検証で使われる鍵
 - **秘密鍵**: OpenIDプロバイダーが内部で使用する秘密鍵で、IDトークンの署名を行う際に使用
 - **公開鍵**: OpenIDプロバイダーが提供する公開鍵を使用して、IDトークンの署名を検証
+
+### クライアントが公開鍵を入手する方法（JWKS / kid）
+- OpenIDプロバイダーは署名用の公開鍵を **JWKSエンドポイント（`jwks_uri`）** でJWK Set（JSON形式の鍵の集合）として公開する
+- クライアントは **Discovery エンドポイント（`/.well-known/openid-configuration`）** から `jwks_uri` を取得できる
+- IDトークン（JWT）ヘッダーの **`kid`（Key ID）** によって、JWKS内のどの鍵で署名を検証すべきかを特定する
+- 署名鍵は定期的にローテーションされ、移行期間中はJWKSに新旧両方の鍵が存在する
+  - そのため公開鍵はハードコードせず、JWKSから動的に取得するのが定石
+  - 未知の `kid` を受け取った場合はJWKSを再取得してから検証する（キャッシュしたまま失敗させない）
 
 ![IDトークンの検証](./image/id_token_verify.jpg)
 
@@ -174,7 +203,11 @@ sequenceDiagram
 
 # PKCE（Proof Key for Code Exchange）
 - 日本語読みは「ピクシー」
-- PKCE（Proof Key for Code Exchange）は、OAuth 2.0のセキュリティ拡張仕様の一つで、特にパブリッククライアント（モバイルアプリ、SPAなど）での認可コードグラントフローを安全に実行するための仕組み
+- PKCE（Proof Key for Code Exchange）は、OAuth 2.0のセキュリティ拡張仕様の一つで、認可コードグラントフローを安全に実行するための仕組み
+  - もともとはクライアントシークレットを安全に保管できないパブリッククライアント（モバイルアプリ、SPAなど）向けに導入された
+  - **ただし現在は、パブリッククライアントに限らず全てのクライアントで推奨されている**
+    - **OAuth 2.1** および **RFC 9700（OAuth 2.0 Security Best Current Practice、2025年1月発行）** では、コンフィデンシャルクライアントを含む全クライアントの認可コードフローでPKCEが必須/推奨とされている
+    - クライアントシークレットはトークンエンドポイントを保護するが、PKCEは**認可コードインジェクション攻撃**（攻撃者が自分の認可コードを被害者のセッションに注入する攻撃）を防ぐ。これはシークレットの有無に関係なく発生し得るため
 ## PKCEが必要な理由
 - 通常のOAuth 2.0の認可コードフローでは、以下のような流れでアクセストークンを取得する  
   1. クライアント → 認可サーバに認可リクエスト（code を要求）
