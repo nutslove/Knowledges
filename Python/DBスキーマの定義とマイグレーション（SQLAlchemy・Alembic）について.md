@@ -98,6 +98,7 @@ class User(SQLModel, table=True):
 - SQLModelは内部がSQLAlchemyなので、必要になったら生のSQLAlchemyに「降りる」ことも可能。
 - **マイグレーションはSQLModelでもAlembicを使う**（この点は変わらない）。
 
+> [!CAUTION]
 > **SQLModel + Alembic 固有の注意点**（2025〜2026時点でも残っている定番のハマりどころ）
 > - **FK/制約に名前が付かない** → `SQLModel.metadata` に `naming_convention` を設定する（後述の命名規則と同じ理由）。
 > - autogenerateがSQLModel独自の型を解決できるよう、`env.py` の `context.configure(...)` に
@@ -212,6 +213,7 @@ def downgrade():
   - ○ 本番と同じ方言で検証できる。信頼性が高い。
   - ✗ 起動が重い → **fixture のスコープ**と**トランザクションのロールバック**で高速化する（下記）。
 
+> [!NOTE]
 > 実務では「**Testcontainersで本番同一DBを起動 + 各テストごとにトランザクション/SAVEPOINTでロールバック**」が定番構成。
 
 ### 高速化のパターン（pytest）
@@ -249,6 +251,7 @@ def session(engine):
     connection.close()
 ```
 
+> [!CAUTION]
 > **重要な注意（よくある落とし穴）**
 > `Session(bind=connection)` だけの素朴な実装だと、
 > **テスト対象コードが内部で `session.commit()` を呼んだ瞬間に外側トランザクションまでコミットされ、
