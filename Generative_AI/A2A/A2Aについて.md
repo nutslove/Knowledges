@@ -437,7 +437,10 @@ from uuid import uuid4
 from a2a.client import create_client
 from a2a.types import Message, Part, Role, SendMessageRequest
 
-client = await create_client("https://remote.example.com")   # URL文字列 or AgentCard を渡せる
+# 引数は「相手(リモートA2Aエージェント=サーバ)のベースURL」。
+# create_client が内部で <base>/.well-known/agent-card.json を取得して Card を解決し、
+# 実際の送信先は Card 内の supported_interfaces[].url になる。取得済み AgentCard を直接渡してもよい。
+client = await create_client("https://remote.example.com")
 msg = Message(
     role=Role.ROLE_USER,
     parts=[Part(text="東京の天気を教えて")],
@@ -546,6 +549,7 @@ from langchain.agents import create_agent
 
 async def call_remote_agent(text: str) -> str:
     # 1) URL (or AgentCard) から Client を生成 (内部で Agent Card を解決)
+    # 引数は相手(リモートA2Aエージェント=サーバ)のベースURL (Card を自動解決)
     client = await create_client("https://remote.example.com")
     # 2) メッセージを組んで送信 (send_message は StreamResponse の async iterator)
     msg = Message(role=Role.ROLE_USER, parts=[Part(text=text)], message_id=uuid4().hex)
