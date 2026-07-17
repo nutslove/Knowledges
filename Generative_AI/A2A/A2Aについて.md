@@ -804,8 +804,15 @@ handler = Mangum(app)               # ★ASGI↔API Gatewayイベントを変換
 | **認証** | — | **API Gatewayのオーソライザ (JWT/Cognito/OIDC)** で手前に寄せ、A2Aの `securitySchemes` に対応 |
 | **大きなファイル** | API Gateway 10MB上限 | S3プリサインURLを `FilePart.url` で渡す |
 
+### 使い分け
+
+| ケース | 推奨構成 |
+|---|---|
+| 短時間・同期・非ストリーミング | **API Gateway + Lambda(Mangum) + DynamoDB**（`streaming:false`宣言）— 安くて手軽 |
+| SSE(ストリーミング)したい | **LWA + Lambda Function URL** か **常駐コンテナ** |
+| 長時間ジョブ | **Push通知 + 非同期ワーカー**（SQS/Step Functions） |
+
 > [!TIP]
-> **住み分け**: 短時間・同期・非ストリーミング → **API Gateway + Lambda(Mangum) + DynamoDB**（`streaming:false`宣言）が安くて手軽。**SSEしたい** → LWA + Function URL か常駐コンテナ。**長時間ジョブ** → Push通知 + 非同期ワーカー。
 > どの構成でも共通で、**Agent Card の `supportedInterfaces[].url` は公開URL (API Gateway / Function URL / ドメイン)** にすること。
 
 ---
