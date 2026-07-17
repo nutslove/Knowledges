@@ -259,6 +259,18 @@ A2A の公式トランスポート (protocol binding) は以下の **3種類** (
 >    - **操作ごとに別パス** (`POST /message:send`, `GET /tasks/{id}`, `POST /tasks/{id}:cancel`, `GET /extendedAgentCard` …)。
 >    - **RESTだけは「メソッド≒パス」**。
 >
+> ### ■ JSON-RPC前提なら、サーバが公開するのは基本この2エンドポイントだけ
+> | # | エンドポイント | 役割 |
+> |---|---|---|
+> | 1 | `GET /.well-known/agent-card.json` | **Discovery** (Agent Card配信) |
+> | 2 | `POST /` (JSON-RPCの口) | **やり取り全部** (`SendMessage`/`GetTask`/`CancelTask`/`ListTasks`/push設定CRUD/`GetExtendedAgentCard` … を **bodyの `method` でディスパッチ**) |
+>
+> 補足:
+> - **ストリーミング (`SendStreamingMessage`) も②と同じパス**。レスポンスが **SSE (`text/event-stream`)** になるだけでパスは増えない。
+> - **`GetExtendedAgentCard` (認証後の詳細カード) も②のメソッド**。①はあくまで「無認証で読ませる公開カード」。
+> - **Push通知の“通知そのもの”はサーバの口ではない**: 完了時に **サーバがクライアントの webhook を叩く** (outbound)。増えるとしたら**クライアント側の受け口**。
+> - ①も厳密には必須ではない (カードを out-of-band で渡すなら省ける) が、**well-known 配信が標準**なので実務上は2つ。
+>
 > ### ■ どのバインディングで公開するかも a2a-sdk で選べる(JSON-RPCが既定・最も一般的)
 > - `create_jsonrpc_routes(...)` → **JSON-RPC** (単一エンドポイント)
 > - `create_rest_routes(...)` → **REST (HTTP+JSON)** (操作ごとの別パス)
