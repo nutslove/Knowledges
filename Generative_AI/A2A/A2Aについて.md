@@ -754,6 +754,62 @@ agent = create_deep_agent(
 
 ---
 
+# デプロイ (ホスティング)
+
+A2Aサーバの実体は **HTTPの口**（`POST /` のJSON-RPC ＋ `GET /.well-known/agent-card.json`）なので、HTTPを喋れる基盤ならどこでも公開できる。**常駐サーバ (uvicorn/コンテナ)** と **サーバレス (API Gateway + Lambda)** が主な選択肢。
+
+## 常駐サーバ (uvicorn / コンテナ)
+`Starlette(routes=...)` を `uvicorn module:app --port 9999` で起動、または Fargate/ECS/App Runner/EKS 等のコンテナで常駐。**SSE(ストリーミング)も長時間タスクも素直に扱える**ため、`streaming:true` や長時間ジョブを本格対応するならこちら。
+
+## サーバレス (AWS: API Gateway + Lambda)
+Lambda 内で ASGIアプリ(FastAPI/Starlette + a2a-sdkのroutes)を動かす。ASGI↔Lambdaイベントの変換に **アダプタ**を使う。
+
+```python
+# app.py  (Lambdaのハンドラ = app.handler)
+from starlette.applications import Starlette
+from mangum import Mangum
+from a2a.server.request_handlers import DefaultRequestHandler
+from a2a.server.routes import create_agent_card_routes, create_jsonrpc_routes
+# WeatherExecutor / agent_card は「A2A Serverとして公開」のSDK例と同じ
+
+handler_impl = DefaultRequestHandler(
+    agent_executor=WeatherExecutor(),
+    task_store=my_dynamodb_task_store,   # ★Lambdaはステートレス → 永続TaskStore推奨
+    agent_card=agent_card,
+)
+routes = (
+    create_agent_card_routes(agent_card=agent_card)
+    + create_jsonrpc_routes(request_handler=handler_impl, rpc_url="/")
+)
+app = Starlette(routes=routes)      # いつものASGIアプリ (uvicornは使わない)
+handler = Mangum(app)               # ★ASGI↔API Gatewayイベントを変換するアダプタ
+```
+
+**アダプタの2択**:
+
+| | **Mangum** | **AWS Lambda Web Adapter (LWA)** |
+|---|---|---|
+| 形態 | コード内 (`Mangum(app)`) | Lambdaレイヤー/拡張 (コード非侵襲) |
+| 中身 | ASGIを直接呼ぶ (uvicorn不要) | 中で普通に `uvicorn app:app` を起動し橋渡し |
+| **SSE(streaming)** | ❌ 基本不可 | ✅ Function URL + response streaming で可 |
+| 手軽さ | pip入れて1行 | レイヤー追加＋起動設定 |
+
+### サーバレスの注意点 (capabilities の宣言に直結)
+
+| 論点 | 制約 | 対策 |
+|---|---|---|
+| **ストリーミング(SSE)** | **API Gateway (REST/HTTP API) はSSE非対応** (レスポンスを全部バッファ) | ① `streaming:false` 宣言で同期のみ／② **Lambda Function URL の response streaming**（LWA）／③ 本格SSEは常駐コンテナへ |
+| **長時間タスク** | **Lambda 最大15分**。数時間〜数日は保持不可 | **Push通知パターン**（即 `submitted` 返却→SQS/Step Functionsで非同期処理→完了時にクライアントwebhookへPOST）／`GetTask` ポーリング |
+| **状態(TaskStore)** | Lambdaはステートレス、`InMemoryTaskStore` は消える | **DynamoDB等の永続TaskStore**（`GetTask`/`CancelTask` を出すなら必須） |
+| **認証** | — | **API Gatewayのオーソライザ (JWT/Cognito/OIDC)** で手前に寄せ、A2Aの `securitySchemes` に対応 |
+| **大きなファイル** | API Gateway 10MB上限 | S3プリサインURLを `FilePart.url` で渡す |
+
+> [!TIP]
+> **住み分け**: 短時間・同期・非ストリーミング → **API Gateway + Lambda(Mangum) + DynamoDB**（`streaming:false`宣言）が安くて手軽。**SSEしたい** → LWA + Function URL か常駐コンテナ。**長時間ジョブ** → Push通知 + 非同期ワーカー。
+> どの構成でも共通で、**Agent Card の `supportedInterfaces[].url` は公開URL (API Gateway / Function URL / ドメイン)** にすること。
+
+---
+
 # 実務上の注意点・ハマりどころ
 
 - **Agent Card のパス変更**: 旧 `/.well-known/agent.json` → 新 `/.well-known/agent-card.json`。古い記事・実装と食い違うことがある。
