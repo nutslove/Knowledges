@@ -142,6 +142,7 @@ flowchart LR
 > - **Direct Configuration**: URLを直接設定で渡す
 
 ## Task (タスク) ― 状態を持つ作業単位
+https://a2a-protocol.org/latest/topics/life-of-a-task/
 
 A2Aのやり取りの中心。**一意の `id` を持ち、ライフサイクル (状態機械) を持つ**。
 
@@ -247,6 +248,27 @@ A2A の公式トランスポート (protocol binding) は以下の **3種類** (
 | `ListTaskPushNotificationConfigs` (旧 `tasks/pushNotificationConfig/list`) | Push通知設定の一覧取得 |
 | `DeleteTaskPushNotificationConfig` (旧 `tasks/pushNotificationConfig/delete`) | Push通知設定の削除 |
 | `GetExtendedAgentCard` (旧 `agent/getAuthenticatedExtendedCard`) | 認証後の拡張Agent Card取得 |
+
+> [!IMPORTANT]
+> ### ■ 「メソッドごとに別エンドポイント」ではない (トランスポート次第)
+> - **JSON-RPC** (最も一般的): 
+>    - **単一エンドポイント** (例 `POST /`)。どのメソッドかは **body の `"method": "SendMessage"`** で指定し、サーバ側でディスパッチする。URLはメソッドごとに分けない。ストリーミングも同じ口でSSE。
+> - **gRPC**: 
+>    - 1つのgRPCサービスのメソッドとして呼ぶ。
+> - **HTTP+JSON / REST**:
+>    - **操作ごとに別パス** (`POST /message:send`, `GET /tasks/{id}`, `POST /tasks/{id}:cancel`, `GET /extendedAgentCard` …)。
+>    - **RESTだけは「メソッド≒パス」**。
+>
+> ### ■ どのバインディングで公開するかも a2a-sdk で選べる(JSON-RPCが既定・最も一般的)
+> - `create_jsonrpc_routes(...)` → **JSON-RPC** (単一エンドポイント)
+> - `create_rest_routes(...)` → **REST (HTTP+JSON)** (操作ごとの別パス)
+> - `create_agent_card_routes(...)` → Agent Card 配信 / `add_a2a_routes_to_fastapi(...)` → FastAPIに載せる補助
+>
+> ### ■ 実装の手間
+> - **a2a-sdk を使う場合**: 
+>   - 上記の `create_*_routes` が**ルーティングを自動生成**。さらに `DefaultRequestHandler` が `GetTask`/`CancelTask`/`ListTasks` などを **`TaskStore` で既定実装**し、`SendMessage`/streaming だけを **あなたの `AgentExecutor.execute()`** に委譲する。→ **実質 `execute()` と `cancel()` を書くだけ**。
+> - **SDKを使わず自前でラップする場合** (素のLangChain/LangGraphを公開): 
+>    - JSON-RPCなら **エンドポイントは1つでよく**、body の `method` を見て自分でディスパッチする。ただし **Agent Card配信 + 宣言した `capabilities` の各メソッドの中身** (レスポンス型の整形・SSE・エラーコード等) は全部自前で実装が必要。全メソッド必須ではなく **`capabilities` で宣言した範囲だけ**でよいが、手間が大きいので **a2a-sdk でのラップが実務上おすすめ**。
 
 ## 3つのインタラクションパターン
 
@@ -429,7 +451,7 @@ class MyExecutor(AgentExecutor):
     async def cancel(self, context: RequestContext, event_queue: EventQueue) -> None:
         raise NotImplementedError
 
-# サーバ化 (A2AStarletteApplication) の全体像は下の LangChain/LangGraph 例を参照。
+# サーバ化 (routes を組んで ASGI アプリ化) の全体像は下の LangChain/LangGraph 例を参照。
 # Agent Card は /.well-known/agent-card.json で自動公開される。
 
 # --- Client側: 相手のAgent Cardを取得して呼び出す ---
@@ -465,10 +487,11 @@ async for event in client.send_message(SendMessageRequest(message=msg)):
 ```python
 from langchain.agents import create_agent   # LangChain 1.0 の統一API (返り値は CompiledStateGraph)
 
-from a2a.server.apps import A2AStarletteApplication
+from starlette.applications import Starlette
 from a2a.server.request_handlers import DefaultRequestHandler
 from a2a.server.tasks import InMemoryTaskStore, TaskUpdater
 from a2a.server.agent_execution import AgentExecutor
+from a2a.server.routes import create_agent_card_routes, create_jsonrpc_routes
 from a2a.types import AgentCard, AgentInterface, AgentCapabilities, AgentSkill, Part
 
 # 1) 中身は普通のエージェント。
@@ -524,9 +547,19 @@ agent_card = AgentCard(
 handler = DefaultRequestHandler(
     agent_executor=WeatherExecutor(),
     task_store=InMemoryTaskStore(),
+    agent_card=agent_card,          # 1.x では handler にも agent_card が必要
 )
-app = A2AStarletteApplication(agent_card=agent_card, http_handler=handler).build()
-# uvicorn app:app で起動 → /.well-known/agent-card.json が公開される
+
+# 4) ルートを組んで ASGI アプリ化 (a2a-sdk 1.x は routes ベース)
+#    JSON-RPC で公開する場合 (単一エンドポイント):
+routes = (
+    create_agent_card_routes(agent_card=agent_card)              # /.well-known/agent-card.json
+    + create_jsonrpc_routes(request_handler=handler, rpc_url="/")  # JSON-RPC の単一エンドポイント
+)
+app = Starlette(routes=routes)
+# uvicorn module:app で起動。
+# ※ REST(HTTP+JSON)で公開したいなら create_jsonrpc_routes の代わりに create_rest_routes を使う。
+#   FastAPIなら add_a2a_routes_to_fastapi(app, agent_card_routes=..., jsonrpc_routes=...) も可。
 ```
 
 ### (参考) 旧API — `AgentExecutor` + `create_tool_calling_agent` (LangChain 0.x, legacy)
@@ -535,6 +568,82 @@ LangChain 1.0 より前 (0.x) の classic なエージェント (`langchain.agen
 
 > [!WARNING]
 > `create_tool_calling_agent` / `AgentExecutor` は現在 `langchain-classic` 扱い (非推奨)。もし旧APIを使う場合、**`AgentExecutor` という名前は LangChain (`langchain.agents.AgentExecutor`＝実行ループ) と A2A (`a2a.server.agent_execution.AgentExecutor`＝公開層) の両方にあり衝突する**ため、`from a2a.server.agent_execution import AgentExecutor as A2AAgentExecutor` のように別名importで区別する必要がある。この衝突問題は `create_agent` を使えば起きない (LangChain側に `AgentExecutor` が出てこないため)。
+
+## (対比) SDKを使わず「自前で」A2A化する場合 ― 何を手で書くのか
+
+上のSDK版は `execute()` を書くだけで済んだ。ここでは **a2a-sdk を使わず、素の FastAPI で A2A プロトコルを手書き実装**する例を示し、「SDKが何を肩代わりしていたか」を明確にする。
+
+```python
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
+from uuid import uuid4
+from langchain.agents import create_agent
+
+app = FastAPI()
+agent_graph = create_agent(model="anthropic:claude-opus-4-8", tools=[get_weather],
+                           system_prompt="あなたは天気アシスタントです")
+
+# ── (1) Agent Card配信: これが無いとクライアントは発見・接続できない ──
+AGENT_CARD = {
+    "name": "Weather Agent", "version": "1.0.0",
+    "supportedInterfaces": [{"url": "http://localhost:9999/",
+                             "protocolBinding": "JSONRPC", "protocolVersion": "1.0"}],
+    "capabilities": {"streaming": False, "pushNotifications": False},  # ← 宣言＝契約
+    "defaultInputModes": ["text/plain"], "defaultOutputModes": ["text/plain"],
+    "skills": [{"id": "get_forecast", "name": "天気予報取得",
+                "description": "指定地域の天気予報", "tags": ["weather"]}],
+}
+
+@app.get("/.well-known/agent-card.json")
+async def agent_card():
+    return AGENT_CARD
+
+# ── (2) JSON-RPC単一エンドポイント: body の method で自分でディスパッチ ──
+@app.post("/")
+async def rpc(request: Request):
+    req = await request.json()
+    rpc_id, method, params = req.get("id"), req.get("method"), req.get("params", {})
+
+    if method == "SendMessage":
+        # params(=SendMessageRequest) から入力を取り出す。v1.0 の Part は {"text": ...}
+        user_text = "".join(p.get("text", "") for p in params["message"]["parts"])
+        result = await agent_graph.ainvoke({"messages": [{"role": "user", "content": user_text}]})
+        answer = result["messages"][-1].content
+        # ★(3) 返り値を A2A スキーマ(SendMessageResponse)に「整形」して返す。独自形はNG
+        return JSONResponse({"jsonrpc": "2.0", "id": rpc_id, "result": {
+            "message": {"role": "agent", "parts": [{"text": answer}], "message_id": uuid4().hex}
+        }})
+
+    # (4) streaming:false と宣言したので SendStreamingMessage は未実装
+    #     → 未対応メソッドは A2A のエラーコードで返す (UnsupportedOperation = -32004 等)
+    return JSONResponse({"jsonrpc": "2.0", "id": rpc_id,
+                         "error": {"code": -32004, "message": "UnsupportedOperationError"}})
+
+# ── (5) ポートは自分で: uvicorn module:app --host 0.0.0.0 --port 9999 ──
+```
+
+**「各メソッドの中身を自前実装」= 上で手で書いた部分**:
+
+| 問題文の表現 | 実際にやること | 上のコード |
+|---|---|---|
+| **Agent Card配信** | スキーマ通りのJSONを返す口を作る | (1) |
+| **各メソッドの中身** | `method` を見て分岐し処理を書く | (2) の `if method ==` |
+| **レスポンス型の整形** | `{"answer":...}` はNG。**`SendMessageResponse` (`message` か `task`)** の形に合わせる | (3) ★ |
+| **SSE** | `streaming:true` なら `text/event-stream` で `Task→status-update→…` を順に流す | (今回は false で未実装) |
+| **エラーコード** | 失敗/未対応は A2A規定コード (`-32004` 等) で返す | (4) |
+
+**「capabilities で宣言した範囲だけでよい」**: Agent Card の `capabilities` が **契約書**。宣言していない機能は実装不要。
+
+| capabilitiesの宣言 | 実装義務 |
+|---|---|
+| `streaming: false` | `SendStreamingMessage` (**SSE**) は**不要** |
+| `pushNotifications: false` | push設定系は**不要** |
+| 最低限 | **Agent Card + `SendMessage` だけ**で動く |
+| `streaming: true` と書いたら | **SSEを必ず実装** (書かないとクライアントが呼んで破綻) |
+
+> [!TIP]
+> つまり「全メソッド必須ではないが、**宣言したものは責任を持って実装**」。特に **SSE (ストリーミング) の手書きが面倒**なのが「手間が大きい」の主因。
+> **SDKを使うと (1)〜(4)+SSE は `create_agent_card_routes`/`create_jsonrpc_routes` が肩代わりし、`GetTask`/`CancelTask` 等は `DefaultRequestHandler`+`TaskStore` が既定実装。あなたは `execute()` の中身だけ**書けばよい ((5) のポート起動 uvicorn はどちらでも自前)。
 
 ## LangChain / LangGraph から他のA2Aエージェントを呼ぶ (Client 側)
 
@@ -578,7 +687,7 @@ orchestrator = create_agent(
 > [!NOTE]
 > **`create_agent` について**: LangChain 1.0 の統一エージェントAPI。返り値は `CompiledStateGraph` (LangGraph)。旧 `create_react_agent` (langgraph.prebuilt) / `AgentExecutor` (langchain-classic) は非推奨。`@tool` やモデル指定はそのまま使える。
 >
-> **コードの検証状況 (2026-07時点 / `a2a-sdk` 1.1.0)**: 上記の Server側 (`AgentExecutor` / `TaskUpdater` / `A2AStarletteApplication` / `DefaultRequestHandler`)・Client側 (`create_client` / `Message`+`Part`+`Role` / `SendMessageRequest` / `async for`) は **SDK 1.x の実ソースに照合済み**。留意点:
+> **コードの検証状況 (2026-07時点 / `a2a-sdk` 1.1.0)**: 上記の Server側 (`AgentExecutor` / `TaskUpdater` / `DefaultRequestHandler` / `create_jsonrpc_routes`+`create_agent_card_routes`)・Client側 (`create_client` / `Message`+`Part`+`Role` / `SendMessageRequest` / `async for`) は **SDK 1.1.0 の実ソースに照合済み**。**旧 `A2AStarletteApplication` は 1.x で廃止**され、routesベースに変わった点に注意。留意点:
 > - **`send_message` は `StreamResponse` の async iterator を返す** (非ストリーミングでも `async for` で1件受ける)。返信テキストの取り出しは event 型 (`Task` / `Message` / `TaskStatusUpdateEvent` / `TaskArtifactUpdateEvent`) に応じた分岐が必要 — 上のコードは簡略化しているので、実装時は event 型を判定して取り出すこと。
 > - **v0.3 の書き方** (`A2AClient` + `SendMessageRequest(params=MessageSendParams(...))` + `{"kind":"text"}` + `await client.send_message(...)`→単一レスポンス) は現在 **`a2a.compat.v0_3`** 配下の後方互換。旧記事はこちらが多い。
 > - **本番のExecutor** は `TaskUpdater` で `start_work()` → (必要なら) `add_artifact(...)` → `complete()` とライフサイクルを明示管理するのが定石。
@@ -670,9 +779,9 @@ agent = create_deep_agent(
 - Linux Foundation 移管発表 (2025/06)
 
 ## サンプルコード (本ノートのPythonコードの照合先)
+- **Python SDK 本体 `a2a-python` (v1.1.0)**: https://github.com/a2aproject/a2a-python — 本ノートの1.xコードは `client/client.py`・`client_factory.py`・`server/tasks/task_updater.py`・`server/routes/`・`server/request_handlers/default_request_handler.py` の実ソースに照合済み
 - サンプル集リポジトリ: https://github.com/a2aproject/a2a-samples
-- helloworld エージェント (`AgentExecutor` の最小実装): https://github.com/a2aproject/a2a-samples/tree/main/samples/python/agents/helloworld
-- **LangGraph エージェント** (`AgentExecutor`/`TaskUpdater`/サーバ化/クライアント): https://github.com/a2aproject/a2a-samples/tree/main/samples/python/agents/langgraph
+- helloworld / LangGraph エージェント例: https://github.com/a2aproject/a2a-samples/tree/main/samples/python/agents
 
 ## チュートリアル (公式)
 - Agent Executor (Server側): https://a2a-protocol.org/latest/tutorials/python/4-agent-executor/
