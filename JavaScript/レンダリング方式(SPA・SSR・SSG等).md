@@ -16,8 +16,14 @@
 | **SPA** | Single Page Application | ページ遷移でHTMLを再取得しない**アプリの形態** |
 | **MPA** | Multi Page Application | ページ遷移ごとにHTMLを取りに行く**従来型の形態** |
 
-> ポイント：**SPA/MPA は「アプリの形態」**、**CSR/SSR/SSG/ISR は「HTMLの作り方」**。
+> [!IMPORTANT]
+> **SPA/MPA は「アプリの形態」**、**CSR/SSR/SSG/ISR は「HTMLの作り方」**。
 > レイヤーが違うので、「SPA かつ CSR」「SSR だけど SPA的な操作感」のように組み合わさる。
+
+> [!NOTE]
+> **SEO (Search Engine Optimization / 検索エンジン最適化)** … Google などの検索結果で自分のサイトを上位に表示させる取り組み。
+> 検索エンジンのクローラーは **HTMLの中身を読んで**ページ内容を判断するため、初期HTMLが空の **CSR は不利**、中身が入った **SSR/SSG は有利**。
+> 検索から人を集めたい公開サイト（ブログ・EC・企業サイト）では重要。ログインして使う社内ツール・管理画面では基本不要。
 
 ---
 
