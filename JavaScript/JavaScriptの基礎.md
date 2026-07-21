@@ -169,6 +169,30 @@
   console.log(a); // 1（ブロック外でも参照できてしまう）
   console.log(b); // ReferenceError（ブロック外では参照不可）
   ```
+- **`const`は宣言と同時に必ず初期値を代入しないといけない**
+  - 再代入できない変数なので、後から値を入れるチャンスが無い → 宣言時に値を確定させないと構文エラーになる
+  ```javascript
+  const a = 1;   // OK
+  // const b;    // SyntaxError: Missing initializer in const declaration
+  // b = 2;
+
+  // let / var は初期値なしで宣言でき、後から代入できる
+  let x;         // OK（この時点では undefined）
+  x = 10;        // 後から代入OK
+  ```
+  - 「宣言時点では値が決まらないが、一度決めたら変えたくない」場合は、条件を式にして`const`に入れる
+  ```javascript
+  // letで書く
+  let status1;
+  if (score >= 60) {
+    status1 = "合格";
+  } else {
+    status1 = "不合格";
+  }
+
+  // constで書く（三項演算子を使う）
+  const status2 = score >= 60 ? "合格" : "不合格";
+  ```
 - **`const`は「再代入禁止」であって「不変(immutable)」ではない**
   - オブジェクトや配列の中身は変更できる
   ```javascript
@@ -366,10 +390,46 @@ do { console.log("once"); } while (false);
   c(); // 1
   c(); // 2（countが保持され続けている）
   ```
-- **巻き上げ（hoisting）**：変数・関数の宣言がスコープの先頭に持ち上げられる挙動
-  - `function`宣言は中身ごと巻き上げられる → 定義前に呼べる
-  - `var`は宣言だけ巻き上げられ、値は`undefined`
-  - `let`/`const`はTDZのため定義前に参照するとエラー
+- **巻き上げ（hoisting）とは**
+  - JavaScriptは、コードを実行する前にそのスコープ内の**宣言だけを先に読み取る**という動きをする。その結果、**変数や関数が「宣言より前の行」でも認識されている**ように見える挙動を巻き上げ（hoisting）と呼ぶ
+  - イメージ：「宣言部分がスコープの先頭に自動で持ち上げられる」と考えると分かりやすい（実際にコードが移動するわけではない）
+  - **重要なのは「宣言」だけが巻き上げられ、「代入（値）」は元の行のまま**という点
+
+  - **① `function`宣言：中身ごと巻き上げられる → 定義より前で呼べる**
+    ```javascript
+    greet();  // "こんにちは" ← 定義より前なのに呼べる
+
+    function greet() {
+      console.log("こんにちは");
+    }
+    ```
+
+  - **② `var`：宣言だけ巻き上げられ、値は`undefined`になる**
+    - 「宣言前でもエラーにはならないが、値はまだ入っていない」状態になり、バグの原因になりやすい
+    ```javascript
+    console.log(x);  // undefined ← エラーにはならないが値は未定義
+    var x = 10;
+    console.log(x);  // 10
+
+    // JavaScriptが内部的にこう解釈しているイメージ ↓
+    // var x;           ← 宣言だけ先頭に持ち上げられる
+    // console.log(x);  → undefined
+    // x = 10;          ← 代入は元の位置のまま
+    ```
+
+  - **③ `let`/`const`：巻き上げはされるが、宣言前に使うとエラー（TDZ）**
+    - `var`と違い`undefined`にはならず、`ReferenceError`になる。この「宣言前は触れない区間」がTDZ（前述）
+    ```javascript
+    console.log(y);  // ReferenceError ← varと違いエラーになる
+    let y = 20;
+    ```
+    - この挙動により`let`/`const`は「宣言前にうっかり使う」バグを防いでくれる。`var`を避けるべき理由の一つ
+
+  - **関数式・アロー関数は巻き上げされない**（中身が巻き上げられるのは`function`宣言だけ）
+    ```javascript
+    add(1, 2);                    // Error（addはまだ undefined / TDZ）
+    const add = (a, b) => a + b;
+    ```
 
 ## `this`
 - **`this`は「関数がどう呼ばれたか」で決まる**（定義場所ではない）
