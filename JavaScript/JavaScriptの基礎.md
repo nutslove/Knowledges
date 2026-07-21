@@ -227,6 +227,46 @@
   - `undefined`：値が代入されていない（システムが自動的に設定する）
   - `null`：意図的に「空・なし」を表す（開発者が明示的に設定する）
 
+### `null`の判定方法
+- 用途によって使い分ける
+
+  | やりたいこと | 書き方 |
+  |--------------|--------|
+  | `null`だけを判定 | `value === null` |
+  | `null`と`undefined`両方を判定 | `value == null` |
+  | 無ければデフォルト値 | `value ?? デフォルト` |
+  | プロパティを安全にたどる | `obj?.prop` |
+
+- **① `null`だけを厳密に判定 → `=== null`**
+  - `typeof null`は`"object"`を返すため、`typeof`は判定に使えない
+  ```javascript
+  if (value === null) {
+    // valueがちょうどnullの時だけtrue（undefinedは含まない）
+  }
+  typeof null === "object"  // true ← nullの判定には使えない
+  ```
+- **② `null`と`undefined`をまとめて判定 → `== null`**
+  - 「値が無い（null または undefined）」をまとめて扱いたい時の慣用句
+  - `==`は基本避けるべきだが、`== null`だけは`null == undefined`が`true`になる性質を利用した例外的によく使われる書き方
+  ```javascript
+  if (value == null) {
+    // value === null || value === undefined と同じ意味
+  }
+  ```
+- **③ 「値が無ければデフォルト値」→ `??`（Nullish coalescing）**
+  ```javascript
+  const name = user.name ?? "ゲスト"; // null/undefinedの時だけ "ゲスト"
+  ```
+- **④ プロパティを安全にたどる → `?.`（Optional chaining）**
+  ```javascript
+  user.profile?.name  // profileがnull/undefinedならエラーにせずundefinedを返す
+  ```
+- **⚠️ `if (value)` / `if (!value)`での判定に注意**
+  - falsyな値（`0` / `""` / `false` / `NaN`）も一緒に引っかかる。`null`（と`undefined`）だけを見たいなら`== null`や`=== null`を使う
+  ```javascript
+  if (!value) { ... }  // null以外に 0, "", false, NaN も引っかかってしまう
+  ```
+
 ## 文字列（String）
 - シングルクォート`'`、ダブルクォート`"`、テンプレートリテラル`` ` ``のいずれも使える
 - **テンプレートリテラル（バッククォート）**
