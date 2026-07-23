@@ -1,5 +1,6 @@
 - 参考URL
   - **https://aws.amazon.com/jp/blogs/news/a-practical-guide-to-improve-rag-systems-with-advanced-rag-on-aws/** （★）
+  - https://engineering.dena.com/blog/2025/10/findoutai_rag/
   - https://speakerdeck.com/naoki_0531/amazon-bedrock-amazon-aurorawozu-mihe-wasetaragdehui-da-jing-du-noxiang-shang-niqu-rizu-ndemita
   - https://fintan.jp/page/10301/
   - https://qiita.com/DeepMata/items/3c27394e4475b1b7e7ff
