@@ -484,7 +484,7 @@ do { console.log("once"); } while (false);
   ```
 - コールバック内で`this`を維持したい場合はアロー関数が便利
 
-## オブジェクト
+## オブジェクト（Object）
 ```javascript
 const user = {
   name: "太郎",
@@ -509,6 +509,42 @@ Object.assign({}, user)      // 浅いコピー
   const name = "太郎";
   const obj = { name }; // { name: "太郎" } と同じ
   ```
+- **プロパティ（キー）が存在するか確認する**
+  ```javascript
+  const user = { name: "太郎", age: 25 };
+
+  "name" in user               // true（プロパティがあるか。継承したキーも含む）
+  "email" in user              // false
+
+  Object.hasOwn(user, "name")  // true（そのオブジェクト自身のキーだけを見る／最新の推奨）
+  user.hasOwnProperty("name")  // true（同上だが古い書き方）
+
+  Object.keys(user).includes("name") // true（キー一覧に含まれるか）
+  ```
+  - `undefined`との比較（`user.name !== undefined`）でも判定できるが、値が`undefined`のプロパティを見分けられないため非推奨
+    ```javascript
+    const obj = { a: undefined };
+    obj.a !== undefined    // false（キーは存在するのに「無い」と誤判定）
+    "a" in obj             // true（正しく存在を判定できる）
+    ```
+
+#### `in`と`Object.hasOwn`の違い
+- どちらも「プロパティが存在するか」を調べるが、**どこまでを「存在する」とみなすか**が違う
+- 前提として、JavaScriptのオブジェクトは自分で書いたキー以外に、大元の`Object`から`toString`などの機能を自動的に受け継いでいる（これを継承／プロトタイプと呼ぶ）
+- `in`は、その受け継いだプロパティも「存在する」とみなして`true`を返す
+- `Object.hasOwn`は、そのオブジェクト自身に直接書いたキーだけを見て、受け継いだものは`false`を返す
+  ```javascript
+  const user = { name: "太郎" };
+
+  // 自分で書いたキー → どちらも同じ結果
+  "name" in user                  // true
+  Object.hasOwn(user, "name")     // true
+
+  // 大元のObjectから受け継いだ toString → ここで結果が分かれる
+  "toString" in user              // true  ← 継承したものも拾ってしまう
+  Object.hasOwn(user, "toString") // false ← user自身には無いのでfalse
+  ```
+- 通常「そのオブジェクトが持っているキーか」を知りたいだけなので、**基本は`Object.hasOwn`を使うのが安全**
 
 ## 配列（Array）
 ```javascript
@@ -555,6 +591,32 @@ arr.reverse()       // 反転（破壊的）
   [1,2,3].every(x => x > 0)        // true
   ```
 - `map`/`filter`/`slice`などは**非破壊**（新しい配列を返す）、`push`/`splice`/`sort`/`reverse`などは**破壊的**（元を変更）
+- **要素が存在するか確認する**
+  ```javascript
+  const arr = [1, 2, 3];
+
+  // 値そのものがあるか（true/false）
+  arr.includes(2)            // true ← 存在確認はこれが基本
+  arr.includes(9)            // false
+
+  // 値の位置を調べる（無ければ -1）
+  arr.indexOf(2)             // 1
+  arr.indexOf(9)             // -1
+  arr.indexOf(9) !== -1      // false（includesが使える前の古い書き方）
+
+  // 条件に合う要素があるか
+  arr.some(x => x > 2)       // true（1つでも条件を満たせばtrue）
+  arr.find(x => x > 2)       // 3（条件に合う最初の「要素」。無ければundefined）
+  arr.findIndex(x => x > 2)  // 2（条件に合う最初のindex。無ければ-1）
+
+  // 特定の「index」が有効な範囲か
+  arr[5] === undefined       // true（存在しないindexはundefined）
+  ```
+  - **`indexOf`は`NaN`を見つけられない**（`NaN === NaN`が`false`のため）。`NaN`の有無を調べたい時は`includes`を使う
+    ```javascript
+    [NaN].indexOf(NaN)   // -1（見つからない）
+    [NaN].includes(NaN)  // true（見つかる）
+    ```
 
 ## 分割代入（destructuring）
 ```javascript
