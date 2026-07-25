@@ -574,6 +574,52 @@ Object.assign({}, user)      // 浅いコピー
 - 通常「そのオブジェクトが持っているキーか」を知りたいだけなので、**基本は`Object.hasOwn`を使うのが安全**
 
 ## 配列（Array）
+### 要素数の取得（`length`）
+- `length`プロパティで要素の数を取得できる。メソッドではないので`()`は付けない
+  ```javascript
+  const arr = ["a", "b", "c"];
+  arr.length     // 3（要素の数）
+  [].length      // 0（空配列）
+
+  // arr.length() // TypeError（()を付けるとエラー）
+  ```
+- インデックスは0始まりなので、末尾の有効なインデックスは`length - 1`
+  ```javascript
+  arr[arr.length - 1] // "c"（末尾の要素）
+  arr[arr.length]     // undefined（範囲外）
+  ```
+- `length`に代入すると配列の長さを変更でき、短くすると要素が削除される
+  ```javascript
+  const nums = [1, 2, 3, 4, 5];
+  nums.length = 2;    // [1, 2]（3以降が切り捨てられる）
+  nums.length = 0;    // []（配列を空にできる）
+  ```
+
+### 要素へのアクセス
+- インデックス（添字）でアクセスする。**インデックスは0から始まる**
+  ```javascript
+  const arr = ["a", "b", "c"];
+
+  arr[0]              // "a"（最初の要素）
+  arr[2]              // "c"
+  arr[99]             // undefined（存在しないindexはエラーにならずundefined）
+  ```
+- 末尾の要素を取る
+  ```javascript
+  arr[arr.length - 1] // "c"（従来の書き方）
+  arr.at(-1)          // "c"（末尾から数える新しい書き方。at(-2)は後ろから2番目）
+  ```
+- 分割代入で先頭からまとめて取り出す
+  ```javascript
+  const [first, second] = arr; // first="a", second="b"
+  ```
+- 全要素をループで回す
+  ```javascript
+  for (const item of arr) { console.log(item); }          // 値を順に取り出す
+  arr.forEach((item, index) => console.log(index, item)); // indexも一緒に取れる
+  ```
+
+### 主なメソッド
 ```javascript
 const arr = [1, 2, 3, 4, 5];
 arr.length          // 5
