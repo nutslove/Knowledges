@@ -504,6 +504,33 @@ Object.entries(user) // [["name","太郎"], ...] キーと値のペア配列
 Object.assign({}, user)      // 浅いコピー
 { ...user, age: 30 }         // スプレッドでコピー＋上書き
 ```
+### `const`で宣言してもプロパティの追加・変更・削除はできる
+- `const`で宣言したオブジェクトでも、プロパティの追加・変更・削除はできる。一方で`user = {}`のような**再代入はできない**
+  ```javascript
+  const user = { name: "太郎" };
+
+  user.name = "次郎";   // OK（変更）
+  user.age = 25;        // OK（追加）
+  delete user.age;      // OK（削除）
+
+  // user = {};         // Error: Assignment to constant variable.（再代入は不可）
+  ```
+- **理由：`const`が固定するのは「変数と値の結びつき」だけで、オブジェクトの中身ではないから**
+  - オブジェクトを変数に入れると、変数はオブジェクト本体そのものではなく、本体の置き場所を指す **参照（アドレスのようなもの）** を持つ
+  - `const`はこの「変数が指す参照」を固定する。だから別のオブジェクトを指し直す再代入（`user = {}`）は禁止される
+  - 一方、プロパティの追加・変更・削除は、参照先のオブジェクトの中身をいじっているだけで、変数が指す参照そのものは変わらない。よって`const`でも許される
+  ```javascript
+  const user = { name: "太郎" };
+  user.name = "次郎";   // 参照先(同じオブジェクト)の中身を変えただけ → OK
+  user = {};            // 変数に別のオブジェクトを指し直す → const違反でError
+  ```
+- 中身も変更できないよう完全に固定したい場合は`Object.freeze()`を使う
+  ```javascript
+  const user = Object.freeze({ name: "太郎" });
+  user.name = "次郎";   // 変更されない（strictモードではError）
+  user.name             // "太郎"（元のまま）
+  ```
+
 - **プロパティの短縮記法**：変数名とキー名が同じなら省略できる
   ```javascript
   const name = "太郎";
