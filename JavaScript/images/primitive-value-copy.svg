@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 660 360" font-family="'Helvetica Neue',Arial,'Hiragino Kaku Gothic ProN','Meiryo',sans-serif">
+  <rect x="0" y="0" width="660" height="360" rx="10" fill="#f6f8fa" stroke="#d0d7de"/>
+  <text x="24" y="38" font-size="20" font-weight="bold" fill="#1f2328">プリミティブ型（値渡し）</text>
+  <text x="24" y="66" font-size="14" fill="#57606a" font-family="Menlo,Consolas,monospace">let a = 10;  let b = a;  b = 20;</text>
+
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6 Z" fill="#57606a"/>
+    </marker>
+  </defs>
+
+  <!-- STEP 1 -->
+  <text x="24" y="108" font-size="15" font-weight="bold" fill="#1f2328">① let b = a;　値10をコピー（両方10になる）</text>
+  <text x="150" y="140" font-size="16" font-weight="bold" fill="#0969da" text-anchor="middle">a</text>
+  <rect x="105" y="148" width="90" height="52" rx="8" fill="#ddf4ff" stroke="#0969da" stroke-width="2"/>
+  <text x="150" y="182" font-size="24" font-weight="bold" fill="#0969da" text-anchor="middle">10</text>
+  <line x1="200" y1="174" x2="345" y2="174" stroke="#57606a" stroke-width="2" stroke-dasharray="6 5" marker-end="url(#arrow)"/>
+  <text x="272" y="164" font-size="12" fill="#57606a" text-anchor="middle">値をコピー</text>
+  <text x="395" y="140" font-size="16" font-weight="bold" fill="#0969da" text-anchor="middle">b</text>
+  <rect x="350" y="148" width="90" height="52" rx="8" fill="#ddf4ff" stroke="#0969da" stroke-width="2"/>
+  <text x="395" y="182" font-size="24" font-weight="bold" fill="#0969da" text-anchor="middle">10</text>
+
+  <!-- STEP 2 -->
+  <text x="24" y="248" font-size="15" font-weight="bold" fill="#1f2328">② b = 20;　bの箱だけ書き換わる</text>
+  <text x="150" y="280" font-size="16" font-weight="bold" fill="#0969da" text-anchor="middle">a</text>
+  <rect x="105" y="288" width="90" height="52" rx="8" fill="#ddf4ff" stroke="#0969da" stroke-width="2"/>
+  <text x="150" y="322" font-size="24" font-weight="bold" fill="#0969da" text-anchor="middle">10</text>
+  <text x="395" y="280" font-size="16" font-weight="bold" fill="#cf222e" text-anchor="middle">b</text>
+  <rect x="350" y="288" width="90" height="52" rx="8" fill="#ffebe9" stroke="#cf222e" stroke-width="2"/>
+  <text x="395" y="322" font-size="24" font-weight="bold" fill="#cf222e" text-anchor="middle">20</text>
+  <text x="470" y="320" font-size="14" fill="#1a7f37">← a は 10 のまま（別々の箱なので影響なし）</text>
+</svg>

@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 660 420" font-family="'Helvetica Neue',Arial,'Hiragino Kaku Gothic ProN','Meiryo',sans-serif">
+  <rect x="0" y="0" width="660" height="420" rx="10" fill="#f6f8fa" stroke="#d0d7de"/>
+  <text x="24" y="38" font-size="20" font-weight="bold" fill="#1f2328">オブジェクト型（参照渡し）</text>
+  <text x="24" y="66" font-size="14" fill="#57606a" font-family="Menlo,Consolas,monospace">const x = { n: 1 };  const y = x;  y.n = 99;</text>
+
+  <defs>
+    <marker id="oarrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6 Z" fill="#bc4c00"/>
+    </marker>
+  </defs>
+
+  <!-- STEP 1 -->
+  <text x="24" y="102" font-size="15" font-weight="bold" fill="#1f2328">① const y = x;　参照（実体の住所）だけコピー → 同じ実体を指す</text>
+  <rect x="95" y="120" width="80" height="42" rx="8" fill="#eaeef2" stroke="#57606a" stroke-width="2"/>
+  <text x="135" y="141" font-size="15" font-weight="bold" fill="#1f2328" text-anchor="middle">x</text>
+  <text x="135" y="156" font-size="11" fill="#57606a" text-anchor="middle">参照</text>
+  <rect x="95" y="176" width="80" height="42" rx="8" fill="#eaeef2" stroke="#57606a" stroke-width="2"/>
+  <text x="135" y="197" font-size="15" font-weight="bold" fill="#1f2328" text-anchor="middle">y</text>
+  <text x="135" y="212" font-size="11" fill="#57606a" text-anchor="middle">参照</text>
+  <rect x="370" y="142" width="170" height="56" rx="8" fill="#fff1e5" stroke="#bc4c00" stroke-width="2"/>
+  <text x="455" y="167" font-size="20" font-weight="bold" fill="#bc4c00" text-anchor="middle">{ n: 1 }</text>
+  <text x="455" y="186" font-size="11" fill="#bc4c00" text-anchor="middle">実体は1つだけ</text>
+  <line x1="177" y1="141" x2="368" y2="162" stroke="#bc4c00" stroke-width="2" marker-end="url(#oarrow)"/>
+  <line x1="177" y1="197" x2="368" y2="178" stroke="#bc4c00" stroke-width="2" marker-end="url(#oarrow)"/>
+
+  <!-- STEP 2 -->
+  <text x="24" y="278" font-size="15" font-weight="bold" fill="#1f2328">② y.n = 99;　指している先の実体を書き換える</text>
+  <rect x="95" y="296" width="80" height="42" rx="8" fill="#eaeef2" stroke="#57606a" stroke-width="2"/>
+  <text x="135" y="317" font-size="15" font-weight="bold" fill="#1f2328" text-anchor="middle">x</text>
+  <text x="135" y="332" font-size="11" fill="#57606a" text-anchor="middle">参照</text>
+  <rect x="95" y="352" width="80" height="42" rx="8" fill="#eaeef2" stroke="#57606a" stroke-width="2"/>
+  <text x="135" y="373" font-size="15" font-weight="bold" fill="#1f2328" text-anchor="middle">y</text>
+  <text x="135" y="388" font-size="11" fill="#57606a" text-anchor="middle">参照</text>
+  <rect x="370" y="318" width="170" height="56" rx="8" fill="#ffebe9" stroke="#cf222e" stroke-width="2"/>
+  <text x="455" y="343" font-size="20" font-weight="bold" fill="#cf222e" text-anchor="middle">{ n: 99 }</text>
+  <text x="455" y="362" font-size="11" fill="#cf222e" text-anchor="middle">実体が変わる</text>
+  <line x1="177" y1="317" x2="368" y2="338" stroke="#bc4c00" stroke-width="2" marker-end="url(#oarrow)"/>
+  <line x1="177" y1="373" x2="368" y2="354" stroke="#bc4c00" stroke-width="2" marker-end="url(#oarrow)"/>
+  <text x="556" y="350" font-size="14" fill="#cf222e">→ x.n も</text>
+  <text x="556" y="368" font-size="14" fill="#cf222e">　99 になる</text>
+</svg>

@@ -267,6 +267,68 @@
   if (!value) { ... }  // null以外に 0, "", false, NaN も引っかかってしまう
   ```
 
+### 値のコピー・上書き時の注意（値渡し vs 参照渡し）
+> [!IMPORTANT]
+> プリミティブ型とオブジェクト型では、変数に代入したり関数に渡したりしたときの挙動が違う。ここを理解していないと「知らないうちに元のデータが書き換わっていた」というバグになる
+- **プリミティブ型は値そのものがコピーされる**ので、片方を変えても他方に影響しない
+  ```javascript
+  let a = 10;
+  let b = a;   // 値10がコピーされる（別物）
+  b = 20;
+  console.log(a); // 10（影響なし）
+  ```
+  - 図：変数ごとに別々の箱を持つ。`let b = a`で値10がコピーされ、その後`b = 20`しても`a`は影響を受けない
+
+    ![プリミティブ型の値渡しの図](images/primitive-value-copy.svg)
+- **オブジェクト型は参照（実体の置き場所）がコピーされる**ので、`a`と`b`は同じ実体を指す。片方を変更すると両方に反映される
+  ```javascript
+  const x = { n: 1 };
+  const y = x;   // 同じオブジェクトを指す参照がコピーされる
+  y.n = 99;
+  console.log(x.n); // 99 ← xも変わってしまう！
+  ```
+  - 図：コピーされるのは「実体の置き場所（参照）」だけで、実体は1つしかない。`y.n = 99`で共有している実体が変わるので`x.n`も`99`になる
+
+    ![オブジェクト型の参照渡しの図](images/object-reference-copy.svg)
+- **関数にオブジェクトを渡した場合も同じ**。関数の中で中身を変更すると、呼び出し元のオブジェクトも変わる
+  ```javascript
+  function update(obj) { obj.n = 0; }
+  const x = { n: 1 };
+  update(x);
+  console.log(x.n); // 0 ← 元のxが書き換わる
+  ```
+- 元を変えたくない場合は**コピーを作ってから変更する**
+  ```javascript
+  const x = { n: 1 };
+  const z = { ...x };  // 浅いコピー（別の実体になる）
+  z.n = 99;
+  console.log(x.n);    // 1（元は影響を受けない）
+  ```
+  - ただし`{ ...x }`は**浅いコピー**なので、ネストした中身は参照が共有されたまま。完全に切り離したい場合は`structuredClone(x)`（深いコピー）を使う（スプレッド構文セクション参照）
+    - **「浅いコピー」＝一番外側（トップレベル）のプロパティだけをコピーする**という意味。中にオブジェクトが入れ子（ネスト）になっている場合、その中身までは複製されず、参照だけがコピーされるので元と共有されてしまう
+      ```javascript
+      const original = {
+        name: "太郎",
+        address: { city: "東京" }   // ← ネストしたオブジェクト
+      };
+      const copy = { ...original };  // 浅いコピー
+
+      // ① トップレベル（name）は独立している
+      copy.name = "次郎";
+      console.log(original.name);        // "太郎"（元は影響なし）
+
+      // ② ネストしたオブジェクト（address）は共有されたまま
+      copy.address.city = "大阪";
+      console.log(original.address.city); // "大阪" ← 元まで変わってしまう！
+      ```
+      - `name`はプリミティブなので値がコピーされ独立するが、`address`はオブジェクトなので**参照だけがコピー**され、`copy.address`と`original.address`は同じ実体を指す
+    - **`structuredClone()`（深いコピー）なら、ネストした中身まで丸ごと複製する**ので完全に切り離せる
+      ```javascript
+      const copy = structuredClone(original);
+      copy.address.city = "大阪";
+      console.log(original.address.city); // "東京"（元は影響を受けない）
+      ```
+
 ## 文字列（String）
 - シングルクォート`'`、ダブルクォート`"`、テンプレートリテラル`` ` ``のいずれも使える
 - **テンプレートリテラル（バッククォート）**
@@ -341,7 +403,7 @@ Math.sqrt(9)     // 3
 - **falsyな値**（`if`などで`false`扱いになる値）：`false` / `0` / `""`（空文字） / `null` / `undefined` / `NaN`
   - これ以外は全て`truthy`（`"0"`、`[]`、`{}`もtruthy）
 
-## 条件分岐
+## 条件分岐（if / else if / else / switch）
 ```javascript
 // if / else if / else
 if (score >= 80) {
@@ -365,7 +427,7 @@ switch (fruit) {
 }
 ```
 
-## 繰り返し（ループ）
+## 繰り返し（ループ）（for / while）
 ```javascript
 // for
 for (let i = 0; i < 5; i++) { console.log(i); }
@@ -383,7 +445,8 @@ while (n < 3) { n++; }
 // do...while（最低1回は実行される）
 do { console.log("once"); } while (false);
 ```
-- `break`：ループを抜ける / `continue`：その回だけスキップして次へ
+- `break`：ループを抜ける
+- `continue`：その回だけスキップして次へ
 
 ## 関数
 - **関数宣言（function declaration）**：巻き上げされるので定義前に呼び出せる
@@ -417,6 +480,40 @@ do { console.log("once"); } while (false);
   ```
 
 ## スコープ・クロージャ・巻き上げ
+### スコープ（変数の有効範囲）とグローバル変数・ローカル変数
+- **スコープ** とは、変数が参照できる（有効な）範囲のこと
+- **グローバル変数** は関数やブロックの外で宣言した変数。プログラムのどこからでも参照できる
+- **ローカル変数** は関数やブロックの中で宣言した変数。その中でしか参照できない
+  ```javascript
+  const g = "グローバル";   // グローバル変数（一番外側で宣言）
+
+  function foo() {
+    const local = "ローカル"; // ローカル変数（この関数の中だけで有効）
+    console.log(g);      // "グローバル"（外側の変数は見える）
+    console.log(local);  // "ローカル"
+  }
+
+  foo();
+  console.log(local);    // ReferenceError（外からローカル変数は見えない）
+  ```
+- **スコープチェーン**：内側のスコープからは外側の変数が見えるが、外側から内側の変数は見えない（内→外の一方向）
+  - 変数を参照すると、まず自分のスコープを探し、無ければ1つ外側、さらに外側…とたどっていく。最終的にグローバルまで無ければエラーになる
+  ```javascript
+  const a = 1;
+  function outer() {
+    const b = 2;
+    function inner() {
+      const c = 3;
+      console.log(a, b, c); // 1 2 3（内側から外側a・bも参照できる）
+    }
+    inner();
+    // console.log(c);      // ReferenceError（外側からは内側のcは見えない）
+  }
+  ```
+> [!CAUTION]
+> **グローバル変数は最小限にする**のが原則。どこからでも書き換えられるため、大規模になるほど「どこで変わったか分からない」バグの原因になる。変数はできるだけ使う場所に近い狭いスコープ（関数・ブロックの中）で宣言する
+
+### クロージャ・巻き上げ
 - **クロージャ（closure）**：関数が定義された時のスコープの変数を、関数の外に出た後も覚えている仕組み
   ```javascript
   function counter() {
