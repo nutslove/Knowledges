@@ -427,6 +427,30 @@ switch (fruit) {
 }
 ```
 
+> [!CAUTION]
+> `switch`は各`case`の最後に`break`を書かないと、**マッチした`case`以降の処理が次々に実行されてしまう**（これをフォールスルーと呼ぶ）。`break`の書き忘れは典型的なバグなので注意する。
+> ```javascript
+> switch (fruit) {
+>   case "apple":
+>     console.log("りんご");  // breakが無いと…
+>   case "banana":
+>     console.log("バナナ");  // ここまで実行されてしまう
+>     break;
+> }
+> // fruit が "apple" のとき → "りんご" と "バナナ" の両方が出力される
+> ```
+> - なお、複数の`case`をまとめて同じ処理にしたい場合は、あえて`break`を書かずに並べる書き方もある（意図的なフォールスルー）
+> ```javascript
+> switch (day) {
+>   case "土":
+>   case "日":
+>     console.log("週末");  // 土・日どちらでもここが実行される
+>     break;
+>   default:
+>     console.log("平日");
+> }
+> ```
+
 ## 繰り返し（ループ）（for / while）
 ```javascript
 // for
