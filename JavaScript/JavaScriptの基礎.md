@@ -469,8 +469,19 @@ for (const key in {x:1, y:2}) { console.log(key); } // "x", "y"
 let n = 0;
 while (n < 3) { n++; }
 
-// do...while（最低1回は実行される）
-do { console.log("once"); } while (false);
+// do...while（条件を後で判定するので、最低1回は必ず実行される）
+let count = 5;
+do {
+  console.log(count); // 5 → 6 → 7 と表示される
+  count++;
+} while (count < 8);
+
+// 条件が最初からfalseでも、1回は実行される点がwhileとの違い
+let x = 100;
+do {
+  console.log(x); // 100（条件は満たさないが1回は実行される）
+  x++;
+} while (x < 10);
 ```
 - `break`：ループを抜ける
   ```javascript
