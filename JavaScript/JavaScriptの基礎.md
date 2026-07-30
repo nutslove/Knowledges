@@ -576,16 +576,96 @@ do {
   makeObj();      // { a: 1 }
   calc(5, 3);     // 16 （(5+3) * (5-3) = 8 * 2）
   ```
+- **仮引数（parameter）と実引数（argument）**：混同しやすいので区別しておく
+  - **仮引数（parameter）**：関数を**定義する**ときに書く、値を受け取るための変数名
+  - **実引数（argument）**：関数を**呼び出す**ときに実際に渡す値
+  ```javascript
+  function add(a, b) {   // a, b が仮引数（定義側の受け皿）
+    return a + b;
+  }
+  add(2, 3);             // 2, 3 が実引数（呼び出し時に渡す実際の値）
+  ```
+- **引数の過不足の挙動**：JavaScriptは引数の数が合っていなくてもエラーにならない
+  ```javascript
+  function greet(name, age) {
+    return `${name} / ${age}`;
+  }
+  greet("太郎");            // "太郎 / undefined"（足りない引数は undefined）
+  greet("太郎", 20, "東京"); // "太郎 / 20"（余分な引数は無視される）
+  ```
+- **値渡し（プリミティブ）と参照渡し（オブジェクト）**：関数に渡したとき、元の変数が変わるかどうかが違う
+  ```javascript
+  // ① プリミティブ（数値・文字列・真偽値など）は「値のコピー」が渡される
+  function change(x) { x = 100; }
+  let n = 1;
+  change(n);
+  console.log(n); // 1（関数内で変えても元の n は変わらない）
+
+  // ② オブジェクト・配列は「参照（置き場所）」が渡される
+  function addProp(obj) { obj.name = "太郎"; }
+  const user = {};
+  addProp(user);
+  console.log(user); // { name: "太郎" }（元のオブジェクトが変わる）
+  ```
+  - 理由
+    - プリミティブは値そのものがコピーされるのに対し、オブジェクトは「本体の置き場所を指す参照」がコピーされる。参照先は同じ本体を指しているので、中身をいじると呼び出し元にも反映される（[const で中身を変更できる理由](#L761)と同じ仕組み）
+  > [!CAUTION]
+  > ただしオブジェクトでも、`obj = {...}` のように**引数に再代入**した場合は、参照が別物に差し替わるだけなので元の変数には影響しない
+  > ```javascript
+  > function reassign(obj) {
+  >   obj = { name: "花子" }; // 引数に別のオブジェクトを再代入
+  > }
+  > const user = { name: "太郎" };
+  > reassign(user);
+  > console.log(user); // { name: "太郎" }（元のオブジェクトは変わらない）
+  > ```
+  > 一方、`obj.name = "花子"`（中身の変更）なら元のオブジェクトに反映される。「参照の差し替え」か「参照先の中身の変更」かで結果が変わる
 - **デフォルト引数**
   ```javascript
   function greet(name = "ゲスト") { return `こんにちは、${name}`; }
   greet();       // "こんにちは、ゲスト"
   ```
-- **残余引数（rest parameters）**：可変長の引数を配列で受け取る
+- **残余引数（rest parameters）**：`...変数名`で、渡された「残りの引数」をまとめて**配列**で受け取る。引数の数が決まっていないときに使う
   ```javascript
-  function sum(...nums) { return nums.reduce((a, b) => a + b, 0); }
+  // 渡された引数がすべて nums という配列にまとまる
+  function showAll(...nums) {
+    console.log(nums); // 渡した分だけ配列になる
+  }
+  showAll(1, 2);       // [1, 2]
+  showAll(1, 2, 3, 4); // [1, 2, 3, 4]
+
+  // 配列なので、そのまま配列メソッドが使える
+  function sum(...nums) {
+    return nums.reduce((a, b) => a + b, 0); // 全部を合計
+  }
+  sum(1, 2, 3, 4); // 10
+
+  // ⭐️普通の引数と組み合わせる場合、残余引数は必ず「最後」に置く
+  function greet(greeting, ...names) {
+    return `${greeting}, ${names.join("・")}さん`;
+  }
+  greet("こんにちは", "太郎", "花子"); // "こんにちは, 太郎・花子さん"
+  ```
+- **`arguments`オブジェクト**：（従来の`function`で）関数内で自動的に使える、渡された全実引数を保持する特殊なオブジェクト
+  ```javascript
+  function sum() {
+    // 仮引数を書いていなくても、渡された全引数を arguments で参照できる
+    let total = 0;
+    for (let i = 0; i < arguments.length; i++) {
+      total += arguments[i];
+    }
+    return total;
+  }
   sum(1, 2, 3, 4); // 10
   ```
+  - **注意点①：配列ではなく「配列風オブジェクト」**。`length`やインデックスは使えるが、`map`/`filter`/`reduce`などの配列メソッドは直接使えない
+  - **注意点②：アロー関数では使えない**（アロー関数は自身の`arguments`を持たない。`this`と同様、外側のものを引き継ぐ）
+  > [!TIP]
+  > 現代では`arguments`より**残余引数（`...args`）が推奨**。こちらは本物の配列なので配列メソッドがそのまま使え、アロー関数でも使える
+  > ```javascript
+  > const sum = (...nums) => nums.reduce((a, b) => a + b, 0); // 配列なのでreduceが使える
+  > sum(1, 2, 3, 4); // 10
+  > ```
 
 ## 一級オブジェクト（first-class object）としての関数
 - **JavaScriptでは関数が「一級オブジェクト（一等関数、first-class citizen）」として扱われる**。これは、関数が**数値や文字列などの普通の値とまったく同じように扱える**という意味
@@ -673,6 +753,68 @@ do {
   c(); // 1
   c(); // 2（countが保持され続けている）
   ```
+- **カリー化（currying）**：複数の引数を取る関数を、「1つの引数を取る関数の連鎖」に変換する技術。クロージャによって成り立っている
+  ```javascript
+  // 通常の関数（引数をまとめて受け取る）
+  function add(a, b, c) {
+    return a + b + c;
+  }
+  add(1, 2, 3); // 6
+
+  // カリー化した関数（引数を1つずつ受け取る）
+  function curriedAdd(a) {
+    return function(b) {
+      return function(c) {
+        return a + b + c;
+      };
+    };
+  }
+  curriedAdd(1)(2)(3); // 6
+
+  // アロー関数だと簡潔に書ける
+  const curriedAdd2 = a => b => c => a + b + c;
+  curriedAdd2(1)(2)(3); // 6
+  ```
+  - **メリット（部分適用）**：引数を途中まで固定した専用の関数を作れる。同じ設定を何度も使い回したいときに便利
+    ```javascript
+    const multiply = a => b => a * b;
+
+    const double = multiply(2);  // aを2で固定した「2倍する関数」
+    const triple = multiply(3);  // aを3で固定した「3倍する関数」
+
+    double(5); // 10
+    triple(5); // 15
+    ```
+  - `double`が`a = 2`を覚えていられるのは**クロージャ**（内側の関数が外側の変数を覚えている仕組み）のおかげ
+  - **発展例（引数が多い場合＋段階的な部分適用）**：引数を1つずつ渡していき、途中で止めれば「残りの引数を待つ関数」が手に入る
+    ```javascript
+    // (a + b) * c - d を計算するカリー化関数
+    function curryAddMultSubt(a) {
+      return function (b) {
+        return function (c) {
+          return function (d) {
+            return (a + b) * c - d;
+          };
+        };
+      };
+    }
+
+    // アロー関数版（同じ動作）
+    const curryAddMultSubt2 = a => b => c => d => (a + b) * c - d;
+
+    console.log(
+      curryAddMultSubt(2)(3)(4)(5),   // (2+3)*4-5 = 15
+      curryAddMultSubt2(2)(3)(4)(5)   // 15（同じ結果）
+    );
+
+    // 途中まで適用して「残りを待つ関数」を作れる（部分適用）
+    const from2   = curryAddMultSubt(2);       // b, c, d を待つ関数
+    const from2_3 = curryAddMultSubt(2)(3);    // c, d を待つ関数
+    const from2_3_4 = curryAddMultSubt(2)(3)(4); // d だけを待つ関数
+
+    from2_3_4(5);   // (2+3)*4-5 = 15
+    from2_3(4)(5);  // 15（同じ計算を後から続きの引数で完成させられる）
+    ```
 - **巻き上げ（hoisting）とは**
   - JavaScriptは、コードを実行する前にそのスコープ内の**宣言だけを先に読み取る**という動きをする。その結果、**変数や関数が「宣言より前の行」でも認識されている**ように見える挙動を巻き上げ（hoisting）と呼ぶ
   - イメージ：「宣言部分がスコープの先頭に自動で持ち上げられる」と考えると分かりやすい（実際にコードが移動するわけではない）
