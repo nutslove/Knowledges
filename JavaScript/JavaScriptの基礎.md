@@ -562,11 +562,19 @@ do {
   const greet = () => { console.log("hi"); }; // 引数なしは()必須
   const makeObj = () => ({ a: 1 });  // オブジェクトを返す時は()で囲む
 
+  // 複数行の処理は{}で囲む。この場合はreturnを明示的に書く必要がある
+  const calc = (a, b) => {
+    const sum = a + b;
+    const diff = a - b;
+    return sum * diff;   // {}を使うときはreturnを省略できない
+  };
+
   // 呼び出し方は通常の関数と同じ（関数名(引数)）
   add(2, 3);      // 5
   square(4);      // 16
   greet();        // "hi" と表示
   makeObj();      // { a: 1 }
+  calc(5, 3);     // 16 （(5+3) * (5-3) = 8 * 2）
   ```
 - **デフォルト引数**
   ```javascript
@@ -577,6 +585,44 @@ do {
   ```javascript
   function sum(...nums) { return nums.reduce((a, b) => a + b, 0); }
   sum(1, 2, 3, 4); // 10
+  ```
+
+## 一級オブジェクト（first-class object）としての関数
+- **JavaScriptでは関数が「一級オブジェクト（一等関数、first-class citizen）」として扱われる**。これは、関数が**数値や文字列などの普通の値とまったく同じように扱える**という意味
+- 具体的には、関数に対して次の4つのことができる
+  - **① 変数に代入できる**
+    ```javascript
+    const greet = function() { console.log("hi"); };
+    greet(); // "hi"
+    ```
+  - **② 関数の引数として渡せる（＝コールバック関数）**
+    ```javascript
+    function run(fn) {
+      fn(); // 渡された関数を実行
+    }
+    run(() => console.log("実行された")); // "実行された"
+    ```
+  - **③ 関数の戻り値として返せる（＝高階関数・クロージャ）**
+    ```javascript
+    function multiplier(x) {
+      return (y) => x * y; // 関数を返す
+    }
+    const double = multiplier(2);
+    double(5); // 10
+    ```
+  - **④ オブジェクトや配列に格納できる**
+    ```javascript
+    const obj = { say: () => console.log("hello") };
+    obj.say(); // "hello"
+
+    const fns = [() => 1, () => 2];
+    fns[0](); // 1
+    ```
+- **なぜ重要か**：この性質があるおかげで、**高階関数**（`map`/`filter`/`reduce`など、関数を引数に取るor返す関数）や**コールバック**、**クロージャ**といったJavaScriptの重要な仕組みが成り立っている
+- 補足：「関数を呼び出す」＝`fn()`（`()`を付ける）、「関数そのものを値として渡す」＝`fn`（`()`を付けない）。この違いを意識することが大切
+  ```javascript
+  setTimeout(greet, 1000);   // ○ 関数「そのもの」を渡す（1秒後に実行される）
+  setTimeout(greet(), 1000); // × greetを今すぐ実行し、その戻り値を渡してしまう
   ```
 
 ## スコープ・クロージャ・巻き上げ
@@ -678,7 +724,26 @@ do {
     normalFn: function() { return this.name; }, // "太郎"
     arrowFn: () => this.name,                    // 外側のthis（objではない）
   };
+
+  // 実際に呼び出してみると違いが分かる
+  obj.normalFn(); // "太郎"（obj.〜 で呼んだので this は obj を指す）
+  obj.arrowFn();  // undefined（this は obj ではなく外側のスコープを指すため）
   ```
+- **メソッド内で複数のプロパティを`this`で参照する例**：`this`を使うことで、そのオブジェクト自身が持つデータを組み合わせて処理できる
+  ```javascript
+  const person = {
+    name: "山田",
+    age: 30,
+    married: true,
+    introduce: function () {
+      return `私は${this.name}、${this.age}歳で`
+        + `${this.married ? "既婚" : "未婚"}です。`;
+    },
+  };
+
+  console.log(person.introduce()); // "私は山田、30歳で既婚です。"
+  ```
+  - `person.introduce()` のように `person.` を付けて呼び出すので、`this` は `person` を指し、`this.name`・`this.age`・`this.married` が正しく取れる
 - コールバック内で`this`を維持したい場合はアロー関数が便利
 
 ## オブジェクト（Object）
