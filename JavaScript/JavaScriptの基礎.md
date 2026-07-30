@@ -561,6 +561,12 @@ do {
   const square = x => x * x;         // 引数1つなら()も省略可
   const greet = () => { console.log("hi"); }; // 引数なしは()必須
   const makeObj = () => ({ a: 1 });  // オブジェクトを返す時は()で囲む
+
+  // 呼び出し方は通常の関数と同じ（関数名(引数)）
+  add(2, 3);      // 5
+  square(4);      // 16
+  greet();        // "hi" と表示
+  makeObj();      // { a: 1 }
   ```
 - **デフォルト引数**
   ```javascript
