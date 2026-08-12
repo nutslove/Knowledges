@@ -155,7 +155,7 @@ async def create_user(user: UserIn) -> Any:  # 実際にはUserInを返すので
 >   async def stream() -> StreamingResponse | dict:
 >       ...
 >   ```
-> - 参考：[StreamingResponseについて](StreamingResponseについて.md)
+> - 参考：[StreamingResponseについて](%20StreamingResponseについて.md)
 
 ---
 
@@ -237,3 +237,6 @@ class UserInDB(UserBase):
 - `response_model`を指定することで、**意図しないフィールドの漏洩を防ぎ、レスポンスのスキーマを保証**できる
 - バリデーション・ドキュメント生成・型変換がすべて自動で行われるのがFastAPIの大きな利点
 - 関連：[PydanticのBaseModelを使用してRequest Body内のJSONパラメータを受け取る方法](PydanticのBaseModelを使用してRequest%20Body内のJSONパラメータを受け取る方法.md)
+- パスパラメータ・クエリパラメータ側の細かい制約（範囲・文字数・正規表現・Enum）は→[Path・Query・Bodyパラメータの検証について](Path・Query・Bodyパラメータの検証について.md)
+- ファイルアップロード（`multipart/form-data`）はPydanticモデル1つでは受けられず、個別に`Form()`/`File()`で宣言する必要がある点に注意（→[ファイルアップロード（UploadFile）について](ファイルアップロード（UploadFile）について.md)）
+- 定義したスキーマ通りにレスポンスが返るかは→[テスト（TestClient）について](テスト（TestClient）について.md)で検証できる

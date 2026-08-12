@@ -330,6 +330,8 @@ async def get_users(page: dict = Depends(pagination)):
 
 ### 適用レベル（どこに書くか）
 
+`Depends` は**エンドポイント／ルーター単位**で適用範囲を選べる仕組み。「全リクエストに共通の横断的処理」（ロギング・CORS等）を挟みたい場合はレイヤーが異なる[Middleware（CORSを含む）について](Middleware（CORSを含む）について.md)の方が向く。
+
 `Depends` は4つのレベルで適用できる。**戻り値を使うかどうか**で書き方が変わる。
 
 | レベル | 書き方 | 戻り値 | 用途 |
@@ -546,6 +548,8 @@ router = APIRouter(
 ```
 
 → それぞれ別の認証方式を「ルーター単位」で適用できる。`@app.xxx` 方式だと各エンドポイントに `Depends` を書かなければならない。
+
+`verify_internal_token` / `verify_api_key` のような認証系依存関数の具体的な実装（OAuth2/JWT、APIキー、Basic認証など）は→[認証・認可（Security）について](認証・認可（Security）について.md)を参照。
 
 ---
 

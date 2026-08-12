@@ -144,6 +144,8 @@ async def shutdown():
 - **lifespanはメインアプリでのみ実行される**。`app.mount()` したサブアプリ（Sub Application / Mount）の lifespan は実行されない。
 - 起動処理で例外が出るとアプリは起動しない（そのままクラッシュ）。外部依存の初期化失敗はここで早期に検知できる、とも言える。
 - Uvicornなどの**ASGIサーバーがlifespanイベントを駆動**する（→[ASGIについて](ASGIについて.md)。ASGI仕様にlifespanプロトコルが含まれる）。
+- 起動時に読み込む設定値（DB接続文字列など）は`pydantic-settings`で管理するのが定番（→[設定管理（pydantic-settings）について](設定管理（pydantic-settings）について.md)）。`lifespan`内で`get_settings()`を呼び、その値でリソースを初期化する流れが典型的。
+- `TestClient`でこのlifespanを確実に走らせるには`with TestClient(app) as c:`の形で使う必要がある（→[テスト（TestClient）について](テスト（TestClient）について.md)）。
 
 ---
 

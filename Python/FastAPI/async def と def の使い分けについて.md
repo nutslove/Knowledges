@@ -89,7 +89,7 @@ async def get_http() -> httpx.AsyncClient:
 - 高スループットが要る経路で外部I/Oを叩くなら、**非同期ライブラリ + `async def`** の方がスケールしやすい。
 
 > [!NOTE]
-> 「`def` にしておけば安全」は正しいが、**万能ではない**。ブロッキング経路が高トラフィックなら、非同期対応ライブラリへの移行（`requests`→`httpx`、同期DBドライバ→非同期ドライバ等）を検討する。ストリーミング（→[StreamingResponseについて](%20StreamingResponseについて.md)）でも、generator内のブロッキングI/Oは同様にイベントループを止める点に注意。
+> 「`def` にしておけば安全」は正しいが、**万能ではない**。ブロッキング経路が高トラフィックなら、非同期対応ライブラリへの移行（`requests`→`httpx`、同期DBドライバ→非同期ドライバ等）を検討する。ストリーミング（→[StreamingResponseについて](%20StreamingResponseについて.md)）でも、generator内のブロッキングI/Oは同様にイベントループを止める点に注意。同じ理屈は[BackgroundTasks](BackgroundTasksについて.md)の登録関数や、[ファイルアップロード](ファイルアップロード（UploadFile）について.md)の保存処理（`shutil.copyfileobj`等）にも当てはまる。
 
 ---
 
