@@ -6,7 +6,7 @@ FastAPIではPath Operation Function（エンドポイント）を **`async def`
 
 ---
 
-## 1. 結論（ルール・オブ・サム）
+## 1. 結論
 
 | 中で呼ぶもの | 書き方 |
 |---|---|
