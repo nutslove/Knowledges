@@ -1090,3 +1090,7 @@ asyncio.run(main())
               → YES → ProcessPoolExecutor
               → NO（I/Oバウンド） → ThreadPoolExecutor
 ```
+
+## 関連
+- FastAPIのエンドポイントで`async def`/`def`のどちらを使うべきかは→[async def と def の使い分けについて](FastAPI/async%20def%20と%20def%20の使い分けについて.md)
+- ここでの非同期の基礎知識と、SQLAlchemyの`AsyncSession`を組み合わせる実装は→[FastAPIでのDB連携（SQLAlchemy AsyncSession）について](FastAPI/DB連携（AsyncSession）について.md)

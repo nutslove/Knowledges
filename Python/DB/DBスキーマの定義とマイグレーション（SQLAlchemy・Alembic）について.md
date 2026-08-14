@@ -642,7 +642,7 @@ def engine():
 - **外部キーのCASCADE**はネストしたトランザクションだと期待通りロールバックされないことがある。
   → `DEFERRABLE INITIALLY DEFERRED` な制約にする等で対処。
 - **並列実行（pytest-xdist）**では接続プールが競合するので、**ワーカーごとにエンジン/DBを分ける**。
-- 非同期（`AsyncSession`）でも考え方は同じ。ネストトランザクション（SAVEPOINT）でロールバックする。
+- 非同期（`AsyncSession`）でも考え方は同じ。ネストトランザクション（SAVEPOINT）でロールバックする。FastAPIでの`AsyncSession`のセットアップ・`Depends`との組み込み・Alembicとの関係は→[[DB連携（AsyncSession）について]]
 - **テスト用DBにも本番と同じマイグレーション（Alembic）を流して検証する**と、
   マイグレーション自体のテストにもなる（`create_all` ではなく `alembic upgrade head` を使う構成）。
 

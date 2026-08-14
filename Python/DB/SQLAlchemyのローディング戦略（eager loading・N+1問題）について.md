@@ -187,6 +187,7 @@ class User(Base):
 - [[DBスキーマの定義とマイグレーション（SQLAlchemy・Alembic）について]]
 - [[Pydantic, TypedDict, typingについて]]
 - [[FastAPI]]
+- 非同期（`AsyncSession`）だと、ここで説明したlazy loadingが`MissingGreenlet`エラーの原因になりやすく、eager loadingの重要性が同期版以上に増す → [[DB連携（AsyncSession）について]]
 
 ## 参考リンク
 - SQLAlchemy公式: Relationship Loading Techniques — https://docs.sqlalchemy.org/en/20/orm/queryguide/relationships.html
