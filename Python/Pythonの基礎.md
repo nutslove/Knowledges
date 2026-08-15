@@ -457,7 +457,43 @@ print(index) --> 2が出力
   `lambda 引数: 戻り値`
   - 以下のように引数なしで実行することもできる  
     `lambda: random.rand()`
-- 例
+- **`def`で名前付き関数を定義する代わりに、その場限りの小さな関数を式として書ける**構文。変数に代入しなくてもそのまま関数として渡せる
+
+- 基本の例（`def`との対応）
+  ```python
+  # 通常のdef
+  def add(x, y):
+      return x + y
+
+  # lambdaで書くと同じ意味になる
+  add = lambda x, y: x + y
+
+  print(add(2, 3))  # 出力: 5
+  ```
+
+- `sorted()`の`key`引数など、**関数そのものを引数として渡したい場面**でよく使われる
+  ```python
+  people = [("Alice", 30), ("Bob", 25), ("Carol", 35)]
+
+  # 年齢（タプルの2番目の要素）でソート
+  sorted_people = sorted(people, key=lambda person: person[1])
+  print(sorted_people)  # 出力: [('Bob', 25), ('Alice', 30), ('Carol', 35)]
+  ```
+
+- `map()` / `filter()`と組み合わせる例
+  ```python
+  numbers = [1, 2, 3, 4]
+
+  # 各要素を2倍にする
+  doubled = list(map(lambda x: x * 2, numbers))
+  print(doubled)  # 出力: [2, 4, 6, 8]
+
+  # 偶数だけ残す
+  evens = list(filter(lambda x: x % 2 == 0, numbers))
+  print(evens)  # 出力: [2, 4]
+  ```
+
+- 実践的な例（辞書にlambdaを持たせて、呼び出し方を統一する）
   ~~~python
   loaders = {
       "pdf": PyPDFLoader,
@@ -468,9 +504,11 @@ print(index) --> 2が出力
   if file_type in loaders:
       loader = loaders[file_type](tmp_location)
   ~~~
-  - TextLoaderクラスのインスタンスを生成する際に、`autodetect_encoding=True`を自動的に引数として渡します。このlambda関数自体が、`TextLoader`を呼び出す際に必要なすべての引数を内包しており、外部から直接`autodetect_encoding`に関する指定をする必要はありません。  
-  `loader = loaders[file_type](tmp_location)`の行で、ファイルタイプに応じたローダーが呼び出される際には、そのローダーに対して`tmp_location`のみが引数として渡されます。しかし、"txt"のファイルタイプに対応するローダー（この場合はlambda関数）には、このlambda関数内で`TextLoader`のコンストラクタに`path`と`autodetect_encoding=True`の両方を渡すように定義されています。  
-  つまり、lambda関数を介して`TextLoader`を呼び出す際には、lambda関数が受け取った`tmp_location`（`path`として受け取る）を`TextLoader`の第一引数として、そしてlambda関数の定義により`autodetect_encoding=True`が自動的に第二引数として`TextLoader`に渡されます。
+  - `loaders`は、ファイルの拡張子（`file_type`）ごとに「ローダーを作る処理」を紐付けた辞書
+  - `"pdf"`と`"docx"`はクラスそのものが値になっているので、`loaders[file_type](tmp_location)`は`PyPDFLoader(tmp_location)`のように**素直にコンストラクタが呼ばれる**
+  - `"txt"`だけは事情が違い、`TextLoader`を呼ぶ際に`autodetect_encoding=True`という**追加の引数**を必ず渡したい。しかし`loaders[file_type](tmp_location)`という呼び出し側のコードは、`file_type`の種類によらず**常に引数を1つだけ渡す**形になっている
+  - そこで`lambda path: TextLoader(path, autodetect_encoding=True)`を値にする。これは「`path`を1つ受け取り、`TextLoader(path, autodetect_encoding=True)`を返す関数」なので、外側から見れば`PyPDFLoader`や`Docx2txtLoader`と同じ「引数1つで呼べる関数」に見える
+  - つまりこのlambdaは、`TextLoader`だけが必要とする追加引数を**内部に隠蔽し**、呼び出し側のインターフェースを他のローダーと揃えるための橋渡し役になっている
 
 ---
 
