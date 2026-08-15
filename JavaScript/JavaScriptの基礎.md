@@ -908,6 +908,42 @@ Object.entries(user) // [["name","太郎"], ...] キーと値のペア配列
 Object.assign({}, user)      // 浅いコピー
 { ...user, age: 30 }         // スプレッドでコピー＋上書き
 ```
+
+### メソッド（オブジェクトのプロパティとしての関数）
+- **メソッドとは**：オブジェクトのプロパティの値が関数になっているもの。つまり「オブジェクトに紐づいた関数」のこと
+- `greet() { ... }`のような書き方は**メソッドの短縮記法**（ES6以降）で、従来の「プロパティに関数式を代入する書き方」と全く同じ意味
+  ```javascript
+  const person = {
+    name: "太郎",
+    // 短縮記法
+    greet(formal) {
+      return formal ? `こんにちは、${this.name}です。` : `やあ、${this.name}だよ。`;
+    },
+  };
+
+  // 上と同じ意味（従来の書き方）
+  const person2 = {
+    name: "太郎",
+    greet: function (formal) {
+      return formal ? `こんにちは、${this.name}です。` : `やあ、${this.name}だよ。`;
+    },
+  };
+
+  person.greet(true); // "こんにちは、太郎です。"
+  ```
+- **`this`が使える理由**：`person.greet()`のように「そのオブジェクトを通して」呼び出すことで、関数内の`this`が`person`を指すようになる（[`this`の節](#this)を参照）
+> [!WARNING]
+> アロー関数で書くと`this`がずれる
+> ```javascript
+> const person = {
+>   name: "太郎",
+>   greetArrow: (formal) => `こんにちは、${this.name}です。`, // NG
+> };
+>
+> person.greetArrow(); // "こんにちは、undefinedです。"（thisが外側のスコープを指すため）
+> ```
+> アロー関数は自身の`this`を持たず外側のスコープの`this`を引き継ぐため、メソッドとして定義する場合は短縮記法（またはfunction式）を使う
+
 ### `const`で宣言してもプロパティの追加・変更・削除はできる
 - `const`で宣言したオブジェクトでも、プロパティの追加・変更・削除はできる。一方で`user = {}`のような**再代入はできない**
   ```javascript
