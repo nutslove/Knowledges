@@ -21,6 +21,75 @@
 ...      --> <end>
 ```
 
+## Transformer全体のアーキテクチャ図
+- 原論文「Attention Is All You Need」のアーキテクチャ図をベースにした全体像
+- 左側がエンコーダ（N層積み重ね）、右側がデコーダ（N層積み重ね）
+- **BERTは左側（エンコーダ）のみ、GPTは右側（デコーダ）のみを使用するモデル**
+  - ただし、デコーダのみのモデル（GPT等）では、エンコーダ出力を参照するCross-Attentionは存在しないため、右側の「Masked Multi-Head Attention → Feed Forward」の2層構成のみが使われる
+
+```mermaid
+flowchart BT
+    subgraph ENC["エンコーダ（N×）"]
+        direction BT
+        E_IN["Inputs"] --> E_EMB["Input Embedding"]
+        E_POS["Positional Encoding"] --> E_ADD0
+        E_EMB --> E_ADD0["+"]
+        E_ADD0 --> E_DROP0["Dropout"]
+        E_DROP0 --> E_MHA["Multi-Head Attention（Self-Attention）"]
+        E_MHA --> E_DROPA["Dropout"]
+        E_DROPA --> E_ADD1["Add（＋残差加算）"]
+        E_DROP0 -. 残差接続 .-> E_ADD1
+        E_ADD1 --> E_LN1["LayerNorm"]
+        E_LN1 --> E_FF["Feed Forward"]
+        E_FF --> E_DROPB["Dropout"]
+        E_DROPB --> E_ADD2["Add（＋残差加算）"]
+        E_LN1 -. 残差接続 .-> E_ADD2
+        E_ADD2 --> E_LN2["LayerNorm"]
+    end
+
+    subgraph DEC["デコーダ（N×）"]
+        direction BT
+        D_IN["Outputs (shifted right)"] --> D_EMB["Output Embedding"]
+        D_POS["Positional Encoding"] --> D_ADD0
+        D_EMB --> D_ADD0["+"]
+        D_ADD0 --> D_DROP0["Dropout"]
+        D_DROP0 --> D_MMHA["Masked Multi-Head Attention（Self-Attention）"]
+        D_MMHA --> D_DROPA["Dropout"]
+        D_DROPA --> D_ADD1["Add（＋残差加算）"]
+        D_DROP0 -. 残差接続 .-> D_ADD1
+        D_ADD1 --> D_LN1["LayerNorm"]
+        D_LN1 --> D_MHA["Multi-Head Attention（Cross-Attention）"]
+        D_MHA --> D_DROPB["Dropout"]
+        D_DROPB --> D_ADD2["Add（＋残差加算）"]
+        D_LN1 -. 残差接続 .-> D_ADD2
+        D_ADD2 --> D_LN2["LayerNorm"]
+        D_LN2 --> D_FF["Feed Forward"]
+        D_FF --> D_DROPC["Dropout"]
+        D_DROPC --> D_ADD3["Add（＋残差加算）"]
+        D_LN2 -. 残差接続 .-> D_ADD3
+        D_ADD3 --> D_LN3["LayerNorm"]
+    end
+
+    E_LN2 -- "エンコーダ出力（K, V）" --> D_MHA
+
+    D_LN3 --> LIN["Linear"]
+    LIN --> SM["Softmax"]
+    SM --> OUT["Output Probabilities（次トークンの確率分布）"]
+```
+
+- 図中の要点
+  - **Add & Norm**は1つの箱ではなく、実際には**「Dropout」→「Add（＋残差加算）」→「LayerNorm」という処理**（図中では分けて表示）
+    - **Dropout**: サブレイヤー（Attention/FFN）の出力に適用（学習時のみ有効。詳細は後述の「GPT系LLM」節を参照）
+    - **Add（＋残差加算）**: サブレイヤーに入る前のベクトルと、Dropoutを通したサブレイヤー出力を**そのまま足し合わせる**（`出力 = x + Dropout(サブレイヤー(x))`）
+    - **LayerNorm**: 足し合わせた後のベクトルを正規化し、値のスケールを整える
+  - **埋め込み直後のDropout**: Input/Output EmbeddingとPositional Encodingを足した直後にもDropoutが適用される（原論文 "Attention Is All You Need" 5.4節に明記）
+  - **エンコーダのMulti-Head Attention**: 入力文自身の中での関係性を計算するSelf-Attention
+  - **デコーダのMasked Multi-Head Attention**: これまで生成したトークンのみを参照できるようにマスクをかけたSelf-Attention（未来のトークンを見ないようにする）
+  - **デコーダのMulti-Head Attention（Cross-Attention）**: エンコーダの出力をKey/Valueとして受け取り、デコーダのQueryと組み合わせて入力文との整合性を考慮する部分。**デコーダのみのモデル（GPT等）ではこのブロックが存在しない**
+  - **Linear → Softmax**: デコーダの最終出力を語彙サイズのベクトルに変換し、確率分布として次のトークンを予測する
+  - この原論文の構成は**Post-LN**（Attention/FFNの後にLayerNorm）。GPT系はこれと構成が異なる（**Pre-LN**）ので詳細は後述の「GPT系LLM（デコーダのみ）のアーキテクチャ」節を参照
+  - 参考: [Attention Is All You Need（原論文）](https://arxiv.org/abs/1706.03762)
+
 ## エンコーダ
 - 入力文をベクトル表現に変換する
 - 処理の流れ:
@@ -127,12 +196,12 @@
 - が: 0.8
 - 好き: 2.0
 
-**ソフトマックス適用後の重み**：
-- 私: 0.08 (8%)
-- は: 0.03 (3%)
-- 猫: 0.55 (55%) ← 最も高い注意
-- が: 0.05 (5%)
-- 好き: 0.29 (29%)
+**ソフトマックス適用後の重み**（実際に計算した値）：
+- 私: 0.09 (9%)
+- は: 0.04 (4%)
+- 猫: 0.61 (61%) ← 最も高い注意
+- が: 0.06 (6%)
+- 好き: 0.20 (20%)
 
 ##### ▼ ソフトマックスの重要な特性
 1. **確率分布**： **すべての出力値は 0〜1 の間で、すべての出力値の合計は必ず1**
@@ -140,10 +209,10 @@
 3. **微分可能**：機械学習での学習に適している
 4. **温度パラメータ**：T（温度）で割ることで分布の鋭さを調整可能
 
-温度の効果例（スコア [2.0, 1.0, 0.1] で）：
+温度の効果例（スコア [2.0, 1.0, 0.1] で、実際に計算した値）：
 - T=1（通常）：[0.66, 0.24, 0.10]
-- T=0.5（鋭い）：[0.84, 0.14, 0.02]
-- T=2（平坦）：[0.46, 0.33, 0.21]
+- T=0.5（鋭い）：[0.86, 0.12, 0.02]
+- T=2（平坦）：[0.50, 0.30, 0.19]
 
 ---
 
@@ -154,6 +223,86 @@
   - 目的変数: 次に来る単語（例: "cats"）
   - モデル訓練中は、目的変数の後ろにある単語をすべてマスクし、（例: "I love [MASK]"）LLMは目的変数の後ろにある単語にアクセスできない
 - 事前学習済みモデル（ベースモデル）を特定のタスクに適応させるために、ファインチューニングが行われる
+
+## GPT系LLM（デコーダのみ）のアーキテクチャ
+- ChatGPTやClaude、Llamaなど、現代の主要なLLMのほとんどは[[Transformerアーキテクチャ]]の**デコーダのみ**を使用する構成
+- Transformer原論文の右側（デコーダ）から、エンコーダ出力を参照する**Cross-Attentionを取り除いた**構成
+- 本などでよく「**Transformerブロック**」と呼ばれるのが、下図の「Transformerブロック（デコーダブロック）」のこと（同じものを指す別名）
+- 原論文のPost-LN（Attention/FFNの**後**にLayerNorm）ではなく、GPT-2以降の多くのLLMが採用する**Pre-LN**（Attention/FFNの**前**にLayerNorm）の構成で図示
+  - GPT-2の実装（`transformer.wte`/`wpe` → Dropout → N×デコーダブロック（各ブロック内は`ln_1`→Attention、`ln_2`→MLP） → 最終LayerNorm）はPre-LN構成で、この点は実装・解説記事でも確認できる
+
+```mermaid
+flowchart BT
+    IN["入力トークン列（プロンプト）"] --> EMB["Token Embedding"]
+    POS["Positional Encoding"] --> ADD0
+    EMB --> ADD0["+"]
+    ADD0 --> DROP0["Dropout<br/>（Embedding Dropout）"]
+
+    subgraph BLOCK["Transformerブロック（デコーダブロック）（N×）"]
+        direction BT
+        DROP0 --> LN1["LayerNorm"]
+        LN1 --> MMHA["Masked Multi-Head Self-Attention<br/>（これまでのトークンのみ参照可）"]
+        MMHA --> DROP1["Dropout"]
+        DROP1 --> ADD1["Add（＋残差加算）"]
+        DROP0 -. 残差接続 .-> ADD1
+        ADD1 --> LN2["LayerNorm"]
+        LN2 --> FF["Feed Forward"]
+        FF --> DROP2["Dropout"]
+        DROP2 --> ADD2["Add（＋残差加算）"]
+        ADD1 -. 残差接続 .-> ADD2
+    end
+
+    ADD2 --> FLN["最終LayerNorm<br/>（Final LayerNorm、N個のブロックの後に1回だけ）"]
+    FLN --> LIN["Linear（線形出力層 / 出力ヘッド）"]
+    LIN --> LOGIT["ロジット（logits）<br/>※モデルの出力はここまで"]
+    LOGIT -. 生成時のみ適用 .-> SM["Softmax"]
+    SM --> OUT["次トークンの確率分布"]
+```
+
+- Cross-Attention（エンコーダ出力を参照するブロック）が無いため、入力自身の文脈（これまで生成した／与えられたトークン列）だけを頼りに次のトークンを予測する
+- この「次のトークンを予測する」処理を1トークンずつ繰り返すことで文章全体を生成する（＝**自己回帰（Autoregressive）生成**）
+
+### 補足：Dropoutが入る場所
+- **Dropout**は学習時に一部のニューロン（値）をランダムに0にすることで過学習を防ぐ手法。**推論（生成）時は無効化**される
+- 主に3箇所に入る
+  1. **Embedding Dropout**: Token EmbeddingとPositional Encodingを足した直後
+  2. **Attention Dropout**: Masked Self-Attentionの出力（残差加算する直前）
+  3. **FFN Dropout**: Feed Forwardの出力（残差加算する直前）
+- Attention内部（Attention Weight計算後）にもDropoutを入れる実装もある（本や実装によって多少構成が異なる）
+
+### 補足：残差接続・LayerNorm・最終LayerNormについて
+- **残差接続（Residual Connection）**: サブレイヤー（Self-AttentionやFeed Forward）の入力を、そのサブレイヤーの出力にそのまま足し合わせる仕組み
+  - 層を深く積み重ねても勾配が消失しにくくなり、学習が安定する
+- **LayerNorm（Layer Normalization）**: 各トークンのベクトルを正規化し、学習をさらに安定・高速化する
+- 原論文（およびBERT等）は「Attention/FFNの**後**にLayerNorm」という**Post-LN**方式だが、GPT-2以降の多くのLLMは「Attention/FFNの**前**にLayerNorm」という**Pre-LN**方式を採用している
+  - Pre-LNの方が層を深くしても学習が発散しにくいため
+- **最終LayerNorm（Final LayerNorm）**: Pre-LN方式では各ブロックの出力そのものは正規化されずに残差加算だけで終わるため、**N個のTransformerブロックを全部通過した後、Linear（出力層）に渡す直前に1回だけ**LayerNormをかける
+  - 本に書かれている「正規化を適用し」は、多くの場合この最終LayerNormのことを指す
+- Llama系などの最近のモデルでは、LayerNormの代わりに計算がより軽量な**RMSNorm**（平均を引く処理を省略した正規化）を使うことも多い
+- いずれの方式でも「残差接続＋何らかの正規化」という骨格自体はTransformer登場時から変わらず維持されている
+
+### 補足：Linear（線形出力層）とSoftmaxの違い
+- **Linear（線形出力層／出力ヘッド）**: 最終LayerNormを通したベクトルを、語彙サイズ次元の**ロジット（logits）**に変換する層。**モデルの forward 計算はここで終わり**
+- **Softmax**: ロジットを0〜1の確率分布に変換する処理。**モデル自体には含まれず、生成（デコーディング）時に必要に応じて適用される別ステップ**
+  - 貪欲法（Greedy）でロジットの最大値のトークンをそのまま選ぶ場合はSoftmaxすら不要（`argmax`で足りる）
+  - サンプリングで次トークンを確率的に選ぶ場合や、温度・Top-k・Top-pなどを適用する場合にSoftmaxが使われる
+- つまり本の「線形出力層でロジットを生成する」という記述は**Linearのみ**を指しており、図のSoftmaxはそこに含まれない
+
+### 自己回帰（Autoregressive）生成の流れ
+- 生成したトークンを毎回入力の末尾に追加し、再度モデルに入力し直すことで次のトークンを予測する、というループを`<end>`トークンが出るまで繰り返す
+
+```mermaid
+flowchart LR
+    P0["'I love'"] --> M0["LLM"] --> T0["予測: 'cats'"]
+    T0 --> P1["'I love cats'"]
+    P1 --> M1["LLM（同じモデル・重み）"] --> T1["予測: '.'"]
+    T1 --> P2["'I love cats.'"]
+    P2 --> M2["LLM"] --> T2["予測: '&lt;end&gt;'"]
+    T2 --> STOP["生成終了"]
+```
+
+- 各ステップでモデルは同一（重みは共有）で、入力トークン列が1つずつ伸びていく点がポイント
+- 推論時にこの繰り返しがあるため、生成が長くなるほど計算コストも増える（KVキャッシュなどはこの再計算を効率化するための工夫）
 
 ## テンソル（Tensor）
 - **多次元配列**のこと
@@ -268,8 +417,10 @@
 
 ### Classification Fine-tuning
 - モデルに対してカテゴリ分類を行うための手法
-- 例えば、画像を特定のカテゴリに分類するために、画像とそのカテゴリラベルを用いてモデルを再学習させる
-- e.g. 画像を「犬」「猫」「鳥」などのカテゴリに分類するための画像とラベルのペアで構成
+- 分類タスク自体は画像・テキストなどモデルの種類を問わず一般的な概念だが、**LLMの文脈では主にテキストの分類**に使われる
+  - e.g. メール本文を「スパム」「非スパム」に分類するために、メール本文とラベルのペアで再学習させる（スパム検知）
+  - e.g. レビュー文を「ポジティブ」「ネガティブ」に分類する（感情分析）
+- （参考：画像分類モデルの場合は、画像を「犬」「猫」「鳥」などのカテゴリに分類するための画像とラベルのペアで構成される）
 
 ---
 
@@ -309,5 +460,10 @@
 - トークン化の手法の一つ
 - サブワード単位のトークン化を実現し、未知の単語問題を軽減する
   - 事前に定義された語彙にない単語を、より小さなサブワード単位か、場合によっては文字単位に分解する
-- 頻出する文字をサブワードにマージし、頻出するサブワードを単語にマージするという方法で語彙を構築する
+- 語彙構築の流れ（正確には「文字→サブワード」「サブワード→単語」という2段階ではなく、以下を1つの連続した反復処理として繰り返す）
+  1. まず単語を文字単位に分解し、初期語彙とする
+  2. 隣接するシンボル（文字 or それまでにマージ済みのサブワード）のペアのうち、**出現頻度が最も高いペア**を探す
+  3. そのペアを1つの新しいシンボル（サブワード）として語彙に追加し、テキスト中の該当箇所をマージする
+  4. 目的の語彙サイズに達するまで2〜3を繰り返す（頻出パターンほど早い段階で1つのサブワード／単語にまとまっていく）
 - GPTなどのモデルで広く使用されている
+- 参考: [Neural Machine Translation of Rare Words with Subword Units（BPEをNLPに応用した原論文）](https://arxiv.org/abs/1508.07909)
