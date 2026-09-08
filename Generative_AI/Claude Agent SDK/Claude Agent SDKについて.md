@@ -1,5 +1,7 @@
 ## Claude Agent SDKとは
 
+- https://code.claude.com/docs/ko/agent-sdk/overview
+
 **Claude Agent SDK**は、Claude Codeを支えているエージェントループ・ツール実行・コンテキスト管理などの仕組みを、そのままライブラリとして自分のアプリケーションに組み込めるようにしたSDK。Python / TypeScriptに対応している。
 
 > [!NOTE]
@@ -163,6 +165,43 @@ async with ClaudeSDKClient() as client:
 4. **繰り返し**：ツール呼び出しが無くなるまで2〜3を繰り返す（1サイクル＝1ターン）
 5. **結果返却**：最終`AssistantMessage`＋`ResultMessage`（最終テキスト・トークン使用量・コスト・セッションID）
 
+### 具体例：ループが実際にどう動くか
+
+「`auth.ts`の失敗しているテストを直して」という1つのプロンプトが、内部では複数ターンに分かれて処理される例：
+
+1. **ターン1**：Claudeが`Bash`で`npm test`を実行 → `AssistantMessage`（ツール呼び出し）→ 実行結果（失敗3件）が`UserMessage`として返る
+2. **ターン2**：Claudeが`Read`で`auth.ts`と`auth.test.ts`を読む → ファイル内容が返る
+3. **ターン3**：Claudeが`Edit`で`auth.ts`を修正し、再度`Bash`で`npm test` → 全テスト成功
+4. **最終ターン**：ツール呼び出しのないテキストのみの応答 →「Fixed the auth bug, all three tests pass now.」→ 続けて`ResultMessage`
+
+これを`ClaudeSDKClient`（Streaming Input Mode）で受け取ると、各ターンのツール呼び出し名まで見える：
+
+```python
+import asyncio
+from claude_agent_sdk import ClaudeSDKClient, ClaudeAgentOptions, AssistantMessage, ResultMessage
+
+async def main():
+    options = ClaudeAgentOptions(
+        allowed_tools=["Read", "Edit", "Bash"],
+        permission_mode="acceptEdits",
+    )
+    async with ClaudeSDKClient(options=options) as client:
+        await client.query("Fix the failing tests in auth.ts")
+        async for message in client.receive_response():
+            if isinstance(message, AssistantMessage):
+                for block in message.content:
+                    if hasattr(block, "text") and block.text:
+                        print(f"[thinking] {block.text}")
+                    elif hasattr(block, "name"):
+                        print(f"[tool call] {block.name}({getattr(block, 'input', {})})")
+            elif isinstance(message, ResultMessage):
+                print(f"[done] subtype={message.subtype} turns={message.num_turns} cost=${message.total_cost_usd}")
+
+asyncio.run(main())
+```
+
+実行すると、`[tool call] Bash(...)` → `[tool call] Read(...)` → `[tool call] Edit(...)` → `[tool call] Bash(...)` → `[thinking] Fixed the auth bug...` → `[done] subtype=success turns=4 ...` のように、ターンを追って出力される。
+
 ### メッセージ種別
 
 - `SystemMessage`：セッションライフサイクル（`init` / `compact_boundary` / `informational` / `worker_shutting_down`）
@@ -170,6 +209,67 @@ async with ClaudeSDKClient() as client:
 - `UserMessage`：ツール実行結果（ユーザーからの追加入力もここに乗る）
 - `StreamEvent`：部分メッセージ有効時のみ。生のストリーミングイベント
 - `ResultMessage`：ループ終了。最終テキスト・コスト・トークン使用量・`session_id`
+
+**種別ごとの判定方法**：Pythonは`isinstance()`、TypeScriptは`message.type`文字列で判定する。
+
+```python
+import asyncio
+from claude_agent_sdk import ClaudeSDKClient, SystemMessage, AssistantMessage, UserMessage, ResultMessage
+
+async def main():
+    async with ClaudeSDKClient() as client:
+        await client.query("Summarize this project")
+        # receive_response()は最初のResultMessageで終了する
+        async for message in client.receive_response():
+            if isinstance(message, SystemMessage):
+                if message.subtype == "init":
+                    print(f"Session started: {message.data.get('session_id')}")
+                elif message.subtype == "compact_boundary":
+                    print("Context was compacted")
+            elif isinstance(message, AssistantMessage):
+                print(f"Turn completed: {len(message.content)} content blocks")
+            elif isinstance(message, UserMessage):
+                print("Tool result received")
+            elif isinstance(message, ResultMessage):
+                if message.subtype == "success":
+                    print(message.result)
+                else:
+                    print(f"Stopped: {message.subtype}")
+
+asyncio.run(main())
+```
+
+```typescript
+import { query } from "@anthropic-ai/claude-agent-sdk";
+
+try {
+  for await (const message of query({ prompt: "Summarize this project" })) {
+    switch (message.type) {
+      case "system":
+        if (message.subtype === "init") {
+          console.log(`Session started: ${message.session_id}`);
+        }
+        break;
+      case "assistant":
+        // AssistantMessage/UserMessageは生のAPIメッセージを.messageにラップしている点に注意
+        console.log(`Turn completed: ${message.message.content.length} content blocks`);
+        break;
+      case "user":
+        console.log("Tool result received");
+        break;
+      case "result":
+        if (message.subtype === "success") {
+          console.log(message.result);
+        } else {
+          console.log(`Stopped: ${message.subtype}`);
+        }
+        break;
+    }
+  }
+} catch (error) {
+  console.log(`Session ended with an error: ${error}`);
+}
+```
 
 ### ループの制御オプション
 
@@ -182,6 +282,83 @@ async with ClaudeSDKClient() as client:
 | `model` | 使用モデルの明示指定（例: `"claude-sonnet-5"`） | 認証方法・契約プランに依存 |
 
 制限に達すると`ResultMessage`の`subtype`が`error_max_turns`や`error_max_budget_usd`になる。
+
+**設定・使用例**（本番運用を想定し、ターン数上限・推論レベル・プロジェクト設定読み込みをまとめて指定し、結果のsubtypeごとに分岐する）：
+
+```python
+import asyncio
+from claude_agent_sdk import ClaudeSDKClient, ClaudeAgentOptions, ResultMessage
+
+async def run_agent():
+    session_id = None
+    options = ClaudeAgentOptions(
+        allowed_tools=["Read", "Edit", "Bash", "Glob", "Grep"],  # 列挙したツールは自動承認
+        setting_sources=["project"],  # カレントディレクトリのCLAUDE.md/skills/hooksを読み込む
+        max_turns=30,       # 暴走防止
+        max_budget_usd=1.0, # コスト上限（$1を超えたら停止）
+        effort="high",      # デバッグなので厚めに推論させる
+        model="claude-sonnet-5",
+        permission_mode="acceptEdits",
+    )
+    async with ClaudeSDKClient(options=options) as client:
+        await client.query("Find and fix the bug causing test failures in the auth module")
+        async for message in client.receive_response():
+            if isinstance(message, ResultMessage):
+                session_id = message.session_id
+                if message.subtype == "success":
+                    print(f"Done: {message.result}")
+                elif message.subtype == "error_max_turns":
+                    print(f"Hit turn limit. Resume session {session_id} to continue.")
+                elif message.subtype == "error_max_budget_usd":
+                    print("Hit budget limit.")
+                else:
+                    print(f"Stopped: {message.subtype}")
+                if message.total_cost_usd is not None:
+                    print(f"Cost: ${message.total_cost_usd:.4f}")
+
+asyncio.run(run_agent())
+```
+
+```typescript
+import { query } from "@anthropic-ai/claude-agent-sdk";
+
+let sessionId: string | undefined;
+
+try {
+  for await (const message of query({
+    prompt: "Find and fix the bug causing test failures in the auth module",
+    options: {
+      allowedTools: ["Read", "Edit", "Bash", "Glob", "Grep"],
+      settingSources: ["project"],
+      maxTurns: 30,
+      maxBudgetUsd: 1.0,
+      effort: "high",
+      model: "claude-sonnet-5",
+      permissionMode: "acceptEdits"
+    }
+  })) {
+    if (message.type === "system" && message.subtype === "init") {
+      sessionId = message.session_id;
+    }
+    if (message.type === "result") {
+      if (message.subtype === "success") {
+        console.log(`Done: ${message.result}`);
+      } else if (message.subtype === "error_max_turns") {
+        console.log(`Hit turn limit. Resume session ${sessionId} to continue.`);
+      } else if (message.subtype === "error_max_budget_usd") {
+        console.log("Hit budget limit.");
+      } else {
+        console.log(`Stopped: ${message.subtype}`);
+      }
+      console.log(`Cost: $${message.total_cost_usd.toFixed(4)}`);
+    }
+  }
+} catch (error) {
+  console.log(`Session ended with an error: ${error}`);
+}
+```
+
+`max_budget_usd`にはサブエージェントの支出も合算されるため、上限に達すると新規サブエージェントの起動は`Budget limit reached`で失敗し、実行中のバックグラウンドのサブエージェントも停止する。
 
 ### コンテキストウィンドウと自動圧縮（Compaction）
 
@@ -231,20 +408,202 @@ async with ClaudeSDKClient() as client:
 > [!NOTE]
 > `bypassPermissions`はTypeScript SDKでは`options`に`allowDangerouslySkipPermissions: true`も明示しないと有効にならない。またUnix環境でroot実行時には使用不可。エージェントの操作が影響してよい隔離環境でのみ使うこと。
 
+## ClaudeAgentOptions（Options）全体マップ
+
+`query()`/`ClaudeSDKClient`（TSは`query()`）に渡す設定オブジェクト。Pythonは`snake_case`のdataclass（`ClaudeAgentOptions`）、TypeScriptは`camelCase`のオブジェクトリテラル（`Options`型）で、フィールドはほぼ1対1対応する。既出の`allowed_tools`/`disallowed_tools`/`setting_sources`/`max_turns`/`max_budget_usd`/`effort`/`model`/`permission_mode`以外の主要フィールドを整理する。
+
+### システムプロンプト・実行環境
+
+| Python | TypeScript | 内容 |
+|---|---|---|
+| `system_prompt` | `systemPrompt` | カスタムプロンプト文字列、または`{"type": "preset", "preset": "claude_code", "append": "..."}`でClaude Codeのデフォルトプロンプトに追記 |
+| `cwd` | `cwd` | 作業ディレクトリ |
+| `add_dirs` | `addDirs` | アクセスを許可する追加ディレクトリ |
+| `env` | `env` | 子プロセスに渡す環境変数 |
+| `cli_path` | `cliPath` | 使用するClaude Code CLI実行ファイルのパス |
+| `extra_args` | `extraArgs` | CLIへの追加引数 |
+| `stderr` | `stderr` | CLIのstderr出力を受け取るコールバック |
+
+```python
+options = ClaudeAgentOptions(
+    system_prompt={"type": "preset", "preset": "claude_code", "append": "Always write tests first."},
+    cwd="/path/to/project",
+    env={"NODE_ENV": "development"},
+)
+```
+
+```typescript
+const options = {
+  systemPrompt: { type: "preset", preset: "claude_code", append: "Always write tests first." },
+  cwd: "/path/to/project",
+  env: { NODE_ENV: "development" },
+};
+```
+
+### セッション管理
+
+| Python | TypeScript | 内容 |
+|---|---|---|
+| `continue_conversation` | `continueConversation` | 直近セッションを自動的に継続 |
+| `resume` | `resume` | 指定セッションIDから再開 |
+| `fork_session` | `forkSession` | 再開時、元セッションを変更せず新IDに分岐 |
+| `session_store` | `sessionStore` | ステートレス環境向けにトランスクリプトを外部バックエンドへミラーリング |
+
+### MCP・エージェント・スキル
+
+| Python | TypeScript | 内容 |
+|---|---|---|
+| `mcp_servers` | `mcpServers` | MCPサーバー構成（詳細は[MCP連携](#mcpmodel-context-protocol連携)節） |
+| `agents` | `agents` | `AgentDefinition`によるサブエージェントのプログラム的定義 |
+| `skills` | `skills` | ロードするSkillの指定（`"all"`または名前リスト） |
+| `hooks` | `hooks` | フック登録（詳細は[フック](#フックhooks)節） |
+
+`AgentDefinition`の例：
+
+```python
+agents = {
+    "code-reviewer": AgentDefinition(
+        description="Reviews code changes",
+        prompt="You are a meticulous code reviewer...",
+        tools=["Read", "Grep"],
+        model="claude-sonnet-5",
+    )
+}
+options = ClaudeAgentOptions(agents=agents)
+```
+
+```typescript
+const options = {
+  agents: {
+    "code-reviewer": {
+      description: "Reviews code changes",
+      prompt: "You are a meticulous code reviewer...",
+      tools: ["Read", "Grep"],
+      model: "claude-sonnet-5",
+    },
+  },
+};
+```
+
+### 権限・出力制御
+
+| Python | TypeScript | 内容 |
+|---|---|---|
+| `can_use_tool` | `canUseTool` | ツール実行可否を判定する自前コールバック（`permission_mode="default"`でallowルール外のツールが渡る） |
+| `permission_prompt_tool_name` | `permissionPromptToolName` | 権限確認に使うMCPツール名を指定 |
+| `include_partial_messages` | `includePartialMessages` | ストリーミングの生イベント（`StreamEvent`）を含めるか |
+| `output_format` | `outputFormat` | JSON Schemaによる構造化出力の指定 |
+
+`can_use_tool`の例（Pythonでは`can_use_tool`未指定時、allowルール外は既定でユーザー確認が発生する点に注意）：
+
+```python
+async def approve_reads_only(request):
+    if request.tool_name in ("Read", "Grep", "Glob"):
+        return {"approved": True}
+    return {"approved": False, "reason": "Only read-only tools are auto-approved"}
+
+options = ClaudeAgentOptions(can_use_tool=approve_reads_only)
+```
+
+### その他
+
+| Python | TypeScript | 内容 |
+|---|---|---|
+| `thinking` | `thinking` | 拡張思考の有効化・トークン予算（例:`{"type": "enabled", "budget_tokens": 10000}`） |
+| `enable_file_checkpointing` | `enableFileCheckpointing` | ファイル変更を追跡し、`rewind_files()`等でのリワインドを可能にする |
+| `settings` | `settings` | 読み込む設定ファイルのパス |
+| `betas` | `betas` | ベータ機能フラグの有効化 |
+
 ## フック（Hooks）
 
-エージェントループの特定タイミングで自分のプロセス内でコールバックを実行できる（コンテキストは消費しない）。
+エージェントループの特定タイミングで自分のプロセス内でコールバックを実行できる（コンテキストは消費しない）。`ClaudeAgentOptions`（TSは`options`）の`hooks`フィールドに、イベント名をキーとした辞書で登録する。
+
+### 主要フックイベント
 
 | フック | 発火タイミング | 用途例 |
 |---|---|---|
-| `PreToolUse` | ツール実行前 | 入力検証、危険なコマンドのブロック |
-| `PostToolUse` | ツール実行後 | 出力監査、副作用のトリガー |
+| `PreToolUse` | ツール実行前（ブロック・入力改変可能） | 入力検証、危険なコマンドのブロック |
+| `PostToolUse` | ツール実行結果後 | 出力監査、副作用のトリガー |
+| `PostToolUseFailure` | ツール実行がエラーになった時 | エラーハンドリング、ロギング |
 | `UserPromptSubmit` | プロンプト送信時 | 追加コンテキストの注入 |
 | `Stop` | エージェント終了時 | 結果検証、セッション状態の保存 |
 | `SubagentStart` / `SubagentStop` | サブエージェント開始/終了時 | 並列タスク結果の追跡・集約 |
 | `PreCompact` | コンテキスト圧縮前 | 全トランスクリプトのアーカイブ |
+| `PermissionRequest` | ツール呼び出しが権限判定を必要とする時 | カスタム権限ハンドリング |
+| `Notification` | エージェントのステータス通知時 | Slack/PagerDuty等への転送 |
 
-`PreToolUse`フックでツール呼び出しを拒否すると、そのツールは実行されずClaudeには拒否メッセージが返る。
+> [!NOTE]
+> 上記に加えてTypeScript SDKには`SessionStart`/`SessionEnd`（セッション開始/終了）、`PreModelSwitch`/`PostModelSwitch`（モデル切替前後）、`PermissionDenied`、`ConfigChange`、`FileChanged`など、より粒度の細かいフックイベントが多数存在する（バージョンにより追加される可能性があるため詳細は公式リファレンス参照）。Python SDKでは主要フック（上表）が中心。
+
+### 登録方法（`HookMatcher` / `matcher`）
+
+- キー：フックイベント名（例:`"PreToolUse"`）
+- 値：`HookMatcher`（TSはオブジェクトリテラル）のリスト。`matcher`でツール名にマッチさせ（未指定なら全イベント対象）、`hooks`にコールバック関数の配列を渡す
+- ツール系フックの`matcher`はツール名の文字列（`"Bash"`、`"Write|Edit"`のような正規表現も可）。MCPツールは`mcp__<サーバー名>__<ツール名>`形式でマッチさせる
+
+```python
+from claude_agent_sdk import ClaudeAgentOptions, HookMatcher
+
+async def block_dangerous_bash(input_data, tool_use_id, context):
+    if input_data["tool_name"] == "Bash" and "rm -rf" in input_data["tool_input"].get("command", ""):
+        return {
+            "hookSpecificOutput": {
+                "hookEventName": "PreToolUse",
+                "permissionDecision": "deny",
+                "permissionDecisionReason": "Dangerous command blocked",
+            }
+        }
+    return {}
+
+options = ClaudeAgentOptions(
+    hooks={
+        "PreToolUse": [HookMatcher(matcher="Bash", hooks=[block_dangerous_bash])],
+    }
+)
+```
+
+```typescript
+import { query, HookCallback, PreToolUseHookInput } from "@anthropic-ai/claude-agent-sdk";
+
+const blockDangerousBash: HookCallback = async (input) => {
+  const preInput = input as PreToolUseHookInput;
+  const command = (preInput.tool_input as { command?: string }).command ?? "";
+  if (preInput.tool_name === "Bash" && command.includes("rm -rf")) {
+    return {
+      hookSpecificOutput: {
+        hookEventName: "PreToolUse",
+        permissionDecision: "deny",
+        permissionDecisionReason: "Dangerous command blocked",
+      },
+    };
+  }
+  return {};
+};
+
+for await (const message of query({
+  prompt: "Clean up the temp directory",
+  options: { hooks: { PreToolUse: [{ matcher: "Bash", hooks: [blockDangerousBash] }] } },
+})) {
+  // ...
+}
+```
+
+### 入出力の型
+
+- **入力（`HookInput`）共通フィールド**：`session_id`、`cwd`、`hook_event_name`。`PreToolUse`/`PostToolUse`はさらに`tool_name`・`tool_input`（`PostToolUse`は`tool_output`も）・`tool_use_id`を持つ
+- **出力（`HookOutput`）**：`systemMessage`（ユーザーへの表示メッセージ）、`continue_`/`continue`（エージェント継続可否）、`hookSpecificOutput`（イベント固有の内容）を返せる。何も制御しない場合は`{}`を返せばよい
+
+### `PreToolUse`でのパーミッション制御
+
+`hookSpecificOutput.permissionDecision`に以下を指定してツール実行を制御できる：
+
+| 値 | 挙動 |
+|---|---|
+| `"allow"` | プロンプトなしで自動承認 |
+| `"deny"` | ツール実行をブロック（Claudeには拒否メッセージが返る） |
+| `"ask"` | ユーザーに確認を求める（未指定時のデフォルト） |
+
+`updatedInput`を一緒に返すと、ツールへの入力そのものを改変してから実行させることも可能（例：書き込み先パスをサンドボックス配下にリダイレクト）。
 
 ## サブエージェント（Subagents）
 

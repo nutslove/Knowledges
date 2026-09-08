@@ -987,21 +987,71 @@ async def good_example():
 ```
 
 ## 非同期ジェネレータ
-- `async for`を使った非同期イテレーション
+- `async def`の中に`yield`があると、それは**非同期ジェネレータ**になる（値を1つずつ非同期に**生成する側**）
+- 呼び出しても即座に非同期ジェネレータオブジェクトが返るだけで、中身はまだ実行されない（通常のジェネレータと同じ「遅延評価」）
+- これを反復する（消費する）ための構文が後述の[`async for`](#async-for)
 ```python
 import asyncio
 
 async def async_generator():
     for i in range(10):
-        await asyncio.sleep(0.1)
+        await asyncio.sleep(0.1)  # 例: DBやAPIから次のデータが来るのを待つ
         yield i
+```
 
+## `async for`
+- 非同期イテレータ（非同期ジェネレータもその一種）を反復する、**消費する側**の構文
+- 上記の`async_generator()`のように`yield`を持つ関数を呼んで得られるオブジェクトを反復するのに使う
+  - 「生成する側」＝ 非同期ジェネレータ、「消費する側」＝ `async for`という対の関係であり、`async for`自体が非同期ジェネレータというわけではない
+```python
 async def main():
     async for value in async_generator():
         print(value)
 
 asyncio.run(main())
 ```
+
+### 普通の`for`との違い
+- `async def`の中であっても、`for`が回している対象が**普通のリストやジェネレータ**なら、「次の要素を取り出す」処理自体（`__next__`）は同期的（一瞬で完了する）
+  ```python
+  async def main():
+      for x in [1, 2, 3]:        # リストは同期的なイテラブル
+          await do_something(x)  # ループの「中身」はawaitできる
+  ```
+  - ここでの`await do_something(x)`は**必ずその完了を待ってから次のループへ進む**（逐次実行）。「forが同期だから待たずに次へ進む」という意味ではない
+  - 「同期的」というのは、あくまで「次の値をリストから取り出す」という操作自体には待ち時間が発生しない、という意味
+- 一方`async for`は、 **「次の値を取り出す」という操作自体が非同期（awaitが必要）** という点が異なる
+
+| | 同期イテレータ | 非同期イテレータ |
+|---|---|---|
+| プロトコル | `__iter__` / `__next__` | `__aiter__` / `__anext__` |
+| 次の値を取る | 即座に返る | `__anext__()`はコルーチン ＝ await必要 |
+| 使うループ構文 | `for` | `async for` |
+
+`async for x in async_generator():`は、概念的には以下と等価。
+
+```python
+gen = async_generator()
+while True:
+    try:
+        x = await gen.__anext__()   # ← ここがawait可能（次の値の取得自体が待てる）
+    except StopAsyncIteration:
+        break
+    print(x)
+```
+
+つまり`async for`では、**「次の要素を取得する処理」自体の中に`await`を含められる**（`__anext__`が待機中にイベントループが他のタスクに制御を渡せる）。これが普通の`for`との本質的な違い。
+
+> [!NOTE]
+> `async for`は非同期イテレータ（`__aiter__`/`__anext__`を実装したオブジェクト）にしか使えない。普通のリストなどの同期イテラブルには使えない（`TypeError`になる）。逆に非同期ジェネレータを普通の`for`で回すこともできない。
+
+### 使いどころ
+「次の1件を取得すること自体がI/O待ちになる」場面で自然にフィットする。
+- DBカーソルから1行ずつ非同期に読む（`asyncpg`の`cursor()`など）
+- HTTPレスポンスをチャンクごとにストリーム受信する
+- WebSocketやキューからメッセージを1件ずつ受け取る
+
+単にリストや通常のジェネレータをループするだけなら、`async def`の中でも普通の`for`で十分であり、`async for`は不要。
 
 ## Executor
 - asyncioのイベントループ内で同期的な（ブロッキングな）処理を別スレッドや別プロセスで実行するための仕組み
