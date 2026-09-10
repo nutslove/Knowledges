@@ -445,7 +445,8 @@
   - **エラーは`ValueError`（または`AssertionError`）を`raise`する**と、Pydanticがそれを補足して`ValidationError`に変換してくれる
 
 - **`mode`引数による実行タイミングの制御**
-  - `mode="after"`（**デフォルト**）: Pydanticの**型変換・型チェックが終わった後**に実行される。引数`v`は型変換済みの値  
+  - ここでいう「実行される」の主語は **`@field_validator`が付いたバリデータ関数自身** （例では`check_price`）。Pydanticはまず自身の型変換・型チェックを行い、そのタイミングの**前**か**後**のどちらでバリデータ関数を呼び出すかを`mode`で制御する
+  - `mode="after"`（**デフォルト**）: Pydanticの**型変換・型チェックが終わった後**に（バリデータ関数が）実行される。引数`v`は型変換済みの値  
     ```python
     class Product(BaseModel):
         price: int
@@ -473,11 +474,44 @@
 
     Item(tags="a,b,c")  # tags=['a', 'b', 'c']
     ```
+  - `mode="wrap"`: **型変換・検証処理そのものを包み込む**モード。第二引数に`handler`（次の検証ステップを実行する関数）を受け取り、**自分で`handler(v)`を呼び出すタイミングを制御できる**。`before`と`after`を1つの関数で両方行いたい場合や、内部の検証エラーを捕捉して代替値にフォールバックしたい場合に使う  
+    ```python
+    from pydantic import BaseModel, field_validator
+    from pydantic_core.core_schema import ValidatorFunctionWrapHandler
 
-  | `mode` | 実行タイミング | 引数`v`の型 | 主な用途 |
-  |---|---|---|---|
-  | `"before"` | 型変換の**前** | 生の入力値（不定） | 型変換前の前処理・整形 |
-  | `"after"` | 型変換の**後** | 変換済みの型 | 変換後の値に対する検証 |
+    class Item(BaseModel):
+        price: int
+
+        @field_validator("price", mode="wrap")
+        @classmethod
+        def lenient_price(cls, v, handler: ValidatorFunctionWrapHandler) -> int:
+            try:
+                return handler(v)  # 通常の型変換・検証を実行
+            except Exception:
+                return 0  # 変換に失敗したら0にフォールバック
+
+    Item(price="abc")  # price=0（本来ならValidationErrorになるところをフォールバック）
+    ```
+  - `mode="plain"`: **`handler`を受け取らず、後続の型変換・検証を一切行わない**モード。バリデータの戻り値がそのままフィールドの値として確定する。Pydantic標準の型変換ロジックを完全にバイパスして独自ロジックだけで値を決定したい場合に使う  
+    ```python
+    class Item(BaseModel):
+        price: int
+
+        @field_validator("price", mode="plain")
+        @classmethod
+        def custom_only(cls, v) -> int:
+            # ここで自前の変換・検証を完結させる（以降 Pydantic の型チェックは走らない）
+            return int(str(v).replace(",", ""))
+
+    Item(price="1,000")  # price=1000
+    ```
+
+  | `mode` | 実行タイミング | 引数`v`の型 | `handler` | 主な用途 |
+  |---|---|---|---|---|
+  | `"before"` | 型変換の**前** | 生の入力値（不定） | なし | 型変換前の前処理・整形 |
+  | `"after"`（デフォルト） | 型変換の**後** | 変換済みの型 | なし | 変換後の値に対する検証 |
+  | `"wrap"` | 型変換・検証を**包み込む** | 生の入力値（不定） | あり（呼び出しタイミングを制御） | 前後処理の統合、例外のフォールバック |
+  | `"plain"` | 型変換・検証を**置き換える** | 生の入力値（不定） | なし | Pydantic標準の検証を完全にバイパス |
 
 - **複数フィールドへの適用**
   - デコレータに複数のフィールド名を渡すと、同じバリデータをまとめて適用できる  
@@ -547,3 +581,81 @@
 
 - **単一フィールドの値そのものを検証・変換**したい → `field_validator`
 - **複数フィールドの組み合わせ（相関）を検証**したい → `model_validator`
+
+### `computed_field`
+- **他のフィールドの値から計算される「派生値」を、モデルのフィールドであるかのように`model_dump()`や`model_dump_json()`の出力・JSON Schemaに含めるためのデコレータ**
+  - Pydantic v2で導入
+  - **`@property`（または`@cached_property`）と組み合わせて使う必要がある**（`@computed_field`は`@property`の**上**に付ける）
+    - `@property`（や`@cached_property`）を伴わない普通のメソッドに`@computed_field`を付けると、Pydanticが`PydanticUserError`を送出する
+- 基本構文  
+  ```python
+  from pydantic import BaseModel, computed_field
+
+  class Rectangle(BaseModel):
+      width: float
+      height: float
+
+      @computed_field
+      @property
+      def area(self) -> float:
+          return self.width * self.height
+
+  r = Rectangle(width=3, height=4)
+  print(r.area)  # 12.0 （通常のプロパティとしてアクセス可能）
+
+  print(r.model_dump())
+  # {'width': 3.0, 'height': 4.0, 'area': 12.0}  ← area も出力に含まれる
+
+  print(r.model_dump_json())
+  # {"width":3.0,"height":4.0,"area":12.0}
+  ```
+- **通常の`@property`だけでは`model_dump()`や`model_dump_json()`の出力に含まれない**が、`@computed_field`を付けることで出力対象になる
+  ```python
+  class Rectangle(BaseModel):
+      width: float
+      height: float
+
+      @property  # computed_field なし
+      def area(self) -> float:
+          return self.width * self.height
+
+  r = Rectangle(width=3, height=4)
+  r.area           # 12.0（アクセスは可能）
+  r.model_dump()   # {'width': 3.0, 'height': 4.0} ← area は含まれない
+  ```
+- **読み取り専用**（`r.area = 10`のように直接代入しようとするとエラーになる。値は必ず元のフィールドから計算される）
+- **戻り値の型ヒントは必須**（`-> float`のように明示する。型ヒントがないと`computed_field`はエラーを出す）
+- 主なオプション
+  - `alias`: シリアライズ時のKey名を変更  
+    ```python
+    @computed_field(alias="totalArea")
+    @property
+    def area(self) -> float:
+        return self.width * self.height
+    ```
+  - `return_type`: 戻り値の型を明示的に指定（型推論できない場合などに使用）
+  - `repr`: `__repr__`にこのフィールドを含めるかどうか（デフォルトは`True`）
+- **JSON Schemaにも反映される**（`readOnly: true`として出力される）ため、APIレスポンスのドキュメント化にも有用
+- `@cached_property`との組み合わせ
+  - `@property`は**アクセスするたびに毎回再計算**されるが、`@cached_property`は**初回アクセス時の計算結果をキャッシュ**し、以降は再計算しない
+  - 値が変わらない・計算コストが高い派生値には`@cached_property`の方が適している  
+    ```python
+    from functools import cached_property
+    from pydantic import BaseModel, computed_field
+
+    class Rectangle(BaseModel):
+        width: float
+        height: float
+
+        @computed_field
+        @cached_property
+        def area(self) -> float:
+            print("計算中...")
+            return self.width * self.height
+
+    r = Rectangle(width=3, height=4)
+    r.area  # "計算中..." が出力され、12.0が計算・キャッシュされる
+    r.area  # キャッシュ済みのため "計算中..." は出力されない
+    ```
+  - **注意**: `@cached_property`はキャッシュした値をインスタンス自身に保持するため、モデルの`model_config`で`frozen=True`（イミュータブル化）を指定している場合は使えない（属性への書き込みが発生するため）
+- `field_validator`・`model_validator`が**入力データの検証・変換**を行うのに対し、`computed_field`は**出力時に他フィールドから値を導出して追加する**という役割の違いがある
