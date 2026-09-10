@@ -61,6 +61,7 @@
 | `MutableMapping` | 変更可能なマッピング型 | `dict` |
 | `Callable` | 呼び出し可能なオブジェクト | 関数、メソッド、lambda |
 | `Container` | `in`演算子が使えるオブジェクト | `list`, `tuple`, `set`, `dict`, `str` |
+| `Awaitable` | `await`可能なオブジェクト | コルーチン、`asyncio.Future`, `asyncio.Task` |
 
 > [!NOTE]  
 > #### Iteratorの例
@@ -75,6 +76,47 @@
 > # 3
 > # next(my_iterator)
 > # StopIteration例外が発生
+> ```
+
+> [!NOTE]  
+> #### Callableの例
+> ```python
+> from collections.abc import Callable
+>
+> # Callable[[引数1の型, 引数2の型, ...], 戻り値の型]
+> # → Callable[[int, int], int] は「int型の引数を2つ受け取り、int型を返す」呼び出し可能オブジェクト
+> def apply_func(func: Callable[[int, int], int], a: int, b: int) -> int:
+>     return func(a, b)
+>
+> def add(a: int, b: int) -> int:
+>     return a + b
+>
+> print(apply_func(add, 3, 5))              # 8
+> print(apply_func(lambda x, y: x * y, 3, 5))  # 15
+>
+> # isinstanceでのチェックも可能
+> print(isinstance(add, Callable))  # True
+> print(isinstance(3, Callable))    # False
+> ```
+
+> [!NOTE]  
+> #### Awaitableの例
+> ```python
+> import asyncio
+> from collections.abc import Awaitable
+>
+> async def fetch_data() -> str:
+>     await asyncio.sleep(1)
+>     return "data"
+>
+> coro = fetch_data()
+> print(isinstance(coro, Awaitable))  # True（コルーチンはAwaitable）
+>
+> async def main():
+>     result = await coro  # Awaitableなオブジェクトはawaitできる
+>     print(result)
+>
+> asyncio.run(main())
 > ```
 
 ### 主な用途
