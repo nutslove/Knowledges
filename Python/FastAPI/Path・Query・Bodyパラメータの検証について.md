@@ -6,27 +6,65 @@ Path Operation Functionの引数は、型アノテーションだけでも自動
 
 ---
 
+## 0. 前提：パス/クエリ/ボディの判定ルール
+
+- パスの `{item_id}` と**名前が一致** → **パスパラメータ**
+- パスに無い単純型（`int`/`str`など） → **クエリパラメータ**
+- `BaseModel` を継承したクラス → **リクエストボディ**
+
+詳細は→[request, responseのスキーマについて](request,%20responseのスキーマについて.md)
+
+```python
+from pydantic import BaseModel
+
+
+class Item(BaseModel):
+    name: str
+    price: float
+
+
+# パスパラメータ：パスの {item_id} と名前が一致
+@app.get("/items/{item_id}")
+async def read_item(item_id: int):
+    return {"item_id": item_id}
+
+
+# クエリパラメータ：パスに無い単純型 → /items/?q=xxx
+@app.get("/items/")
+async def read_items(q: str | None = None):
+    return {"q": q}
+
+
+# リクエストボディ：BaseModel を継承したクラス
+@app.post("/items/")
+async def create_item(item: Item):
+    return item
+```
+
+---
+
 ## 1. なぜ必要か
 
 型アノテーションだけでは「型が合っているか」しか検証できない。「1以上100以下」「3文字以上50文字以内」「特定のパターンに一致」といった**値の制約**を付けたいときに `Path()` / `Query()` / `Body()` を使う。
 
 ```python
 from typing import Annotated
-from fastapi import FastAPI, Path, Query
+from fastapi import FastAPI, Body, Path, Query
 
 app = FastAPI()
 
 
-@app.get("/items/{item_id}")
+@app.put("/items/{item_id}")
 async def read_item(
     item_id: Annotated[int, Path(ge=1, le=1000, description="商品ID")],
     q: Annotated[str | None, Query(min_length=3, max_length=50)] = None,
+    importance: Annotated[int, Body(ge=1, le=5, description="重要度")] = 1,
 ):
-    return {"item_id": item_id, "q": q}
+    return {"item_id": item_id, "q": q, "importance": importance}
 ```
 
-- `item_id` はパスの `{item_id}` と名前が一致しているので**パスパラメータ**、`q` はパスに無いので**クエリパラメータ**と判定される（この判定ルール自体は `Path()`/`Query()` の有無に関係ない）
-- `Path()` / `Query()` は「どこから来るか」を変えるものではなく、**そこに来た値へ制約・メタデータを追加する**ためのもの
+- `item_id` はパスの `{item_id}` と名前が一致しているので**パスパラメータ**、`q` はパスに無いので**クエリパラメータ**、`importance` は単純な型だが `Body()` が付いているので**ボディパラメータ**と判定される（この判定ルール自体は `Path()`/`Query()`/`Body()` の有無に関係ない。`Body()` については[5.](#5-body-で単純な値をボディに含める)で詳述）
+- `Path()` / `Query()` / `Body()` は「どこから来るか」を変えるものではなく、**そこに来た値へ制約・メタデータを追加する**ためのもの
 
 ---
 
@@ -130,7 +168,7 @@ async def update_item(
     return {"item_id": item_id, "item": item, "importance": importance}
 ```
 
-- `importance` は本来なら型が単純なので**クエリパラメータ**と解釈されるが、`Body()` を付けることで**ボディの一部**として扱われる
+- `importance` は本来ならパスの `{item_id}` にも一致せず `BaseModel` でもないため**クエリパラメータ**と解釈されるが、`Body()` を付けることで**ボディの一部**として扱われる
 - 複数のPydanticモデルを同時にボディで受けると、FastAPIは自動的にモデル名をキーにしたネスト構造を期待する
 
 ```python

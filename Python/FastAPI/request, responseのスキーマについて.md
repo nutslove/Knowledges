@@ -37,8 +37,32 @@ async def create_item(item: Item):
   - デフォルト値を指定しないフィールドは**必須**（リクエストに含まれていないとエラー）
   - `| None = None`（または`Optional[str] = None`）を付けると**任意**になる
 
+### 判定ルール
+
+Path Operation Functionの引数は、以下の順序で自動的に「パス/クエリ/ボディのどこから来るか」が判定される。
+
+1. 型が `BaseModel` を継承したクラス → **リクエストボディ**
+2. それ以外の単純型（`str` / `int` / `float` / `bool` など）
+   - パスの `{...}` 内の名前と**一致する** → **パスパラメータ**
+   - 一致しない → **クエリパラメータ**
+
+```python
+class Item(BaseModel):
+    name: str
+    price: float
+
+
+@app.get("/items/{item_id}")
+async def read_item(
+    item_id: int,        # パスの {item_id} と名前が一致 → パスパラメータ
+    q: str | None = None,  # 単純型でパスにも無い → クエリパラメータ
+    item: Item | None = None,  # BaseModel継承 → リクエストボディ
+):
+    return {"item_id": item_id, "q": q, "item": item}
+```
+
 > [!NOTE]
-> `create_item(item: Item)`の`item`は単なる**パラメータ名（変数名）なので任意**で、`body`でも`req_data`でも何でも構わない。
+> `create_item(item: Item)`の`item`は単なる**パラメータ名（変数名）なので任意の名前**で、`body`でも`req_data`でも何でも構わない。
 > 重要なのは **型アノテーション側（`: Item`）** で、FastAPIは「引数の型が`BaseModel`を継承したクラスかどうか」を見てリクエストボディとして解釈する。パラメータ名は判定に使われない。
 >
 > ```python
