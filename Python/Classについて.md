@@ -58,6 +58,41 @@
   nameless_dog.bark() --→ "This dog has no name."が出力される
   ```
 
+## クラス変数とインスタンス変数
+- **クラス変数**: クラス自身に1つだけ存在し、そのクラスから作られた全インスタンスで共有される変数（クラス直下、`__init__`の外で定義）
+- **インスタンス変数**: 各インスタンスが個別に持つ変数（`self.属性名 = 値`のように`self`経由で定義）
+  ```python
+  class Counter:
+      count = 0          # クラス変数（全インスタンスで共有）
+
+      def __init__(self, name):
+          self.name = name    # インスタンス変数（インスタンスごとに個別）
+          Counter.count += 1
+
+  c1 = Counter("a")
+  c2 = Counter("b")
+
+  print(Counter.count)     # 2 → c1とc2で共有されている
+  print(c1.name, c2.name)  # a b → それぞれ別の値
+  ```
+- アクセス方法
+  - クラス変数は`クラス名.変数名`（`Counter.count`）でも`インスタンス.変数名`（`c1.count`）でもアクセスできる
+  - ただし**インスタンスから代入すると、クラス変数は更新されず、そのインスタンス専用の新しいインスタンス変数が作られてしまう**点に注意  
+    ```python
+    c1.count = 100   # Counter.countは変わらず、c1だけに新しいインスタンス変数countができる
+    print(Counter.count)  # 2のまま
+    print(c1.count)       # 100
+    print(c2.count)       # 2（影響を受けない）
+    ```
+  - クラス変数自体を更新したい場合は、基本的に`クラス名.変数名 = 値`（例: `Counter.count += 1`）の形で書くのが安全
+- 主な用途
+  - 全インスタンスで共通の設定値・定数を持たせたいとき（例: `MAX_SIZE = 100`）
+  - インスタンス生成数のカウントなど、クラス全体で状態を共有したいとき
+- 関連
+  - [[classmethodについて]]（`cls`経由でクラス変数にアクセスするメソッド）
+  - [[staticmethodについて]]（クラス変数・インスタンス変数のどちらにもアクセスしないメソッド）
+  - [[Pydantic, TypedDict, typingについて]]の`ClassVar`（その属性がクラス変数であることを示す型ヒント）
+
 ---
 
 ## 継承 (inheritance)

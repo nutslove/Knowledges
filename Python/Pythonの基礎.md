@@ -799,7 +799,7 @@ from .subdir import module     # 子ディレクトリ
   # {'y': 2, 'z': 3}
   ```
 
-- 例 (クラス)  
+- 例 (クラス)（クラス変数・インスタンス変数の違いは[[Classについて]]を参照）  
   ```python
   class MyClass:
       class_var = "クラス変数"

@@ -176,6 +176,154 @@
 
       get_user(product_id)     # 型チェックツールでエラーになる（実行時は問題ない）
       ```
+10. `ClassVar`
+    - その属性が**インスタンス変数ではなくクラス変数**であることを示す型ヒント（クラス変数・インスタンス変数の違いは[[Classについて]]を参照）
+    - 実行時の強制力はなく、あくまで型チェッカー（mypyなど）や`dataclass`・`pydantic`に対して「この属性は個々のインスタンスが持つものではない」と伝えるためのもの
+    - 例（通常のクラス）  
+      ```python
+      from typing import ClassVar
+
+      class Counter:
+          count: ClassVar[int] = 0  # 全インスタンスで共有されるクラス変数
+          name: str                 # インスタンス変数
+
+          def __init__(self, name: str):
+              self.name = name
+              Counter.count += 1
+
+      c1 = Counter("a")
+      c2 = Counter("b")
+      print(Counter.count)  # 2
+      ```
+    - `dataclass`との組み合わせが代表的な用途  
+      ```python
+      from dataclasses import dataclass
+      from typing import ClassVar
+
+      @dataclass
+      class Config:
+          max_size: ClassVar[int] = 100  # __init__の引数にならない（dataclassのフィールドとして扱われない）
+          name: str
+
+      c = Config(name="app1")
+      print(Config.max_size)  # 100
+      ```
+      - `ClassVar`を付けないと`dataclass`はその属性を通常のインスタンスフィールドとみなし、`__init__`の引数に含めてしまう
+11. `TypeVar`
+    - **ジェネリック**（総称型）な関数やクラスで使う「型変数」を定義するための関数
+    - 呼び出し時に渡された実際の型に応じて、戻り値などの型が決まる
+    - 基本構文  
+      ```python
+      from typing import TypeVar
+
+      T = TypeVar("T")  # "T"は慣例的な名前。変数名と文字列は一致させるのが慣例（他の名前でも動作は同じ）
+
+      def first(items: list[T]) -> T:
+          return items[0]
+
+      first([1, 2, 3])   # T は int と推論される
+      first(["a", "b"])  # T は str と推論される
+      ```
+    - `bound`で「この型（のサブクラス）に限定する」という制約を付けられる  
+      ```python
+      from typing import TypeVar
+
+      Number = TypeVar("Number", bound=int | float)
+
+      def double(x: Number) -> Number:
+          return x * 2
+
+      double(3)     # OK（int）
+      double(3.5)   # OK（float）
+      double("a")   # 型チェッカーがエラーを検出
+      ```
+    - 候補となる型を列挙して制約することも可能（`bound`との違いはサブクラスを許容しない点）  
+      ```python
+      StrOrInt = TypeVar("StrOrInt", str, int)
+
+      def show(value: StrOrInt) -> None:
+          print(value)
+      ```
+    > [!NOTE]
+    > Python 3.12以降は`def first[T](items: list[T]) -> T:`のように、`TypeVar`を明示的に定義せず書ける新しいジェネリック構文（PEP 695）も使える
+    >
+    > `first[T]`の`[T]`は引数でも戻り値でもなく、**その関数（やクラス）専用の型変数`T`をここで宣言している**部分。旧構文でいう以下の2行の役割をまとめて担っている。
+    > ```python
+    > # 旧構文（Python 3.11以前も使える）
+    > T = TypeVar("T")                 # ← ①ここで型変数Tを定義
+    > def first(items: list[T]) -> T:  # ← ②定義したTを使う
+    >     return items[0]
+    >
+    > # 新構文（Python 3.12以降）
+    > def first[T](items: list[T]) -> T:  # ← [T]で定義と使用が一体化
+    >     return items[0]
+    > ```
+    > - `T`のスコープはその関数（やクラス）の中だけに閉じるため、モジュールレベルで`T = TypeVar("T")`を使い回すよりも名前の衝突を避けやすい
+    > - クラスの場合も同様で、旧構文の`class Stack(Generic[T]):`は新構文で`class Stack[T]:`と書ける
+12. `Generic`
+    - `TypeVar`を使って**クラス自体をジェネリック化**するための基底クラス
+    - `Generic[T]`を継承することで、インスタンス生成時に`Stack[int]`のように型パラメータを指定できるようになる
+    - **なぜ`Generic`を使うのか**: 「型の対応関係を保ったまま、汎用的な（どんな型にも使える）クラスを書けるようにする」ため
+      - `Generic`を使わずに汎用クラスを書こうとすると、`Any`に頼らざるを得ない  
+        ```python
+        from typing import Any
+
+        class Stack:
+            def __init__(self) -> None:
+                self._items: list[Any] = []
+
+            def push(self, item: Any) -> None:
+                self._items.append(item)
+
+            def pop(self) -> Any:
+                return self._items.pop()
+
+        s = Stack()
+        s.push(1)
+        s.push("a")     # int用のつもりが文字列も入ってしまう…型チェッカーは検出できない
+        value = s.pop()
+        value.upper()   # valueの実際の型はintかもしれないが、Anyなので型チェッカーはエラーを出さない
+        ```
+        - `Any`は「どんな型でもOK」という意味なので、型チェッカー（mypyなど）がそもそもチェックを放棄してしまい、バグを実行時まで発見できない
+      - 型安全にしたいなら`IntStack`, `StrStack`のように型ごとにクラスを複製する手もあるが、中身は同じロジックを何度も書くことになり`DRY`原則に反する
+      - `Generic`を使うとこの両方が解決する（下記の基本構文の例を参照）
+        - クラスは1つだけ書けばよく、`Stack[int]`、`Stack[str]`のようにどんな型でも使い回せる（コードの重複がない）
+        - それでいて、インスタンスごとに中身の型を型チェッカーに伝えられる（`Stack[int]`に文字列を`push`しようとするとエラーになる）
+        - IDEの補完も効くようになる（`int_stack.pop()`の戻り値がちゃんと`int`として認識される）
+      - 身近な例として、普段使っている`list[int]`や`dict[str, int]`も、Python標準の`list`や`dict`が内部的にジェネリック対応しているからこそ書ける。`Generic`を継承すれば自分が定義したクラスにも同じ仕組みを持たせられる（例: `Repository[User]`、`Response[T]`のような独自の汎用ラッパークラス）
+    - 基本構文  
+      ```python
+      from typing import Generic, TypeVar
+
+      T = TypeVar("T")
+
+      class Stack(Generic[T]):
+          def __init__(self) -> None:
+              self._items: list[T] = []
+
+          def push(self, item: T) -> None:
+              self._items.append(item)
+
+          def pop(self) -> T:
+              return self._items.pop()
+
+      int_stack: Stack[int] = Stack()
+      int_stack.push(1)
+      int_stack.push("a")  # 型チェッカーがエラーを検出（int_stackはStack[int]のため）
+      ```
+    - 型パラメータを複数持たせることも可能  
+      ```python
+      K = TypeVar("K")
+      V = TypeVar("V")
+
+      class Pair(Generic[K, V]):
+          def __init__(self, key: K, value: V) -> None:
+              self.key = key
+              self.value = value
+
+      p = Pair[str, int]("age", 30)
+      ```
+    - Python 3.12以降は`class Stack[T]:`のように`Generic`の明示的な継承なしでジェネリッククラスを書ける新しい構文（PEP 695）も使える
 
 # `Enum`
 - Python標準ライブラリ`enum`モジュールで提供される、**列挙型**を定義するためのクラス
