@@ -60,7 +60,7 @@ uv venv --python 3.12
 ```
 
 > [!NOTE]
-> `.python-version` ファイルでパッチバージョンまで指定すると、自動アップグレードが無効化される (uv 0.11.8〜)。
+> `.python-version` ファイルでパッチバージョンまで指定すると、自動アップグレードが無効化される (uv 0.11.11〜)。
 
 ---
 
@@ -72,18 +72,91 @@ uv init my-project
 cd my-project
 ```
 
-生成されるファイル:
+生成されるファイル (uv 0.12以降、デフォルトで「パッケージ化」される):
 ```
 my-project/
 ├── .git/              # gitリポジトリ (親がgitリポジトリでない場合のみ作成)
 ├── .gitignore         # Python向けの定番エントリが自動投入される
 ├── .python-version    # Pythonバージョン固定
 ├── README.md
-├── main.py
-└── pyproject.toml     # プロジェクトメタデータ&依存
+├── pyproject.toml     # [build-system] (uv_build) を含む
+└── src/
+    └── my_project/
+        └── __init__.py    # main() エントリーポイントを含む
 ```
 
 最初に `uv run` / `uv sync` / `uv lock` を実行すると `.venv/` と `uv.lock` が生成される。
+
+生成される `pyproject.toml` の中身:
+```toml
+[project]
+name = "my-project"
+version = "0.1.0"
+requires-python = ">=3.13"
+dependencies = []
+
+[project.scripts]
+my-project = "my_project:main"
+
+[build-system]
+requires = ["uv_build>=0.12.12,<0.13"]
+build-backend = "uv_build"
+```
+
+#### `[build-system]` とは
+
+Pythonのパッケージは本来「ソースコードの塊」ではなく、**ビルド (= wheelやsdistへの変換) を経てインストール可能な形式にする**必要がある。この変換処理を担当するツールを指定するのが `[build-system]` テーブル。
+
+- `build-backend = "uv_build"` → 「このビルド処理は `uv_build` というツールにやらせる」という宣言
+- `requires = [...]` → ビルドに必要なツール自体のバージョン指定
+
+これがあるかないかで、プロジェクトの扱われ方が変わる:
+
+| | `[build-system]` なし (旧デフォルト) | `[build-system]` あり (新デフォルト) |
+|---|---|---|
+| プロジェクト自体が `.venv/` にインストールされるか | ❌ されない (`main.py` を直接実行するだけ) | ✅ される (パッケージとして) |
+| `import my_project` できるか | ❌ できない | ✅ できる |
+| 他プロジェクトの依存として使えるか | ❌ 不可 | ✅ 可能 |
+
+つまり「ビルドシステムを持つ」= **プロジェクトが正式な「パッケージ」として扱われる**ということ。これが「packaged by default」の意味。
+
+#### `[project.scripts]` とは
+
+```toml
+[project.scripts]
+my-project = "my_project:main"
+```
+
+「**`my-project` というコマンドを叩いたら、`my_project` パッケージの `main()` 関数を呼び出す**」というエントリーポイント (入口) の定義。
+
+`uv sync` すると `.venv/bin/my-project` という実行可能ファイルが自動生成される (中身はざっくり `from my_project import main; main()` 相当)。なので:
+
+```bash
+uv run my-project        # [project.scripts]で定義したコマンド名を実行 → main()が呼ばれる
+```
+
+以前の `uv run python main.py` (スクリプトファイルを直接指定して実行) とは違い、「**コマンドとしてインストールされたエントリーポイントを叩く**」という発想になっている (`pip install`後の `black` や `ruff` コマンドと同じ仕組み)。
+
+> [!IMPORTANT]
+> #### uv 0.12.0〜: デフォルトで「パッケージ化」される (packaged by default)
+> - 従来 (uv 0.4〜0.11) は `main.py` 直下 + ビルドシステムなしのフラット構成だった
+> - 現在 (0.12.0〜、2026年7月28日リリース) はデフォルトで **`src/` レイアウト + `uv_build` を使った `[build-system]` + `[project.scripts]` エントリーポイント**が生成される
+> - プロジェクト自体が `.venv/` にインストールされ、パッケージとしてimport可能・コマンドとして実行可能になる
+> - 旧来のフラット構成 (ビルドシステムなし) が欲しい場合は **`uv init --no-package`**
+>
+> #### `uv_build` バックエンドの制限
+> - **pure Pythonのみ対応** (C拡張を含むプロジェクトは `maturin` / `scikit-build-core` 等が必要)
+> - プラグイン機構なし (hatchlingの拡張機能に相当するものがない)
+> - **動的バージョニング非対応** (`hatch-vcs` 等でgitタグからバージョンを取得する運用は `uv_build` では不可。`hatchling` を使う)
+> - ビルドフック/ビルドスクリプト非対応 (生成ファイルはビルド前に存在している必要がある)
+> - これらが必要な場合は `uv init --build-backend hatchling` 等に切り替える
+>
+> #### プロジェクト種別・ビルド関連オプション
+> - `--app` : アプリケーション向け (デフォルト)。Webサーバー/スクリプト/CLI向け
+> - `--lib` : 配布用ライブラリ向け。`py.typed` マーカー付きでsrcレイアウトを使う
+> - `--no-package` : ビルドシステムを省略し、トップレベルに `main.py` を直接配置する旧来の構成
+> - `--build-backend <name>` : `uv_build` (デフォルト) の代わりに `hatchling` / `maturin` / `scikit-build-core` 等を指定
+> - `--bare` で `.git/`、`.gitignore`、`.python-version`、`README.md`、`src/` も含めて全部スキップし `pyproject.toml` のみ生成
 
 > [!NOTE]
 > #### `uv init` のVCS関連オプション
@@ -93,7 +166,6 @@ my-project/
 > - 既に親ディレクトリがgitリポジトリ配下の場合は新規作成しない (既存リポジトリを尊重)
 > - `--vcs none` でgit初期化を無効化
 > - `--vcs git` で明示的に有効化 (既存リポジトリ内でも強制したい場合に使う)
-> - `--bare` で `.git/`、`.gitignore`、`.python-version`、`README.md`、`main.py` も含めて全部スキップし `pyproject.toml` のみ生成
 
 ### 依存追加・削除
 
@@ -227,7 +299,9 @@ uv lock --upgrade-package fastapi     # 特定パッケージのみアップグ�
 
 ### コマンド実行
 ```bash
-uv run python main.py                 # 自動でsyncしてから実行
+uv run my-project                     # [project.scripts]のエントリーポイントを実行 (packaged-by-defaultの場合)
+uv run python -m my_project           # モジュールとして実行
+uv run python main.py                 # --no-packageで作成した場合はこちら
 uv run pytest
 uv run --no-project ruff check        # プロジェクトを無視して実行
 uv run --with rich python -c "..."    # 一時的に依存を追加して実行
@@ -383,6 +457,24 @@ uv publish --token $PYPI_TOKEN
 uv publish --index testpypi           # TestPyPIへ
 ```
 
+### Trusted Publishing (推奨: GitHub ActionsからAPIトークン不要で公開)
+
+PyPI側で「Trusted Publisher」としてGitHubリポジトリを登録しておけば、OIDCの短命トークンを使って認証でき、長期のAPIトークンをCIに保存する必要がなくなる。
+
+```yaml
+# GitHub Actions
+permissions:
+  id-token: write    # OIDCトークン取得に必須
+
+steps:
+  - uses: astral-sh/setup-uv@v10
+  - run: uv build
+  - run: uv publish   # トークン未指定 → GitHub Actions環境を自動検出しOIDCで認証
+```
+
+> [!NOTE]
+> `uv publish` はTrusted Publishingで発行された短命トークンを、公開後 (失敗時も) 可能な限り無効化してくれる。
+
 ---
 
 ## 10. ワークスペース (モノレポ)
@@ -514,9 +606,9 @@ USER app
 
 ### GitHub Actions
 ```yaml
-- uses: astral-sh/setup-uv@v3
+- uses: astral-sh/setup-uv@v10
   with:
-    enable-cache: true
+    enable-cache: true    # GitHub-hostedランナーではデフォルトauto (省略可)
 - run: uv sync --frozen
 - run: uv run pytest
 ```
@@ -552,7 +644,7 @@ USER app
 | Workspace | ✅ | ❌ | ❌ | ⚠️ |
 | pip互換CLI | ✅ | ❌ | ✅ | ❌ |
 
-**現状の結論**: 新規プロジェクトはほぼ uv で良い。Rye は内部で uv を使う形になっており、Poetry からの移行も `uvx pdm import` 等で容易。
+**現状の結論**: 新規プロジェクトはほぼ uv で良い。Rye は2026年2月にアーカイブされ開発終了 (最終版0.44.0)、公式にuvへの移行が推奨されている。Poetry からの移行も `uvx migrate-to-uv` 等で容易。
 
 ---
 
