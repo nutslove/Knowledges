@@ -33,7 +33,7 @@ async def send_notification(email: str, background_tasks: BackgroundTasks):
 
 ## 2. `Depends` の中からも登録できる
 
-依存関数（`Depends`）の中でも `BackgroundTasks` を受け取って `add_task` できる。同一リクエスト内であれば、エンドポイント側とタスクは**同じ`BackgroundTasks`インスタンスを共有**する。
+`Depends`の中でも `BackgroundTasks` を受け取って `add_task` できる。FastAPIは**リクエストごとに`BackgroundTasks`インスタンスを1つだけ生成**し、それをエンドポイントと`Depends`の両方に注入する。つまり、エンドポイント側の`background_tasks.add_task(...)`と`Depends`側の`background_tasks.add_task(...)`は **同じインスタンス（＝同じタスクリスト）** に対して登録しており、両方のタスクがまとめてレスポンス送出後に実行される。
 
 ```python
 def get_notifier(background_tasks: BackgroundTasks) -> str:
