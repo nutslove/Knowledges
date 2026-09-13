@@ -6,6 +6,55 @@
 > [!IMPORTANT]
 > To use an interrupt, you must enable a **checkpointer**, as the feature relies on persisting the graph state.
 
+# interrupt使用時の注意点
+
+> [!WARNING]
+> `interrupt()` より前のコードは、resume(再開)時に**最初から再実行される**。そのため、`interrupt()` より前にAPI呼び出し・DB書き込み・メール送信などの副作用があると、再開のたびに二重実行されてしまう危険がある。
+> - 対策: 副作用は `interrupt()` の後、または別ノードに置く。どうしても前に置く場合は冪等(idempotent)にする。
+> - 参考: LangGraphのGitHub Issue #6208（2025年9月）でもこの「二重実行問題」が指摘されている。
+
+> [!IMPORTANT]
+> 1つのノード内で `interrupt()` を複数回呼ぶ場合、resumeの値は **呼ばれた順番（インデックス）** でマッチングされる。
+> - ノード内で `interrupt()` 呼び出しを条件分岐でスキップしたり、非決定的な `while` ループの中で使ったりすると、再実行のたびに対応がズレてバグになるため避けること。
+>
+> ### 例（OK: 呼び出し順序が常に同じ）
+> ```python
+> def node(state):
+>     name = interrupt("Q1: 名前を教えてください")  # 1回目のresumeが対応
+>     age = interrupt("Q2: 年齢を教えてください")    # 2回目のresumeが対応
+>     return {"name": name, "age": age}
+> ```
+> 1回目の実行 → Q1でinterruptが発生。`Command(resume="太郎")`で再開すると、ノードが最初から再実行され、1つ目の`interrupt()`は即座に`"太郎"`を返し、2つ目の`interrupt()`でQ2のinterruptが発生する。続けて`Command(resume="25")`で再開すると、1つ目・2つ目とも順番通りに値が返り、ノードが完了する。
+>
+> ⚠️ 注意: 「ノードが最初から再実行される」とはいえ、**再度Q1が質問されるわけではない**。resume値が既に対応している`interrupt()`は、停止せずに黙って(質問を出さずに)その値を即座に返すだけ。ただし「コードとしては再実行されている」のは事実なので、`interrupt()`の前や間に`print()`やAPI呼び出しなどの副作用があれば、それらは再実行のたびに毎回実行されてしまう(上記の「副作用は冪等にする」という注意点と関係する)。
+>
+> ### 例（NG: 条件分岐で `interrupt()` の呼び出し順序がズレる）
+> ```python
+> def node(state):
+>     if state.get("needs_extra_question"):  # 実行のたびに条件が変わりうる
+>         extra = interrupt("追加の確認質問")
+>     name = interrupt("Q1: 名前を教えてください")
+>     return {"name": name}
+> ```
+> 1回目は `needs_extra_question=True` で「追加の確認質問」が1番目の`interrupt()`として発生したが、resume後に状態が変わり2回目の実行では `needs_extra_question=False` になると、今度は「Q1」が1番目の`interrupt()`になってしまう。その結果、前回「追加の確認質問」への回答として渡したはずのresume値が、誤って「Q1」の回答として使われてしまう。
+
+> [!IMPORTANT]
+> `interrupt()` は内部で `GraphInterrupt` 例外を発生させることで一時停止を実現している。そのため、`interrupt()` の呼び出しを広い範囲の `try/except` で囲むと、この例外を握りつぶしてしまい正しく動作しなくなる。
+
+> [!IMPORTANT]
+> `interrupt()` に渡す値は**JSONシリアライズ可能なもの**に限る。関数やクラスインスタンスなど非シリアライズ可能な値は、特に永続化checkpointer使用時に失敗する。
+>
+> ### 例
+> ```python
+> interrupt({"question": "実行してよいですか？", "options": ["yes", "no"]})  # OK: dict/str/list のみで構成
+>
+> interrupt({"validate": lambda x: x > 0})  # NG: 関数はJSONシリアライズ不可
+> interrupt(MyCustomClass())                # NG: クラスインスタンスもJSONシリアライズ不可
+> ```
+
+> [!IMPORTANT]
+> 下記サンプルコードの `MemorySaver` は**インメモリ**のcheckpointerであり、プロセスを再起動すると状態が失われる。本番環境では `SqliteSaver` / `PostgresSaver` など**永続化されたcheckpointer**を使うべき。
+
 # Human-in-the-loopの実装例
 
 > [!IMPORTANT]
