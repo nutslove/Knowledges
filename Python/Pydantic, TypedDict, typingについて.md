@@ -564,6 +564,209 @@
   #   ensure this value is greater than 0 (type=value_error.number.not_gt; limit_value=0)
   ```
 
+### `discriminator`（判別共用体 / Tagged Union）
+- `Union`型のフィールドに対して、**どのメンバー型でバリデーションすべきかを判定するための「目印」となるフィールド名**を`Field(discriminator=...)`で指定する仕組み
+  - Pydantic v2で本格導入(v1にも簡易版はあったが、v2でより柔軟・高性能になった)
+  - 英語では**Discriminated Union**（判別共用体）や**Tagged Union**（タグ付き共用体）と呼ばれる
+- **通常の`Union`の問題点**
+  - discriminatorを指定しない場合、Pydanticは **デフォルトの"smart mode"** でUnion内の各メンバー型を検証し、「最も良くマッチした型」を採用する（[公式ドキュメント](https://docs.pydantic.dev/latest/concepts/unions/#smart-mode)）
+    - `BaseModel`などでは、**入力データから実際に値がセットされたフィールド数が多い方**が優先される（ネストしたモデルのフィールド数も考慮される）
+    - フィールド数が同点の場合は、型変換の少なさ（**exactness**: 完全一致 > strictモードで通る > laxモードで通る）が僅差の判定基準として使われる
+    - （`BaseModel`などではない）単純な型同士の場合は、**型が完全一致するメンバーが見つかった時点でそれが即採用**され、以降のメンバーは試されない
+  - このロジックは「両方とも検証には成功するが、どちらが本来の意図か」を**フィールド名の値ではなく構造的なスコアだけ**で決めてしまうため、型の構造が似ていると、意図しない型にマッチしてしまったり、エラーメッセージが「どの型にも合わなかった」という分かりにくいものになったりする
+    ```python
+    from pydantic import BaseModel
+
+    class Cat(BaseModel):
+        pet_type: str
+        meows: int
+
+    class Dog(BaseModel):
+        pet_type: str
+        barks: float
+
+    class Owner(BaseModel):
+        pet: Cat | Dog  # discriminatorなし
+
+    # 構造が似ていると、総当たりの結果どちらにもマッチしうるため
+    # 意図した型と違う型として解釈されたり、失敗時のエラーが分かりにくくなる
+    ```
+  - **具体例①: 必須項目が抜けているのに、エラーにならず意図と違う型として解釈されてしまう**
+    - `meows`にデフォルト値を持たせておくと、本来`Dog`のつもりで`barks`（必須）を書き忘れたデータを渡しても、`ValidationError`にならず**黙って`Cat`として解釈されてしまう**
+      ```python
+      from pydantic import BaseModel
+      from typing import Union
+
+      class Cat(BaseModel):
+          pet_type: str
+          meows: int = 0  # デフォルト値があるので必須ではない
+
+      class Dog(BaseModel):
+          pet_type: str
+          barks: float  # 必須
+
+      class Owner(BaseModel):
+          pet: Union[Cat, Dog]  # discriminatorなし
+
+      # barks を書き忘れた（本来は Dog のつもり）
+      owner = Owner(pet={"pet_type": "dog"})
+      print(owner.pet)
+      # pet_type='dog' meows=0  ← barks不足のエラーにならず、Catとして解釈されてしまう！
+      print(type(owner.pet))  # <class '__main__.Cat'>
+      ```
+      - `Dog`は`barks`が必須のため検証に失敗するが、`Cat`は`meows`にデフォルト値があるため`pet_type`だけで検証に成功してしまう
+      - smart modeはUnionメンバーの中から**「検証に成功した中で最もスコアの良いもの」**を選ぶ仕組みだが、そもそも`Dog`は検証自体に失敗して候補から外れてしまうため、`pet_type="dog"`という値と矛盾したまま`Cat`が採用され、`barks`不足に気づかれない
+      - `discriminator="pet_type"`を指定していれば、`pet_type`の値だけを見て検証対象が`Dog`一択に絞られるため、`Dog`の`barks`不足がきちんと`ValidationError`として検出される
+  - **具体例②: 両方失敗した場合、エラーメッセージが分かりにくい**
+    - 一方、（具体例①とは異なり）`meows`にデフォルト値がなく`Cat`・`Dog`どちらも検証に失敗するケースでは、両方の検証エラーがまとめて出てしまい、どちらが「本命」だったのか分かりにくいエラーになる
+      ```python
+      from pydantic import BaseModel
+      from typing import Union
+
+      class Cat(BaseModel):
+          pet_type: str
+          meows: int  # 必須（デフォルトなし）
+
+      class Dog(BaseModel):
+          pet_type: str
+          barks: float  # 必須
+
+      class Owner(BaseModel):
+          pet: Union[Cat, Dog]  # discriminatorなし
+
+      Owner(pet={"pet_type": "dog"})  # barks（必須）が抜けている
+      # ValidationError: 2 validation errors for Owner
+      # pet.Cat.meows
+      #   Field required [type=missing, ...]
+      # pet.Dog.barks
+      #   Field required [type=missing, ...]
+      # → CatとDogの両方の検証エラーがまとめて出てしまい、
+      #   「本当はDogのbarksが足りない」ということが一見して分かりにくい
+      ```
+    - `discriminator`を使えば、`pet_type="dog"`の時点で検証対象は`Dog`だけに絞られるため、`pet.dog.barks: Field required`という一意で分かりやすいエラーになる（実際に上記②のクラスに`discriminator="pet_type"`を付けて実行すると、`Dog`の`barks`不足だけを指すエラー1件になる）
+- **`discriminator`を使うと、共通のLiteralフィールドの値を見て一意に型を決定できる**
+  - 各メンバー型に**共通のフィールド名**を持たせ、その値を`Literal`で固定する
+    ```python
+    from typing import Literal, Union
+    from pydantic import BaseModel, Field
+
+    class Cat(BaseModel):
+        pet_type: Literal["cat"]
+        meows: int
+
+    class Dog(BaseModel):
+        pet_type: Literal["dog"]
+        barks: float
+
+    class Owner(BaseModel):
+        pet: Union[Cat, Dog] = Field(discriminator="pet_type")
+        # Python 3.10以降なら Union[Cat, Dog] は Cat | Dog と書ける
+
+    Owner(pet={"pet_type": "cat", "meows": 3})    # Catとして解釈される
+    Owner(pet={"pet_type": "dog", "barks": 2.5})  # Dogとして解釈される
+
+    Owner(pet={"pet_type": "bird", "meows": 3})
+    # ValidationError: pet_type が "cat" でも "dog" でもないため即座にエラー
+    ```
+- **`Annotated`と組み合わせて書くのが一般的**
+  ```python
+  from typing import Annotated, Literal, Union
+  from pydantic import BaseModel, Field
+
+  class Owner(BaseModel):
+      pet: Annotated[Union[Cat, Dog], Field(discriminator="pet_type")]
+      # Python 3.10以降なら Union[Cat, Dog] は Cat | Dog と書ける
+  ```
+- **メリット**
+  1. **バリデーションが高速**: 各型を総当たりで試す必要がなく、discriminatorフィールドの値を見て対象の型だけを検証すればよい
+  2. **エラーメッセージが分かりやすい**: 「pet_typeが不正な値」という具体的なエラーになる（通常のUnionだと「どの型にもマッチしなかった」という曖昧なエラーになりがち）
+  3. **JSON Schemaにも反映される**: OpenAPIなどのドキュメントで`discriminator`付きの`oneOf`として表現され、フロントエンドのコード生成ツールなどとも相性が良い
+- **discriminatorフィールドの制約**
+  - 各メンバー型で**同じフィールド名**を使う必要がある
+  - そのフィールドの型は **`Literal`（単一の値、またはLiteralのUnion）** である必要がある（`str`のような広い型は不可）
+  - **`str`を継承した`Enum`を使うことも可能**
+    ```python
+    from enum import Enum
+    from typing import Literal
+
+    class PetType(str, Enum):
+        CAT = "cat"
+        DOG = "dog"
+
+    class Cat(BaseModel):
+        pet_type: Literal[PetType.CAT]
+        meows: int
+    ```
+- **ネスト（入れ子）した判別共用体もサポート**
+  - **1つのフィールドに設定できるdiscriminatorは1つだけ**だが、`Union`の中にさらに別のdiscriminatorを持つ`Union`を含めることで、複数のdiscriminatorを組み合わせられる（例: `pet_type`で種類を判別 → `color`でさらにサブ種類を判別）
+    ```python
+    from typing import Annotated, Literal, Union
+    from pydantic import BaseModel, Field
+
+    class BlackCat(BaseModel):
+        pet_type: Literal["cat"]
+        color: Literal["black"]
+        black_name: str
+
+    class WhiteCat(BaseModel):
+        pet_type: Literal["cat"]
+        color: Literal["white"]
+        white_name: str
+
+    Cat = Annotated[Union[BlackCat, WhiteCat], Field(discriminator="color")]
+
+    class Dog(BaseModel):
+        pet_type: Literal["dog"]
+        name: str
+
+    Pet = Annotated[Union[Cat, Dog], Field(discriminator="pet_type")]
+
+    class Owner(BaseModel):
+        pet: Pet
+
+    Owner(pet={"pet_type": "cat", "color": "black", "black_name": "tama"})
+    # pet=BlackCat(pet_type='cat', color='black', black_name='tama')
+    Owner(pet={"pet_type": "dog", "name": "pochi"})
+    # pet=Dog(pet_type='dog', name='pochi')
+    ```
+- **callable版：`Discriminator`（Pydantic v2で追加）**
+  - 単純な1フィールドの値だけでは判別できない場合（フィールドの有無や複数フィールドの組み合わせで判別したいなど）に、**判別ロジックを関数として書ける**
+    ```python
+    from typing import Annotated, Union
+    from pydantic import BaseModel, Discriminator, Tag
+
+    class Cat(BaseModel):
+        meows: int
+
+    class Dog(BaseModel):
+        barks: float
+
+    def get_discriminator_value(v) -> str:
+        # dictでもモデルインスタンスでも対応できるように書く
+        if isinstance(v, dict):
+            return "cat" if "meows" in v else "dog"
+        return "cat" if hasattr(v, "meows") else "dog"
+
+    class Owner(BaseModel):
+        pet: Annotated[
+            Union[Annotated[Cat, Tag("cat")], Annotated[Dog, Tag("dog")]],
+            Discriminator(get_discriminator_value),
+        ]
+    ```
+    - 各メンバー型に`Tag(...)`でタグ名を付け、`Discriminator`にそのタグ名を返す関数を渡す
+    - **`get_discriminator_value(v)`の`v`には、型が確定する前の「生の入力データ」がそのまま渡ってくる**（渡し方によって型が変わる）
+      - `dict`を渡した場合（`Owner(pet={"meows": 3})`や、JSON文字列からの`model_validate_json`経由の場合も含む）→ `v`は **`dict`**
+      - 既にモデルインスタンスを渡した場合（`Owner(pet=Cat(meows=5))`）→ `v`は**そのモデルインスタンス自身**
+      - どちらのパターンで呼ばれるか分からないため、`isinstance(v, dict)`と`hasattr(v, ...)`の両方に対応できるように書く必要がある
+- **通常の`Union`との比較まとめ**
+
+| 観点 | 通常の`Union`（discriminatorなし） | `discriminator`付き`Union` |
+|---|---|---|
+| 型の決定方法 | 総当たり（smart mode） | 目印フィールドの値で一意に決定 |
+| バリデーション速度 | 型の数に応じて遅くなりうる | 高速 |
+| エラーメッセージ | 曖昧（どれにも合わなかった） | 明確（目印フィールドの値が不正、など） |
+| 各メンバー型の要件 | 特になし | 共通の`Literal`（または`Discriminator`で判別可能な）フィールドが必要 |
+
 ### `field_validator`
 - **`Field`の宣言的な制約（`ge`、`max_length`など）では表現しきれない、カスタムなバリデーションや変換ロジックを書くためのデコレータ**
   - Pydantic v2で導入（v1の`@validator`の後継）。v1を使っている場合は`@validator`を使う
