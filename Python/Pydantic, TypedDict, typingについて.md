@@ -1010,3 +1010,100 @@
     ```
   - **注意**: `@cached_property`はキャッシュした値をインスタンス自身に保持するため、モデルの`model_config`で`frozen=True`（イミュータブル化）を指定している場合は使えない（属性への書き込みが発生するため）
 - `field_validator`・`model_validator`が**入力データの検証・変換**を行うのに対し、`computed_field`は**出力時に他フィールドから値を導出して追加する**という役割の違いがある
+
+### `TypeAdapter`
+- **`BaseModel`を継承したクラスを作らずに、任意の型（`list[int]`、`dict[str, int]`、`TypedDict`、`dataclass`、単一の`int`/`str`など）に対してPydanticのバリデーション・シリアライズ機能を使うための仕組み**
+  - Pydantic v2で導入
+  - 「この型のためだけにモデルクラスを定義するのは大げさ」というケースで使う
+    - 例: `list[int]`をバリデーションしたいだけなのに、わざわざモデルクラスを作るのは冗長
+      ```python
+      # TypeAdapterを使わない場合 → この検証のためだけにクラスが必要になる
+      from pydantic import BaseModel
+
+      class IntList(BaseModel):
+          values: list[int]
+
+      IntList(values=["1", "2", "3"]).values  # [1, 2, 3]
+
+      # TypeAdapterを使う場合 → クラス定義が不要
+      from pydantic import TypeAdapter
+
+      TypeAdapter(list[int]).validate_python(["1", "2", "3"])  # [1, 2, 3]
+      ```
+- 基本構文
+  ```python
+  from pydantic import TypeAdapter
+
+  adapter = TypeAdapter(list[int])
+  result = adapter.validate_python(["1", "2", "3"])
+  print(result)  # [1, 2, 3] （文字列 "1" などがintに変換される）
+  ```
+- 主なメソッド
+  - `validate_python(data)`: Pythonオブジェクト（dict、list、文字列など）を検証・型変換する
+    ```python
+    from pydantic import TypeAdapter
+
+    class User(TypedDict):
+        id: int
+        name: str
+
+    adapter = TypeAdapter(User)
+    user = adapter.validate_python({"id": "1", "name": "Alice"})
+    print(user)  # {'id': 1, 'name': 'Alice'}
+    ```
+  - `validate_json(json_data)`: JSON文字列（`bytes`/`str`）を直接検証・パースする（`validate_python(json.loads(...))`より高速）
+  - `dump_python(obj)` / `dump_json(obj)`: 値をPythonオブジェクト／JSONにシリアライズする（`model_dump()`/`model_dump_json()`のTypeAdapter版）
+  - `json_schema()`: JSON Schemaを生成する
+- `validate_python`実行時に検証エラーがあると、`BaseModel`と同様に`ValidationError`が送出される
+  ```python
+  from pydantic import TypeAdapter, ValidationError
+
+  adapter = TypeAdapter(list[int])
+  try:
+      adapter.validate_python(["1", "abc"])
+  except ValidationError as e:
+      print(e)  # "abc" は int に変換できないためエラー
+  ```
+- **`TypeAdapter`のインスタンス化はコストがかかる**ため、関数呼び出しのたびに生成せず、モジュールレベルなどで一度だけ生成して使い回すのが推奨される
+  ```python
+  from pydantic import TypeAdapter
+
+  # 悪い例: 関数が呼ばれるたびに TypeAdapter を生成している（毎回コストがかかる）
+  def parse_ids_bad(data: list) -> list[int]:
+      return TypeAdapter(list[int]).validate_python(data)
+
+  # 良い例: モジュールレベルで一度だけ生成し、使い回す
+  _int_list_adapter = TypeAdapter(list[int])
+
+  def parse_ids_good(data: list) -> list[int]:
+      return _int_list_adapter.validate_python(data)
+  ```
+- 用途の例
+  - 関数の引数・戻り値のバリデーション（`BaseModel`化するまでもない単純な型）
+  - 外部APIから受け取った生の`list`/`dict`データの検証
+  - `TypedDict`や`dataclass`をバリデーション付きで扱いたい場合
+- `BaseModel`との使い分け
+  - モデルとして再利用・メソッドを持たせたい、ネストした構造を型として明示したい → `BaseModel`
+    ```python
+    from pydantic import BaseModel
+
+    class User(BaseModel):
+        id: int
+        name: str
+
+        def greet(self) -> str:  # モデルにメソッドを持たせられる
+            return f"Hello, {self.name}"
+
+    user = User(id="1", name="Alice")
+    user.greet()  # "Hello, Alice"
+    ```
+  - 単発の型（プリミティブ型、`list`/`dict`のコンテナ、既存の`TypedDict`/`dataclass`）を検証したいだけ → `TypeAdapter`
+    ```python
+    from pydantic import TypeAdapter
+
+    # 関数の引数として受け取った dict[str, int] を検証したいだけで、
+    # 再利用するモデルクラスもメソッドも不要なケース
+    scores_adapter = TypeAdapter(dict[str, int])
+    scores = scores_adapter.validate_python({"Alice": "90", "Bob": "85"})
+    print(scores)  # {'Alice': 90, 'Bob': 85}
+    ```
