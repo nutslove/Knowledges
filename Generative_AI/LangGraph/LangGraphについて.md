@@ -321,7 +321,7 @@
   - https://changelog.langchain.com/announcements/command-in-langgraph-to-build-edgeless-multi-agent-workflows
 ## 概要
 - **状態を更新すると同時に、次に実行するNodeを指定する機能**
-  - **https://langchain-ai.github.io/langgraph/how-tos/command/**  
+  - **https://docs.langchain.com/oss/python/langgraph/graph-api#command**  
     > It can be useful to combine control flow (edges) and state updates (nodes). For example, you might want to BOTH perform state updates AND decide which node to go to next in the SAME node. LangGraph provides a way to do so by returning a `Command` object from node functions
 - `Command`の`goto`は自動的に`add_conditional_edges`してくれる  
   **`Command`に`Literal[]`は必須！ ちゃんと返す候補のNodeを指定すること！ 以下の例だと`Command[Literal["node_b", "node_c"]]`**  
@@ -423,7 +423,9 @@
       ```
 
 ## いつ`add_conditional_edges`の代わりに`Command`を使うべきか？
-- asd
+- **Stateの更新とルーティング（次のNodeへの遷移）を同じ関数の中で両方行いたい場合は`Command`を使う**
+  - 例えば、multi-agentでのhandoff（あるAgentから別のAgentへ処理を渡す際に、Stateへ情報を書き込みつつ遷移先のAgentも指定したいケース）などが該当する
+  - 逆に、Stateを更新せずに「次にどのNodeへ進むか」というルーティングだけを行いたい場合は、これまで通り`add_conditional_edges`（conditional edge）を使えばよい
   > Use `Command` when you need to **both** update the graph state **and** route to a different node. For example, when implementing [multi-agent handoffs](https://langchain-ai.github.io/langgraph/concepts/multi_agent/#handoffs) where it's important to route to a different agent and pass some information to that agent.
   >
   > Use conditional edges to route between nodes conditionally without updating the state.
