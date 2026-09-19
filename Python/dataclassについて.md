@@ -30,6 +30,109 @@ class PersonTraditional:
         return (self.name, self.age, self.email) == (other.name, other.age, other.email)
 ```
 
+### カスタムメソッドの定義
+- `@dataclass`は`__init__`などを自動生成するだけで、**通常のクラスと同様に独自のメソッドを定義できる**
+```python
+from dataclasses import dataclass
+
+@dataclass
+class Point:
+    x: int
+    y: int
+
+    def distance_from_origin(self) -> float:
+        return (self.x ** 2 + self.y ** 2) ** 0.5
+
+p = Point(3, 4)
+print(p.distance_from_origin())  # 5.0
+```
+
+#### `__post_init__`
+- `__init__`が自動生成されるため、初期化直後に追加処理を行いたい場合は`__post_init__`メソッドを定義する
+- `__init__`の最後に自動的に呼び出される
+```python
+@dataclass
+class Rectangle:
+    width: float
+    height: float
+    area: float = field(init=False)  # initに含めない
+
+    def __post_init__(self):
+        self.area = self.width * self.height
+
+r = Rectangle(3, 4)
+print(r.area)  # 12
+```
+
+> [!NOTE]
+> `frozen=True`のクラスでは`self.x = ...`のような属性への直接代入ができないため、`__post_init__`内で値を設定する場合は`object.__setattr__(self, "area", ...)`を使う必要がある。
+
+### `dataclasses`モジュールのヘルパー関数
+- **`fields(obj)`**: フィールド情報（`Field`オブジェクト）のタプルを取得
+  ```python
+  from dataclasses import dataclass, fields
+
+  @dataclass
+  class Point:
+      x: int
+      y: int
+
+  for f in fields(Point):
+      print(f.name, f.type)
+  # x <class 'int'>
+  # y <class 'int'>
+  ```
+- **`asdict(obj)`**: インスタンスを辞書に変換（ネストしたdataclassやコンテナも再帰的に変換される）
+  ```python
+  from dataclasses import asdict
+
+  print(asdict(Point(1, 2)))  # {'x': 1, 'y': 2}
+  ```
+- **`astuple(obj)`**: インスタンスをタプルに変換（`asdict`同様、再帰的に変換される）
+  ```python
+  from dataclasses import astuple
+
+  print(astuple(Point(1, 2)))  # (1, 2)
+  ```
+- **`replace(obj, **changes)`**: 指定したフィールドだけ変更した**新しいインスタンス**を作成する（`frozen=True`のクラスを"更新"する際によく使う。浅いコピーに相当）
+  ```python
+  from dataclasses import replace
+
+  p1 = Point(1, 2)
+  p2 = replace(p1, x=10)
+  print(p1)  # Point(x=1, y=2)
+  print(p2)  # Point(x=10, y=2)
+  ```
+- **`is_dataclass(obj)`**: dataclassかどうかを判定
+
+### コピーと`deepcopy`
+- 通常の代入(`p2 = p1`)は**同じオブジェクトを参照**するだけ(コピーではない)
+- `copy.copy()`（浅いコピー）: 新しいインスタンスを作るが、**ネストしたミュータブルな属性は同じオブジェクトを参照したまま**
+- `copy.deepcopy()`（深いコピー）: ネストした属性も再帰的に複製する。ミュータブルな属性（`list`, `dict`など）を含むdataclassを完全に独立させたい場合はこちらを使う
+
+```python
+import copy
+from dataclasses import dataclass, field
+
+@dataclass
+class Team:
+    members: list[str] = field(default_factory=list)
+
+t1 = Team(members=["Alice"])
+
+t2 = copy.copy(t1)       # 浅いコピー
+t2.members.append("Bob")
+print(t1.members)  # ['Alice', 'Bob'] ← t1にも影響してしまう！
+
+t3 = copy.deepcopy(t1)   # 深いコピー
+t3.members.append("Carol")
+print(t1.members)  # ['Alice', 'Bob'] ← t1は影響を受けない
+print(t3.members)  # ['Alice', 'Bob', 'Carol']
+```
+
+> [!NOTE]
+> `dataclasses.replace()`は浅いコピーに相当する。指定しなかったフィールドは元のオブジェクトへの参照がそのままコピーされるため、ミュータブルなフィールドが絡む場合は`copy.deepcopy()`との使い分けが必要。
+
 ### 主なな機能とオプション
 #### 1. 比較機能
 - `__eq__` が自動で定義されるので、値比較が可能
@@ -55,6 +158,41 @@ class Point:
 
 p = Point(1, 2)
 # p.x = 10  # ❌ dataclasses.FrozenInstanceError が発生
+```
+
+#### 2.1 `frozen=True`と`set`の要素（ハッシュ可能性）
+- `set`の要素はハッシュ可能（hashable）である必要がある
+- 通常の`@dataclass`はミュータブルなので`__hash__`が`None`になり、`set`の要素にはできない
+- `frozen=True`にすると自動的にハッシュ可能になり、`set`の要素として使える
+
+```python
+from dataclasses import dataclass
+
+@dataclass
+class MutablePoint:
+    x: int
+    y: int
+
+# {MutablePoint(1, 2)}  # ❌ TypeError: unhashable type
+
+@dataclass(frozen=True)
+class Point:
+    x: int
+    y: int
+
+points = {Point(1, 2), Point(3, 4)}  # ✅ OK
+
+points_list = [Point(1, 2), Point(3, 4), Point(1, 2)]  # Point(1, 2)が重複
+points_set = set(points_list)
+print(points_set)  # {Point(x=1, y=2), Point(x=3, y=4)} ← 重複が排除される
+```
+
+- 型ヒントとして`set[Point]`のように書くこともできる（[[集合（set）について.md]]参照）
+```python
+def get_unique_x_values(points: set[Point]) -> set[int]:
+    return {p.x for p in points}
+
+print(get_unique_x_values(points_set))  # {1, 3}
 ```
 
 #### 3. `field()`関数で属性の細かい制御
