@@ -365,6 +365,82 @@
 ```
 - `IntEnum`、`StrEnum`（Python 3.11以降）など派生クラスもある
 
+## `auto()`
+- `enum`モジュールが提供する、メンバーの値を自動的に割り当てるための関数
+- 基本構文
+```python
+  from enum import Enum, auto
+
+  class Status(Enum):
+      PENDING = auto()
+      RUNNING = auto()
+      DONE = auto()
+
+  print(Status.PENDING.value)  # 1
+  print(Status.RUNNING.value)  # 2
+  print(Status.DONE.value)     # 3
+```
+- デフォルトでは**1から始まる連番の整数**が割り当てられる（前のメンバーの値+1）
+- 各メンバーの値そのものに意味を持たせる必要がなく、単に区別できればよい場合に、値の重複や採番ミスを避ける目的で使う
+- `_generate_next_value_`をオーバーライドすることで、自動生成される値のロジックをカスタマイズできる
+```python
+  from enum import Enum, auto
+
+  class Status(Enum):
+      def _generate_next_value_(name, start, count, last_values):
+          return name.lower()  # メンバー名を小文字にした文字列を値にする
+
+      PENDING = auto()
+      RUNNING = auto()
+
+  print(Status.PENDING.value)  # "pending"
+  print(Status.RUNNING.value)  # "running"
+```
+- `StrEnum`（Python 3.11以降）と組み合わせると、`_generate_next_value_`のオーバーライドなしでもデフォルトでメンバー名を小文字化した文字列が値になる
+```python
+  from enum import StrEnum, auto
+
+  class Status(StrEnum):
+      PENDING = auto()
+      RUNNING = auto()
+
+  print(Status.PENDING.value)  # "pending"
+```
+  - これは`StrEnum`が独自に`_generate_next_value_`をオーバーライドしているためで、**単に`str`を継承しただけ（`class Status(str, Enum)`）では小文字化されず、通常どおり整数値になる**
+    ```python
+    from enum import Enum, auto
+
+    class Status(str, Enum):
+        PENDING = auto()
+        RUNNING = auto()
+
+    print(repr(Status.PENDING.value))  # '1' （小文字化されない）
+    ```
+
+> [!CAUTION]
+> メンバーの定義順を後から変更すると割り当てられる値も変わってしまうため、DBに保存した値との突き合わせなど値の安定性が重要な場面では変更に注意が必要
+> ```python
+> from enum import Enum, auto
+>
+> class Status(Enum):
+>     PENDING = auto()  # 1
+>     RUNNING = auto()  # 2
+>     DONE = auto()     # 3
+>
+> # Status.PENDING の値 1 をDBに保存済みだったとする
+> ```
+> その後、定義順を変更すると値がずれる
+> ```python
+> class Status(Enum):
+>     DONE = auto()     # 1 ← 元々PENDINGだった値
+>     PENDING = auto()  # 2 ← 値が変わってしまった！
+>     RUNNING = auto()  # 3
+>
+> # DBに保存されていた値 1 を読み込むと、
+> # 本来 PENDING のつもりだったデータが DONE として解釈されてしまう
+> ```
+> このように`auto()`の値はコード内の定義順に依存するため、外部（DB、API、ファイルなど）に永続化して後から参照する値には使わず、明示的に固定値を書くか、メンバー名由来の文字列になる`StrEnum`を使う方が安全
+
 ## `Enum` と `Literal` の使い分け
 | 観点 | `Enum` | `Literal` |
 |---|---|---|
