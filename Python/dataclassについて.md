@@ -148,6 +148,56 @@ p2 = Point(1, 2)
 print(p1 == p2)  # True
 print(p1 is p2)  # False（別オブジェクト）
 ```
+#### 1.1 `order=True`で大小比較（`<`, `<=`, `>`, `>=`）を有効化
+- `order=True`を指定すると、フィールド定義順にタプル比較する形で`__lt__`, `__le__`, `__gt__`, `__ge__`が自動生成される（`__eq__`は`eq`の設定に従う）
+```python
+from dataclasses import dataclass
+
+@dataclass(order=True)
+class Point:
+    x: int
+    y: int
+
+p1 = Point(1, 2)
+p2 = Point(1, 3)
+p3 = Point(2, 0)
+
+print(p1 < p2)   # True  ← (1,2) < (1,3)
+print(p1 < p3)   # True  ← (1,2) < (2,0) xが優先される
+print(p2 <= p2)  # True
+print(p3 > p1)   # True
+```
+- 比較対象が同じクラスのインスタンスでない場合は`NotImplemented`が返る（結果的に`TypeError`）
+- `field(compare=False)`を指定したフィールドは比較（`__eq__`・順序比較の両方）から除外される
+```python
+from dataclasses import dataclass, field
+
+@dataclass(order=True)
+class Item:
+    priority: int
+    name: str = field(compare=False)  # 比較には使わない
+
+print(Item(1, "a") < Item(2, "z"))  # True（nameは無視）
+```
+
+> [!WARNING]
+> `eq=False`と`order=True`は同時指定できない（`eq`はデフォルト`True`なので通常は意識不要だが、明示的に`eq=False`にすると`ValueError: eq must be true if order is true`になる）。
+
+> [!WARNING]
+> `order=True`を指定した状態で`__lt__`などを自分で定義（オーバーライド）すると、`@dataclass`側の自動生成と衝突して **クラス定義時に`TypeError`** になる。
+> ```python
+> @dataclass(order=True)
+> class Point:
+>     x: int
+>     y: int
+>
+>     def __lt__(self, other):
+>         return self.x < other.x
+> # ❌ TypeError: Cannot overwrite attribute __lt__ in class Point.
+> #    Consider using functools.total_ordering
+> ```
+> 独自の比較ロジックを定義したい場合は`order=True`を外し（デフォルトの`order=False`のまま）、自分で`__lt__`等を実装するか、`functools.total_ordering`を使う。
+
 #### 2. 不変（イミュータブル）なデータクラス
 - `frozen=True` を指定すると **不変（immutable）** なクラスにできる
 ```python
