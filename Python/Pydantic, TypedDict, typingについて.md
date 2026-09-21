@@ -324,6 +324,66 @@
       p = Pair[str, int]("age", 30)
       ```
     - Python 3.12以降は`class Stack[T]:`のように`Generic`の明示的な継承なしでジェネリッククラスを書ける新しい構文（PEP 695）も使える
+13. `Final`
+    - **再代入（再バインド）してはいけない変数・属性**であることを示す型ヒント（PEP 591）
+    - `typing`の他の型ヒントと同様、**実行時の強制力はなく**、`mypy`などの型チェッカーが検出するのみ
+    - 変数の場合  
+      ```python
+      from typing import Final
+
+      MAX_SIZE: Final = 9000
+      MAX_SIZE = 10000  # 型チェッカーがエラーを検出（実行時はエラーにならない）
+
+      MAX_SIZE_TYPED: Final[int] = 9000  # 型を明示することも可能
+      ```
+    - **クラス属性の場合、サブクラスでの上書きも検出される**  
+      ```python
+      class Connection:
+          TIMEOUT: Final[int] = 10
+
+      class FastConnector(Connection):
+          TIMEOUT = 1  # 型チェッカーがエラーを検出（親クラスでFinal指定された属性の上書き）
+      ```
+    - **クラス本体で初期値を代入した`Final`属性は、型チェッカーによって自動的にクラス変数（`ClassVar`）として扱われる**ため、通常は`ClassVar`と組み合わせる必要はない（併用は冗長とされる）
+      ```python
+      class Connection:
+          TIMEOUT: Final[int] = 10  # ClassVar[Final[int]] と書く必要はない
+      ```
+      - 例外は`dataclass`： `dataclass`のクラス本体では単なる`Final[int]`は「インスタンスフィールド」と解釈されてしまうため、**クラス変数として`Final`を扱いたい場合は`ClassVar[Final[int]]`と明示する必要がある**
+        ```python
+        from dataclasses import dataclass
+        from typing import ClassVar, Final
+
+        @dataclass
+        class Config:
+            MAX_SIZE: ClassVar[Final[int]] = 100  # クラス変数として固定したい場合はこう書く
+            name: str
+        ```
+    - **`Final`は代入文・変数注釈の一番外側にしか使えない**（関数の引数の型や、`List[Final[int]]`のようなネストした位置での使用はエラー）
+      ```python
+      def fun(x: Final[int]) -> None:  # エラー（引数には使えない）
+          ...
+
+      x: List[Final[int]] = []  # エラー（ネストした位置には使えない）
+      ```
+    - **「再代入できない」ことを保証するだけで、値自体を不変（イミュータブル）にするわけではない**点に注意
+      - `list`や`dict`のようなミュータブルなコンテナ型に`Final`を付けても、**再代入はエラーになるが、中身の変更（ミューテーション）はエラーにならない**
+        ```python
+        from typing import Final
+
+        ITEMS: Final[list[str]] = ["a", "b", "c"]
+
+        ITEMS = ["x", "y"]  # 型チェッカーがエラーを検出（再代入）
+        ITEMS.append("d")   # エラーにならない（listの中身が変更されてしまう）
+        ITEMS[0] = "z"      # これもエラーにならない
+        ```
+      - 値そのものの変更（ミューテーション）も防ぎたい場合は、`list`や`dict`ではなく`Sequence`や`Mapping`など不変なコンテナ型を組み合わせて使うとよい
+        ```python
+        from typing import Final, Sequence
+
+        ITEMS: Final[Sequence[str]] = ["a", "b", "c"]
+        ITEMS.append("d")  # Sequenceにはappendがないため型チェッカーがエラーを検出
+        ```
 
 # `Enum`
 - Python標準ライブラリ`enum`モジュールで提供される、**列挙型**を定義するためのクラス
