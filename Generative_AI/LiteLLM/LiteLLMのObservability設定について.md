@@ -1,0 +1,430 @@
+# LiteLLMのObservability設定について
+
+このリポジトリのdocker-compose構成が出しているテレメトリ(メトリクス・トレース・ログ)の仕組み、設定、注意点をまとめる。
+
+## 全体構成
+
+```
+                                    ┌──────────────┐
+                                    │  Prometheus  │ <--- scrape :4000/metrics (15s間隔)
+                                    └──────────────┘
+                                          ▲
+┌──────────┐   traces/logs (OTLP/HTTP)   │
+│ litellm  │ ───────────────┐            │
+└──────────┘                ▼            │
+                      ┌──────────────┐   │
+                      │ otel-collector│   │
+                      └──────────────┘   │
+                        │           │    │
+                traces  │           │ logs
+                        ▼           ▼    │
+                    ┌───────┐   ┌──────┐ │
+                    │ Tempo │   │ Loki │ │
+                    └───────┘   └──────┘ │
+                        │           │    │
+                        └─────┬─────┴────┘
+                              ▼
+                        ┌──────────┐
+                        │ Grafana  │ (Prometheus / Loki / Tempo datasource 事前設定済み)
+                        └──────────┘
+```
+
+- **メトリクス**: LiteLLM `prometheus` コールバック → LiteLLMが`/metrics`エンドポイントを公開 → Prometheusがpull(scrape)
+- **トレース/ログ**: LiteLLM `otel` コールバック → OTLP/HTTPでotel-collectorにpush → collectorがtracesをTempoへ、logsをLokiへ振り分け(push)
+
+## 関連ファイル
+
+| ファイル | 役割 |
+|---|---|
+| `config.yaml` | LiteLLM本体の設定。`litellm_settings.callbacks`でテレメトリを有効化 |
+| `docker-compose.yml` | 全サービス定義 |
+| `prometheus/prometheus.yml` | Prometheusのscrape設定 |
+| `otel-collector/otel-collector-config.yaml` | OTLP受信→Tempo/Lokiへの振り分け設定 |
+| `tempo/tempo-config.yaml` | Tempoのトレース受信・保存設定 |
+| `loki/loki-config.yaml` | Lokiのログ受信・保存設定 |
+| `grafana/provisioning/datasources/datasources.yml` | Grafanaのデータソース事前登録 |
+
+---
+
+## 1. LiteLLM側の設定 (`config.yaml`)
+
+```yaml
+litellm_settings:
+  require_auth_for_metrics_endpoint: false   # /metricsを認証なしで公開(Prometheusがscrapeできるように)
+  enable_end_user_cost_tracking_prometheus_only: true  # end_userラベル付きのコスト系メトリクスを有効化
+  callbacks:
+    - prometheus   # メトリクス収集を有効化
+    - otel         # トレース/ログ収集を有効化
+```
+
+`callbacks`に指定した文字列がそのままテレメトリの「入口」になる。この2つは独立したコールバックで、それぞれ別の環境変数群で制御される。
+
+---
+
+## 2. `prometheus` コールバック(メトリクス)
+
+### 有効化方法
+`callbacks: [prometheus]` を指定するだけ。追加の環境変数は不要。LiteLLMが `/metrics` エンドポイント(Prometheus text exposition format)をHTTPで公開し、Prometheus側がpull(scrape)しに行く方式。
+
+> [!CAUTION]
+> マルチワーカー構成(`--num_workers`等でuvicornワーカーを複数起動する場合)では `PROMETHEUS_MULTIPROC_DIR` 環境変数が必須。Prometheus Python clientはマルチプロセス環境ではワーカー間でメトリクスをファイル経由で共有する必要があり、このディレクトリが未設定/ワーカー間で共有されていないと `/metrics` の値が欠落・不整合になる。
+
+### 収集できるデータ
+`/metrics` から実際に確認できた主なメトリクス(v1.101.0時点、`docker exec litellm-litellm-1` またはホストから `curl http://localhost:4000/metrics` で全量確認可能。**総数は約88種類**):
+
+#### トークン使用量 (Counter)
+- `litellm_input_tokens_metric_total` — 入力トークン合計
+- `litellm_output_tokens_metric_total` — 出力トークン合計
+- `litellm_total_tokens_metric_total` — 入力+出力合計
+- `litellm_cached_tokens_metric_total` — キャッシュから供給されたトークン(LiteLLM側キャッシュ)
+- `litellm_input_cached_tokens_metric_total` — プロバイダ側プロンプトキャッシュ読み取り(OpenAI `prompt_tokens_details.cached_tokens`、Anthropic `cache_read_input_tokens` 等)
+- `litellm_input_cache_creation_tokens_metric_total` — プロバイダ側プロンプトキャッシュ書き込み(Anthropic `cache_creation_input_tokens`)
+- `litellm_input_audio_tokens_metric_total` / `litellm_output_audio_tokens_metric_total` — 音声入出力トークン
+- `litellm_output_reasoning_tokens_metric_total` — reasoningトークン(`completion_tokens_details.reasoning_tokens`)
+
+#### コスト (Counter)
+- `litellm_spend_metric_total` — 総支出額。ラベルに `model`, `api_key_alias`, `team`, `user`, `end_user`, `user_agent` などが付与され、キー/チーム/ユーザー/エンドユーザー単位で集計可能
+- `litellm_remaining_api_key_budget_metric` / `litellm_remaining_team_budget_metric` / `litellm_remaining_user_budget_metric` / `litellm_remaining_org_budget_metric` — 各予算の残額(Gauge)
+- `litellm_api_key_max_budget_metric` 等 — 設定上の予算上限
+
+#### レイテンシ (Histogram)
+- `litellm_llm_api_time_to_first_token_metric` — **TTFT** (Time To First Token)。ストリーミング応答の最初のトークンが返るまでの時間
+- `litellm_llm_api_latency_metric` — LLM API呼び出し自体のレイテンシ(プロバイダとの通信時間)
+- `litellm_request_total_latency_metric` — プロキシ着信〜応答完了までのEnd-to-Endレイテンシ(認証・pre/post-callフック込み)
+- `litellm_overhead_latency_metric` — LiteLLMが追加するオーバーヘッド(ミリ秒)
+- `litellm_overhead_with_guardrails_latency_metric` — ガードレール処理込みのオーバーヘッド
+- `litellm_deployment_latency_per_output_token` — **TPOT相当**(出力トークンあたりのレイテンシ)。実測確認: v1.101.0では **Histogram**(旧バージョン/一部ドキュメントではGauge表記だが、現行はHistogram)
+- `litellm_guardrail_latency_seconds` — ガードレール実行のレイテンシ
+- `litellm_request_queue_time_seconds` — リクエスト到着〜処理開始までのキュー待ち時間
+
+#### リクエスト数・成功/失敗 (Counter)
+- `litellm_proxy_total_requests_metric_total` — プロキシへの総リクエスト数
+- `litellm_proxy_failed_requests_metric_total` — 失敗レスポンス数
+- `litellm_deployment_success_responses_total` / `litellm_deployment_failure_responses_total` — デプロイメント(モデル)単位の成功/失敗数
+- `litellm_deployment_total_requests_total` — デプロイメント単位の総リクエスト数
+- `litellm_deployment_failed_fallbacks_total` / `litellm_deployment_successful_fallbacks_total` — フォールバック発生数
+- `litellm_deployment_cooled_down_total` — ロードバランシングによるクールダウン発生回数
+- `litellm_deployment_state` — デプロイメントの状態(0=healthy, 1=partial outage, 2=complete outage)
+
+#### その他
+- `litellm_cache_hits_metric_total` / `litellm_cache_misses_metric_total` — LiteLLMキャッシュのヒット/ミス
+- `litellm_images_generated_metric_total` / `litellm_video_duration_seconds_metric_total` — 画像/動画生成量
+- `litellm_mcp_tool_calls_total` / `litellm_mcp_tool_call_spend_metric_total` — MCPツール呼び出し回数・コスト
+- `litellm_guardrail_requests_total` / `litellm_guardrail_errors_total` — ガードレール呼び出し数・エラー数
+- `litellm_active_users` / `litellm_total_users` / `litellm_teams_count` — ユーザー/チーム数(Gauge)
+- `litellm_in_flight_requests` — 現在処理中のリクエスト数
+
+### 注意点
+
+> [!NOTE]
+> メトリクスは pull型。LiteLLM自体はPrometheusに何かをpushしない。`/metrics`が常時アクセス可能である必要がある(`prometheus/prometheus.yml`のscrape対象に含める)。
+>
+> `_created` サフィックスの系列(例: `litellm_spend_metric_created`)はPrometheus Python clientが自動生成するタイムスタンプ系列で、実データではなく無視してよい。
+>
+> TTFTはストリーミングリクエストでのみ意味のある値になる(非ストリーミングでは応答全体が返るまでの時間とほぼ同義になる)。
+
+> [!CAUTION]
+> `require_auth_for_metrics_endpoint: false` にしないと `/metrics` に認証が必要になり、Prometheusのscrapeが失敗する(トークン設定が別途必要)。
+>
+> ラベルに `hashed_api_key`, `api_key_alias`, `model_id` など高カーディナリティなものが多数含まれる。APIキー数・モデル数が多い環境ではメトリクスのカーディナリティ(時系列数)が急増するので注意。`attributes` (config側 `callback_settings.otel.attributes` 相当)で絞り込み可能な仕組みがある。
+
+---
+
+## 3. `otel` コールバック(トレース・ログ・メトリクス)
+
+`otel`コールバックはOpenTelemetry Protocol (OTLP) を使って **トレース・ログ・メトリクスの3シグナルすべて** を出力できる。ただし **トレース以外はデフォルトOFF**。
+
+### 3.1 トレース (Traces)
+
+- **デフォルトで有効**(`callbacks: [otel]` を入れるだけで動く。追加フラグ不要)
+- 1リクエストにつき複数スパンが生成される: `Received Proxy Server Request` (root) → `auth`, `postgres` (get_user_object等), `raw_gen_ai_request` (実際のLLM API呼び出し) など
+- `trace_id` / `span_id` がスパンに付与され、Tempoで検索・可視化可能
+
+### 3.2 ログ/イベント (Logs)
+
+- **デフォルトOFF**。有効化するには環境変数が必要:
+  ```
+  LITELLM_OTEL_INTEGRATION_ENABLE_EVENTS=true
+  ```
+- 有効化すると `gen_ai.content.prompt` / `gen_ai.content.completion` といったOTel GenAI Semantic Conventionsのイベント(ログ)が、LiteLLM管理の `LoggerProvider` 経由でOTLP Logsとして出力される
+- これらは**スパンイベントではなく独立したログレコード**として送信される(トレースのスパンに埋め込まれるわけではない)
+- ログには `trace_id` / `span_id` が付与されるため、Grafana上でトレースとログを相関(Tempo↔Loki連携)させられる
+
+### 3.3 メトリクス (Metrics, via OTel)
+
+- **デフォルトOFF**。有効化するには:
+  ```
+  LITELLM_OTEL_INTEGRATION_ENABLE_METRICS=true
+  ```
+- 本スタックでは**未使用**(メトリクスは`prometheus`コールバック経由でPull方式のみ使っている)。OTel経由のメトリクスはPush方式(`PeriodicExportingMetricReader`、デフォルト5秒間隔)になる点が`prometheus`コールバックと異なる
+
+> [!NOTE]
+> `prometheus`と`otel`のメトリクス出力を両方同時に有効化することも可能だが、二重計測・二重コストになるため通常はどちらか一方で十分。
+
+### 3.4 プロンプト/レスポンス本文のキャプチャ制御
+
+トレース・ログにLLMへの実際の入出力内容(プロンプト/コンプリーション本文)を含めるかどうかは別軸で制御される:
+
+- `OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=true/false` — OTel GenAI標準の環境変数。本文をスパン属性/ログイベントに含めるかを制御
+- `litellm.turn_off_message_logging=True` (config.yaml側の `litellm_settings`) — **キルスイッチ**。これがTrueだと上記設定に関わらず本文キャプチャが一切行われない
+
+> [!NOTE]
+> `otel`コールバックの実装には新旧2系統があり、`LITELLM_OTEL_V2=true` で切り替える。
+> - **v1(デフォルト)**: `raw_gen_ai_request` スパンに**デフォルトで本文を含む**(Capture by default)
+> - **v2**(`LITELLM_OTEL_V2=true`): **デフォルトで本文を含まない**(Safe by default)。含めたい場合は明示的にオプトインが必要
+
+> [!CAUTION]
+> 本構成(`config.yaml`)では`turn_off_message_logging`等を明示的に設定していない=デフォルト挙動(本文が記録される)。機密情報を含むプロンプトを扱う場合は要検討。
+
+**config.yamlでの本文ログ無効化設定**(`litellm.turn_off_message_logging` の具体的な書き方):
+
+```yaml
+# config.yaml — 全コールバック共通で本文ログを止める(グローバル設定)
+litellm_settings:
+  callbacks:
+    - otel
+  turn_off_message_logging: true
+```
+
+`otel`コールバックだけに限定して本文ログを止めたい場合は、`callback_settings`側で個別指定も可能:
+
+```yaml
+# config.yaml — otelコールバックだけ本文ログを止める
+litellm_settings:
+  callbacks:
+    - otel
+
+callback_settings:
+  otel:
+    message_logging: false
+```
+
+いずれの設定でも、本文以外のメタデータ(モデル名、トークン数、コストなど)は引き続き記録される。
+
+### 3.5 重要な注意点: エンドポイント環境変数の非互換性
+
+> [!CAUTION]
+> これが本スタック構築時に最もハマった箇所。
+>
+> OpenTelemetry公式SDKは、シグナルごとに別々のエンドポイントを指定できる標準環境変数を持っている:
+> - `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT`
+> - `OTEL_EXPORTER_OTLP_LOGS_ENDPOINT`
+> - `OTEL_EXPORTER_OTLP_METRICS_ENDPOINT`
+> - (各シグナル別の `_PROTOCOL` も同様に存在)
+>
+> **しかしLiteLLMの `opentelemetry.py` 実装(v1.101.0時点)はこれらのper-signal環境変数を一切読まない。** 実際にコードが参照しているのは:
+>
+> ```python
+> exporter  = os.getenv("OTEL_EXPORTER_OTLP_PROTOCOL", os.getenv("OTEL_EXPORTER", "console"))
+> endpoint  = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT", os.getenv("OTEL_ENDPOINT"))
+> headers   = os.getenv("OTEL_EXPORTER_OTLP_HEADERS", os.getenv("OTEL_HEADERS"))
+> ```
+>
+> つまり**単一の `OTEL_EXPORTER_OTLP_ENDPOINT` を traces/logs/metrics 全シグナルで共用**する設計になっている。`_normalize_otel_endpoint()`が末尾に`/v1/traces`, `/v1/logs`, `/v1/metrics`を自動付与して同一ホスト上の別パスに送るようにはなっているが、**別ホスト・別ポートの複数バックエンド(例: Tempo用とLoki用で別サービス)に振り分けることはできない**。
+>
+> `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` / `OTEL_EXPORTER_OTLP_LOGS_ENDPOINT` を個別に設定しても**黙って無視され**、`exporter`が未設定なら `console`(標準出力にダンプするだけで外部送信されない)にフォールバックする。エラーも出ないため気づきにくい。
+
+**対処法(本構成で採用)**: LiteLLMとバックエンドの間に **OpenTelemetry Collector** を1台挟み、LiteLLMは単一の `OTEL_EXPORTER_OTLP_ENDPOINT` でCollectorにのみ送信する。Collector側でtraces→Tempo、logs→Lokiにファンアウトする。
+
+```yaml
+# docker-compose.yml (litellm環境変数)
+OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
+LITELLM_OTEL_INTEGRATION_ENABLE_EVENTS: "true"
+```
+
+### 3.6 `OTEL_EXPORTER_OTLP_PROTOCOL` の指定値
+
+- `http/protobuf` — OTLP/HTTP + Protobuf(本構成で採用。Collector, Tempo, Lokiいずれも対応)
+- `http/json` — OTLP/HTTP + JSON
+- `grpc` — OTLP/gRPC(別途 `grpcio` のインストールが必要、`litellm[grpc]`)
+- 未指定/`console` — 標準出力のみ
+
+> [!CAUTION]
+> プロトコル未指定/`console`の場合、外部に一切送信されないため、設定ミスに気づかないままログを眺めて「動いていない」と誤解しやすい最大の落とし穴。
+
+---
+
+## 4. OpenTelemetry Collector (`otel-collector/otel-collector-config.yaml`)
+
+LiteLLMからのOTLP(traces + logs)を一箇所で受け、シグナルごとに異なるバックエンドへ転送するハブ。
+
+```yaml
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+exporters:
+  otlphttp/tempo:
+    endpoint: http://tempo:4318
+    tls:
+      insecure: true
+  otlphttp/loki:
+    endpoint: http://loki:3100/otlp   # Collectorが末尾に /v1/logs を自動付与 -> http://loki:3100/otlp/v1/logs
+    tls:
+      insecure: true
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      exporters: [otlphttp/tempo]
+    logs:
+      receivers: [otlp]
+      exporters: [otlphttp/loki]
+```
+
+### 注意点
+
+> [!NOTE]
+> `otlphttp` エクスポーターは `endpoint` に指定したベースURLへ、シグナルごとに `/v1/traces` `/v1/logs` `/v1/metrics` を**自動付与**する。Lokiの場合はOTLP受信パスが `/otlp/v1/logs` なので、`endpoint: http://loki:3100/otlp` と指定することで最終的に正しいパスになる。
+>
+> `otlphttp` は非推奨エイリアスで、起動ログに `"otlphttp" alias is deprecated; use "otlp_http" instead` という warning が出る(動作に影響はないが将来のCollectorバージョンで削除される可能性あり)。
+>
+> メトリクス用パイプラインは定義していない(本構成ではPrometheus pull方式のみ使用のため)。
+
+---
+
+## 5. Tempo (`tempo/tempo-config.yaml`)
+
+```yaml
+distributor:
+  receivers:
+    otlp:
+      protocols:
+        grpc:
+          endpoint: 0.0.0.0:4317
+        http:
+          endpoint: 0.0.0.0:4318
+```
+
+### 注意点(ハマりどころ)
+
+> [!CAUTION]
+> Tempoのデフォルト設定では、`protocols.otlp.grpc:` / `http:` を値なしで書くと `127.0.0.1` にのみバインドされる。これだとTempoコンテナ自身からしかアクセスできず、他のコンテナ(otel-collector)から接続すると `connection refused` になる。**`endpoint: 0.0.0.0:4317` / `0.0.0.0:4318` を明示的に指定する必要がある。**
+
+- ポート`3200`: TempoのHTTP API(検索・クエリ用、Grafanaのdatasourceが使う)
+- ポート`4317`: OTLP gRPC受信
+- ポート`4318`: OTLP HTTP受信
+- `storage.trace.backend: local` — ローカルファイルシステムに保存(本番ではS3/GCS等を推奨)
+
+---
+
+## 6. Loki (`loki/loki-config.yaml`)
+
+```yaml
+limits_config:
+  allow_structured_metadata: true   # OTLP ingestionに必須
+```
+
+### 注意点
+
+> [!CAUTION]
+> `allow_structured_metadata: true` が無いとOTLP経由のログ取り込みができない(OTLPのリソース属性/ログ属性はLokiのStructured Metadataとして格納される)。
+>
+> `schema: v13` + `store: tsdb` の組み合わせがOTLP + structured metadataに対応した推奨スキーマ(v11/v12等の旧スキーマではstructured metadata非対応)。
+
+> [!NOTE]
+> OTLP受信パスは `/otlp/v1/logs`(SDK/Collectorから直接送る場合のパス)。Loki標準のpush API(`/loki/api/v1/push`)とは別物。
+>
+> Lokiはデフォルトで `[::]` (全アドレス)にバインドするため、Tempoのような明示的なbindアドレス指定は不要だった。
+
+---
+
+## 7. Prometheus (`prometheus/prometheus.yml`)
+
+```yaml
+scrape_configs:
+  - job_name: litellm
+    static_configs:
+      - targets: ["litellm:4000"]
+```
+
+- 15秒間隔でLiteLLMの `/metrics` をscrape
+- 認証なし(`require_auth_for_metrics_endpoint: false` と対応)
+
+---
+
+## 8. Grafana (`grafana/provisioning/datasources/datasources.yml`)
+
+Prometheus / Loki / Tempo の3データソースを起動時に自動プロビジョニング。
+
+```yaml
+datasources:
+  - name: Prometheus
+    uid: prometheus
+    type: prometheus
+    url: http://prometheus:9090
+    isDefault: true
+  - name: Loki
+    uid: loki
+    type: loki
+    url: http://loki:3100
+  - name: Tempo
+    uid: tempo
+    type: tempo
+    url: http://tempo:3200
+```
+
+- Grafana v12+ には **Logs Drilldown** / **Traces Drilldown** アプリが標準搭載されており、Loki/Tempoを使う本構成ではプラグイン追加なしでそのまま使える(VictoriaLogs/VictoriaTracesを使う場合は非公式プラグインや回避策が必要になるため、本構成ではLoki/Tempoを採用した)
+- Loki⇔Tempoの相互リンク(ログからトレースへジャンプ等、`derivedFields` / `tracesToLogsV2`)は本構成では未設定(シンプルさを優先)。必要なら `jsonData` に追加可能
+
+> [!CAUTION]
+> `GF_AUTH_ANONYMOUS_ENABLED: "true"` + `GF_AUTH_ANONYMOUS_ORG_ROLE: Admin` によりログイン不要でAdmin権限アクセス可能な設定にしている。**ローカル開発専用設定**であり、外部公開する場合は必ず認証を有効化すること。
+>
+> **既知の罠**: `grafana_data` ボリュームに古いデータソース定義の内部DB状態が残っていると、`datasources.yml`を書き換えても起動時に `Datasource provisioning error: data source not found` で起動failするケースがある。データソース構成を大きく変更した場合は `docker volume rm <project>_grafana_data` してボリュームごと作り直すのが確実(ダッシュボード等の手動設定は失われる点に注意)。
+
+---
+
+## 9. docker-compose運用上の注意点
+
+### `pull_policy: missing` と `latest` タグ
+
+全イメージを**バージョン固定タグ**にしている(`litellm:v1.101.0`, `prometheus:v3.13.3`, `loki:3.7.8`, `tempo:3.0.3`, `grafana:13.2.2`, `opentelemetry-collector-contrib:0.161.0`)。バージョンは定期的に手動で見直し、意図的に上げること。
+
+> [!CAUTION]
+> `pull_policy: missing` はローカルにイメージが存在すればpullをスキップする設定だが、**`latest`タグの場合はこの設定があっても常にレジストリに問い合わせに行く**(Docker Composeの既知の仕様)。バージョン固定 + `pull_policy: missing` の組み合わせで初めて「ローカルキャッシュを使い回す」意図通りの挙動になる。
+
+### `docker-compose` vs `docker compose`
+
+> [!NOTE]
+> 環境によっては `docker compose`(v2 plugin構文)が使えず、standalone版の `docker-compose` コマンドしか無い場合がある。うまくいかない場合はどちらのコマンド体系が使えるか確認する。
+
+### 設定ファイル変更後の反映
+
+> [!CAUTION]
+> `volumes:` でマウントしている設定ファイル(`tempo-config.yaml`等)を書き換えても、`docker-compose up -d <service>` だけではコンテナが再作成されず変更が反映されないことがある。確実に反映させるには対象サービスを `stop` → `rm -f` → `up -d` するか、`docker-compose up -d --force-recreate <service>` を使う。
+
+---
+
+## 10. トラブルシューティングチェックリスト
+
+トレース/ログが届かない場合の確認手順:
+
+1. **LiteLLM側でexporterが`console`にフォールバックしていないか**
+   - `docker exec litellm-litellm-1 env | grep OTEL` で `OTEL_EXPORTER_OTLP_ENDPOINT` / `OTEL_EXPORTER_OTLP_PROTOCOL` が想定通り設定されているか確認
+2. **Collectorがreceiverでデータを受けているか**
+   - `docker logs litellm-otel-collector-1` でエラー・warningを確認
+3. **Collector→Tempo/Lokiの接続確認**
+   - `connection refused` が出ていればバインドアドレス(`0.0.0.0` vs `127.0.0.1`)を疑う
+4. **バックエンド側で実際にデータを受信しているか、API直叩きで確認**
+   ```bash
+   # Tempo: 直近のトレース検索
+   curl -s "http://localhost:3200/api/search?limit=5"
+   # Tempoの受信カウンタ(0なら未受信)
+   curl -s http://localhost:3200/metrics | grep tempo_distributor_push_duration_seconds_count
+
+   # Loki: ラベル一覧(データがあれば service_name 等が返る)
+   curl -s http://localhost:3100/loki/api/v1/labels
+
+   # LiteLLM: Prometheusメトリクスの生存確認
+   curl -s http://localhost:4000/metrics | head
+   ```
+5. **Grafana側でデータソースが正しく登録されているか**
+   ```bash
+   curl -s http://localhost:3000/api/datasources
+   ```
