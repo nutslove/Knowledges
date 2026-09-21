@@ -1,6 +1,7 @@
 ## `@dataclass`について
 - Python 3.7で導入された`dataclasses`モジュールの一部で、クラス定義を簡素化するためのデコレータ（`@dataclass`）
 - `@dataclass`を使用すると、クラスの属性に基づいて自動的に初期化メソッド（`__init__`）、文字列表現メソッド（`__repr__`）、比較メソッド（`__eq__`など）などが生成される
+- **`TypedDict`・`pydantic`の`BaseModel`との使い分けは[[Pydantic, TypedDict, typingについて#`TypedDict` と `dataclass` と `pydantic.BaseModel` の使い分け\|こちら]]を参照**
 
 ### 基本的な使い方  
 ```python

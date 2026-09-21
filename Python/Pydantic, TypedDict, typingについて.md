@@ -550,8 +550,26 @@
     show_animal({"name": 5, "age": "taro"}) # NG
     ```
 
+## `TypedDict` と `dataclass` と `pydantic.BaseModel` の使い分け
+- 3つとも「決まった形のデータ」を型として表現できる点で似ているが、**実行時の実体・強制力が異なる**
+  | 観点 | `TypedDict` | `dataclass` | `pydantic`の`BaseModel` |
+  |---|---|---|---|
+  | 実行時の実体 | 普通の`dict`のまま | 実際のクラス（インスタンス） | 実際のクラス（インスタンス） |
+  | アクセス方法 | `d["key"]`（辞書アクセス） | `obj.key`（属性アクセス） | `obj.key`（属性アクセス） |
+  | 型の強制力 | なし（型チェッカーのみ、実行時は素の`dict`なので何でも入る） | なし（`__init__`で代入されるだけで型変換・検証はしない） | あり（インスタンス化時に検証・型変換を行う。[[Pydantic, TypedDict, typingについて#`pydantic`の`BaseModel`を使った型の強制\|詳細]]） |
+  | `__init__`/`__repr__`/`__eq__` | なし（元が`dict`なので不要） | 自動生成 | 自動生成 |
+  | 主な用途 | 既存の生の`dict`（JSONを`json.loads`しただけのものなど）に後付けで型を注釈したい場合 | 内部で完結する、すでに信頼できるデータのまとめ役（ロジックは薄いデータコンテナ） | 外部から来る未検証のデータ（APIリクエストボディ、設定ファイル、Webhookペイロードなど）の検証・変換 |
+- **使い分けの目安**
+  - データが**外部入力（信頼できない）** → `pydantic.BaseModel`（検証が実際に効く）
+  - データが**内部で生成・完結していて既に信頼できる** → `dataclass`（軽量でPydanticへの依存も不要）
+  - 既存コードや外部ライブラリの都合で**`dict`のまま扱わざるを得ない**が型だけは付けたい → `TypedDict`
+- **注意点**
+  - `dataclass`は「型ヒントを書いておけば安心」に見えるが、`Config(name=123)`のように違う型を渡してもエラーにならない（実行時チェックがないため）。信頼できない値を扱うなら`dataclass`ではなく`BaseModel`にすべき
+  - `pydantic`の`BaseModel`も[[Pydantic, TypedDict, typingについて#強制力が適用されない場合\|強制力が適用されない場合]]があるため、「インスタンス化した瞬間は安全」であって「その後もずっと安全」とは限らない点は共通の注意点
+
 # `pydantic`
 ## `pydantic`の`BaseModel`を使った型の強制
+- **`TypedDict`・`dataclass`との使い分けは[[Pydantic, TypedDict, typingについて#`TypedDict` と `dataclass` と `pydantic.BaseModel` の使い分け\|こちら]]を参照**
 - **`pydantic`モジュール`BaseModel`を使って定義した型ヒントはある程度強制力を持つ**
 - `pydantic`モジュールの型ヒントの特徴
   - **データ検証**： Pydanticは定義された型ヒントに基づいてデータを検証する。不適切な型のデータが渡されると、ValidationErrorを発生させる。
