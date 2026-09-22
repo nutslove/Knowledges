@@ -194,7 +194,40 @@ Client → LiteLLM Gateway(そのまま)
 
 クライアント・上流LLMともにHeadroomと直接通信しない(サイドカー方式)。
 
-### 4.2 config.yaml設定(運用主体が別チームでもOK)
+### 4.2 docker-compose.ymlへのHeadroom追加(本リポジトリの実際の構成)
+
+本リポジトリでは`litellm`と同じdocker-composeネットワーク内に`headroom`サービスを追加し、`http://headroom:8787`経由で接続している。
+
+```yaml
+# docker-compose.yml
+services:
+  litellm:
+    # ...
+    depends_on:
+      headroom:
+        condition: service_healthy
+
+  headroom:
+    image: ghcr.io/headroomlabs-ai/headroom:0.37.0   # ローカルheadroom CLIと同じバージョンに固定
+    pull_policy: missing
+    ports:
+      - "8787:8787"
+    environment:
+      # Headroomの圧縮エンドポイントはデフォルトでループバック限定(loopback-only)で、
+      # リモート(=docker-composeネットワーク越し)からの呼び出しには404を返す。
+      # litellmコンテナはlocalhostではなくネットワーク越しに叩くため、明示的に許可する必要がある。
+      HEADROOM_COMPRESS_ALLOW_REMOTE: "1"
+    volumes:
+      - headroom_data:/home/nonroot/.headroom   # メモリ/ログなど永続化(任意)
+
+volumes:
+  headroom_data:
+```
+
+> [!CAUTION]
+> `HEADROOM_COMPRESS_ALLOW_REMOTE=1`を忘れると、`api_base`のURLが間違っているわけでもないのに`404`が返る(`403`ではない)。切り分けの際に見落としやすいポイント。
+
+### 4.3 config.yaml設定(運用主体が別チームでもOK)
 
 ```yaml
 # config.yaml
@@ -203,17 +236,17 @@ guardrails:
     litellm_params:
       guardrail: headroom
       mode: pre_call
-      api_base: https://your-headroom-service   # ネットワーク越しのURLでOK
-      api_key: os.environ/HEADROOM_API_KEY       # [OPTIONAL] 認証
-      # default_on: true                          # [OPTIONAL] 全リクエスト圧縮するか
+      api_base: http://headroom:8787   # docker-compose内サービス名で解決
+      # api_key: os.environ/HEADROOM_API_KEY   # [OPTIONAL] HEADROOM_PROXY_TOKENを設定した場合の認証
+      default_on: true                          # [OPTIONAL] 全リクエストを圧縮対象にするか
 ```
 
-通信は`{api_base}/v1/compress`へのシンプルなHTTP POST。運用チームが別でも`api_base`+`api_key`のインターフェースで疎結合に接続可能。
+通信は`{api_base}/v1/compress`へのシンプルなHTTP POST。運用チームが別でも`api_base`+`api_key`のインターフェースで疎結合に接続可能。リモート公開する場合は`HEADROOM_PROXY_TOKEN`をHeadroom側に設定し、`api_key`(→`X-Headroom-Proxy-Token`ヘッダ)で認証させるとよい。
 
 > [!NOTE]
 > デフォルトでは`user`/`system`ロールのメッセージや`cache_control`付きメッセージは圧縮対象外(`HEADROOM_COMPRESS_USER_MESSAGES=1`で変更可)。
 
-### 4.3 メトリクスとの整合性(圧縮後の値で計上されるか)
+### 4.4 メトリクスとの整合性(圧縮後の値で計上されるか)
 
 **結論: LiteLLM側のメトリクス(トークン数・コスト)は圧縮後(実際に送られた・実際に課金された)の値で計上される。実態との乖離はない。**
 
