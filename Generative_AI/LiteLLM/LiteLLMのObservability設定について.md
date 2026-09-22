@@ -201,6 +201,61 @@ callback_settings:
 
 いずれの設定でも、本文以外のメタデータ(モデル名、トークン数、コストなど)は引き続き記録される。
 
+### 3.4.1 実データ検証: TraceとLokiログの内容重複、および「内部処理」spanの実態
+
+「LiteLLMの出すtraceは、Lokiに転送されているログと同じ内容(ユーザ入力等)と、DB処理・認証処理などの内部処理が主な中身なのでは?」という疑問を、ソースコード解析(デプロイ済み v1.101.0 の実際のパッケージ)とTempo/Lokiの実データ突合の両面から検証した結果をまとめる。
+
+**結論**: 前半(Lokiと同じ内容が重複している)は正しい。後半(内部処理が「主な中身」)は不正確 — DB/認証系spanは件数は多いが1つあたりの情報量は意図的にごく小さく、トレースの情報量の大半を占めるのは実際には (a) Lokiと重複するプロンプト/レスポンス本文と、(b) Lokiには一切出ないコスト/トークン/メタデータの2つ。
+
+#### なぜ重複するのか(コード根拠)
+
+本デプロイ (`LITELLM_OTEL_V2` 未設定 → レガシー実装 `litellm/integrations/opentelemetry.py` の `OpenTelemetry` クラスが稼働) では、コンテンツ取得モードは以下の優先順位で決まる:
+
+```python
+def _resolve_capture_mode(self) -> str:
+    if litellm.turn_off_message_logging:
+        return CAPTURE_MODE_NO_CONTENT          # 1. キルスイッチ(最優先)
+    if self._capture_mode_cached is not None:
+        return self._capture_mode_cached         # 2. OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT (明示設定時)
+    return CAPTURE_MODE_SPAN_AND_EVENT if self.message_logging else CAPTURE_MODE_NO_CONTENT  # 3. レガシーフラグ(デフォルト True)
+```
+
+本構成の `config.yaml` は上記いずれも設定していないため、デフォルトの `message_logging=True` が効き、**常に `CAPTURE_MODE_SPAN_AND_EVENT`** になる。さらに `docker-compose.yml` で `LITELLM_OTEL_INTEGRATION_ENABLE_EVENTS: "true"` を明示しているため、span側とログ(event)側の**両方**にプロンプト/レスポンス本文が書き込まれる。
+
+| 出力先 | 生成箇所 | 内容 |
+|---|---|---|
+| Tempo span属性 (`litellm_request`) | `set_attributes()` 内の `gen_ai.input.messages` / `gen_ai.output.messages` / `gen_ai.system_instructions` | プロンプト全文・レスポンス全文 |
+| Tempo span属性 (`raw_gen_ai_request`, 子span) | `set_raw_request_attributes()` — `llm.{provider}.*` 属性としてプロバイダの生リクエスト/レスポンスをほぼそのままダンプ | プロバイダ固有の生JSON |
+| Loki ログイベント | `_emit_semantic_logs()` が `gen_ai.content.prompt` / `gen_ai.content.completion` を**別イベント**として `trace_id`/`span_id` 付きで送信 | メッセージごと・choiceごとの本文 |
+
+実際にTempoの1トレース(`/api/traces/{traceID}`)と、同一時間帯のLoki(`{service_name="unknown_service"}` で `/loki/api/v1/query_range`)を突き合わせたところ、**同一の `trace_id`/`span_id` を持つLokiログ**(`gen_ai.content.prompt` ×3, `gen_ai.content.completion` ×2)に、Tempo側 `litellm_request` のspan属性とほぼ同一のツール呼び出し内容・アシスタント応答(日本語テキスト含む)が確認できた。実データでの重複を確認済み。
+
+#### 「内部処理」spanは軽量・非機密設計
+
+`auth`, `postgres`(複数回), `proxy_pre_call`, `self`, `batch_write_to_db` などの内部サービスspan(`ServiceTypes` enum, `litellm/types/services.py`)は、`_start_service_span()` で生成されるが、意図的に情報量を絞ってある:
+
+- **DB系span**: `db_span_attributes()` (`litellm/integrations/otel/model/db_endpoint.py`) は `DATABASE_URL` から得られるホスト/ポート/DB名等の非機密メタのみを付与。認証情報は明示的に除外。
+- **`log_db_metrics` デコレータ** (`litellm/proxy/db/log_db_metrics.py`) 配下のDB関数呼び出しspanは `_safe_db_event_metadata()` により `table_name` 以外を意図的に除去。コード内コメント曰く「生のkwargs/argsにはPrismaクライアントやOTel spanなどの生きたオブジェクト、トークン等の機密情報が含まれるため、spanに乗せて良いのはテーブル名のみ」。
+- **`auth` span**: `user_api_key_auth.py` の `_return_user_api_key_auth_obj` を見る限り `call_type=route` 程度で、APIキーやリクエストボディは記録されない。
+
+これらのspanは件数は多いが1つあたり属性数は2〜8個程度で、情報量としての「主な中身」には該当しない。
+
+#### Traceだけが持つ情報(Lokiには出ない)
+
+`set_attributes()` はコンテンツキャプチャの可否に関わらず**常に**以下を設定する。これらはLokiのログイベントには含まれない、トレース固有の価値:
+
+- トークン数(input/output/total)、コスト計算結果(`response_cost` 等)
+- APIキー・チーム・エンドユーザー・モデルグループ等のメタデータ
+- ガードレール実行結果(`_create_guardrail_span` が `guardrail_name`, `guardrail_mode`, `guardrail_response`(JSON), `masked_entity_count` を付与)
+- span階層そのもの(DB呼び出し回数、認証にかかった時間などの構造的情報)
+
+#### まとめ
+
+正確な内訳は「Trace = Lokiと重複するプロンプト/レスポンス本文 + Lokiには無いコスト/メタデータ + (情報量としては小さい)内部処理spanの構造」。
+
+> [!NOTE]
+> Web調査でも一致する記述を確認: [LiteLLM公式ドキュメント](https://docs.litellm.ai/docs/observability/opentelemetry_integration) は `OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT` 未設定時にレガシー `message_logging`(デフォルト `True` → `SPAN_AND_EVENT`)へフォールバックすると明記。[OpenTelemetry v2](https://docs.litellm.ai/docs/observability/opentelemetry_v2) ではv1.81.0以降、非標準の `raw_gen_ai_request` 子spanを作らず親spanに直接属性を乗せる設計に変わりつつある(本環境はレガシーV1のため非該当)。実運用の既知issue([PR #40562](https://github.com/BerriAI/litellm/pull/40562))では `SPAN_ONLY` モードで長い会話になるとメッセージ属性が肥大化しコスト等の重要属性を溢れさせる問題も報告されており、本構成のように `SPAN_AND_EVENT`(デフォルト)で本文全文をspanとログの両方に流す設計は、機密情報を扱う場合は重複コスト・肥大化の観点からも見直す価値がある。
+
 ### 3.5 重要な注意点: エンドポイント環境変数の非互換性
 
 > [!CAUTION]
