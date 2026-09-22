@@ -553,6 +553,632 @@ label_values(litellm_spend_metric_total, end_user)
 >
 > `litellm_spend_metric_total` や `litellm_input_tokens_metric_total` / `litellm_output_tokens_metric_total` のように元々末尾が単一の `_total` であるものは変化しない。ダッシュボードやアラートルールを自作する際は、`curl http://localhost:4000/metrics` (LiteLLM生の名前)ではなく、VictoriaMetrics側 (`curl http://localhost:8428/api/v1/label/__name__/values`) で実際に格納されている名前を確認してから使うこと。
 
+#### 8.1.1 ダッシュボードJSON全文 (`grafana/provisioning/dashboards/litellm-user-usage.json`)
+
+```json
+{
+  "__inputs": [],
+  "__requires": [],
+  "id": null,
+  "uid": "litellm-user-usage",
+  "title": "LiteLLM - ユーザ別利用状況",
+  "description": "LiteLLM prometheusコールバックのメトリクス(end_user/user/teamラベル)を使った、ユーザ単位のトークン使用量・コスト・リクエスト数・キャッシュ効率・ガードレール実行状況の可視化。",
+  "tags": ["litellm"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "editable": true,
+  "refresh": "1m",
+  "time": {
+    "from": "now-24h",
+    "to": "now"
+  },
+  "templating": {
+    "list": [
+      {
+        "name": "end_user",
+        "type": "query",
+        "label": "End User",
+        "datasource": {
+          "type": "victoriametrics-metrics-datasource",
+          "uid": "prometheus"
+        },
+        "query": {
+          "query": "label_values(litellm_spend_metric_total, end_user)",
+          "refId": "end_user_variable"
+        },
+        "refresh": 2,
+        "multi": true,
+        "includeAll": true,
+        "allValue": ".*",
+        "current": {
+          "selected": true,
+          "text": "All",
+          "value": "$__all"
+        },
+        "sort": 1
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "row",
+      "title": "サマリ (選択期間内)",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "総コスト (USD)",
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 1 },
+      "datasource": { "type": "victoriametrics-metrics-datasource", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD",
+          "decimals": 4
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "orientation": "auto",
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": { "type": "victoriametrics-metrics-datasource", "uid": "prometheus" },
+          "expr": "sum(increase(litellm_spend_metric_total{end_user=~\"$end_user\"}[$__range]))",
+          "instant": true,
+          "range": false,
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "総トークン数",
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 1 },
+      "datasource": { "type": "victoriametrics-metrics-datasource", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "orientation": "auto",
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": { "type": "victoriametrics-metrics-datasource", "uid": "prometheus" },
+          "expr": "sum(increase(litellm_tokens_metric_total{end_user=~\"$end_user\"}[$__range]))",
+          "instant": true,
+          "range": false,
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "総リクエスト数",
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 1 },
+      "datasource": { "type": "victoriametrics-metrics-datasource", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "orientation": "auto",
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": { "type": "victoriametrics-metrics-datasource", "uid": "prometheus" },
+          "expr": "sum(increase(litellm_proxy_requests_metric_total{end_user=~\"$end_user\"}[$__range]))",
+          "instant": true,
+          "range": false,
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "stat",
+      "title": "対象ユーザ数",
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 1 },
+      "datasource": { "type": "victoriametrics-metrics-datasource", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "orientation": "auto",
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": { "type": "victoriametrics-metrics-datasource", "uid": "prometheus" },
+          "expr": "count(count by (end_user) (litellm_spend_metric_total{end_user=~\"$end_user\"}))",
+          "instant": true,
+          "range": false,
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 30,
+      "type": "row",
+      "title": "プロンプトキャッシュ効率",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 5 },
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "id": 31,
+      "type": "stat",
+      "title": "キャッシュヒット率 (全体, Input Tokens基準)",
+      "description": "プロバイダ側プロンプトキャッシュ(Anthropic cache_read等)からの読み取りトークン ÷ 総Inputトークン。ヒット率が高いほどコスト削減効果が大きい。",
+      "gridPos": { "h": 8, "w": 6, "x": 0, "y": 6 },
+      "datasource": { "type": "victoriametrics-metrics-datasource", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 1,
+          "max": 100,
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "yellow", "value": 30 },
+              { "color": "green", "value": 60 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "orientation": "auto",
+        "colorMode": "value",
+        "graphMode": "area",
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": { "type": "victoriametrics-metrics-datasource", "uid": "prometheus" },
+          "expr": "100 * sum(increase(litellm_provider_cache_read_input_tokens_metric_total{end_user=~\"$end_user\"}[$__range])) / sum(increase(litellm_input_tokens_metric_total{end_user=~\"$end_user\"}[$__range]))",
+          "instant": true,
+          "range": false,
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 32,
+      "type": "timeseries",
+      "title": "キャッシュヒット率推移 (ユーザ別)",
+      "gridPos": { "h": 8, "w": 18, "x": 6, "y": 6 },
+      "datasource": { "type": "victoriametrics-metrics-datasource", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "max": 100,
+          "min": 0,
+          "color": { "mode": "palette-classic" },
+          "custom": { "drawStyle": "line", "fillOpacity": 0, "showPoints": "always", "pointSize": 1, "stacking": { "mode": "none" } }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["mean", "last"] },
+        "tooltip": { "mode": "multi" }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "victoriametrics-metrics-datasource", "uid": "prometheus" },
+          "expr": "100 * sum by (end_user) (increase(litellm_provider_cache_read_input_tokens_metric_total{end_user=~\"$end_user\"}[$__interval])) / sum by (end_user) (increase(litellm_input_tokens_metric_total{end_user=~\"$end_user\"}[$__interval]))",
+          "legendFormat": "{{end_user}}",
+          "range": true,
+          "instant": false,
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "type": "row",
+      "title": "時系列 (ユーザ別)",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 14 },
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "id": 11,
+      "type": "timeseries",
+      "title": "コスト推移 (ユーザ別)",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 15 },
+      "datasource": { "type": "victoriametrics-metrics-datasource", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD",
+          "color": { "mode": "palette-classic" },
+          "custom": { "drawStyle": "line", "fillOpacity": 0, "showPoints": "always", "pointSize": 1, "stacking": { "mode": "none" } }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["sum", "max"] },
+        "tooltip": { "mode": "multi" }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "victoriametrics-metrics-datasource", "uid": "prometheus" },
+          "expr": "sum by (end_user) (increase(litellm_spend_metric_total{end_user=~\"$end_user\"}[$__interval]))",
+          "legendFormat": "{{end_user}}",
+          "range": true,
+          "instant": false,
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "type": "timeseries",
+      "title": "トークン使用量推移 (ユーザ別)",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 15 },
+      "datasource": { "type": "victoriametrics-metrics-datasource", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": { "mode": "palette-classic" },
+          "custom": { "drawStyle": "line", "fillOpacity": 0, "showPoints": "always", "pointSize": 1, "stacking": { "mode": "none" } }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["sum", "max"] },
+        "tooltip": { "mode": "multi" }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "victoriametrics-metrics-datasource", "uid": "prometheus" },
+          "expr": "sum by (end_user) (increase(litellm_tokens_metric_total{end_user=~\"$end_user\"}[$__interval]))",
+          "legendFormat": "{{end_user}}",
+          "range": true,
+          "instant": false,
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 40,
+      "type": "row",
+      "title": "モデル別コスト内訳",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 23 },
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "id": 41,
+      "type": "piechart",
+      "title": "モデル別コスト割合 (選択期間内)",
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 24 },
+      "datasource": { "type": "victoriametrics-metrics-datasource", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD",
+          "color": { "mode": "palette-classic" }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": { "displayMode": "table", "placement": "right", "values": ["value", "percent"] },
+        "pieType": "pie",
+        "reduceOptions": { "calcs": ["sum"], "fields": "", "values": false },
+        "tooltip": { "mode": "multi" }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "victoriametrics-metrics-datasource", "uid": "prometheus" },
+          "expr": "sum by (model) (increase(litellm_spend_metric_total{end_user=~\"$end_user\"}[$__range]))",
+          "legendFormat": "{{model}}",
+          "instant": true,
+          "range": false,
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 42,
+      "type": "timeseries",
+      "title": "モデル別コスト推移",
+      "gridPos": { "h": 8, "w": 16, "x": 8, "y": 24 },
+      "datasource": { "type": "victoriametrics-metrics-datasource", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD",
+          "color": { "mode": "palette-classic" },
+          "custom": { "drawStyle": "line", "fillOpacity": 0, "showPoints": "always", "pointSize": 1, "stacking": { "mode": "none" } }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["sum", "max"] },
+        "tooltip": { "mode": "multi" }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "victoriametrics-metrics-datasource", "uid": "prometheus" },
+          "expr": "sum by (model) (increase(litellm_spend_metric_total{end_user=~\"$end_user\"}[$__interval]))",
+          "legendFormat": "{{model}}",
+          "range": true,
+          "instant": false,
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 20,
+      "type": "row",
+      "title": "ランキング / 内訳テーブル",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 32 },
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "id": 21,
+      "type": "table",
+      "title": "ユーザ別コストランキング (選択期間内)",
+      "gridPos": { "h": 9, "w": 12, "x": 0, "y": 33 },
+      "datasource": { "type": "victoriametrics-metrics-datasource", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "unit": "currencyUSD", "custom": { "align": "auto" } },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "Value" }, "properties": [{ "id": "displayName", "value": "Spend (USD)" }] }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "sortBy": [{ "displayName": "Spend (USD)", "desc": true }]
+      },
+      "transformations": [
+        { "id": "labelsToFields", "options": {} }
+      ],
+      "targets": [
+        {
+          "datasource": { "type": "victoriametrics-metrics-datasource", "uid": "prometheus" },
+          "expr": "sum by (end_user, team, model) (increase(litellm_spend_metric_total{end_user=~\"$end_user\"}[$__range]))",
+          "format": "table",
+          "instant": true,
+          "range": false,
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 22,
+      "type": "table",
+      "title": "ユーザ別トークン内訳 (選択期間内)",
+      "gridPos": { "h": 9, "w": 12, "x": 12, "y": 33 },
+      "datasource": { "type": "victoriametrics-metrics-datasource", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "unit": "short", "custom": { "align": "auto" } },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "Value #A" }, "properties": [{ "id": "displayName", "value": "Input Tokens" }] },
+          { "matcher": { "id": "byName", "options": "Value #B" }, "properties": [{ "id": "displayName", "value": "Output Tokens" }] },
+          { "matcher": { "id": "byName", "options": "Value #C" }, "properties": [{ "id": "displayName", "value": "Total Tokens" }] }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "sortBy": [{ "displayName": "Total Tokens", "desc": true }]
+      },
+      "transformations": [
+        { "id": "merge", "options": {} }
+      ],
+      "targets": [
+        {
+          "datasource": { "type": "victoriametrics-metrics-datasource", "uid": "prometheus" },
+          "expr": "sum by (end_user) (increase(litellm_input_tokens_metric_total{end_user=~\"$end_user\"}[$__range]))",
+          "format": "table",
+          "instant": true,
+          "range": false,
+          "refId": "A"
+        },
+        {
+          "datasource": { "type": "victoriametrics-metrics-datasource", "uid": "prometheus" },
+          "expr": "sum by (end_user) (increase(litellm_output_tokens_metric_total{end_user=~\"$end_user\"}[$__range]))",
+          "format": "table",
+          "instant": true,
+          "range": false,
+          "refId": "B"
+        },
+        {
+          "datasource": { "type": "victoriametrics-metrics-datasource", "uid": "prometheus" },
+          "expr": "sum by (end_user) (increase(litellm_tokens_metric_total{end_user=~\"$end_user\"}[$__range]))",
+          "format": "table",
+          "instant": true,
+          "range": false,
+          "refId": "C"
+        }
+      ]
+    },
+    {
+      "id": 23,
+      "type": "table",
+      "title": "チーム別コストランキング (選択期間内)",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 42 },
+      "datasource": { "type": "victoriametrics-metrics-datasource", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "unit": "currencyUSD", "custom": { "align": "auto" } },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "Value" }, "properties": [{ "id": "displayName", "value": "Spend (USD)" }] }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "sortBy": [{ "displayName": "Spend (USD)", "desc": true }]
+      },
+      "transformations": [
+        { "id": "labelsToFields", "options": {} }
+      ],
+      "targets": [
+        {
+          "datasource": { "type": "victoriametrics-metrics-datasource", "uid": "prometheus" },
+          "expr": "sum by (team, team_alias) (increase(litellm_spend_metric_total{end_user=~\"$end_user\"}[$__range])) > 0",
+          "format": "table",
+          "instant": true,
+          "range": false,
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 50,
+      "type": "row",
+      "title": "ガードレール実行状況",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 50 },
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "id": 51,
+      "type": "stat",
+      "title": "ガードレール呼び出し数 (選択期間内)",
+      "gridPos": { "h": 8, "w": 6, "x": 0, "y": 51 },
+      "datasource": { "type": "victoriametrics-metrics-datasource", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "orientation": "auto",
+        "colorMode": "value",
+        "graphMode": "area",
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": { "type": "victoriametrics-metrics-datasource", "uid": "prometheus" },
+          "expr": "sum(increase(litellm_guardrail_requests_total[$__range]))",
+          "instant": true,
+          "range": false,
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 52,
+      "type": "stat",
+      "title": "ガードレールエラー数 (選択期間内)",
+      "gridPos": { "h": 8, "w": 6, "x": 6, "y": 51 },
+      "datasource": { "type": "victoriametrics-metrics-datasource", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red", "value": 1 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "orientation": "auto",
+        "colorMode": "value",
+        "graphMode": "area",
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": { "type": "victoriametrics-metrics-datasource", "uid": "prometheus" },
+          "expr": "sum(increase(litellm_guardrail_errors_total[$__range]))",
+          "instant": true,
+          "range": false,
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 53,
+      "type": "table",
+      "title": "ガードレール別内訳 (選択期間内)",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 51 },
+      "datasource": { "type": "victoriametrics-metrics-datasource", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "unit": "short", "custom": { "align": "auto" } },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "Value #A" }, "properties": [{ "id": "displayName", "value": "Requests" }] },
+          { "matcher": { "id": "byName", "options": "Value #B" }, "properties": [{ "id": "displayName", "value": "Errors" }] }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "sortBy": [{ "displayName": "Requests", "desc": true }]
+      },
+      "transformations": [
+        { "id": "merge", "options": {} }
+      ],
+      "targets": [
+        {
+          "datasource": { "type": "victoriametrics-metrics-datasource", "uid": "prometheus" },
+          "expr": "sum by (guardrail_name, hook_type) (increase(litellm_guardrail_requests_total[$__range]))",
+          "format": "table",
+          "instant": true,
+          "range": false,
+          "refId": "A"
+        },
+        {
+          "datasource": { "type": "victoriametrics-metrics-datasource", "uid": "prometheus" },
+          "expr": "sum by (guardrail_name, hook_type) (increase(litellm_guardrail_errors_total[$__range]))",
+          "format": "table",
+          "instant": true,
+          "range": false,
+          "refId": "B"
+        }
+      ]
+    }
+  ]
+}
+```
+
+> [!NOTE]
+> 上記は `grafana/provisioning/dashboards/litellm-user-usage.json` の現時点(本節執筆時点)での全文。色設定は試行錯誤の結果、**時系列パネル(timeseries)は全て `color.mode: "palette-classic"` + `fillOpacity: 0` + `showPoints: "always"` + `pointSize: 1`**(線+小さい点、塗りつぶしなし、通常のインデックスベース配色)に統一しており、円グラフ(`piechart`)も`palette-classic`を使用している。ファイルを直接編集した場合は、`docker-compose up -d --force-recreate grafana` でコンテナを再作成しないと反映されない点に注意。
+
 ---
 
 ## 9. docker-compose運用上の注意点
