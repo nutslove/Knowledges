@@ -256,6 +256,36 @@ def _resolve_capture_mode(self) -> str:
 > [!NOTE]
 > Web調査でも一致する記述を確認: [LiteLLM公式ドキュメント](https://docs.litellm.ai/docs/observability/opentelemetry_integration) は `OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT` 未設定時にレガシー `message_logging`(デフォルト `True` → `SPAN_AND_EVENT`)へフォールバックすると明記。[OpenTelemetry v2](https://docs.litellm.ai/docs/observability/opentelemetry_v2) ではv1.81.0以降、非標準の `raw_gen_ai_request` 子spanを作らず親spanに直接属性を乗せる設計に変わりつつある(本環境はレガシーV1のため非該当)。実運用の既知issue([PR #40562](https://github.com/BerriAI/litellm/pull/40562))では `SPAN_ONLY` モードで長い会話になるとメッセージ属性が肥大化しコスト等の重要属性を溢れさせる問題も報告されており、本構成のように `SPAN_AND_EVENT`(デフォルト)で本文全文をspanとログの両方に流す設計は、機密情報を扱う場合は重複コスト・肥大化の観点からも見直す価値がある。
 
+### 3.4.2 ユーザごとのToken利用量・料金確認だけが目的なら otel は不要
+
+「ユーザごとのトークン利用量や料金を確認したいだけ」という目的に対しては、`otel`コールバック(トレース・ログ、およびそのバックエンドであるTempo/Loki)は**不要**。`prometheus`コールバックのメトリクスだけで完結する。
+
+実際に `/metrics` を確認すると、`litellm_spend_metric_total`(コスト)や `litellm_total_tokens_metric_total`(トークン数)などのカウンタには、最初から以下のラベルが付与されている:
+
+```
+litellm_spend_metric_total{
+  end_user="...", user="...", user_email="...",
+  api_key_alias="...", hashed_api_key="...",
+  team="...", team_alias="...", org_id="...", org_alias="...",
+  model="...", model_id="...", requested_model="...", ...
+} <値>
+```
+
+つまりユーザ単位・APIキー単位・チーム単位・モデル単位の集計は`prometheus`コールバックのみで正確に取得できる。`otel`が追加で提供する価値は「個々のリクエストの中身」(プロンプト全文、DB/認証処理の内訳、レイテンシの内部構造)であって、集計値としてのトークン数・コストではない。Grafana上でも `sum by (end_user) (increase(litellm_total_tokens_metric_total[1h]))` のようなPromQL(VictoriaMetricsでも同じクエリ言語)で完結する。
+
+**目的をユーザ別利用量・料金確認だけに絞る場合、止めても支障がない要素**:
+
+| 要素 | 停止可否 |
+|---|---|
+| `config.yaml` の `callbacks: [otel]` | 削除可(`prometheus`のみ残す) |
+| OTel Collectorの `traces`/`logs` パイプライン、`otlp` receiver | 削除可(`metrics`パイプラインのみ残す) |
+| Tempo, Loki コンテナ | 削除可 |
+| Grafanaの Tempo/Loki データソース | 削除可 |
+| `LITELLM_OTEL_INTEGRATION_ENABLE_EVENTS` 環境変数 | 不要に |
+
+> [!NOTE]
+> トレース/ログを止めると、リクエスト単位のデバッグ(認証失敗、DB遅延、ガードレール挙動、個別リクエストのレイテンシ内訳)ができなくなる。障害調査・パフォーマンス分析の用途が将来出てくる可能性があるなら、otel自体は残しつつ3.4節の設定で本文キャプチャだけ止める、という折衷案もある。用途がユーザ別利用量・料金の可視化に限定されているなら、上記の縮小構成(`prometheus`コールバック + OTel Collectorの`metrics`パイプラインのみ + VictoriaMetrics + Grafana)で十分。
+
 ### 3.5 重要な注意点: エンドポイント環境変数の非互換性
 
 > [!CAUTION]
@@ -432,6 +462,53 @@ datasources:
 > `GF_AUTH_ANONYMOUS_ENABLED: "true"` + `GF_AUTH_ANONYMOUS_ORG_ROLE: Admin` によりログイン不要でAdmin権限アクセス可能な設定にしている。**ローカル開発専用設定**であり、外部公開する場合は必ず認証を有効化すること。
 >
 > **既知の罠**: `grafana_data` ボリュームに古いデータソース定義の内部DB状態が残っていると、`datasources.yml`を書き換えても起動時に `Datasource provisioning error: data source not found` で起動failするケースがある。データソース構成を大きく変更した場合は `docker volume rm <project>_grafana_data` してボリュームごと作り直すのが確実(ダッシュボード等の手動設定は失われる点に注意)。
+
+### 8.1 ダッシュボードのプロビジョニング (`grafana/provisioning/dashboards/`)
+
+データソースと同様に、ダッシュボードJSONも起動時に自動プロビジョニングできる。
+
+```
+grafana/provisioning/dashboards/
+├── dashboards.yml              # プロバイダ定義(このディレクトリ配下のJSONを自動読み込み)
+└── litellm-user-usage.json     # ユーザ別利用状況ダッシュボード本体
+```
+
+```yaml
+# dashboards.yml
+apiVersion: 1
+
+providers:
+  - name: litellm
+    orgId: 1
+    folder: LiteLLM          # Grafana上でこのフォルダ配下に表示される
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30  # このJSONファイルの変更を定期的に再読込
+    allowUiUpdates: true
+    options:
+      path: /etc/grafana/provisioning/dashboards
+```
+
+`grafana/provisioning` はdocker-compose.ymlで既にまるごとボリュームマウント済みなので、`dashboards/`ディレクトリを追加しても`docker-compose.yml`側の変更は不要。反映させるには他のprovisioning変更と同様に `docker-compose up -d --force-recreate grafana` でコンテナを再作成する(ボリュームマウントだけなので `docker-compose restart grafana` でも通常は反映されるが、確実性は`force-recreate`の方が高い)。
+
+**`litellm-user-usage.json` (「LiteLLM - ユーザ別利用状況」ダッシュボード) の内容**:
+
+- `end_user` ラベルを選択するテンプレート変数(複数選択・全選択対応)でユーザを絞り込み可能
+- サマリ: 選択期間内の総コスト(USD)・総トークン数・総リクエスト数・対象ユーザ数(stat パネル)
+- 時系列: ユーザ別のコスト推移・トークン使用量推移(積み上げエリア)
+- テーブル: ユーザ別コストランキング、ユーザ別トークン内訳(input/output/total)、チーム別コストランキング、APIキー別コストランキング
+
+いずれも `prometheus`コールバックのメトリクス(`litellm_spend_metric_total`, `litellm_input_tokens_metric_total`, `litellm_output_tokens_metric_total`)のみを参照しており、Tempo/Lokiには依存しない(→ [3.4.2](#342-ユーザごとのtoken利用量料金確認だけが目的なら-otel-は不要)で述べた縮小構成でもそのまま使える)。
+
+> [!CAUTION]
+> クエリで参照しているメトリクス名は、LiteLLMが `/metrics` で公開する生の名前(例: `litellm_total_tokens_metric_total`, `litellm_proxy_total_requests_metric_total`)とは**一部異なる**。OTel Collectorの `prometheus` receiverがスクレイプ時にPrometheusのcounter命名規則に合わせて名前を正規化する際、末尾が `_total_total` のように重複するケースを1つの `_total` に短縮するため、VictoriaMetrics上では以下のように名前が変わる:
+>
+> | LiteLLMが`/metrics`で公開する名前 | VictoriaMetrics(Remote Write後)に格納される名前 |
+> |---|---|
+> | `litellm_total_tokens_metric_total` | `litellm_tokens_metric_total` |
+> | `litellm_proxy_total_requests_metric_total` | `litellm_proxy_requests_metric_total` |
+>
+> `litellm_spend_metric_total` や `litellm_input_tokens_metric_total` / `litellm_output_tokens_metric_total` のように元々末尾が単一の `_total` であるものは変化しない。ダッシュボードやアラートルールを自作する際は、`curl http://localhost:4000/metrics` (LiteLLM生の名前)ではなく、VictoriaMetrics側 (`curl http://localhost:8428/api/v1/label/__name__/values`) で実際に格納されている名前を確認してから使うこと。
 
 ---
 
