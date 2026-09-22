@@ -495,10 +495,53 @@ providers:
 
 - `end_user` ラベルを選択するテンプレート変数(複数選択・全選択対応)でユーザを絞り込み可能
 - サマリ: 選択期間内の総コスト(USD)・総トークン数・総リクエスト数・対象ユーザ数(stat パネル)
+- **プロンプトキャッシュ効率**: キャッシュヒット率(全体、Input Tokens基準)、ユーザ別のキャッシュヒット率推移
 - 時系列: ユーザ別のコスト推移・トークン使用量推移(積み上げエリア)
-- テーブル: ユーザ別コストランキング、ユーザ別トークン内訳(input/output/total)、チーム別コストランキング、APIキー別コストランキング
+- **モデル別コスト内訳**: モデル別コスト割合(円グラフ)、モデル別コスト推移(積み上げ時系列)
+- テーブル: ユーザ別コストランキング、ユーザ別トークン内訳(input/output/total)、チーム別コストランキング
+- **ガードレール実行状況**: ガードレール呼び出し数・エラー数(選択期間内の合計)、ガードレール別内訳(呼び出し数/エラー数)テーブル
 
-いずれも `prometheus`コールバックのメトリクス(`litellm_spend_metric_total`, `litellm_input_tokens_metric_total`, `litellm_output_tokens_metric_total`)のみを参照しており、Tempo/Lokiには依存しない(→ [3.4.2](#342-ユーザごとのtoken利用量料金確認だけが目的なら-otel-は不要)で述べた縮小構成でもそのまま使える)。
+いずれも `prometheus`コールバックのメトリクスのみを参照しており、Tempo/Lokiには依存しない(→ [3.4.2](#342-ユーザごとのtoken利用量料金確認だけが目的なら-otel-は不要)で述べた縮小構成でもそのまま使える)。
+
+**テンプレート変数 `end_user`**:
+
+```
+label_values(litellm_spend_metric_total, end_user)
+```
+
+全パネルの各クエリは、この変数で選んだユーザに `end_user=~"$end_user"` で絞り込んでいる(全選択時は `.*` にマッチするため実質フィルタなし)。
+
+**実際に設定しているPromQL一覧**(パネルタイトル順):
+
+| パネル | PromQL |
+|---|---|
+| 総コスト (USD) | `sum(increase(litellm_spend_metric_total{end_user=~"$end_user"}[$__range]))` |
+| 総トークン数 | `sum(increase(litellm_tokens_metric_total{end_user=~"$end_user"}[$__range]))` |
+| 総リクエスト数 | `sum(increase(litellm_proxy_requests_metric_total{end_user=~"$end_user"}[$__range]))` |
+| 対象ユーザ数 | `count(count by (end_user) (litellm_spend_metric_total{end_user=~"$end_user"}))` |
+| キャッシュヒット率 (全体) | `100 * sum(increase(litellm_provider_cache_read_input_tokens_metric_total{end_user=~"$end_user"}[$__range])) / sum(increase(litellm_input_tokens_metric_total{end_user=~"$end_user"}[$__range]))` |
+| キャッシュヒット率推移 (ユーザ別) | `100 * sum by (end_user) (increase(litellm_provider_cache_read_input_tokens_metric_total{end_user=~"$end_user"}[$__interval])) / sum by (end_user) (increase(litellm_input_tokens_metric_total{end_user=~"$end_user"}[$__interval]))` |
+| コスト推移 (ユーザ別) | `sum by (end_user) (increase(litellm_spend_metric_total{end_user=~"$end_user"}[$__interval]))` |
+| トークン使用量推移 (ユーザ別) | `sum by (end_user) (increase(litellm_tokens_metric_total{end_user=~"$end_user"}[$__interval]))` |
+| モデル別コスト割合 (円グラフ) | `sum by (model) (increase(litellm_spend_metric_total{end_user=~"$end_user"}[$__range]))` |
+| モデル別コスト推移 | `sum by (model) (increase(litellm_spend_metric_total{end_user=~"$end_user"}[$__interval]))` |
+| ユーザ別コストランキング | `sum by (end_user, team, model) (increase(litellm_spend_metric_total{end_user=~"$end_user"}[$__range]))` |
+| ユーザ別トークン内訳 - Input | `sum by (end_user) (increase(litellm_input_tokens_metric_total{end_user=~"$end_user"}[$__range]))` |
+| ユーザ別トークン内訳 - Output | `sum by (end_user) (increase(litellm_output_tokens_metric_total{end_user=~"$end_user"}[$__range]))` |
+| ユーザ別トークン内訳 - Total | `sum by (end_user) (increase(litellm_tokens_metric_total{end_user=~"$end_user"}[$__range]))` |
+| チーム別コストランキング | `sum by (team, team_alias) (increase(litellm_spend_metric_total{end_user=~"$end_user"}[$__range])) > 0` |
+| ガードレール呼び出し数 | `sum(increase(litellm_guardrail_requests_total[$__range]))` |
+| ガードレールエラー数 | `sum(increase(litellm_guardrail_errors_total[$__range]))` |
+| ガードレール別内訳 - Requests | `sum by (guardrail_name, hook_type) (increase(litellm_guardrail_requests_total[$__range]))` |
+| ガードレール別内訳 - Errors | `sum by (guardrail_name, hook_type) (increase(litellm_guardrail_errors_total[$__range]))` |
+
+`$__range` は選択中の時間範囲全体(サマリ/ランキング系、`instant`クエリ)、`$__interval` はパネルの描画解像度に応じた自動間隔(時系列の各点の増加量)。ガードレール系のみ `end_user` ラベルを持たないため変数フィルタを適用していない。
+
+**すべての時系列/円グラフパネルに `fieldConfig.defaults.color.mode: "palette-classic"` を明示**しており、`end_user`・`model`・`guardrail_name`などクエリの `by()` に指定したラベルの値ごとに、Grafana標準のパレットから自動的に異なる色が割り当てられる(同じラベル値は複数パネルをまたいでも概ね同じ色になる)。
+
+**キャッシュヒット率について**: LiteLLM自体のレスポンスキャッシュ機構(`litellm_cache_hits_metric` / `litellm_cache_misses_metric_total`)は本構成ではキャッシュ未設定のため常に0(またはmisses一定)。ダッシュボードでは代わりに**プロバイダ側プロンプトキャッシュ**(Anthropicの`cache_read_input_tokens`等、`litellm_provider_cache_read_input_tokens_metric_total`)からの読み取りトークンを、総Inputトークン(`litellm_input_tokens_metric_total`)で割った値を「キャッシュヒット率」として算出している。こちらは実際のコスト削減効果に直結するため、この構成での目的に合う。
+
+**ガードレールメトリクスについて**: `litellm_guardrail_requests_total` / `litellm_guardrail_errors_total` はLiteLLM側のソースコード(`litellm/proxy/utils.py`)を確認する限り、`config.yaml`で設定したガードレール(本構成では`headroom-compression`)がpre_callフックで実行されるたびに`guardrail_name`/`status`/`hook_type`ラベル付きで記録される設計だが、`should_run_guardrail()`の判定でガードレール自体がスキップされた場合は記録されない。本環境では執筆時点でこれらのメトリクスにまだデータが無く(パネルは空で表示される)、ガードレールが実際に実行され次第データが乗ってくる。
 
 > [!CAUTION]
 > クエリで参照しているメトリクス名は、LiteLLMが `/metrics` で公開する生の名前(例: `litellm_total_tokens_metric_total`, `litellm_proxy_total_requests_metric_total`)とは**一部異なる**。OTel Collectorの `prometheus` receiverがスクレイプ時にPrometheusのcounter命名規則に合わせて名前を正規化する際、末尾が `_total_total` のように重複するケースを1つの `_total` に短縮するため、VictoriaMetrics上では以下のように名前が変わる:
