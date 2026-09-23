@@ -68,6 +68,16 @@ litellm_settings:
 - `litellm_input_cache_creation_tokens_metric_total` — プロバイダ側プロンプトキャッシュ書き込み(Anthropic `cache_creation_input_tokens`)
 - `litellm_input_audio_tokens_metric_total` / `litellm_output_audio_tokens_metric_total` — 音声入出力トークン
 - `litellm_output_reasoning_tokens_metric_total` — reasoningトークン(`completion_tokens_details.reasoning_tokens`)
+- `litellm_provider_cache_read_input_tokens_metric_total` / `litellm_provider_cache_creation_input_tokens_metric_total` — プロバイダ側プロンプトキャッシュの読み取り/書き込みトークン数(下記CAUTION参照)
+
+> [!CAUTION]
+> **`litellm_input_cached_tokens_metric` / `litellm_input_cache_creation_tokens_metric` と `litellm_provider_cache_read_input_tokens_metric` / `litellm_provider_cache_creation_input_tokens_metric` は、Anthropic(および DeepSeek のcache_read相当)では実質同じ値になる。**
+>
+> ソースコード根拠 (`litellm.types.utils.Usage.__init__`):
+> - Anthropicのレスポンスに含まれる `cache_read_input_tokens` は、`prompt_tokens_details.cached_tokens` **と** トップレベルの `_cache_read_input_tokens` の**両方**に書き込まれる(`## ANTHROPIC MAPPING ##` セクション)。`cache_creation_input_tokens` も同様に `prompt_tokens_details.cache_write_tokens` と `_cache_creation_input_tokens` の両方に書き込まれる。
+> - `litellm_input_cached_tokens_metric` / `litellm_input_cache_creation_tokens_metric` は `prompt_tokens_details` 側の値(`_increment_token_detail_metrics`)を、`litellm_provider_cache_read_input_tokens_metric` / `litellm_provider_cache_creation_input_tokens_metric` はトップレベル側の値(`_resolve_provider_cache_tokens`、`prometheus.py`)を参照しているため、Anthropicモデルでは**同一のキャッシュイベントに対して2つの異なるメトリクス名で同じ値が計上される**。両方を単純に合算するダッシュボードを作ると二重カウントになるため注意。
+> - DeepSeekは `prompt_cache_hit_tokens` → `prompt_tokens_details.cached_tokens` と `_cache_read_input_tokens` の両方にマッピングされるため、読み取り側は同様の重複が起きる(書き込み側の概念はDeepSeekには存在しない)。
+> - `_resolve_provider_cache_tokens` はトップレベルの `cache_read_input_tokens`/`cache_creation_input_tokens` が無い場合のみ `prompt_tokens_details` にフォールバックする実装になっており、両者が独立した測定値になるケースは基本的に無い。
 
 #### コスト (Counter)
 - `litellm_spend_metric_total` — 総支出額。ラベルに `model`, `api_key_alias`, `team`, `user`, `end_user`, `user_agent` などが付与され、キー/チーム/ユーザー/エンドユーザー単位で集計可能
@@ -541,8 +551,9 @@ label_values(litellm_spend_metric_total, end_user)
 > |---|---|
 > | `litellm_total_tokens_metric_total` | `litellm_tokens_metric_total` |
 > | `litellm_proxy_total_requests_metric_total` | `litellm_proxy_requests_metric_total` |
+> | `litellm_deployment_total_requests_total` | `litellm_deployment_requests_total` |
 >
-> `litellm_spend_metric_total` や `litellm_input_tokens_metric_total` / `litellm_output_tokens_metric_total` のように元々末尾が単一の `_total` であるものは変化しない。ダッシュボードやアラートルールを自作する際は、`curl http://localhost:4000/metrics` (LiteLLM生の名前)ではなく、VictoriaMetrics側 (`curl http://localhost:8428/api/v1/label/__name__/values`) で実際に格納されている名前を確認してから使うこと。
+> `litellm_spend_metric_total` や `litellm_input_tokens_metric_total` / `litellm_output_tokens_metric_total` のように元々末尾が単一の `_total` であるものは変化しない。この現象は上記3つに限らず、**Prometheusのメトリクス名(`_metric`/`_total`等の語幹)がPython側の変数名 + Counter自動付与の `_total` で二重に `_total` を含むケース全般**に当てはまるため、新しいLiteLLMバージョンで同様の命名のメトリクスが追加された場合も同じ短縮が起こりうる。ダッシュボードやアラートルールを自作する際は、`curl http://localhost:4000/metrics` (LiteLLM生の名前)ではなく、VictoriaMetrics側 (`curl http://localhost:8428/api/v1/label/__name__/values`) で実際に格納されている名前を確認してから使うこと。
 
 #### 7.1.1 ダッシュボードJSON全文 (`grafana/provisioning/dashboards/litellm-user-usage.json`)
 
