@@ -5,44 +5,31 @@
 ## 全体構成
 
 ```
-                                    ┌──────────────┐
-                                    │  Prometheus  │ <--- scrape :4000/metrics (15s間隔)
-                                    └──────────────┘
-                                          ▲
-┌──────────┐   traces/logs (OTLP/HTTP)   │
-│ litellm  │ ───────────────┐            │
-└──────────┘                ▼            │
-                      ┌──────────────┐   │
-                      │ otel-collector│   │
-                      └──────────────┘   │
-                        │           │    │
-                traces  │           │ logs
-                        ▼           ▼    │
-                    ┌───────┐   ┌──────┐ │
-                    │ Tempo │   │ Loki │ │
-                    └───────┘   └──────┘ │
-                        │           │    │
-                        └─────┬─────┴────┘
-                              ▼
-                        ┌──────────┐
-                        │ Grafana  │ (Prometheus / Loki / Tempo datasource 事前設定済み)
-                        └──────────┘
+┌──────────┐  traces/logs (OTLP/HTTP, push)  ┌────────────────┐
+│ litellm  │ ────────────────────────────────▶│                │
+│          │                                  │ otel-collector │
+│          │◀──── scrape :4000/metrics ───────│                │
+└──────────┘      (prometheus receiver, 15s間隔)└──┬────┬────┬──┘
+                                          traces │    │    │ metrics
+                                                 ▼    │    ▼ (remote_write)
+                                            ┌───────┐ │ ┌────────────────┐
+                                            │ Tempo │ │ │ VictoriaMetrics│
+                                            └───┬───┘ │ └───────┬────────┘
+                                                 │   logs        │
+                                                 │     ▼         │
+                                                 │  ┌──────┐     │
+                                                 │  │ Loki │     │
+                                                 │  └───┬──┘     │
+                                                 │      │        │
+                                                 └──────┼────────┘
+                                                         ▼
+                                                   ┌──────────┐
+                                                   │ Grafana  │
+                                                   └──────────┘
 ```
 
-- **メトリクス**: LiteLLM `prometheus` コールバック → LiteLLMが`/metrics`エンドポイントを公開 → Prometheusがpull(scrape)
+- **メトリクス**: LiteLLM `prometheus` コールバック → LiteLLMが`/metrics`エンドポイントを公開 → OTel Collectorの`prometheus` receiverがpull(scrape) → `prometheus_remote_write`でVictoriaMetricsへ転送
 - **トレース/ログ**: LiteLLM `otel` コールバック → OTLP/HTTPでotel-collectorにpush → collectorがtracesをTempoへ、logsをLokiへ振り分け(push)
-
-## 関連ファイル
-
-| ファイル | 役割 |
-|---|---|
-| `config.yaml` | LiteLLM本体の設定。`litellm_settings.callbacks`でテレメトリを有効化 |
-| `docker-compose.yml` | 全サービス定義 |
-| `prometheus/prometheus.yml` | Prometheusのscrape設定 |
-| `otel-collector/otel-collector-config.yaml` | OTLP受信→Tempo/Lokiへの振り分け設定 |
-| `tempo/tempo-config.yaml` | Tempoのトレース受信・保存設定 |
-| `loki/loki-config.yaml` | Lokiのログ受信・保存設定 |
-| `grafana/provisioning/datasources/datasources.yml` | Grafanaのデータソース事前登録 |
 
 ---
 
@@ -70,7 +57,7 @@ litellm_settings:
 > マルチワーカー構成(`--num_workers`等でuvicornワーカーを複数起動する場合)では `PROMETHEUS_MULTIPROC_DIR` 環境変数が必須。Prometheus Python clientはマルチプロセス環境ではワーカー間でメトリクスをファイル経由で共有する必要があり、このディレクトリが未設定/ワーカー間で共有されていないと `/metrics` の値が欠落・不整合になる。
 
 ### 収集できるデータ
-`/metrics` から実際に確認できた主なメトリクス(v1.101.0時点、`docker exec litellm-litellm-1` またはホストから `curl http://localhost:4000/metrics` で全量確認可能。**総数は約88種類**):
+`/metrics` から実際に確認できた主なメトリクス(v1.101.0時点、**総数は約88種類**):
 
 #### トークン使用量 (Counter)
 - `litellm_input_tokens_metric_total` — 入力トークン合計
@@ -117,7 +104,7 @@ litellm_settings:
 ### 注意点
 
 > [!NOTE]
-> メトリクスは pull型。LiteLLM自体はPrometheusに何かをpushしない。`/metrics`が常時アクセス可能である必要がある(`prometheus/prometheus.yml`のscrape対象に含める)。
+> メトリクスは pull型。LiteLLM自体は何かをpushしない。`/metrics`が常時アクセス可能である必要がある。
 >
 > `_created` サフィックスの系列(例: `litellm_spend_metric_created`)はPrometheus Python clientが自動生成するタイムスタンプ系列で、実データではなく無視してよい。
 >
@@ -126,7 +113,7 @@ litellm_settings:
 > [!CAUTION]
 > `require_auth_for_metrics_endpoint: false` にしないと `/metrics` に認証が必要になり、Prometheusのscrapeが失敗する(トークン設定が別途必要)。
 >
-> ラベルに `hashed_api_key`, `api_key_alias`, `model_id` など高カーディナリティなものが多数含まれる。APIキー数・モデル数が多い環境ではメトリクスのカーディナリティ(時系列数)が急増するので注意。`attributes` (config側 `callback_settings.otel.attributes` 相当)で絞り込み可能な仕組みがある。
+> ラベルに `hashed_api_key`, `api_key_alias`, `model_id` など高カーディナリティなものが多数含まれる。APIキー数・モデル数が多い環境ではメトリクスのカーディナリティ(時系列数)が急増するので注意。**LiteLLM側**(Prometheus/OTel側ではない)に`end_user`ラベルの系列数を上限で打ち切る仕組みがある: `litellm_settings.prometheus_end_user_metrics_max_series_per_metric`(デフォルト10000系列)/ `prometheus_end_user_metrics_ttl_seconds`(デフォルト3600秒、期限切れ系列を削除)/ `prometheus_end_user_metrics_cleanup_interval_seconds`(デフォルト60秒間隔でクリーンアップ)。ラベル値そのものを事前フィルタする汎用的な`attributes`絞り込み設定ではなく、`end_user`ラベル専用のカーディナリティ上限機構である点に注意。
 
 ---
 
@@ -156,8 +143,6 @@ litellm_settings:
   ```
   LITELLM_OTEL_INTEGRATION_ENABLE_METRICS=true
   ```
-- 本スタックでは**未使用**(メトリクスは`prometheus`コールバック経由でPull方式のみ使っている)。OTel経由のメトリクスはPush方式(`PeriodicExportingMetricReader`、デフォルト5秒間隔)になる点が`prometheus`コールバックと異なる
-
 > [!NOTE]
 > `prometheus`と`otel`のメトリクス出力を両方同時に有効化することも可能だが、二重計測・二重コストになるため通常はどちらか一方で十分。
 
@@ -201,11 +186,11 @@ callback_settings:
 
 いずれの設定でも、本文以外のメタデータ(モデル名、トークン数、コストなど)は引き続き記録される。
 
-### 3.4.1 実データ検証: TraceとLokiログの内容重複、および「内部処理」spanの実態
+### 3.4.1 実データ検証: TraceとLogの内容重複、および「内部処理」spanの実態
 
-「LiteLLMの出すtraceは、Lokiに転送されているログと同じ内容(ユーザ入力等)と、DB処理・認証処理などの内部処理が主な中身なのでは?」という疑問を、ソースコード解析(デプロイ済み v1.101.0 の実際のパッケージ)とTempo/Lokiの実データ突合の両面から検証した結果をまとめる。
+「LiteLLMの出すtraceは、Logに転送されている内容と同じ内容(ユーザ入力等)と、DB処理・認証処理などの内部処理が主な中身なのでは?」という疑問を、ソースコード解析(デプロイ済み v1.101.0 の実際のパッケージ)とTempo/Lokiの実データ突合の両面から検証した結果をまとめる。
 
-**結論**: 前半(Lokiと同じ内容が重複している)は正しい。後半(内部処理が「主な中身」)は不正確 — DB/認証系spanは件数は多いが1つあたりの情報量は意図的にごく小さく、トレースの情報量の大半を占めるのは実際には (a) Lokiと重複するプロンプト/レスポンス本文と、(b) Lokiには一切出ないコスト/トークン/メタデータの2つ。
+**結論**: 前半(Logと同じ内容が重複している)は正しい。後半(内部処理が「主な中身」)は不正確 — DB/認証系spanは件数は多いが1つあたりの情報量は意図的にごく小さく、トレースの情報量の大半を占めるのは実際には (a) Logと重複するプロンプト/レスポンス本文と、(b) Logには一切出ないコスト/トークン/メタデータの2つ。
 
 #### なぜ重複するのか(コード根拠)
 
@@ -226,9 +211,9 @@ def _resolve_capture_mode(self) -> str:
 |---|---|---|
 | Tempo span属性 (`litellm_request`) | `set_attributes()` 内の `gen_ai.input.messages` / `gen_ai.output.messages` / `gen_ai.system_instructions` | プロンプト全文・レスポンス全文 |
 | Tempo span属性 (`raw_gen_ai_request`, 子span) | `set_raw_request_attributes()` — `llm.{provider}.*` 属性としてプロバイダの生リクエスト/レスポンスをほぼそのままダンプ | プロバイダ固有の生JSON |
-| Loki ログイベント | `_emit_semantic_logs()` が `gen_ai.content.prompt` / `gen_ai.content.completion` を**別イベント**として `trace_id`/`span_id` 付きで送信 | メッセージごと・choiceごとの本文 |
+| Logイベント(Loki) | `_emit_semantic_logs()` が `gen_ai.content.prompt` / `gen_ai.content.completion` を**別イベント**として `trace_id`/`span_id` 付きで送信 | メッセージごと・choiceごとの本文 |
 
-実際にTempoの1トレース(`/api/traces/{traceID}`)と、同一時間帯のLoki(`{service_name="unknown_service"}` で `/loki/api/v1/query_range`)を突き合わせたところ、**同一の `trace_id`/`span_id` を持つLokiログ**(`gen_ai.content.prompt` ×3, `gen_ai.content.completion` ×2)に、Tempo側 `litellm_request` のspan属性とほぼ同一のツール呼び出し内容・アシスタント応答(日本語テキスト含む)が確認できた。実データでの重複を確認済み。
+実際にTempoの1トレース(`/api/traces/{traceID}`)と、同一時間帯のLog(Loki, `{service_name="unknown_service"}` で `/loki/api/v1/query_range`)を突き合わせたところ、**同一の `trace_id`/`span_id` を持つLog**(`gen_ai.content.prompt` ×3, `gen_ai.content.completion` ×2)に、Tempo側 `litellm_request` のspan属性とほぼ同一のツール呼び出し内容・アシスタント応答(日本語テキスト含む)が確認できた。実データでの重複を確認済み。
 
 #### 「内部処理」spanは軽量・非機密設計
 
@@ -240,9 +225,9 @@ def _resolve_capture_mode(self) -> str:
 
 これらのspanは件数は多いが1つあたり属性数は2〜8個程度で、情報量としての「主な中身」には該当しない。
 
-#### Traceだけが持つ情報(Lokiには出ない)
+#### Traceだけが持つ情報(Logには出ない)
 
-`set_attributes()` はコンテンツキャプチャの可否に関わらず**常に**以下を設定する。これらはLokiのログイベントには含まれない、トレース固有の価値:
+`set_attributes()` はコンテンツキャプチャの可否に関わらず**常に**以下を設定する。これらはLogイベントには含まれない、トレース固有の価値:
 
 - トークン数(input/output/total)、コスト計算結果(`response_cost` 等)
 - APIキー・チーム・エンドユーザー・モデルグループ等のメタデータ
@@ -251,14 +236,14 @@ def _resolve_capture_mode(self) -> str:
 
 #### まとめ
 
-正確な内訳は「Trace = Lokiと重複するプロンプト/レスポンス本文 + Lokiには無いコスト/メタデータ + (情報量としては小さい)内部処理spanの構造」。
+正確な内訳は「Trace = Logと重複するプロンプト/レスポンス本文 + Logには無いコスト/メタデータ + (情報量としては小さい)内部処理spanの構造」。
 
 > [!NOTE]
 > Web調査でも一致する記述を確認: [LiteLLM公式ドキュメント](https://docs.litellm.ai/docs/observability/opentelemetry_integration) は `OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT` 未設定時にレガシー `message_logging`(デフォルト `True` → `SPAN_AND_EVENT`)へフォールバックすると明記。[OpenTelemetry v2](https://docs.litellm.ai/docs/observability/opentelemetry_v2) ではv1.81.0以降、非標準の `raw_gen_ai_request` 子spanを作らず親spanに直接属性を乗せる設計に変わりつつある(本環境はレガシーV1のため非該当)。実運用の既知issue([PR #40562](https://github.com/BerriAI/litellm/pull/40562))では `SPAN_ONLY` モードで長い会話になるとメッセージ属性が肥大化しコスト等の重要属性を溢れさせる問題も報告されており、本構成のように `SPAN_AND_EVENT`(デフォルト)で本文全文をspanとログの両方に流す設計は、機密情報を扱う場合は重複コスト・肥大化の観点からも見直す価値がある。
 
 ### 3.4.2 ユーザごとのToken利用量・料金確認だけが目的なら otel は不要
 
-「ユーザごとのトークン利用量や料金を確認したいだけ」という目的に対しては、`otel`コールバック(トレース・ログ、およびそのバックエンドであるTempo/Loki)は**不要**。`prometheus`コールバックのメトリクスだけで完結する。
+「ユーザごとのトークン利用量や料金を確認したいだけ」という目的に対しては、`otel`コールバック(トレース・ログ)は**不要**。`prometheus`コールバックのメトリクスだけで完結する。
 
 実際に `/metrics` を確認すると、`litellm_spend_metric_total`(コスト)や `litellm_total_tokens_metric_total`(トークン数)などのカウンタには、最初から以下のラベルが付与されている:
 
@@ -332,7 +317,7 @@ LITELLM_OTEL_INTEGRATION_ENABLE_EVENTS: "true"
 
 ## 4. OpenTelemetry Collector (`otel-collector/otel-collector-config.yaml`)
 
-LiteLLMからのOTLP(traces + logs)を一箇所で受け、シグナルごとに異なるバックエンドへ転送するハブ。
+LiteLLMからのOTLP(traces + logs)を受けつつ、LiteLLMの`/metrics`もscrape(pull)して、シグナルごとに異なるバックエンドへ転送するハブ。
 
 ```yaml
 receivers:
@@ -342,6 +327,16 @@ receivers:
         endpoint: 0.0.0.0:4317
       http:
         endpoint: 0.0.0.0:4318
+  prometheus:
+    config:
+      scrape_configs:
+        - job_name: litellm
+          scrape_interval: 15s
+          static_configs:
+            - targets: ["litellm:4000"]
+
+processors:
+  batch:
 
 exporters:
   otlphttp/tempo:
@@ -352,15 +347,25 @@ exporters:
     endpoint: http://loki:3100/otlp   # Collectorが末尾に /v1/logs を自動付与 -> http://loki:3100/otlp/v1/logs
     tls:
       insecure: true
+  prometheus_remote_write/victoriametrics:
+    endpoint: http://victoriametrics:8428/api/v1/write
+    tls:
+      insecure: true
 
 service:
   pipelines:
     traces:
       receivers: [otlp]
+      processors: [batch]
       exporters: [otlphttp/tempo]
     logs:
       receivers: [otlp]
+      processors: [batch]
       exporters: [otlphttp/loki]
+    metrics:
+      receivers: [prometheus]
+      processors: [batch]
+      exporters: [prometheus_remote_write/victoriametrics]
 ```
 
 ### 注意点
@@ -370,7 +375,7 @@ service:
 >
 > `otlphttp` は非推奨エイリアスで、起動ログに `"otlphttp" alias is deprecated; use "otlp_http" instead` という warning が出る(動作に影響はないが将来のCollectorバージョンで削除される可能性あり)。
 >
-> メトリクス用パイプラインは定義していない(本構成ではPrometheus pull方式のみ使用のため)。
+> メトリクスはOTLP pushではなく`prometheus` receiverによるpull(scrape)。Prometheus本体は使わず、収集したメトリクスは`prometheus_remote_write`エクスポーターでVictoriaMetricsへ転送する(VictoriaMetricsはPrometheus remote_writeプロトコル互換)。
 
 ---
 
@@ -420,21 +425,7 @@ limits_config:
 
 ---
 
-## 7. Prometheus (`prometheus/prometheus.yml`)
-
-```yaml
-scrape_configs:
-  - job_name: litellm
-    static_configs:
-      - targets: ["litellm:4000"]
-```
-
-- 15秒間隔でLiteLLMの `/metrics` をscrape
-- 認証なし(`require_auth_for_metrics_endpoint: false` と対応)
-
----
-
-## 8. Grafana (`grafana/provisioning/datasources/datasources.yml`)
+## 7. Grafana (`grafana/provisioning/datasources/datasources.yml`)
 
 Prometheus / Loki / Tempo の3データソースを起動時に自動プロビジョニング。
 
@@ -463,7 +454,7 @@ datasources:
 >
 > **既知の罠**: `grafana_data` ボリュームに古いデータソース定義の内部DB状態が残っていると、`datasources.yml`を書き換えても起動時に `Datasource provisioning error: data source not found` で起動failするケースがある。データソース構成を大きく変更した場合は `docker volume rm <project>_grafana_data` してボリュームごと作り直すのが確実(ダッシュボード等の手動設定は失われる点に注意)。
 
-### 8.1 ダッシュボードのプロビジョニング (`grafana/provisioning/dashboards/`)
+### 7.1 ダッシュボードのプロビジョニング (`grafana/provisioning/dashboards/`)
 
 データソースと同様に、ダッシュボードJSONも起動時に自動プロビジョニングできる。
 
@@ -553,7 +544,7 @@ label_values(litellm_spend_metric_total, end_user)
 >
 > `litellm_spend_metric_total` や `litellm_input_tokens_metric_total` / `litellm_output_tokens_metric_total` のように元々末尾が単一の `_total` であるものは変化しない。ダッシュボードやアラートルールを自作する際は、`curl http://localhost:4000/metrics` (LiteLLM生の名前)ではなく、VictoriaMetrics側 (`curl http://localhost:8428/api/v1/label/__name__/values`) で実際に格納されている名前を確認してから使うこと。
 
-#### 8.1.1 ダッシュボードJSON全文 (`grafana/provisioning/dashboards/litellm-user-usage.json`)
+#### 7.1.1 ダッシュボードJSON全文 (`grafana/provisioning/dashboards/litellm-user-usage.json`)
 
 ```json
 {
@@ -1181,7 +1172,7 @@ label_values(litellm_spend_metric_total, end_user)
 
 ---
 
-## 9. docker-compose運用上の注意点
+## 8. docker-compose運用上の注意点
 
 ### `pull_policy: missing` と `latest` タグ
 
@@ -1202,7 +1193,7 @@ label_values(litellm_spend_metric_total, end_user)
 
 ---
 
-## 10. トラブルシューティングチェックリスト
+## 9. トラブルシューティングチェックリスト
 
 トレース/ログが届かない場合の確認手順:
 
