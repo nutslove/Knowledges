@@ -13,6 +13,9 @@ LiteLLMには「Auto Router」という機能があり、ゲートウェイが�
 分類(`classifier_type`)は以下の4種類 + 決定的な短絡ルールから選べる:
 
 - **`heuristic`(既定)**: 外部LLM/APIには一切問い合わせず、LiteLLM内部(プロキシプロセス自身)のロジックでtokenCount・codePresence・reasoningMarkers・technicalTerms・simpleIndicators・multiStepPatterns・questionComplexityの7次元をスコアリングして判定する。この分類処理自体の所要時間がサブミリ秒(1ミリ秒未満)であり、追加のAPI呼び出しコスト・レイテンシは発生しない。
+  - 7次元は加重平均され、0〜1のスコアになる。このスコアを`tier_boundaries`という3つの閾値(既定0.15, 0.35, 0.60)で4段階に区切る: SIMPLE(〜0.15未満)/ MEDIUM(0.15〜0.35)/ COMPLEX(0.35〜0.60)/ REASONING(0.60以上)。
+  - **COMPLEX**(スコア0.35〜0.60): 技術用語・コード・長文などでスコアはそれなりに高いが、明示的な推論要求はまだ少ない状態(例: 「分散システムのアーキテクチャを説明して」)。
+  - **REASONING**(スコア0.60以上): 上記より高いスコアの場合に加え、reasoningMarkers(「step by step」「think through」「analyze」等)が2つ以上出てくると、スコアが0.60未満でも例外的に強制昇格する(例: 「このバグの原因をstep by stepで分析して」)。つまりCOMPLEXは"内容が難しい"、REASONINGは"難易度が高い、または多段階の思考プロセスを明示的に要求している"という違い。
 - **`llm`**: 小型/高速モデルを使い構造化出力で分類。エージェント系トラフィックでの精度が上がるが、1リクエストあたり僅かな追加コストがかかる。`classifier_llm_config`(model, timeout_ms, system_prompt)で設定。
 - **`jev`**: TypeSafeの「System One Choice」評価を使う分類器。外部エンドポイント`/v1/systemone`にリクエストを送るため、プロキシサーバー側に`TYPESAFE_API_KEY`が必要。タイムアウト、サーキットブレーカー、コンテキストウィンドウ/バジェット設定などが可能。Test Routing/Test Connection時にプロバイダ課金が発生し得る。
 - **`custom`**: ユーザー定義の非同期プラグイン(`classifier_plugin`)を使う。設定ファイルのみで指定可、API/UIからは不可。
