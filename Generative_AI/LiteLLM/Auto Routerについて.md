@@ -127,6 +127,91 @@ savings = 基準モデルのコスト - 実際に使ったモデルのコスト 
 - カスタム分類ルール(`instructions`の置き換えや`tier_definitions`によるカスタムティア定義)はEnterprise向けの既存カスタム分類器機能を使うもの。ただし**組み込みのJEV分類器自体はEnterprise不要**で、組み込みLLM分類器と同じライセンスポリシーで利用できる(誤解しやすい点: JEV = Enterprise限定ではない)。
 - コスト削減効果として、ドキュメントには実運用ケーススタディ(27.2万リクエスト、450+ユーザーで4ヶ月間に51.1%削減・$12,249節約)や、品質/コストベンチマーク(フロンティアモデル比87.3%の品質で74.5%安価)、プロンプトキャッシュとの比較(キャッシュのみより37〜69%安価)などが紹介されている。
 
+## Claude Codeでの利用時のハマりポイント
+
+config.yamlで`auto-router`というdeploymentを定義しておけば、Claude Codeの`/model`ピッカーにも選択肢として出てきて選べるようになるはず、と当初想定していたが、実際にはそう単純にはいかなかった。以下はその過程で分かったこと。
+
+### ハマりポイント1: Claude Codeの`/model`はAI Gateway（LiteLLM）のモデル一覧をそのままでは表示しない
+
+config.yaml側で`auto-router`のdeploymentが正しく定義され、`curl http://localhost:4000/v1/models`でも一覧に出てくる状態にもかかわらず、Claude Codeの`/model`には`auto-router`が出てこなかった。Claude Code CLIバイナリ(v2.1.274、`/opt/homebrew/Caskroom/claude-code/2.1.274/claude`)を直接読んで解析した結果、判明した仕組み:
+
+- AI Gateway（LiteLLM。`ANTHROPIC_BASE_URL`で指定）からモデル一覧を取得する「gateway model discovery」という処理は、環境変数`CLAUDE_CODE_ENABLE_GATEWAY_MODEL_DISCOVERY`を有効化しない限りそもそも動かない(既定OFF)。有効化する値は`"1"`(例: `~/.claude/settings.json`の`env`に`"CLAUDE_CODE_ENABLE_GATEWAY_MODEL_DISCOVERY": "1"`)。
+- この変数を立てても、discoveryの実際のfetchが走るには、別途以下のいずれかで解決できる認証情報が必要:
+  - `ANTHROPIC_AUTH_TOKEN`
+  - `apiKeyHelper`
+  - **「承認済み」の`ANTHROPIC_API_KEY`**(`~/.claude.json`の`customApiKeyResponses.approved`/`rejected`に記録される。初回検出時に出る「Detected custom API key in environment」ダイアログでの回答が保存される)
+- `ANTHROPIC_CUSTOM_HEADERS`(例: `x-litellm-api-key: ...`)経由でLiteLLM向けの認証ヘッダーを渡していても、discovery用の認証情報解決ロジックからは一切見られない(これは実際のchatリクエスト送信時にのみ使われる別経路)。認証ヘッダー名として認識されるのは`x-api-key`/`authorization`のみ。
+
+つまりgateway model discoveryを機能させるには`ANTHROPIC_API_KEY`を承認済みの状態で設定する必要があるが、これがclaude.aiのOAuthログインと**根本的に衝突する**:
+
+```
+⚠ Both claude.ai and ANTHROPIC_API_KEY set · auth may not work as expected
+  · To use claude.ai: Unset the ANTHROPIC_API_KEY environment variable, or run `claude /logout`
+    and then say "No" to API key approval before logging in.
+  · To use ANTHROPIC_API_KEY: run `claude /logout` to sign out of claude.ai.
+```
+
+これは誤検出ではなく実際に効く警告で、claude.aiのPro/MaxサブスクリプションによるOAuth認証と`ANTHROPIC_API_KEY`ベースの認証は同時に成立しない。つまり「claude.aiのOAuthログインを維持したまま`/model`にLiteLLMのauto-routerを表示させる」ことは、現行バージョン(2.1.274)のClaude Codeでは実現不可能という結論に至った。
+
+#### 対処
+
+> [!IMPORTANT]
+> ##### 採用した方針
+> `/model`にauto-routerを表示させること自体は諦め、代わりに`~/.claude/settings.json`の`env.ANTHROPIC_MODEL`に直接`"auto-router"`を指定することで、毎回のセッション起動時に自動的にauto-router経由でリクエストされるようにした(その場限りのコマンドライン指定ではなく、恒久的なデフォルトとして設定)。
+
+### ハマりポイント2: `ANTHROPIC_MODEL`に未知のモデル名を指定すると警告が出る
+
+`ANTHROPIC_MODEL=auto-router`に変更した直後、以下の警告が出るようになった:
+
+```
+"auto-router" isn't described by this version's model catalog; update Claude Code, or map it via
+behavesAs on a modelPicker row (or modelOverrides, if this is a provider id for a model version it
+knows). Until then, auto-compact keeps the session within 200k tokens (the context window it
+assumes); if the model accepts more, append [1m] to the model name or set CLAUDE_CODE_MAX_CONTEXT_TOKENS
+to the real window; CLAUDE_CODE_DISABLE_UNKNOWN_MODEL_WINDOW_ENFORCEMENT=1 restores the previous
+wait-for-the-API behavior.
+```
+
+Claude Codeは組み込みのモデルカタログに載っていないモデルID(`auto-router`)についてはコンテキストウィンドウサイズなどのメタデータが分からないため、安全側に倒して200kトークンとみなし、auto-compact(自動要約)をその基準で発動させる。
+
+#### 対処
+
+> [!IMPORTANT]
+> `~/.claude/settings.json`に`modelPicker.options`エントリを追加し、`behavesAs`で「未知のモデルIDだが実質的には既知のモデル(ここでは`claude-sonnet-5`)と同じように扱ってよい」と明示することで解消:
+
+```json
+{
+  "modelPicker": {
+    "options": [
+      {
+        "model": "auto-router",
+        "label": "Auto Router",
+        "description": "LiteLLM complexity router: picks haiku/sonnet/opus automatically",
+        "behavesAs": "claude-sonnet-5"
+      }
+    ]
+  }
+}
+```
+
+> [!NOTE]
+> ##### `behavesAs`の対象に`claude-sonnet-5`を選んだ理由
+> config.yamlの`complexity_router_default_model: claude-sonnet-5`、つまりauto-router自体が定義しているデフォルト(フォールバック)モデルと一致させたため。実際にどのモデルにルーティングされるかはリクエストごとに変わり、Claude Code側からは事前に知りようがないので、auto-router自身が「基準」としているモデルに合わせておくのが妥当という判断。
+
+関連する他の設定:
+- `modelOverrides`: 「Anthropicモデル名 → プロバイダ固有のモデルID(例: BedrockのARN)」をマップする別の設定キー。今回のように「エイリアス名の裏側で実際に使われるモデルがリクエストごとに変わる」ケースには向かず、`modelPicker`+`behavesAs`の方が適切。
+- `[1m]`サフィックス: モデル名の末尾に付けると「1Mトークンのコンテキストウィンドウを持つモデル」という扱いになる命名規約。
+- `CLAUDE_CODE_MAX_CONTEXT_TOKENS`: 実際のコンテキストウィンドウサイズを直接指定する環境変数。
+- `CLAUDE_CODE_DISABLE_UNKNOWN_MODEL_WINDOW_ENFORCEMENT=1`: 未知モデルに対する200k前提のenforcementを無効化し、APIレスポンス任せの挙動に戻す。
+
+### 結論
+
+- LiteLLMのAuto Router自体はAI Gateway側で正しく機能している(`curl http://localhost:4000/v1/models`や実際のリクエストで確認可能)。
+- **Claude Code側の`/model`ピッカーにAI Gateway経由のカスタムモデルを表示する機能は、claude.aiの`/login`によるOAuthログインと両立しない設計になっている(2.1.274時点)。**
+- 恒久的にauto-routerをデフォルトで使いたいだけなら`/model`に出す必要はなく、`env.ANTHROPIC_MODEL`への直接指定 + `modelPicker.behavesAs`によるコンテキストウィンドウ情報の補完、の2点で運用できる。
+- `/model`にauto-routerを表示させること自体を諦めない道もある: `claude /logout`で claude.ai の`/login`によるOAuthログイン(Pro/Max/Enterpriseいずれのプランでも同様)を完全に解除し、`ANTHROPIC_API_KEY`ベースの認証のみで運用すればgateway model discoveryが動き、`/model`に`auto-router`が選択肢として出てくる。ただしこの場合、Pro/Maxサブスクリプション経由ではなくAnthropic API(従量課金)経由の請求に切り替わる。
+  - なお、Enterpriseプランでも`/login`によるOAuthログインを使う限り同じ制約を受ける。SSO経由のAPIキー発行やBedrock/Vertex経由などの別認証方式を使うケースは今回の調査・検証の対象外で、衝突するかどうかは未確認。
+
 ## 該当ドキュメントURL
 
 - 概要: https://docs.litellm.ai/docs/auto_router/
