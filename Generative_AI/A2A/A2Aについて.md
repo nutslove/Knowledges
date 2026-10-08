@@ -210,6 +210,28 @@ flowchart TD
     Artifacts -- "各Artifactが持つ" --> AParts
 ```
 
+**Task の中に Message は含まれる**。Task の構造のうち、Message が入るのは次の2か所 (仕様 §4.1.1 / §4.1.2 / §3.7)。
+
+```
+Task
+├─ id / contextId
+├─ status
+│   ├─ state（working, input-required など）
+│   └─ message（状態に添える Message）            ← ① Message が入る
+├─ artifacts（成果物）                             ← Message ではなく Artifact が入る
+└─ history（Task 内でやり取りした Message の一覧）  ← ② Message が入る
+```
+
+| 場所 (Task 内のフィールド) | 内容 |
+|---|---|
+| ① `Task.status.message` | 現在のステータスに添える Message。進捗の連絡や、`input-required` での追加入力の依頼などに使う |
+| ② `Task.history` | Task 実行中にやり取りした Message の一覧 (`role` は `user` / `agent` の両方があり得る) |
+
+一方、**Task の出力 (成果物) は Message ではなく `artifacts` に入れて返す**のが仕様上の想定。
+
+> [!WARNING]
+> `history` に全 Message が残る保証はない。一時的な情報メッセージや、Task 作成前のメッセージは保存されないことがあり、どれを残すかはエージェントの判断。クライアントは、事前に合意がない限り `history` に依存してはいけない。Message は重要情報の確実な配信手段とみなさず、重要な結果は Artifact で受け取る。
+
 ---
 
 # 通信の仕組み (Transport & Protocol)
@@ -284,21 +306,148 @@ A2A の公式トランスポート (protocol binding) は以下の **3種類** (
 
 ## 3つのインタラクションパターン
 
+結果をどう受け取るかの違い。**「待つ / 聞きに行く」「流してもらう」「通知してもらう」** のどれを使うか、という整理。
+
+| パターン | 受け取り方 | 使うメソッド | 向いている処理 |
+|---|---|---|---|
+| **1. Request/Response** (同期・ポーリング) | 結果が返るまで待つ。時間がかかるなら、後から状態を**聞きに行く** (ポーリング) | `SendMessage` + `GetTask` | 短い処理、完了まで待てる処理 |
+| **2. Streaming (SSE)** | 接続を開いたまま、サーバが進捗・成果物を**逐次流す** | `SendStreamingMessage` (要 `streaming` capability) | 進捗や生成途中の内容をリアルタイムに見せたい処理 |
+| **3. Push Notifications (Webhook)** | 接続を切っておき、状態が変わったらサーバが**通知してくる** | `CreateTaskPushNotificationConfig` + webhook | 数時間〜数日かかる処理 |
+
 ### 1. Request/Response (同期・ポーリング)
 `SendMessage` (旧 `message/send`) で送信し、短時間タスクなら即結果が返る。長時間なら `GetTask` (旧 `tasks/get`) で状態をポーリング。
 
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant S as Server (Agent)
+
+    C->>S: SendMessage (returnImmediately=true)
+    S-->>C: Task (taskId=T1, state=working)
+    loop 完了するまで
+        C->>S: GetTask(T1)
+        S-->>C: Task (state=working)
+    end
+    C->>S: GetTask(T1)
+    S-->>C: Task (state=completed, Artifact)
+```
+
 ### 2. Streaming (SSE)
-`SendStreamingMessage` (旧 `message/stream`) を使い、**Server-Sent Events** で進捗を逐次push。
-- `Task` / `Message` イベント
+`SendStreamingMessage` (旧 `message/stream`) を使い、**Server-Sent Events** で進捗を逐次push。1回のリクエストのレスポンスが `text/event-stream` になり、複数のイベントが流れてくる (仕様 §3.1.2)。
+
+流れ方は2通り。
+- **Message のみ:** `Message` を1つ流してすぐ閉じる。
+- **Task のライフサイクル:** 最初に `Task` を流し、続けて `TaskStatusUpdateEvent` / `TaskArtifactUpdateEvent` を0個以上流す。終端状態に達したら閉じる。
+
+イベントの種類:
+- `Task` / `Message`
 - `TaskStatusUpdateEvent` (状態変化。v1.0 wireは `{"statusUpdate":{...}}`)
 - `TaskArtifactUpdateEvent` (成果物の逐次生成。`append` で追記も可能。v1.0 wireは `{"artifactUpdate":{...}}`)
 - 生成中のトークンや中間結果をリアルタイムに流せる。
+
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant S as Server (Agent)
+
+    C->>S: SendStreamingMessage
+    S-->>C: Task
+    S-->>C: TaskStatusUpdateEvent (working)
+    S-->>C: TaskArtifactUpdateEvent (一部)
+    S-->>C: TaskArtifactUpdateEvent (続き, append)
+    S-->>C: TaskStatusUpdateEvent (completed)
+    Note over C,S: 終端状態でストリームが閉じる
+```
+
+切断された場合は `SubscribeToTask` (旧 `tasks/resubscribe`) で同じ Task のストリームに再購読できる。
 
 ### 3. Push Notifications (Webhook / 非同期・切断耐性)
 数時間〜数日かかるタスク向け。クライアントが常時接続を保てない場合に使う。
 - クライアントが webhook URL を登録 (`CreateTaskPushNotificationConfig` / 旧 `tasks/pushNotificationConfig/set`)
 - タスク完了/状態変化時に、サーバーがその URL へ HTTP POST で通知
 - webhook 側は署名検証等でなりすましを防ぐ (後述のセキュリティ参照)
+
+### どれを選ぶか
+
+| 状況 | 選ぶもの |
+|---|---|
+| 数秒で終わる | Request/Response (そのまま待つ) |
+| 少し長いが、完了だけ分かればよい | Request/Response + ポーリング |
+| 進捗や生成途中のトークンを画面に出したい | Streaming |
+| 接続を保てない / 数時間以上かかる | Push Notifications (+ 必要なら `GetTask`) |
+
+> [!NOTE]
+> ポーリングは独立したモデルではなく、Request/Response で長時間処理を扱うときの受け取り方。`GetTask` / Push通知は `Task` に対する仕組みなので、エージェントが `Message` だけを直接返す場合は使いどころがない (`returnImmediately` も効かない)。Streaming は `Message` を1つ流して閉じるパターンもある。
+
+## Message と Task の使い分け (誰が決めるか)
+
+`SendMessage` のレスポンスは **`Message` か `Task` のどちらか**で、**どちらを返すかはサーバ (エージェント) 側が決める** (仕様 §3.1.1)。クライアントが「Messageだけで返して」と指定する手段はない。
+
+### 違いは「単発で終わるか、追跡するか」
+
+- **Message = 単発。** 1回送って、1回答えが返って終わり。サーバ側に「進行中の作業」は残らず、後から状態を問い合わせる対象もない。
+- **Task = 追跡 (Tracking)。** `taskId` が発行され、状態 (`submitted` → `working` → `completed` など) が遷移する。クライアントは後から `GetTask` で状態を見たり、`CancelTask` で止めたり、`SubscribeToTask` / push通知で更新を受け取ったりできる。成果物は Artifact として Task に残る。
+
+| 観点 | **Message (単発)** | **Task (追跡)** |
+|---|---|---|
+| 一言でいうと | 聞いたら答えて終わり | 依頼して、進捗を追いかける |
+| 追跡用ID | なし | `taskId` が発行される |
+| 状態 | なし (ステートレス) | あり (`working` → `completed` など) |
+| 途中の操作 | できない | `GetTask` / `CancelTask` / `SubscribeToTask` / push通知 |
+| 成果物 | 返信の `parts` に入れて返すだけ | Artifact として Task に残る |
+| 途中の追加入力 | なし (次の質問は新しいやり取り) | `input-required` / `auth-required` で中断して再開できる |
+| 向いている処理 | 即答できる軽い質問、確認、範囲のすり合わせ | 時間がかかる処理、人の承認待ちなど途中で止まる処理 |
+
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant S as Server (Agent)
+
+    Note over C,S: Message: 単発で終わり
+    C->>S: SendMessage「東京の天気は？」
+    S-->>C: Message「晴れです」
+    Note over C,S: ここで終了。追跡対象は残らない
+
+    Note over C,S: Task: 追跡する
+    C->>S: SendMessage「年間レポートを作って」
+    S-->>C: Task (taskId=T1, state=working)
+    C->>S: GetTask(T1)
+    S-->>C: Task (state=working)
+    S-->>C: Task (state=completed, Artifact=レポート)
+```
+
+> [!TIP]
+> たとえ話にすると、**Message は「電話で聞いて、その場で答えをもらう」**、**Task は「宅配便を頼んで、追跡番号で配送状況を確認する」**。
+
+### エージェントの型は3つ
+
+([Life of a Task](https://a2a-protocol.org/latest/topics/life-of-a-task/))
+
+| 型 | 挙動 |
+|---|---|
+| **Message-only** | 常に `Message` (単発) を返す。会話の文脈は `contextId` でつなぐ |
+| **Task-generating** | 常に `Task` (追跡) を返す。単純な応答も完了済み Task として表す |
+| **Hybrid** | まず `Message` で機能や作業範囲を調整し、作業が確定したら `Task` を作る |
+
+> [!IMPORTANT]
+> **Task を作った後は Task のみを返す** (Task-generating / Hybrid 共通)。常に単発で返したいなら、Task を一切作らない Message-only 実装にすればよく、プロトコル上も問題ない。クライアントは `Message` / `Task` どちらが返っても受けられるように実装しておく。
+
+### クライアント側でできること
+
+クライアントは Message か Task かは指定できないが、待ち方や継続方法は指定できる。
+
+| 指定 | 内容 |
+|---|---|
+| `configuration.returnImmediately` (v0.3 では `blocking`) | 未設定/`false` (既定): 終端状態か `input-required` / `auth-required` まで待って返す。`true`: Task 作成直後に進行中 (`working` 等) の Task を返し、以降は `GetTask` ポーリング / `SubscribeToTask` / push通知で更新を得る。**Message が直接返る場合、ストリーミング、push通知設定には効かない** |
+| `historyLength` / `acceptedOutputModes` | 応答に含める履歴の件数 / 受け取れるメディアタイプ。Message か Task かには影響しない |
+| Message の `taskId` | 既存 Task の継続を示す。**新規 Task 用の `taskId` はクライアントから指定できない** (サーバが生成) |
+| Message の `contextId` | 複数の Task や独立した Message を同じ会話にまとめる |
+
+### `taskId` 指定時のエラー
+
+- 存在しない / アクセスできない `taskId` → `TaskNotFoundError`
+- 終端状態 (`completed` / `failed` / `canceled` / `rejected`) の Task への送信 → `UnsupportedOperationError`。続きのやり取りは、**同じ `contextId` で新しい Task** として始める
+- `contextId` と `taskId` が食い違う → 拒否される
 
 ---
 
