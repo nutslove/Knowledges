@@ -2,21 +2,21 @@
 
 **A2A (Agent2Agent) Protocol** は、異なるフレームワーク・ベンダー・組織で作られた **AIエージェント同士を相互接続 (interoperability) するためのオープンプロトコル**。
 
-- **2025年4月9日** (Google Cloud Next) に Google が発表。50社以上のパートナー (Atlassian, Salesforce, SAP, ServiceNow, MongoDB, LangChain, Cohere 等) が参加。
-- **2025年6月23日** (Open Source Summit North America) に **Linux Foundation** へ寄贈され、ベンダー中立のオープンガバナンスに移行。創設メンバーは **AWS, Cisco, Google, Microsoft, Salesforce, SAP, ServiceNow**。以降も参加企業は増加 (発表1年で150社超)。
-- **2026年3月10日に v1.0 が公開** (現行の安定版)。コアデータモデル/プロトコルバインディングが安定化。**v0.3 → v1.0 で wire フォーマットに破壊的変更**あり (メソッド名・Partのエンコード・AgentCardのインターフェース宣言など。詳細は後述の「バージョン (v0.3 → v1.0)」)。ただし **AgentCard は後方互換**に進化し、`protocolVersions` で v0.3/v1.0 両対応を宣言できるため、段階移行が可能。
+- **2025年4月9日**に Google が発表 (Google Cloud Next 2025 での発表と報じられている。Google の公式ブログ本文には会場の記載なし)。50社以上のパートナー (Atlassian, Salesforce, SAP, ServiceNow, MongoDB, LangChain, Cohere 等) が参加。
+- **2025年6月23日** (Open Source Summit North America) に **Linux Foundation** へ寄贈され、ベンダー中立のオープンガバナンスに移行。創設メンバーは AWS, Cisco, Google, Microsoft, Salesforce, SAP, ServiceNow。**2026年8月27日に Agentic AI Foundation (AAIF) の Growth Stage プロジェクト**として受け入れられた。AAIF の公式ブログによると、150を超える組織が A2A を支持している。
+- **2026年3月12日に v1.0 が公開** (現行の安定版)。コアデータモデル/プロトコルバインディングが安定化。**v0.3 → v1.0 で wire フォーマットに破壊的変更**あり (メソッド名・Partのエンコード・AgentCardのインターフェース宣言など。詳細は後述の「バージョン (v0.3 → v1.0)」)。ただし **AgentCard は後方互換**に進化し、各 `supportedInterfaces` 要素で `protocolVersion` を指定して v0.3/v1.0 両対応を宣言できるため、段階移行が可能。
 - 位置としては **「エージェント間 (agent ↔ agent) の水平連携」** のための標準。MCP が「エージェント ↔ ツール/データ (垂直方向)」を担うのに対し、A2A は「エージェント ↔ エージェント (水平方向)」を担う (詳細は本ノート下部の「MCP との関係・使い分け」セクションを参照)。
 
 > 一言でいうと: **「エージェント版のHTTP/REST」**。異なる中身のエージェントを、共通の話し方 (JSON-RPC / gRPC / REST) でつなぐ。
 
 > [!IMPORTANT]
-> **本ノートの表記方針**: 概念説明は **v1.0 を基準**に、随所で **v0.3 (legacy) の名称も併記**する。Python の `a2a-sdk` サンプルコードは **最新の 1.x 系 (1.1.0) の API** で記載 (`create_client` / `Message`+`Part` / `TaskUpdater` 等)。v0.3スタイル (`A2AClient` / `MessageSendParams` / `{"kind":"text"}`) は現在 `a2a.compat.v0_3` 配下の後方互換。実装時は使用する `a2a-sdk` / 対象エージェントの `protocolVersions` を必ず確認すること。
+> **本ノートの表記方針**: 概念説明は **v1.0 を基準**に、随所で **v0.3 (legacy) の名称も併記**する。Python の `a2a-sdk` サンプルコードは **最新の 1.x 系 (1.2.2, 2026-10-05) の API** で記載 (`create_client` / `Message`+`Part` / `TaskUpdater` 等)。v0.3スタイル (`A2AClient` / `MessageSendParams` / `{"kind":"text"}`) は現在 `a2a.compat.v0_3` 配下の後方互換（SDK の `enable_v0_3_compat=True` フラグで対応）。実装時は使用する `a2a-sdk` / 対象エージェントの `supportedInterfaces[].protocolVersion` を必ず確認すること。
 
 ---
 
 # バージョンと互換性 (v0.3 → v1.0)
 
-v1.0 (2026-03-10) で **JSON表現 (wire フォーマット) に破壊的変更**が入った。仕様は3層構造 (**Layer 1**: Protocol Buffers によるコアデータ定義 / **Layer 2**: 能力・振る舞い / **Layer 3**: 具体的バインディング = JSON-RPC・gRPC・HTTP+JSON) で整理され、JSON-RPCのメソッド名などが Layer 1 の proto 定義に揃えられた。
+v1.0 (2026-03-12) で **JSON表現 (wire フォーマット) に破壊的変更**が入った。仕様は3層構造 (**Layer 1**: Protocol Buffers によるコアデータ定義 / **Layer 2**: 能力・振る舞い / **Layer 3**: 具体的バインディング = JSON-RPC・gRPC・HTTP+JSON) で整理され、JSON-RPCのメソッド名などが Layer 1 の proto 定義に揃えられた。
 
 主な変更点:
 
@@ -33,8 +33,8 @@ v1.0 (2026-03-10) で **JSON表現 (wire フォーマット) に破壊的変更*
 | 拡張カード取得メソッド | `agent/getAuthenticatedExtendedCard` | `GetExtendedAgentCard` |
 
 > [!NOTE]
-> - legacy名は **少なくとも 0.5.0 までは解決可能 (残す)** と仕様の移行付録に明記されている。現行 `a2a-sdk` / サンプルもまだ v0.3スタイルを受け付ける。
-> - 互換は **AgentCard の `protocolVersions`** で宣言し、クライアントは `A2A-Version` ヘッダ等でネゴシエートする。
+> - legacy名は **プロトコル仕様の移行付録に記載**されており、SDK の `enable_v0_3_compat=True` と `a2a.compat.v0_3` モジュールで後方互換を提供。
+> - 互換は **各 `supportedInterfaces` 要素の `protocolVersion` フィールド**で宣言し、クライアントは `A2A-Version` ヘッダ等でネゴシエートする。v0.3/v1.0 両対応なら複数要素を並べる。
 > - 以降の各節では、まず概念を述べ、必要な箇所で「v0.3では〜」と注記する。
 
 ---
@@ -95,10 +95,11 @@ flowchart LR
   - `name`, `description`, `version`, `provider`
   - `supportedInterfaces` (v1.0。URL+transportの組の一覧、先頭が優先) ／ v0.3では `url` + `preferredTransport`
   - **`capabilities`**: `streaming` (SSE対応), `pushNotifications` (webhook対応), `extendedAgentCard` (認証後に詳細版カードを返せるか) 等の対応可否
-  - **`skills`**: このエージェントが提供する能力の一覧 (id, name, description, tags, examples, 入出力modality, スキル単位の `security`)
-  - **`securitySchemes` / `security`**: 認証方式 (OAuth2, API Key, OpenID Connect 等)
+  - **`skills`**: このエージェントが提供する能力の一覧 (id, name, description, tags, examples, 入出力modality, スキル単位の `securityRequirements`)
+  - **`securitySchemes` / `securityRequirements`**: 認証方式 (OAuth2, API Key, OpenID Connect 等)
   - `defaultInputModes` / `defaultOutputModes`: 対応する入出力形式 (text/plain, application/json 等)
-  - `protocolVersions`: 対応するA2Aバージョン (v0.3/v1.0 両対応の宣言に使う)
+  - `signatures` (署名付きカード), `documentationUrl`, `iconUrl` (いずれも任意)
+  - ※対応するA2Aバージョンは AgentCard 直下ではなく、**`supportedInterfaces[].protocolVersion`** で宣言する (v0.3/v1.0 両対応なら要素を並べる)
 
 **v1.0 スタイル** (`supportedInterfaces` + `capabilities.extendedAgentCard`):
 
@@ -118,16 +119,39 @@ flowchart LR
   "defaultInputModes": ["text/plain"],
   "defaultOutputModes": ["text/plain", "application/json"],
   "securitySchemes": {
-    "oauth": { "type": "oauth2", "flows": { /* ... */ } }
+    "oauth2": {
+      "oauth2SecurityScheme": {
+        "flows": {
+          "authorizationCode": {
+            "authorizationUrl": "https://oauth.example.com/authorize",
+            "tokenUrl": "https://oauth.example.com/token",
+            "scopes": { "weather.read": "Read weather data" }
+          }
+        }
+      }
+    }
   },
-  "security": [{ "oauth": ["weather.read"] }],
+  "securityRequirements": [
+    {
+      "schemes": {
+        "oauth2": { "list": ["weather.read"] }
+      }
+    }
+  ],
   "skills": [
     {
       "id": "get_forecast",
       "name": "天気予報取得",
       "description": "指定地域の天気予報を返す",
       "tags": ["weather", "forecast"],
-      "examples": ["東京の明日の天気は？"]
+      "examples": ["東京の明日の天気は？"],
+      "securityRequirements": [
+        {
+          "schemes": {
+            "oauth2": { "list": ["weather.read"] }
+          }
+        }
+      ]
     }
   ]
 }
@@ -158,7 +182,19 @@ A2Aのやり取りの中心。**一意の `id` を持ち、ライフサイクル
 | `canceled` | キャンセル (**終端**) |
 | `failed` | エージェントが実行を試みたが、途中でエラー発生。例: API呼び出し失敗、タイムアウト、内部例外 (**終端**) |
 | `rejected` | エージェントが「そのタスクは実行しない」と判断して受け付けなかった。例: 対応範囲外、ポリシー違反、リクエスト内容が不適切 (**終端**) |
-| `unknown` | 不明 |
+| `unknown` | 不明 (wire上は `TASK_STATE_UNSPECIFIED`) |
+
+> [!NOTE]
+> **wire形式（proto enum値）** (v1.0):
+> - `submitted` → `TASK_STATE_SUBMITTED`
+> - `working` → `TASK_STATE_WORKING`
+> - `input-required` → `TASK_STATE_INPUT_REQUIRED`
+> - `auth-required` → `TASK_STATE_AUTH_REQUIRED`
+> - `completed` → `TASK_STATE_COMPLETED`
+> - `canceled` → `TASK_STATE_CANCELED`
+> - `failed` → `TASK_STATE_FAILED`
+> - `rejected` → `TASK_STATE_REJECTED`
+> - `unknown` → `TASK_STATE_UNSPECIFIED`
 
 **`rejected` と `failed` の違い:**
 - **`rejected`**: 実行前に拒否。エージェントが「こういう依頼には応じられない」と判断して、最初から受け付けない。
@@ -175,7 +211,7 @@ A2Aのやり取りの中心。**一意の `id` を持ち、ライフサイクル
   - `TextPart` (テキスト) — v1.0: `{"text":"..."}` / v0.3: `{"kind":"text","text":"..."}`
   - `FilePart` (ファイル: bytes(base64)またはURI) — v1.0: `{"raw":"...", "filename":"...", "mediaType":"..."}` (or `url`) / v0.3: `{"kind":"file","file":{...}}`
   - `DataPart` (構造化JSONデータ。フォーム入力・構造化出力など) — v1.0: `{"data":{...}, "mediaType":"application/json"}` / v0.3: `{"kind":"data","data":{...}}`
-- **Message**: Client と Agent の間の**1回のやり取り (1通のメッセージ)**。`role` は `user` または `agent`。中身は Part の集まり (テキスト＋ファイル等を混在可能)。
+- **Message**: Client と Agent の間の**1回のやり取り (1通のメッセージ)**。`role` は `ROLE_USER` (wire値) または `ROLE_AGENT` (wire値)。中身は Part の集まり (テキスト＋ファイル等を混在可能)。v0.3では `role: "user"` と文字列だったが、v1.0では enum値に変わった。
 - **Artifact**: タスクの**成果物** (生成されたファイル・レポート・構造化結果など)。こちらも中身は Part の集まり。
 
 > つまり **Part は Message と Artifact に共通の「部品」**。「Artifactの一部がPart」であると同時に「Messageの一部もPart」。
@@ -461,8 +497,9 @@ A2A は **"Secure by default"** を掲げ、エンタープライズ利用を想
 
 - **トランスポートは HTTPS 必須** (本番)。
 - 認証は **Agent Card の `securitySchemes`** で宣言。OpenAPI の Security Scheme 準拠:
-  - OAuth 2.0 / OAuth 2.1
+  - OAuth 2.0 (v1.0 で Device Code と PKCE が追加され、implicit / password は deprecated)
   - OpenID Connect (OIDC)
+  - mTLS
   - API Key
   - HTTP Bearer / Basic
 - **認証はプロトコル本体の外 (out-of-band)** で行う。A2Aリクエストは標準HTTPヘッダー (`Authorization: Bearer ...`) にトークンを載せる。
@@ -477,25 +514,33 @@ A2A は **"Secure by default"** を掲げ、エンタープライズ利用を想
 
 Agent Card トップレベルの **map (名前 → スキーム定義)**。使える方式は以下の5種類 (OpenAPI準拠)。
 
-| スキーム (`type`) | 内容 |
+| スキーム | 内容 |
 |------|------|
-| `apiKey` | APIキー (ヘッダー/クエリ/クッキー) |
-| `http` | HTTP認証。`scheme: bearer` (JWT等) / `basic` |
-| `oauth2` | OAuth 2.0 / 2.1。`flows` 内でフロー(authorizationCode/clientCredentials等)と **利用可能な `scopes` (スコープ名→説明のmap)** を定義 |
-| `openIdConnect` | OIDC。`openIdConnectUrl` でdiscovery |
-| `mutualTLS` | mTLS (クライアント証明書) |
+| `apiKeySecurityScheme` | APIキー (ヘッダー/クエリ/クッキー) |
+| `httpSecurityScheme` | HTTP認証。`scheme: bearer` (JWT等) / `basic` |
+| `oauth2SecurityScheme` | OAuth 2.0。`flows` 内でフロー(authorizationCode/clientCredentials等)と **利用可能な `scopes` (スコープ名→説明のmap)** を定義 |
+| `openIdConnectSecurityScheme` | OIDC。`openIdConnectUrl` でdiscovery |
+| `mtlsSecurityScheme` | mTLS (クライアント証明書) |
 
-### 2. `security` — 「実際に何を要求するか」(Security Requirement)
+### 2. `securityRequirements` — 「実際に何を要求するか」(Security Requirement)
 
-**「どのスキームで、どのスコープが必要か」を表す要件のリスト**。各要素は **`{ スキーム名: [必要スコープ...] }`** というmap。
+**「どのスキームで、どのスコープが必要か」を表す要件のリスト**。各要素は以下の構造:
+
+```json
+{
+  "schemes": {
+    "スキーム名": { "list": ["スコープ1", "スコープ2", ...] }
+  }
+}
+```
 
 - **配列の要素間は OR** (どれか1つを満たせばOK)
 - **1つのmap内に複数スキームを書くと AND** (全部必要)
-- スコープ文字列は `securitySchemes` の `oauth2.flows.*.scopes` で定義した名前を参照する
+- スコープ文字列は `securitySchemes` で定義した名前を参照する
 
-### 3. スキル単位のスコープ (`AgentSkill.security`)
+### 3. スキル単位のスコープ (`AgentSkill.securityRequirements`)
 
-**AgentCard 全体だけでなく、個々の `skill` にも `security` を付けられる** (proto上は `security_requirements`。「このスキルに必要な認証要件」)。
+**AgentCard 全体だけでなく、個々の `skill` にも `securityRequirements` を付けられる** (proto上は `security_requirements`。「このスキルに必要な認証要件」)。
 → これにより **「エージェント全体はログインすれば触れるが、`refund` スキルだけは `payments.write` スコープが要る」** といった **スキル単位の最小権限** を表現できる。
 
 ```jsonc
@@ -503,32 +548,41 @@ Agent Card トップレベルの **map (名前 → スキーム定義)**。使�
   "name": "Payments Agent",
   "securitySchemes": {
     "oauth": {
-      "type": "oauth2",
-      "flows": {
-        "authorizationCode": {
-          "authorizationUrl": "https://idp.example.com/authorize",
-          "tokenUrl": "https://idp.example.com/token",
-          "scopes": {                         // ← 利用可能なスコープの定義(名前→説明)
-            "payments.read":  "残高・履歴の参照",
-            "payments.write": "送金・返金の実行"
+      "oauth2SecurityScheme": {
+        "flows": {
+          "authorizationCode": {
+            "authorizationUrl": "https://idp.example.com/authorize",
+            "tokenUrl": "https://idp.example.com/token",
+            "scopes": {                         // ← 利用可能なスコープの定義(名前→説明)
+              "payments.read":  "残高・履歴の参照",
+              "payments.write": "送金・返金の実行"
+            }
           }
         }
       }
     }
   },
-  "security": [                                // ← エージェント全体の要件 (OR)
-    { "oauth": ["payments.read"] }             //   最低でも read スコープが必要
+  "securityRequirements": [                    // ← エージェント全体の要件 (OR)
+    {
+      "schemes": {
+        "oauth": { "list": ["payments.read"] } //   最低でも read スコープが必要
+      }
+    }
   ],
   "skills": [
     {
       "id": "get_balance", "name": "残高照会",
       "description": "口座残高を返す", "tags": ["read"],
-      "security": [{ "oauth": ["payments.read"] }]
+      "securityRequirements": [
+        { "schemes": { "oauth": { "list": ["payments.read"] } } }
+      ]
     },
     {
       "id": "refund", "name": "返金実行",
       "description": "指定取引を返金する", "tags": ["write"],
-      "security": [{ "oauth": ["payments.write"] }]   // ← このスキルだけ write が必要
+      "securityRequirements": [
+        { "schemes": { "oauth": { "list": ["payments.write"] } } }   // ← このスキルだけ write が必要
+      ]
     }
   ]
 }
@@ -586,14 +640,14 @@ flowchart TD
   - **Semantic Kernel**
   - **LlamaIndex**
   - Microsoft (Azure AI Foundry / Copilot Studio) が A2A サポートを表明
-- **AWS**: Bedrock AgentCore 等でエージェント間連携に A2A を採用する動き。
+- **AWS**: Amazon Bedrock AgentCore **Runtime** が A2A サーバのデプロイに対応 (コンテナは port 9000 の `/` で待ち受け、Agent Card は `/.well-known/agent-card.json`、認証は SigV4 または OAuth 2.0)。出典: [Deploy A2A servers in AgentCore Runtime](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/runtime-a2a.html)。AWS FAQ では他の AgentCore サービスへの A2A 対応は「今後」とされている。
 
 ## 最小的な利用イメージ (Python, `a2a-sdk` 1.x)
 
 > [!NOTE]
-> 以下は **`a2a-sdk` 1.1.0 (2026-07時点の最新, v1.x系) の実ソースに照合済み**。1.x では v0.3 から Client/メッセージAPIが変わっている (`A2AClient`/`MessageSendParams`/`{"kind":"text"}` は v0.3 で、現在は **`a2a.compat.v0_3`** 配下の後方互換扱い)。現行の要点:
+> 以下は **`a2a-sdk` 1.2.2 (2026-10時点の最新, v1.x系) の実ソースに照合済み**。1.x では v0.3 から Client/メッセージAPIが変わっている (`A2AClient`/`MessageSendParams`/`{"kind":"text"}` は v0.3 で、現在は **`a2a.compat.v0_3`** 配下の後方互換扱い)。1.2 系では REST に `application/a2a+json` 対応、Agent Card キャッシュヘッダ、multi-replica cluster mode が追加。現行の要点:
 > - **Client生成**: `create_client(url or AgentCard)` (内部で Card 解決)
-> - **メッセージ**: `Message(role=Role.ROLE_USER, parts=[Part(text=...)])` — Partは `Part(text=...)` (メンバ判別)
+> - **メッセージ**: `Message(role=Role.ROLE_USER, parts=[Part(text=...)])` — Part は `Part(text=...)` (メンバ判別)
 > - **送信**: `client.send_message(SendMessageRequest(message=...))` は **`StreamResponse` の async iterator を返す** → `async for` で受ける
 > - **サーバ送出**: `new_agent_text_message` は廃止 → **`TaskUpdater`** を使う
 
@@ -606,9 +660,13 @@ from a2a.types import Part
 
 class MyExecutor(AgentExecutor):
     async def execute(self, context: RequestContext, event_queue: EventQueue) -> None:
+        from a2a.helpers import new_task_from_user_message
+        # v1.0では、初回送信時に Task をenqueueする必要がある
+        task = context.current_task or new_task_from_user_message(context.message)
+        if not context.current_task:
+            await event_queue.enqueue_event(task)
+        updater = TaskUpdater(event_queue, task.id, task.context_id)
         text = context.get_user_input()
-        updater = TaskUpdater(event_queue, context.task_id, context.context_id)
-        await updater.start_work()                       # -> working
         # ... エージェントの処理 ...
         # 成果は Message か Artifact として返す。単発の返信メッセージなら:
         await updater.complete(updater.new_agent_message([Part(text="結果です")]))
@@ -635,7 +693,7 @@ msg = Message(
 )
 # send_message は StreamResponse の async iterator を返す (非ストリーミングでも1件流れる)
 async for event in client.send_message(SendMessageRequest(message=msg)):
-    print(event)   # event は Task / Message / TaskStatusUpdateEvent / TaskArtifactUpdateEvent
+    print(event)   # event は StreamResponse (task / message / status_update / artifact_update のいずれか1つ)
 ```
 
 ## LangChain / LangGraph エージェントを A2A Server として公開する (概念コード)
@@ -667,7 +725,7 @@ from a2a.types import AgentCard, AgentInterface, AgentCapabilities, AgentSkill, 
 #    いずれも .ainvoke({"messages":[...]}) で呼べる = A2A側の公開手順は共通。
 #    (下の execute() は agent_graph が上のどれでも、そのまま動く)
 agent_graph = create_agent(
-    model="anthropic:claude-opus-4-8",   # "provider:model" 文字列 or モデルオブジェクト
+    model="anthropic:claude-opus-5-5",   # "provider:model" 文字列 or モデルオブジェクト
     tools=[get_weather],                 # 任意のツール
     system_prompt="あなたは天気アシスタントです",
 )
@@ -676,8 +734,13 @@ agent_graph = create_agent(
 #    ここは agent_graph の「作り方」に依存しない (CompiledStateGraph の .ainvoke を呼ぶだけ)
 class WeatherExecutor(AgentExecutor):
     async def execute(self, context, event_queue):
+        from a2a.helpers import new_task_from_user_message
         user_text = context.get_user_input()
-        updater = TaskUpdater(event_queue, context.task_id, context.context_id)
+        # 初回は先に Task を enqueue する (しないと InvalidAgentResponseError になる)
+        task = context.current_task or new_task_from_user_message(context.message)
+        if not context.current_task:
+            await event_queue.enqueue_event(task)
+        updater = TaskUpdater(event_queue, task.id, task.context_id)
         await updater.start_work()
         # エージェント (CompiledStateGraph) を実行
         result = await agent_graph.ainvoke(
@@ -745,7 +808,7 @@ from uuid import uuid4
 from langchain.agents import create_agent
 
 app = FastAPI()
-agent_graph = create_agent(model="anthropic:claude-opus-4-8", tools=[get_weather],
+agent_graph = create_agent(model="anthropic:claude-opus-5-5", tools=[get_weather],
                            system_prompt="あなたは天気アシスタントです")
 
 # ── (1) Agent Card配信: これが無いとクライアントは発見・接続できない ──
@@ -776,7 +839,7 @@ async def rpc(request: Request):
         answer = result["messages"][-1].content
         # ★(3) 返り値を A2A スキーマ(SendMessageResponse)に「整形」して返す。独自形はNG
         return JSONResponse({"jsonrpc": "2.0", "id": rpc_id, "result": {
-            "message": {"role": "agent", "parts": [{"text": answer}], "message_id": uuid4().hex}
+            "message": {"role": "ROLE_AGENT", "parts": [{"text": answer}], "messageId": uuid4().hex}
         }})
 
     # (4) streaming:false と宣言したので SendStreamingMessage は未実装
@@ -829,12 +892,12 @@ async def call_remote_agent(text: str) -> str:
     msg = Message(role=Role.ROLE_USER, parts=[Part(text=text)], message_id=uuid4().hex)
     chunks: list[str] = []
     async for event in client.send_message(SendMessageRequest(message=msg)):
-        # event は Task / Message / TaskStatusUpdateEvent / TaskArtifactUpdateEvent。
-        # 簡略化のため「parts を持つイベントの text Part」だけを拾う。
-        # 実装では event 型を判定し、Message や Artifact の parts から取り出すこと。
-        for p in getattr(event, "parts", []) or []:
-            if getattr(p, "text", None):
-                chunks.append(p.text)
+        # StreamResponse: event.message / event.status_update / event.artifact_update / event.task
+        if event.message:
+            for p in event.message.parts:
+                if p.text:
+                    chunks.append(p.text)
+        # 必要に応じて status_update / artifact_update も処理
     return "".join(chunks)
 
 # 3) それを LangChain Tool にして、オーケストレータのエージェントに渡す
@@ -844,23 +907,23 @@ async def weather_agent(query: str) -> str:
     return await call_remote_agent(query)
 
 orchestrator = create_agent(
-    model="anthropic:claude-opus-4-8",
+    model="anthropic:claude-opus-5-5",
     tools=[weather_agent],       # A2Aエージェントを「ツール」として合成
 )
 ```
 
 > [!NOTE]
-> **`create_agent` について**: LangChain 1.0 の統一エージェントAPI。返り値は `CompiledStateGraph` (LangGraph)。旧 `create_react_agent` (langgraph.prebuilt) / `AgentExecutor` (langchain-classic) は非推奨。`@tool` やモデル指定はそのまま使える。
+> **`create_agent` について**: LangChain 1.0 (2025-10-22 リリース) の統一エージェントAPI。返り値は `CompiledStateGraph` (LangGraph)。旧 `create_react_agent` (langgraph.prebuilt) / `AgentExecutor` (langchain-classic) は `langchain-classic` に移行した非推奨扱い。`@tool` やモデル指定はそのまま使える。
 >
-> **コードの検証状況 (2026-07時点 / `a2a-sdk` 1.1.0)**: 上記の Server側 (`AgentExecutor` / `TaskUpdater` / `DefaultRequestHandler` / `create_jsonrpc_routes`+`create_agent_card_routes`)・Client側 (`create_client` / `Message`+`Part`+`Role` / `SendMessageRequest` / `async for`) は **SDK 1.1.0 の実ソースに照合済み**。**旧 `A2AStarletteApplication` は 1.x で廃止**され、routesベースに変わった点に注意。留意点:
-> - **`send_message` は `StreamResponse` の async iterator を返す** (非ストリーミングでも `async for` で1件受ける)。返信テキストの取り出しは event 型 (`Task` / `Message` / `TaskStatusUpdateEvent` / `TaskArtifactUpdateEvent`) に応じた分岐が必要 — 上のコードは簡略化しているので、実装時は event 型を判定して取り出すこと。
-> - **v0.3 の書き方** (`A2AClient` + `SendMessageRequest(params=MessageSendParams(...))` + `{"kind":"text"}` + `await client.send_message(...)`→単一レスポンス) は現在 **`a2a.compat.v0_3`** 配下の後方互換。旧記事はこちらが多い。
-> - **本番のExecutor** は `TaskUpdater` で `start_work()` → (必要なら) `add_artifact(...)` → `complete()` とライフサイクルを明示管理するのが定石。
+> **コードの検証状況 (2026-10時点 / `a2a-sdk` 1.2.2)**: 上記の Server側 (`TaskUpdater` / `DefaultRequestHandler` / `create_jsonrpc_routes`+`create_agent_card_routes`)・Client側 (`create_client` / `Message`+`Part`+`Role` / `SendMessageRequest` / `async for`) は **SDK 1.2.2 の実ソースに照合済み**。**旧 `A2AStarletteApplication` は 1.x で廃止**され、routesベースに変わった点に注意。1.2 系では REST に `application/a2a+json` 対応と Agent Card キャッシュヘッダ、multi-replica cluster mode が追加。留意点:
+> - **`send_message` は `StreamResponse` の async iterator を返す** (非ストリーミングでも `async for` で1件受ける)。Event は `StreamResponse` で、`event.message` / `event.status_update` / `event.artifact_update` / `event.task` でアクセス。返信テキストは `event.message.parts[].text` から取り出す。
+> - **v0.3 の書き方** (`A2AClient` + `SendMessageRequest(params=MessageSendParams(...))` + `{"kind":"text"}` + `await client.send_message(...)`→単一レスポンス) は現在 **`a2a.compat.v0_3`** 配下の後方互換。旧記事はこちらが多い。SDK の `enable_v0_3_compat=True` フラグで対応。
+> - **本番のExecutor** は `new_task_from_user_message()` で Task を作成し enqueue してから `TaskUpdater` で `start_work()` → (必要なら) `add_artifact(...)` → `complete()` とライフサイクルを明示管理するのが定石。
 
 ## DeepAgents (LangChain) から A2Aエージェントを呼ぶ
 
 > [!IMPORTANT]
-> **DeepAgents はA2Aをネイティブには喋らない** (2026-07時点)。`create_deep_agent` の **リモートsubagent (`AsyncSubAgent`) は LangChain の「Agent Protocol」用** (`graph_id`/`url` で LangSmith デプロイや FastAPI サービスを指す) であり、**A2Aエンドポイントを直接 `AsyncSubAgent` に指定することはできない**。A2A対応は将来のリリースで検討中とされている。
+> **DeepAgents はA2Aをネイティブには喋らない** (2026-10時点)。`create_deep_agent` の **リモートsubagent (`AsyncSubAgent`) は LangChain の「Agent Protocol」用** (`graph_id`/`url` で LangSmith デプロイや FastAPI サービスを指す) であり、**A2Aエンドポイントを直接 `AsyncSubAgent` に指定することはできない**。A2A対応の予定は公式情報では確認できなかった。
 > → したがって現状は **「A2A呼び出しを *tool* にして `create_deep_agent(tools=[...])` に渡す」** のが定石。上の Client 側で作った `call_remote_agent()` / `@tool weather_agent` をそのまま流用できる。
 
 DeepAgents は内部的に LangChain の `create_agent` (LangGraph上のReActエージェント) なので、**通常のエージェントと全く同じ「A2AをTool化」パターン**が使える。違いは、オーケストレータを `create_agent` の代わりに `create_deep_agent` にするだけ。
@@ -873,7 +936,7 @@ from deepagents import create_deep_agent
 # (call_remote_agent は a2a-sdk 1.x の create_client + SendMessage で A2A を叩く関数)
 
 agent = create_deep_agent(
-    model="anthropic:claude-opus-4-8",
+    model="anthropic:claude-opus-5-5",
     tools=[weather_agent],                 # ← A2Aエージェントをツールとして合成
     system_prompt="あなたは調査アシスタント。天気は weather_agent ツールに委譲する。",
 )
@@ -888,19 +951,18 @@ result = await agent.ainvoke({"messages": [{"role": "user", "content": "東京�
 「天気関連はまとめて1つの専門サブエージェントに任せたい」場合は、**A2Aツールを持つ小さなエージェントを作り、`CompiledSubAgent` として登録**する。DeepAgent はビルトインの `task` ツール経由でこのサブエージェントに委譲する。
 
 ```python
-from deepagents import create_deep_agent
-from deepagents.types import CompiledSubAgent   # 版により import 経路は要確認
+from deepagents import create_deep_agent, CompiledSubAgent  # v0.7.23 (2026-10-07)
 from langchain.agents import create_agent
 
 # 1) A2Aツール(weather_agent)を内包する専門サブエージェント(=compiled graph)
 weather_subagent_graph = create_agent(
-    model="anthropic:claude-opus-4-8",
+    model="anthropic:claude-opus-5-5",
     tools=[weather_agent],                 # ← A2Aツール
 )
 
 # 2) それを CompiledSubAgent としてDeepAgentに登録
 agent = create_deep_agent(
-    model="anthropic:claude-opus-4-8",
+    model="anthropic:claude-opus-5-5",
     system_prompt="調査を統括する。天気は weather サブエージェントに委譲する。",
     subagents=[
         CompiledSubAgent(
@@ -914,8 +976,8 @@ agent = create_deep_agent(
 
 > [!NOTE]
 > - **どちらを使うか**: 単発の呼び出しなら **方法1 (ツール)** で十分。天気ドメインに複数ツール/独自プロンプトを持たせて文脈を分離したいなら **方法2 (サブエージェント)**。
-> - `create_deep_agent` の引数 (`model` / `tools` / `system_prompt` / `subagents`) と `SubAgent`/`CompiledSubAgent`/`AsyncSubAgent` の3系統は [langchain-ai/deepagents](https://github.com/langchain-ai/deepagents) のリファレンスに照合済み。ただし `CompiledSubAgent` の正確なフィールド名 (`runnable` 等) と import 経路は版差があるため、使用バージョンで確認すること。
-> - **将来 DeepAgents が A2A をネイティブ対応**したら、`AsyncSubAgent` に A2A の Agent Card URL を直接渡せるようになる可能性がある。リリースノートを要確認。
+> - `create_deep_agent` の引数 (`model` / `tools` / `system_prompt` / `subagents`) と `SubAgent`/`CompiledSubAgent`/`AsyncSubAgent` の3系統は deepagents 0.7.23 (2026-10-07) で確認済み。`CompiledSubAgent` は TypedDict で `name` / `description` / `runnable` (+ `mode`) フィールドを持ち、`from deepagents import CompiledSubAgent` で直接インポート。
+> - **現在 DeepAgents は A2A をネイティブ非対応** (Agent Protocol / LangGraph SDK 向け)。`AsyncSubAgent` に A2A Card URL を直接渡す仕組みは未実装。
 
 ---
 
@@ -956,18 +1018,18 @@ handler = Mangum(app)               # ★ASGI↔API Gatewayイベントを変換
 |---|---|---|
 | 形態 | コード内 (`Mangum(app)`) | Lambdaレイヤー/拡張 (コード非侵襲) |
 | 中身 | ASGIを直接呼ぶ (uvicorn不要) | 中で普通に `uvicorn app:app` を起動し橋渡し |
-| **SSE(streaming)** | ❌ 基本不可 | ✅ Function URL + response streaming で可 |
+| **SSE(streaming)** | ❌ 基本不可 | ✅ response streaming 対応 (環境変数 `AWS_LWA_INVOKE_MODE=response_stream`)。Function URL のほか API Gateway REST API の背後でも使える (LWA の README に記載) |
 | 手軽さ | pip入れて1行 | レイヤー追加＋起動設定 |
 
 ### サーバレスの注意点 (capabilities の宣言に直結)
 
 | 論点 | 制約 | 対策 |
 |---|---|---|
-| **ストリーミング(SSE)** | **API Gateway (REST/HTTP API) はSSE非対応** (レスポンスを全部バッファ) | ① `streaming:false` 宣言で同期のみ／② **Lambda Function URL の response streaming**（LWA）／③ 本格SSEは常駐コンテナへ |
+| **ストリーミング(SSE)** | **Mangum は response streaming 非対応**。API Gateway REST API は 2025-11-19 から Lambda プロキシ統合で `transfer mode=STREAM` を設定すれば streaming 可能 | ① Mangum + `streaming:false` 宣言で同期のみ／② **LWA + `AWS_LWA_INVOKE_MODE=response_stream`** (Function URL、または 2025-11-19〜対応の API Gateway REST API)／③ 本格SSEは常駐コンテナへ |
 | **長時間タスク** | **Lambda 最大15分**。数時間〜数日は保持不可 | **Push通知パターン**（即 `submitted` 返却→SQS/Step Functionsで非同期処理→完了時にクライアントwebhookへPOST）／`GetTask` ポーリング |
 | **状態(TaskStore)** | Lambdaはステートレス、`InMemoryTaskStore` は消える | **DynamoDB等の永続TaskStore**（`GetTask`/`CancelTask` を出すなら必須） |
 | **認証** | — | **API Gatewayのオーソライザ (JWT/Cognito/OIDC)** で手前に寄せ、A2Aの `securitySchemes` に対応 |
-| **大きなファイル** | API Gateway 10MB上限 | S3プリサインURLを `FilePart.url` で渡す |
+| **大きなファイル** | Mangum + API Gateway の 10MB上限（streaming ではペイロードサイズ制限は緩和） | S3プリサインURLを `FilePart.url` で渡す |
 
 ### 使い分け
 
@@ -985,11 +1047,111 @@ handler = Mangum(app)               # ★ASGI↔API Gatewayイベントを変換
 # 実務上の注意点・ハマりどころ
 
 - **Agent Card のパス変更**: 旧 `/.well-known/agent.json` → 新 `/.well-known/agent-card.json`。古い記事・実装と食い違うことがある。
-- **v0.3 → v1.0 の破壊的変更**: メソッド名 (`message/send`→`SendMessage`)、Partのエンコード (`kind` 廃止)、AgentCardのインターフェース宣言 (`supportedInterfaces`) が変わった (詳細は上の「バージョンと互換性」)。古い記事・SDK・エージェントとの相互運用時は **`protocolVersions` で対応版を確認**する。legacy名は当面 (>=0.5.0まで) 残る。
+- **v0.3 → v1.0 の破壊的変更**: メソッド名 (`message/send`→`SendMessage`)、Partのエンコード (`kind` 廃止)、AgentCardのインターフェース宣言 (`supportedInterfaces`) が変わった (詳細は上の「バージョンと互換性」)。古い記事・SDK・エージェントとの相互運用時は **`supportedInterfaces[].protocolVersion` で対応版を確認**する。v0.3 互換が必要なら SDK の `enable_v0_3_compat=True` / `a2a.compat.v0_3` を使う。
 - **タスクの終端状態を正しく扱う**: `completed`/`failed`/`canceled`/`rejected` は終端。`input-required` で止まったまま放置しない (タイムアウト設計)。
 - **長時間タスクは Push通知 or resubscribe 前提で設計** する。SSE接続の切断に耐えられるように。
 - **セキュリティを後回しにしない**: 社外エージェント連携では認証・スコープ・監査を最初から。→ MCP・Agentの認証認可
 - **MCPと役割を混同しない**: 「ツールならMCP、自律エージェントならA2A」を判断軸に。
+
+---
+
+## 8. 最新機能と拡張（2026年8月以降）
+
+### 8.1 AAIF (Agentic AI Foundation) への参加
+
+- A2A は **Agentic AI Foundation (AAIF)** の **Growth Stage プロジェクト**として受け入れられた (公式ブログの日付は **2026-08-27**。報道では 8/17 の先行報道あり)。
+- AAIF は Linux Foundation 傘下で 2025-12 に発足した財団で、MCP なども管理している。A2A と MCP は **別プロジェクトのまま**、それぞれ独自の技術運営委員会を持つ。
+- 出典: [A New Chapter for A2A: Joining the Agentic AI Foundation](https://a2a-protocol.org/latest/blog/2026/08/27/a-new-chapter-for-a2a-joining-the-agentic-ai-foundation/)
+
+### 8.2 A2A CLI
+
+- 公式の CLI (`a2a`)。Go 製で A2A v1.0 準拠。Agent Card からトランスポート (JSON-RPC / REST / gRPC) を自動選択する。
+- 紹介ブログ: 2026-10-01。リポジトリの最新リリースは v0.3.0 (2026-09-24)。
+- 使用例:
+  ```bash
+  a2a card get https://agent.example.com
+  a2a send -a https://agent.example.com "Hello, what can you do?"
+  a2a send -a https://agent.example.com --stream "Summarize this document"
+  ```
+- インストール: Homebrew (`brew tap a2aproject/a2a-cli https://github.com/a2aproject/a2a-cli` → `brew install a2a`) / WinGet (`a2aproject.a2acli`) / `go install github.com/a2aproject/a2a-cli@latest` (バイナリ名は `a2a-cli` になるので `a2a` にリネーム)。
+- リポジトリ: https://github.com/a2aproject/a2a-cli
+- PyPI の `a2a-cli` は別物の古いパッケージ (公式ではない)。
+
+### 8.3 署名付き Agent Card
+
+- `AgentCard.signatures` (repeated `AgentCardSignature`) で Agent Card に署名を付けられる。
+- `AgentCardSignature` のフィールドは **`protected` / `signature` / `header`** (JWS の JSON シリアライズ形式。`header` は未保護ヘッダの Struct)。
+- 署名は JWS ([RFC 7515](https://datatracker.ietf.org/doc/html/rfc7515)) 形式。署名前に Agent Card を **JSON Canonicalization Scheme (JCS, [RFC 8785](https://datatracker.ietf.org/doc/html/rfc8785)) で正規化することが MUST**。protobuf のフィールド有無 (presence) のルールに従って、明示的に設定されたフィールドだけを正規化対象に含める (仕様書 §8.4)。
+- `AgentCardSignature`: `protected` (必須, Base64url の JWS Protected Header) / `signature` (必須) / `header` (任意, 未保護ヘッダ)。Protected Header には `alg` などを含め、`typ` は `JOSE` を推奨。
+
+### 8.4 Multi-tenancy サポート
+
+- `AgentInterface` に **`tenant`** フィールドがある (AgentInterface のフィールドは `url` / `protocol_binding` / `tenant` / `protocol_version`)。
+- 仕様書: クライアントは **全リクエストメッセージの `tenant` フィールドに、選択した `AgentInterface` の `tenant` と同じ値を設定する** (未設定なら省略)。
+- REST バインディングでは、**URL パスの先頭に `/{tenant}` を付けた形**のエンドポイントも定義されている (例: `POST /{tenant}/message:send`、`GET /{tenant}/tasks/{id}`)。
+- ヘッダで渡す仕様ではない。
+- 例:
+  ```json
+  {
+    "supportedInterfaces": [
+      {
+        "url": "https://api.example.com/a2a",
+        "protocolBinding": "JSONRPC",
+        "protocolVersion": "1.0",
+        "tenant": "acme-corp"
+      }
+    ]
+  }
+  ```
+
+### 8.5 拡張機構 (A2A Extensions)
+
+- `AgentCapabilities.extensions` (repeated `AgentExtension`) で Agent が対応する拡張を宣言する。
+- クライアントは `A2A-Extensions` ヘッダ (拡張URIのカンマ区切りリスト) で利用する拡張を指定する。
+- 必須拡張にクライアントが対応していない場合は `ExtensionSupportRequiredError` (-32008) になる。
+
+### 8.6 エラーコード
+
+A2A 固有のエラーは JSON-RPC のサーバエラー範囲 (-32000〜-32099) に割り当てられている。
+
+| コード | 名前 | gRPC | HTTP |
+|---|---|---|---|
+| -32001 | `TaskNotFoundError` | `NOT_FOUND` | 404 |
+| -32002 | `TaskNotCancelableError` | `FAILED_PRECONDITION` | 400 |
+| -32003 | `PushNotificationNotSupportedError` | `FAILED_PRECONDITION` | 400 |
+| -32004 | `UnsupportedOperationError` | `FAILED_PRECONDITION` | 400 |
+| -32005 | `ContentTypeNotSupportedError` | `INVALID_ARGUMENT` | 400 |
+| -32006 | `InvalidAgentResponseError` | `INTERNAL` | 500 |
+| -32007 | `ExtendedAgentCardNotConfiguredError` | `FAILED_PRECONDITION` | 400 |
+| -32008 | `ExtensionSupportRequiredError` | `FAILED_PRECONDITION` | 400 |
+| -32009 | `VersionNotSupportedError` | `FAILED_PRECONDITION` | 400 |
+
+> [!NOTE]
+> 仕様書 §5.4 (Error Code Mappings) で確認済み。`UnsupportedOperationError` は、終端状態の Task へのメッセージ送信、`streaming: false` の Agent への `SendStreamingMessage` / `SubscribeToTask`、拡張Agent Card 未対応の Agent への取得要求などで返る。`TaskNotCancelableError` は終端状態の Task を `CancelTask` した場合など。v0.3 では -32007 の名前が `AuthenticatedExtendedCardNotConfiguredError` だった。
+
+### 8.7 ListTasks のページネーション
+
+- ページトークン方式。
+- リクエスト (`ListTasksRequest`): `tenant` / `context_id` / `status` / `page_size` / `page_token` / `history_length` / `status_timestamp_after` / `include_artifacts`
+- レスポンス (`ListTasksResponse`): `tasks` / `next_page_token` / `page_size` / `total_size`
+
+### 8.8 Python SDK 1.2 系の主な変更
+
+GitHub リリースノートで確認できた内容:
+
+| バージョン | 内容 |
+|---|---|
+| **1.2.0** (2026-09-29) | REST の HTTP+JSON 応答を `application/a2a+json` で返す／Agent Card エンドポイントにキャッシュ用ヘッダを付与／multi-replica の cluster mode を追加／メッセージの media type を Agent Card に照らして検証する opt-in 機能／終端状態のTaskへの操作を `UnsupportedOperationError` で拒否 |
+| **1.2.2** (2026-10-05, PyPI) | SSE 終了時の猶予時間 (grace period) を設定可能に／各種バグ修正 |
+
+- `a2a.helpers.new_task_from_user_message` は a2a-sdk 1.2.2 で import できることを実機で確認済み。`enable_v0_3_compat` は前回の検証でシグネチャを確認した API。
+- PyPI の JSON API で最新が 1.2.2 (2026-10-05) であることを確認済み (1.2.0 は 2026-09-29、1.2.1 は 2026-09-30)。
+
+### 8.9 API Gateway の Response Streaming (AWS, 2025-11-19)
+
+- API Gateway の **REST API** が Lambda の response streaming に対応した (Lambda プロキシ統合で response transfer mode を `STREAM` に設定)。リクエストタイムアウトは最大15分、10MB超のペイロードも扱える。
+- 出典: [Building responsive APIs with Amazon API Gateway response streaming](https://aws.amazon.com/blogs/compute/building-responsive-apis-with-amazon-api-gateway-response-streaming/)
+- Mangum は response streaming に非対応。AWS Lambda Web Adapter (LWA) は response streaming に対応 (`AWS_LWA_INVOKE_MODE=response_stream`、README で確認)。
 
 ---
 
@@ -1001,13 +1163,18 @@ handler = Mangum(app)               # ★ASGI↔API Gatewayイベントを変換
 - 仕様書 (Specification): https://a2a-protocol.org/latest/specification/
 - **正式な型定義 (normative)** `specification/a2a.proto`: https://github.com/a2aproject/A2A/blob/main/specification/a2a.proto
   - ↑ AgentCard / AgentSkill / SecurityScheme / SecurityRequirement の権威ある定義。本ノートの「認可の詳細」「Agent Card」節はこれに照合済み。
-- **v1.0 発表 (2026/03/10)**: https://a2a-protocol.org/latest/announcing-1.0/
+- **v1.0 発表 (2026/03/12)**: https://a2a-protocol.org/latest/blog/2026/03/12/a2a-protocol-ships-v10-production-ready-standard-for-agent-to-agent-communication/
 - 移行付録 (Migration & Legacy Compatibility): 仕様書 Appendix A / `docs/specification.md`
 - Google 発表ブログ (2025/04): "Announcing the Agent2Agent Protocol (A2A)"
 - Linux Foundation 移管発表 (2025/06)
 
-## サンプルコード (本ノートのPythonコードの照合先)
-- **Python SDK 本体 `a2a-python` (v1.1.0)**: https://github.com/a2aproject/a2a-python — 本ノートの1.xコードは `client/client.py`・`client_factory.py`・`server/tasks/task_updater.py`・`server/routes/`・`server/request_handlers/default_request_handler.py` の実ソースに照合済み
+## Python SDK・サンプルコード
+- **Python SDK 本体 `a2a-python` (v1.2.2 最新)**: https://github.com/a2aproject/a2a-python
+  - PyPI: https://pypi.org/project/a2a-sdk/
+  - 本ノートの1.xコードは v1.2.2 の `client/client.py`・`client_factory.py`・`server/tasks/task_updater.py`・`server/routes/`・`server/request_handlers/default_request_handler.py` の実ソースに照合済み
+  - `a2a.helpers` で Task・Message 生成ヘルパーを提供
+  - `enable_v0_3_compat` フラグで v0.3 後方互換対応
+- **A2A CLI** (紹介ブログ 2026-10-01): https://a2a-protocol.org/latest/blog/2026/10/01/introducing-a2a-cli/ / https://github.com/a2aproject/a2a-cli
 - サンプル集リポジトリ: https://github.com/a2aproject/a2a-samples
 - helloworld / LangGraph エージェント例: https://github.com/a2aproject/a2a-samples/tree/main/samples/python/agents
 
@@ -1021,9 +1188,25 @@ handler = Mangum(app)               # ★ASGI↔API Gatewayイベントを変換
 - ※ DeepAgentsのリモートsubagentは「Agent Protocol」用。A2A呼び出しはtool化して渡す (本ノート「DeepAgentsからA2Aエージェントを呼ぶ」参照)。
 
 > [!NOTE]
-> 本ノートのコード・認可仕様・v0.3/v1.0差分は **2026-07時点** で上記の公式ソース (仕様 v1.0 / `a2a.proto` / `docs/specification.md` / a2a-samples) に照合済み。ただし `a2a-sdk` / 仕様は今後も更新されるため、実装時は対象バージョンの上記リンクで再確認すること。
+> 本ノートのコード・認可仕様・v0.3/v1.0差分は **2026-10時点** (a2a-sdk 1.2.2、仕様 v1.0 系。仕様書ページの表記は `1.0.0`、GitHub には patch の `v1.0.1` (2026-05-28) もあり、patch は互換性に影響しない) で上記の公式ソース (仕様書 / `a2a.proto` / `docs/specification.md` / SDK実ソース / a2a-samples) に照合済み。ただし `a2a-sdk` / 仕様は今後も更新されるため、実装時は対象バージョンの上記リンクで再確認すること。
 
 ---
+
+## LangChain / LangGraph / フレームワーク
+- **LangChain 1.0 (2025-10-22)**: https://www.langchain.com/blog/langchain-langgraph-1dot0
+  - `create_agent` の統一API提供、`create_react_agent` 非推奨化
+  - v1 リリースノート: https://docs.langchain.com/oss/python/releases/langchain-v1
+- **DeepAgents** 0.7.23 (2026-10-07, LangGraph ベース): https://github.com/langchain-ai/deepagents
+  - 現在 A2A ネイティブ非対応（Agent Protocol / LangGraph SDK 向け）
+  
+## AWS Lambda・インフラ
+- **AWS Lambda Web Adapter (LWA)**: https://github.com/aws/aws-lambda-web-adapter
+- **API Gateway Response Streaming** (2025-11-19): https://aws.amazon.com/blogs/compute/building-responsive-apis-with-amazon-api-gateway-response-streaming/
+  - REST API で response streaming に対応
+
+## A2A 標準化・ガバナンス
+- **Agentic AI Foundation (AAIF)** に Growth Stage プロジェクトとして受け入れ（2026-08-27）: https://a2a-protocol.org/latest/blog/2026/08/27/a-new-chapter-for-a2a-joining-the-agentic-ai-foundation/
+- **A2A ブログ** (AAIF、CLI リリース等): https://a2a-protocol.org/latest/blog/
 
 ## 関連ノート
 - MCP・Agentの認証認可
