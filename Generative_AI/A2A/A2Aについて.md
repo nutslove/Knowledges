@@ -489,6 +489,61 @@ sequenceDiagram
 - 終端状態 (`completed` / `failed` / `canceled` / `rejected`) の Task への送信 → `UnsupportedOperationError`。続きのやり取りは、**同じ `contextId` で新しい Task** として始める
 - `contextId` と `taskId` が食い違う → 拒否される
 
+### リクエストオプション一覧 (`SendMessage` / `SendStreamingMessage`)
+
+どちらも同じ `SendMessageRequest` を受け取る。JSON 表現のフィールド名は camelCase (proto は snake_case)。
+
+**`SendMessageRequest` のトップレベル**
+
+| フィールド | 必須 | 内容 |
+|---|---|---|
+| `message` | 必須 | 送る `Message` (`messageId` / `role` / `parts` / `taskId` / `contextId` など) |
+| `configuration` | 任意 | 下表の `SendMessageConfiguration` |
+| `metadata` | 任意 | 任意のキー/値 (Struct)。追加の文脈情報を渡す。型付けしたい場合は拡張 (Extensions) を使う |
+| `tenant` | 任意 | ルーティング用の識別子。選択した `AgentInterface` の `tenant` と同じ値にする |
+
+**`configuration` (`SendMessageConfiguration`)**
+
+| フィールド | 既定 | 内容 |
+|---|---|---|
+| `returnImmediately` | `false` | `false`: 終端状態 (`completed` / `failed` / `canceled` / `rejected`) か中断状態 (`input-required` / `auth-required`) まで待って返す。`true`: Task 作成直後に返し、更新は `GetTask` / `SubscribeToTask` / Push通知で得る (v0.3 の `blocking` とは真偽が逆) |
+| `historyLength` | 未設定 | 応答の `Task.history` に含める直近メッセージの最大件数。詳細は下記 |
+| `acceptedOutputModes` | 未設定 | クライアントが受け取れるメディアタイプの一覧 (例: `["text/plain", "application/json"]`)。Agent は出力をこれに合わせるべき (SHOULD) |
+| `taskPushNotificationConfig` | 未設定 | このリクエストと同時に Push通知 (webhook) を登録する。**この場合 `taskId` は空にする** (proto のコメントによる。Task がまだ無いため)。既存 Task に後から登録するときは `CreateTaskPushNotificationConfig` を使う |
+
+**`returnImmediately` が効かないケース** (仕様書 §3.2.2)
+- `Message` が直接返る場合 (Task が作られない)
+- ストリーミング (`SendStreamingMessage`) の場合 (更新は常にリアルタイムで流れる)
+- Push通知の設定そのもの (実行モードとは独立して動く)
+
+**`historyLength` の意味** (仕様書 §3.2.4。`GetTask` / `ListTasks` でも同じ)
+
+| 値 | 挙動 |
+|---|---|
+| 未設定 | 制限なし。サーバの既定量を返す (実装依存で、全履歴のこともある) |
+| `0` | 履歴を返さない (`history` フィールドは省略すべき: SHOULD) |
+| `> 0` | 直近のこの件数まで。サーバは指定値を超えて返してはならない (MUST NOT) が、それより少なく返してもよい (MAY。proto のコメントによる) |
+
+**Push通知の設定 (`TaskPushNotificationConfig`)**
+
+| フィールド | 内容 |
+|---|---|
+| `url` | 通知の送り先 (**必須**) |
+| `id` | この Push通知設定の一意な識別子 (UUID など)。`GetTaskPushNotificationConfig` / `DeleteTaskPushNotificationConfig` で指定する |
+| `taskId` | 対象の Task ID |
+| `token` | Task / セッション固有のトークン。webhook 受信側が通知の正当性を確認するのに使う |
+| `authentication` | 通知を送るときの認証情報。`scheme` (`Bearer` / `Basic` など, **必須**) と `credentials` |
+
+**ヘッダ/サービスパラメータ** (リクエスト本体ではなく、HTTP ヘッダ / gRPC メタデータで渡す)
+
+| 名前 | 内容 |
+|---|---|
+| `A2A-Version` | クライアントが使う版 (`Major.Minor`)。v1.0 クライアントは全リクエストで送る。空はサーバが 0.3 とみなす。非対応なら `VersionNotSupportedError` |
+| `A2A-Extensions` | 利用する拡張URIのカンマ区切りリスト |
+
+> [!NOTE]
+> 上の表は `a2a.proto` と仕様書 (§3.2.2〜3.2.6) で確認済み。`GetTask` は `id` と `historyLength`、`ListTasks` のオプションは「8.7 ListTasks のページネーション」を参照。
+
 ---
 
 # セキュリティ (認証・認可)
