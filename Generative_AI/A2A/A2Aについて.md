@@ -705,6 +705,17 @@ flowchart TD
 > - **メッセージ**: `Message(role=Role.ROLE_USER, parts=[Part(text=...)])` — Part は `Part(text=...)` (メンバ判別)
 > - **送信**: `client.send_message(SendMessageRequest(message=...))` は **`StreamResponse` の async iterator を返す** → `async for` で受ける
 > - **サーバ送出**: `new_agent_text_message` は廃止 → **`TaskUpdater`** を使う
+> - **`enqueue_event` の順序ルール** (a2a-sdk 1.2.2 で実機確認済み):
+>
+>   | Executor の動き | 結果 |
+>   |---|---|
+>   | `Task` を積まずに `TaskStatusUpdateEvent` を積む (`start_work()` など) | `InvalidAgentResponseError: Agent should enqueue Task before TaskStatusUpdateEvent event` |
+>   | `Message` だけを積む | OK (クライアントには `message` が返る。Task は作られない) |
+>   | `Task` を積んだあとに `Message` を積む | `InvalidAgentResponseError: Received Message object in task mode...` |
+>   | `Task` → `TaskStatusUpdateEvent` → ... と積む | OK |
+>   | 終端状態 (`complete()` など) のあとに `TaskUpdater` で更新する | `RuntimeError: Task ... is already in a terminal state.` (`TaskUpdater` 側で拒否される) |
+>
+>   つまり **「Message だけで返す」か「Task で状態管理する」かのどちらか一方**を選ぶ。Task を使うなら、初回は最初に `Task` を積む (`context.current_task` が無いとき)。2回目以降 (`input-required` からの再開など) は既存の Task があるので積み直さない (積むと既存 Task があるためログにエラーが出て無視される)。
 
 ```python
 # --- Server側: Agent Executor を実装 ---
@@ -731,6 +742,19 @@ class MyExecutor(AgentExecutor):
 
 # サーバ化 (routes を組んで ASGI アプリ化) の全体像は下の LangChain/LangGraph 例を参照。
 # Agent Card は /.well-known/agent-card.json で自動公開される。
+
+# --- 補足: EventQueue / enqueue_event とは ---
+# EventQueue = Executor が処理結果をフレームワークへ送る「出口」。
+#   - SDK が作って execute() / cancel() に渡してくる (自分では作らない)
+#   - Executor 側から使えるメソッドは enqueue_event() だけ
+#   - 積まれたイベントはフレームワークが取り出し、SendMessage なら最終結果として、
+#     SendStreamingMessage なら SSE として、クライアントに返す
+# 積めるイベントは4種類 (= クライアントが受け取る StreamResponse の4フィールドに対応):
+#   Message / Task / TaskStatusUpdateEvent / TaskArtifactUpdateEvent
+# TaskUpdater は enqueue_event() を呼ぶ薄いラッパー:
+#   start_work() / complete() / failed() / reject() / cancel() /
+#   requires_input() / requires_auth() → TaskStatusUpdateEvent を積む
+#   add_artifact() → TaskArtifactUpdateEvent を積む
 
 # --- Client側: 相手のAgent Cardを取得して呼び出す ---
 from uuid import uuid4
