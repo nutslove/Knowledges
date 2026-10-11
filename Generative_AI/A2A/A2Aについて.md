@@ -1,5 +1,8 @@
 # 概要
 
+> [!TIP]
+> Python SDK (`a2a-sdk`) で実際に開発する場合は、別ノート **[A2A SDK開発ガイド (Python).md](A2A%20SDK開発ガイド%20(Python).md)** を参照 (インストール、サーバ/クライアント実装、状態管理、永続化、Push通知、認証、テストなど。動作確認済みのコード付き)。このノートは概念の整理が中心。
+
 **A2A (Agent2Agent) Protocol** は、異なるフレームワーク・ベンダー・組織で作られた **AIエージェント同士を相互接続 (interoperability) するためのオープンプロトコル**。
 
 - **2025年4月9日**に Google が発表 (Google Cloud Next 2025 での発表と報じられている。Google の公式ブログ本文には会場の記載なし)。50社以上のパートナー (Atlassian, Salesforce, SAP, ServiceNow, MongoDB, LangChain, Cohere 等) が参加。
@@ -160,10 +163,40 @@ flowchart LR
 > [!NOTE]
 > **v0.3 (legacy) との差**: v0.3では `supportedInterfaces` の代わりに top-level `"url"` + `"preferredTransport": "JSONRPC"`、`extendedAgentCard` の代わりに top-level `"supportsAuthenticatedExtendedCard": true` を書いていた。後方互換のため当面は旧フィールドも解決可能。
 
-> **Agent Discovery (発見)** の方式は複数ある:
-> - **Well-Known URI**: `/.well-known/agent-card.json` を直接叩く (最も一般的)
-> - **Curated Registry / Catalog**: エンタープライズで社内エージェントを一元管理するカタログ
-> - **Direct Configuration**: URLを直接設定で渡す
+### Agent Discovery (A2Aサーバの見つけ方・使い方)
+
+クライアントがリモートエージェントを使うまでの流れは「**① Agent Card を手に入れる → ② Card を読んで使えるか判断する → ③ Card に書かれた接続先へリクエストする**」。①の入手方法(発見)が3通りある (仕様書 §8.2 / 公式 `topics/agent-discovery`)。
+
+| 方式 | 進め方 | 向いている場面 | 注意点 |
+|---|---|---|---|
+| **① Well-Known URI** | ドメインが分かっている相手に `GET https://{domain}/.well-known/agent-card.json` | 公開エージェント、特定ドメイン内で広く見つけてほしいエージェント | 標準パスなので自動発見しやすい。機微な情報を含む Card は、このエンドポイント自体に認証をかけるか、拡張 Agent Card (認証後に詳細を返す) に分ける |
+| **② Curated Registry (カタログ)** | レジストリに「こういうスキルを持つエージェント」と問い合わせ、一致する Agent Card (またはその参照) を返してもらう | 企業内の一元管理、公開マーケットプレイス。スキルでの検索、アクセス制御、ガバナンス | レジストリの構築・運用が必要。**現行仕様はレジストリの標準APIを定めていない** |
+| **③ Direct Configuration** | 設定ファイル・環境変数・ハードコードで Agent Card の URL (または Card 自体) を直接渡す | 密結合な社内システム、private なエージェント、開発・テスト | 動的な発見はできない。Card が変わるたびにクライアント側の設定変更が必要 |
+
+**Agent Card を手に入れたあと、クライアントが見るもの**
+
+| Card のフィールド | クライアントがすること |
+|---|---|
+| `skills` / `description` | そのエージェントに頼める内容か判断する (LLM に渡して委譲先を選ばせる使い方が多い) |
+| `capabilities.streaming` | `true` のときだけ `SendStreamingMessage` / `SubscribeToTask` を使う |
+| `capabilities.pushNotifications` | `true` のときだけ Push通知を登録する |
+| `capabilities.extendedAgentCard` | `true` なら認証後に `GetExtendedAgentCard` で詳細版を取れる |
+| `supportedInterfaces[]` | **接続先と通信方式の候補**。`url` / `protocolBinding` (`JSONRPC` / `GRPC` / `HTTP+JSON`) / `protocolVersion` / `tenant`。先頭が優先で、クライアントは自分が話せるものを選ぶ |
+| `securitySchemes` / `securityRequirements` | どの認証方式・スコープが必要か。トークンを取得してから呼ぶ |
+| `defaultInputModes` / `defaultOutputModes`、スキルごとの `inputModes` / `outputModes` | 送れる/返ってくるメディアタイプ |
+| `signatures` | 署名があれば検証して、改ざん・なりすましを防ぐ |
+
+**キャッシュ** (仕様書 §8.6)
+- サーバは Agent Card の HTTP 応答に `Cache-Control` (`max-age`) と `ETag` を付けるべき(SHOULD)。`Last-Modified` は任意(MAY)。
+- クライアントは HTTP キャッシュの規則 (RFC 9111) に従い、期限切れなら `If-None-Match` / `If-Modified-Since` の条件付きリクエストで再取得するべき(SHOULD)。変わっていなければ `304` が返る。
+- 実機確認 (a2a-sdk 1.2.2): `ETag` が付き、`If-None-Match` で再取得すると `304` が返った。ただし `Cache-Control` は既定では付かない (`create_agent_card_routes(cache_control=...)` で指定する)。
+
+**公開版と認証後の版を分ける**
+- 公開してよい最小限の情報は well-known に、詳細(内部向けスキル・内部URLなど)は **拡張 Agent Card** (`GetExtendedAgentCard`、要認証) に置く。公式も「機微な情報は拡張 Agent Card にすることを推奨」している。
+- そのほか、Agent Card の配信エンドポイントに mTLS / ネットワーク制限 / HTTP認証をかける、レジストリが相手の権限に応じて返す Card を変える(選択的開示)、という守り方がある。
+
+> [!NOTE]
+> SDK でのコード(`create_client` が Card を自動取得する仕組み、`A2ACardResolver`、取得済み Card を渡す方法)は **[A2A SDK開発ガイド (Python).md](A2A%20SDK開発ガイド%20(Python).md)** の「Agent Card の取得と利用」を参照。
 
 ## Task (タスク) ― 状態を持つ作業単位
 https://a2a-protocol.org/latest/topics/life-of-a-task/
@@ -372,6 +405,24 @@ sequenceDiagram
     S-->>C: Task (state=completed, Artifact)
 ```
 
+#### ポーリングの実装の要点
+
+```
+SendMessage(returnImmediately=true) → Task(id, state=submitted)
+  └ ループ:
+       GetTask(id)
+       ├ 終端状態 (completed / failed / canceled / rejected) → 終了。結果を取り出す
+       ├ 中断状態 (input-required / auth-required)            → ループを抜け、ユーザー入力/認証を促す
+       └ それ以外 (submitted / working)                       → 間隔を空けて再度 GetTask
+```
+
+- **終了条件を必ず「終端状態 + 中断状態」の両方にする**。`input-required` を終端と思い込まずにループし続けると、永遠に待つことになる。
+- **間隔は固定ではなく、徐々に伸ばす(バックオフ)** のが無難 (例: 1秒 → 2秒 → 4秒 ... 上限30秒)。サーバへの負荷と、結果が出るまでの遅れのバランスをとる。
+- **全体のタイムアウト**を設ける。上限を超えたら `CancelTask` するか、諦めて利用者に伝える。
+- 履歴が不要なら `GetTask` に `historyLength=0` を付けて、応答を軽くできる。
+- 実機確認 (a2a-sdk 1.2.2): `return_immediately=True` で開始した直後は `SUBMITTED`、0.5秒間隔の `GetTask` を6回繰り返して `COMPLETED` になり、成果物も取得できた。SDK のコードは [A2A SDK開発ガイド (Python).md](A2A%20SDK開発ガイド%20(Python).md) の「ポーリング」を参照。
+- 注意: ポーリングは**途中経過(`working` の間に出た成果物の断片)を一件ずつは追えない**。見えるのはその時点のスナップショットだけ。
+
 ### 2. Streaming (SSE)
 `SendStreamingMessage` (旧 `message/stream`) を使い、**Server-Sent Events** で進捗を逐次push。1回のリクエストのレスポンスが `text/event-stream` になり、複数のイベントが流れてくる (仕様 §3.1.2)。
 
@@ -379,11 +430,71 @@ sequenceDiagram
 - **Message のみ:** `Message` を1つ流してすぐ閉じる。
 - **Task のライフサイクル:** 最初に `Task` を流し、続けて `TaskStatusUpdateEvent` / `TaskArtifactUpdateEvent` を0個以上流す。終端状態に達したら閉じる。
 
-イベントの種類:
-- `Task` / `Message`
-- `TaskStatusUpdateEvent` (状態変化。v1.0 wireは `{"statusUpdate":{...}}`)
-- `TaskArtifactUpdateEvent` (成果物の逐次生成。`append` で追記も可能。v1.0 wireは `{"artifactUpdate":{...}}`)
-- 生成中のトークンや中間結果をリアルタイムに流せる。
+#### `StreamResponse` のイベント種別
+
+ストリームで流れる1件1件は **`StreamResponse`** で、次の4つのうち**ちょうど1つ**を持つ (`oneof`)。Push通知の webhook のボディも同じ形。
+
+| フィールド (JSON) | 中身 | いつ流れるか |
+|---|---|---|
+| `task` | `Task` 全体のスナップショット | Task ライフサイクルの**最初の1件**。`SubscribeToTask` では、購読開始時点の現在の状態 |
+| `message` | `Message` | Message-only の応答(Task を作らない)、または Task 内の途中メッセージ |
+| `statusUpdate` | `TaskStatusUpdateEvent` (`taskId` / `contextId` / `status{state, message, timestamp}`) | 状態が変わるたび (`working` → `completed` など)。`status.message` に説明文を載せられる |
+| `artifactUpdate` | `TaskArtifactUpdateEvent` (`taskId` / `contextId` / `artifact` / `append` / `lastChunk`) | 成果物が生成されるたび。大きな成果物を**断片で**流せる |
+
+**ストリームの形(仕様上、次のどちらか。MUST)**
+1. **Message-only**: `message` が**ちょうど1件**流れて、すぐ閉じる。Task の追跡や更新はない。
+2. **Task ライフサイクル**: **最初に `task`**、続いて `statusUpdate` / `artifactUpdate` が0件以上。Task が**終端状態**(`completed` / `failed` / `canceled` / `rejected`)か**中断状態**(`input-required` / `auth-required`)になったらストリームが閉じる。実装は、閉じる前に最終の `task` スナップショットを再送してもよい(MAY)。
+
+**`artifactUpdate` の `append` / `lastChunk`**
+
+| フィールド | 意味 (`a2a.proto` のコメントより) |
+|---|---|
+| `append = true` | この内容を、**以前に送った同じ `artifactId` の成果物に追記**する |
+| `append = false` / 未設定 | 追記ではない(新しい成果物として扱う) |
+| `lastChunk = true` | この成果物の**最後の断片** |
+
+クライアントは、同じ `artifactId` の断片を `append = true` の順に連結して組み立て、`lastChunk = true` で完成とする (実機では、`append=False` の1個目に続いて `append=True` の断片が届き、最後に `last_chunk=True` が届いた)。同じ `artifactId` を `append = false` で再度送った場合の扱い(置き換えか否か)は、仕様に明記がなく未確認。
+
+**クライアントでの受け取り方(分岐の骨格)**
+
+```python
+async for ev in client.send_message(SendMessageRequest(message=msg)):
+    kind = ev.WhichOneof("payload")
+    if kind == "task":            # 最初の1件。task.id / task.context_id を保存しておく(再購読に使う)
+        ...
+    elif kind == "status_update": # state の変化
+        ...
+    elif kind == "artifact_update":
+        ...                       # artifact_id ごとに parts を連結。last_chunk で完成
+    elif kind == "message":       # Message-only、または途中メッセージ
+        ...
+```
+
+#### ストリームが切れたとき (再接続と取りこぼし)
+
+SSE は接続が切れると、**切れている間の更新は届かない**。復旧は次の手順。
+
+```
+接続が切れた
+  │ (task.id は最初の `task` イベントで保存しておく)
+  ▼
+① GetTask(id) で現在の状態を確認
+  │   ├ 終端状態(completed / failed ...) → 完了。GetTask の結果が最終結果
+  │   └ 進行中 / 中断状態 ↓
+  ▼
+② SubscribeToTask(id) で再購読
+      └ 最初に必ず「現在の Task」が届く → 切断中に進んだ分(成果物・状態)はここに含まれる
+      └ 以降の差分を受け取り続ける
+```
+
+- **再購読すると、最初のイベントは必ず現在の `Task`**(仕様書 §3.1.6)。これは、`GetTask` と `SubscribeToTask` の間にある隙間で情報を失わないための仕様。
+- 実機確認 (a2a-sdk 1.2.2): 成果物を 6 個に分けて送るタスクで、3個目まで受信して切断 → 1秒後に再購読 → 最初の `task` に `chunk0〜chunk3` までの成果物が入っており、続きとして `chunk4`、`chunk5`、`COMPLETED` が届いた。**取りこぼしなし**(ただし、このSDKは再購読時の `task` に成果物を載せる実装。仕様上の保証ではない)。
+- 注意:
+  - **終端状態の Task は購読できない**(`UnsupportedOperationError`)。復旧は `GetTask` で確認する。
+  - `input-required` の Task を購読すると、最初に `task` が届くだけで、**ストリームは開いたまま**だった(実機確認)。中断状態で閉じるのは「`SendStreamingMessage` で開始したストリーム」で、後から購読したストリームではない点に注意。
+  - 仕様上、ストリームの**途中メッセージ(`statusUpdate.status.message` など)は信頼できる配送手段ではない**。切断中のメッセージは再購読では復元されないことがある。エージェントが履歴に残す保証もない(MUST NOT rely)。**重要な結果は `Message` ではなく `Artifact` で返す**。
+  - 複数のクライアントが同じ Task を購読してもよい(仕様上、各ストリームは同じイベントを同じ順序で受け取る)。
+  - SSE には `Last-Event-ID` のような「ここから再開」の仕組みは仕様にない。再開は `SubscribeToTask` で行う。
 
 ```mermaid
 sequenceDiagram
@@ -399,13 +510,65 @@ sequenceDiagram
     Note over C,S: 終端状態でストリームが閉じる
 ```
 
-切断された場合は `SubscribeToTask` (旧 `tasks/resubscribe`) で同じ Task のストリームに再購読できる。
+切断された場合は `SubscribeToTask` (旧 `tasks/resubscribe`) で同じ Task のストリームに再購読できる(詳細な手順は上の「ストリームが切れたとき」)。
 
 ### 3. Push Notifications (Webhook / 非同期・切断耐性)
 数時間〜数日かかるタスク向け。クライアントが常時接続を保てない場合に使う。
 - クライアントが webhook URL を登録 (`CreateTaskPushNotificationConfig` / 旧 `tasks/pushNotificationConfig/set`)
 - タスク完了/状態変化時に、サーバーがその URL へ HTTP POST で通知
 - webhook 側は署名検証等でなりすましを防ぐ (後述のセキュリティ参照)
+
+#### Push通知の仕組みと、受信側(クライアント)の責務
+
+**流れ**
+
+```
+① クライアントが webhook URL を登録
+     (a) SendMessage の configuration.taskPushNotificationConfig に入れる(Task ID は空)
+     (b) 既存 Task に CreateTaskPushNotificationConfig
+② サーバが Task を処理し、更新が起きるたびに webhook へ HTTP POST
+③ クライアント(webhook 受信側)が検証して 2xx を返す
+④ 通知を受けたら、必要なら GetTask で最新状態を取り直す
+```
+
+**登録する内容 (`TaskPushNotificationConfig`)**
+
+| フィールド | 内容 |
+|---|---|
+| `url` (必須) | 通知の送り先。**HTTPS 推奨** |
+| `token` | 受信側が「自分が登録した通知か」を確認するための値 |
+| `authentication` | サーバが通知に付ける認証情報(`scheme` + `credentials`) |
+| `id` / `taskId` | 設定の識別子 / 対象 Task |
+
+**通知(POST)の中身** (仕様書 §4.3.3)
+- ボディは **`StreamResponse` と同じ形**(`task` / `message` / `statusUpdate` / `artifactUpdate` のうち**ちょうど1つ**)。ストリームで流れるものと同じイベントが届く。
+- 認証は、登録された `authentication` に従ってヘッダに付く(例: `Authorization: Bearer <credentials>`)。
+- 実機確認 (a2a-sdk 1.2.2): `Authorization: Bearer abc123` と `X-A2A-Notification-Token: <登録したtoken>` が付き、ボディは `task` → `statusUpdate` → `artifactUpdate` → `statusUpdate` の順に届いた。**`X-A2A-Notification-Token` は仕様書に定義がない SDK 独自のヘッダ名**(仕様書は `token` を「Task/セッション固有のトークン」とするだけで、どう運ぶかは規定していない)。他の実装では別の方法で渡ってくる可能性がある。**`Content-Type` は `application/json`**(仕様書の例は `application/a2a+json`。SDK 1.2.2 は `application/json` で送っていた)。受信側は両方を受け付けるようにしておく。
+
+**サーバの保証(送る側)**
+- 設定された webhook に**最低1回は配信を試みる**(MUST)。
+- 失敗時の**再試行(指数バックオフ)は任意**(MAY)。連続失敗で**諦めてもよい**(MAY)。タイムアウトは10〜30秒が推奨(SHOULD)。
+- → **「必ず届く」保証はない**。重要な処理は、通知を待つだけでなく `GetTask` で確認する仕組みも持つ。
+
+**受信側(クライアント)の責務**
+
+| 責務 | 強さ | 内容 |
+|---|---|---|
+| **2xx で即応答** | MUST | 受信を確認したことを HTTP 2xx で返す。重い処理は応答後に非同期で行う |
+| **認証の検証** | MUST | 登録した `authentication` / `token` と一致するか確認し、一致しなければ 401 |
+| **Task ID の照合** | SHOULD | 通知の `taskId` が、自分が作った Task のものか確認する |
+| **冪等な処理** | SHOULD | 同じ通知が**重複して届く**ことがある。二重に処理しても結果が変わらないようにする |
+| **レート制限** | SHOULD | webhook への大量送信(フラッディング)対策 |
+| **HTTPS を使う** | SHOULD | 通信内容の盗聴防止 |
+| **トークンは単一用途で** | SHOULD | 設定ごとに専用のトークンを使い、定期的に更新する |
+
+**サーバ側の責務(SSRF 対策)**: クライアントが登録する URL にサーバがリクエストを送るため、サーバは内部アドレス(`127.0.0.0/8`、`10.0.0.0/8`、`172.16.0.0/12`、`192.168.0.0/16`、`localhost`、リンクローカル)への送信を拒否するべき(SHOULD)。
+
+**受信側の落とし穴(実機で踏んだ点)**
+- **Task ID を事前に知れないことがある**: `SendMessage` の応答を受け取る前に、最初の通知が webhook に届くことがある(実機で、Task ID を応答から記録する方式だと最初の2通が「未知のタスク」になった)。受信側は「未知のタスクIDなら即拒否」と決めつけず、`contextId` や、登録時に自分で決めた相関ID(`token` に埋め込む、`metadata` を使うなど)で照合する。
+- **順序・重複を前提にしない**: ストリームには「生成順に届ける」(MUST)という規定があるが、**Push通知にはその規定が書かれていない**。一方、重複配信は仕様上あり得る。通知の内容は鵜呑みにせず、`GetTask` で最新状態を取り直すのが安全(上記の実機では順序どおりに届いたが、それが保証されるわけではない)。
+
+SDK の実装例(サーバ側の送信設定と、受信側の webhook サーバ)は [A2A SDK開発ガイド (Python).md](A2A%20SDK開発ガイド%20(Python).md) の「Push 通知」を参照。
 
 ### どれを選ぶか
 
@@ -418,6 +581,49 @@ sequenceDiagram
 
 > [!NOTE]
 > ポーリングは独立したモデルではなく、Request/Response で長時間処理を扱うときの受け取り方。`GetTask` / Push通知は `Task` に対する仕組みなので、エージェントが `Message` だけを直接返す場合は使いどころがない (`returnImmediately` も効かない)。Streaming は `Message` を1つ流して閉じるパターンもある。
+
+### 3つの比較表 (Task の状態を知る方法)
+
+「Task の状態をどう知るか」という観点で、3つを1つの表にまとめる。
+
+| 観点 | ① ポーリング | ② SSE (Streaming) | ③ Push通知 (Webhook) |
+|---|---|---|---|
+| **一言でいうと** | クライアントが**聞きに行く** | サーバが**流し続ける** | サーバが**呼びに来る** |
+| **使うメソッド** | `SendMessage` (`returnImmediately=true`) → `GetTask` を繰り返す | `SendStreamingMessage` (新規)、`SubscribeToTask` (既存Taskへの購読・再接続) | `CreateTaskPushNotificationConfig` で登録 (`SendMessage` の `configuration.taskPushNotificationConfig` で同時登録も可) |
+| **通信の向き** | Client → Server (毎回リクエスト) | Server → Client (1本のHTTPレスポンスの中で複数イベント) | **Server → Client** (サーバがクライアントの webhook URL へ HTTP POST) |
+| **接続** | リクエストごとに切れる | **張りっぱなし** (`text/event-stream`) | 常時接続なし (クライアントは webhook を受ける口を持つ) |
+| **届くもの** | 都度 `Task` の最新スナップショット | 最初に `Task`、続いて `TaskStatusUpdateEvent` / `TaskArtifactUpdateEvent` (差分)。**途中経過・成果物の断片も届く** | `StreamResponse` 形式 (`task` / `message` / `statusUpdate` / `artifactUpdate` のいずれか1つ) をPOST |
+| **リアルタイム性** | 間隔次第 (間隔が長いほど遅れる) | **最も高い** (発生した瞬間に届く) | 高い (状態が変わったらすぐ通知) |
+| **クライアントの要件** | 特になし (ループを回せればよい) | サーバへの**接続を維持**できること | **外から到達できる webhook の口**が必要 (公開URL / HTTPS) |
+| **サーバの要件** | 特になし | `capabilities.streaming = true`。長時間の接続を保持できる基盤 | `capabilities.pushNotifications = true`。クライアントURLへ送信できること (SSRF対策必須) |
+| **切断・失敗時** | 次のリクエストで続きを取れる (状態はサーバが保持) | 切れたら途中の更新を取りこぼす。**`SubscribeToTask` で再購読** (最初に現在の `Task` が届くので差分を埋められる) | サーバは**最低1回**は配信を試みる (MUST)。再試行は任意 (MAY)。**重複配信があり得る**ので冪等に処理する |
+| **取りこぼし** | なし (最新状態を毎回取得するが、途中経過は見られない) | あり得る (切断中の更新) | あり得る (配信失敗後に諦める実装もある) |
+| **長時間タスク** | △ 間隔を空ければ可能だが無駄なリクエストが増える | ✗ 数時間の接続維持は現実的でない | **◎ 数時間〜数日向き** |
+| **サーバレス (Lambda等)** | ○ 相性が良い (短いリクエストだけ) | △ 接続維持・15分制限・API Gateway の設定が必要 | ○ 相性が良い (完了時に送るだけ) |
+| **実装の手間** | 小 (ループ + 終了条件) | 中 (イベント処理、再接続) | **大** (webhook 受信サーバ、認証・検証、冪等処理、URL検証) |
+| **向く場面** | 数十秒〜数分程度、進捗は不要、実装を簡単にしたい | チャットのようにトークンや進捗を**画面にリアルタイム表示**したい | 接続を保てない、バッチ処理的、**数時間以上かかる** |
+| **向かない場面** | 進捗をリアルタイムに見せたい、秒単位の即応が必要 | 接続が不安定、数時間かかる | 手軽に試したい、クライアントに公開口を置けない (社内NAT内など) |
+
+**判断の目安 (上から順に当てはめる)**
+
+1. **数秒で終わる** → どれも使わず、`SendMessage` の応答をそのまま待つ (既定でブロックする)。
+2. **進捗・生成途中の内容を画面に出したい** → **② SSE**。切断対策に `SubscribeToTask` を併用。
+3. **クライアントが公開口を持てない / 常時接続を保てない / 数時間以上かかる**
+   - クライアントが webhook を受けられる → **③ Push通知**
+   - 受けられない → **① ポーリング** (間隔を長めに)
+4. **簡単に済ませたい、完了だけ分かればよい** → **① ポーリング**。
+5. **確実性が必要** → ②③は取りこぼしがあり得る。最終結果は必ず `GetTask` で取得して確認する (組み合わせる)。
+
+**組み合わせて使うのが実務の定石**
+- ② + ①: SSE で進捗を見つつ、切断されたら `SubscribeToTask` で再接続、それも駄目なら `GetTask` で最終状態を取得。
+- ③ + ①: Push通知を受けたら、通知の内容を鵜呑みにせず `GetTask` で最新状態を取り直す (重複・順序入れ替わり対策)。
+
+> [!NOTE]
+> - 表のうち「通信の向き」「届くもの」「切断・失敗時」「取りこぼし」は仕様書 (§3.1.2 / §3.1.6 / §3.4 / §4.3.3) に基づく。**「長時間タスク」「サーバレス」「実装の手間」「向く場面/向かない場面」は仕様書の規定ではなく、このノートの他の節や実務上の目安**による評価。
+> - 3つとも **`Task` を返すエージェントでのみ**意味がある (`Message` だけを返すエージェントでは使いどころがない)。
+> - 仕様上、`returnImmediately=true` は「Task を作ったらすぐ返す」オプション。**ポーリングと Push通知はこれと組み合わせる**のが基本 (`false` のままだと完了まで待ってしまう)。ストリーミングでは `returnImmediately` は効かない。
+> - `SubscribeToTask` は**終端状態の Task には使えない** (`UnsupportedOperationError`)。購読を始めると最初のイベントは必ず現在の `Task`。
+> - 「Streaming が使えない環境」でも、サーバが `capabilities.streaming = false` なら、SDK のクライアントは自動で非ストリーミングに切り替えて動く (実機確認済み)。
 
 ## Message と Task の使い分け (誰が決めるか)
 
@@ -686,6 +892,7 @@ flowchart TD
 
 - **公式サイト / 仕様**: https://a2a-protocol.org/ (Linux Foundation)
 - **SDK (公式・コミュニティ)**: Python (`a2a-sdk`), JavaScript/TypeScript, Java, .NET, Go 等
+  - Python SDK の使い方は **[A2A SDK開発ガイド (Python).md](A2A%20SDK開発ガイド%20(Python).md)** にまとめた。以下の「最小的な利用イメージ」は概念の確認用の短い例で、実装の詳細・落とし穴 (イベントを積む順序、`context_builder` など) はガイドを参照。
 - **対応・連携フレームワーク**:
   - Google **ADK (Agent Development Kit)**
   - **LangChain**
@@ -1288,6 +1495,7 @@ GitHub リリースノートで確認できた内容:
 - **A2A ブログ** (AAIF、CLI リリース等): https://a2a-protocol.org/latest/blog/
 
 ## 関連ノート
+- [A2A SDK開発ガイド (Python).md](A2A%20SDK開発ガイド%20(Python).md)
 - MCP・Agentの認証認可
 - AIアプリ(Agent含む)を開発する前の考慮すべき点
 - Agentのevaluation（評価）について
