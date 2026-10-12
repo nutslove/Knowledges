@@ -198,6 +198,243 @@ flowchart LR
 > [!NOTE]
 > SDK でのコード(`create_client` が Card を自動取得する仕組み、`A2ACardResolver`、取得済み Card を渡す方法)は **[A2A SDK開発ガイド (Python).md](A2A%20SDK開発ガイド%20(Python).md)** の「Agent Card の取得と利用」を参照。
 
+**サンプルコード (Python, a2a-sdk 1.2.2)**
+
+##### 方式①：Well-Known URI（最も簡単）
+
+###### Client 側：自動取得
+
+```python
+from a2a.client import create_client
+
+# パターン1: 標準パス /.well-known/agent-card.json から自動取得
+client = await create_client("http://localhost:9999")
+
+# パターン2: カスタムパスから取得
+client = await create_client(
+    "http://localhost:9999",
+    relative_card_path="/api/agent/card.json"
+)
+
+# パターン3: 認証ヘッダ付きで取得
+client = await create_client(
+    "http://localhost:9999",
+    resolver_http_kwargs={"headers": {"Authorization": "Bearer my-token"}}
+)
+
+# パターン4: Card を検査してから使う（より詳しい制御）
+import httpx
+from a2a.client.card_resolver import A2ACardResolver
+
+async with httpx.AsyncClient() as http:
+    resolver = A2ACardResolver(
+        httpx_client=http,
+        base_url="http://localhost:9999"
+    )
+    card = await resolver.get_agent_card()
+    
+    # Card の内容に応じた処理分け
+    if card.capabilities.streaming:
+        print("ストリーミング対応")
+    if card.capabilities.push_notifications:
+        print("Push通知対応")
+    
+    # Card を使ってクライアント作成
+    client = await create_client(card)
+```
+
+###### Server 側：自動公開
+
+```python
+from fastapi import FastAPI
+from a2a.server.routes import create_agent_card_routes, create_jsonrpc_routes
+from a2a.server.agent_execution import AgentExecutor, RequestContext
+from a2a.server.events import EventQueue
+from a2a.server.tasks import TaskUpdater, InMemoryTaskStore
+from a2a.types import AgentCard, AgentInterface, AgentCapabilities, AgentSkill, Part
+
+app = FastAPI()
+
+# Agent Card の定義
+agent_card = AgentCard(
+    name="Echo Agent",
+    description="テキストを返すエージェント",
+    version="1.0.0",
+    supported_interfaces=[
+        AgentInterface(
+            url="http://localhost:9999/",
+            protocol_binding="JSONRPC",
+            protocol_version="1.0"
+        )
+    ],
+    capabilities=AgentCapabilities(streaming=True),
+    default_input_modes=["text/plain"],
+    default_output_modes=["text/plain"],
+    skills=[
+        AgentSkill(id="echo", name="Echo", description="テキストを返す")
+    ]
+)
+
+# AgentExecutor 実装
+class EchoExecutor(AgentExecutor):
+    async def execute(self, context: RequestContext, event_queue: EventQueue) -> None:
+        from a2a.helpers import new_task_from_user_message
+        
+        task = context.current_task or new_task_from_user_message(context.message)
+        if not context.current_task:
+            await event_queue.enqueue_event(task)
+        
+        updater = TaskUpdater(event_queue, task.id, task.context_id)
+        text = context.get_user_input()
+        
+        await updater.complete(updater.new_agent_message([Part(text=f"Echo: {text}")]))
+    
+    async def cancel(self, context: RequestContext, event_queue: EventQueue) -> None:
+        updater = TaskUpdater(event_queue, context.task_id, context.context_id)
+        await updater.cancel()
+
+# ルート生成
+card_routes = create_agent_card_routes(
+    agent_card=agent_card,
+    cache_control="public, max-age=300"  # キャッシュ設定
+)
+app.include_router(card_routes)
+
+task_store = InMemoryTaskStore()
+jsonrpc_routes = create_jsonrpc_routes(
+    agent_executor=EchoExecutor(),
+    task_store=task_store
+)
+app.include_router(jsonrpc_routes)
+
+# /.well-known/agent-card.json で自動公開
+```
+
+テスト：
+```bash
+# Server 起動
+python server.py
+
+# 別ターミナルで Agent Card を取得
+curl http://localhost:9999/.well-known/agent-card.json | jq .
+```
+
+##### 方式③：Direct Configuration（社内・テスト向け）
+
+###### Client 側：設定 / ハードコード
+
+```python
+from a2a.client import create_client
+from a2a.types import AgentCard, AgentInterface, AgentCapabilities, AgentSkill
+
+# パターン1: ハードコード
+card = AgentCard(
+    name="Local Echo Agent",
+    description="ローカルエージェント",
+    version="1.0.0",
+    supported_interfaces=[
+        AgentInterface(
+            url="http://localhost:9999/",
+            protocol_binding="JSONRPC",
+            protocol_version="1.0"
+        )
+    ],
+    capabilities=AgentCapabilities(streaming=True),
+    default_input_modes=["text/plain"],
+    default_output_modes=["text/plain"],
+    skills=[AgentSkill(id="echo", name="Echo", description="テキストを返す")]
+)
+client = await create_client(card)
+
+# パターン2: JSON 設定から読み込み
+import json
+config = json.load(open("agent_card.json"))
+
+card = AgentCard(
+    name=config["name"],
+    description=config["description"],
+    version=config["version"],
+    supported_interfaces=[
+        AgentInterface(
+            url=iface["url"],
+            protocol_binding=iface["protocol_binding"],
+            protocol_version=iface["protocol_version"]
+        )
+        for iface in config["supported_interfaces"]
+    ],
+    capabilities=AgentCapabilities(**config["capabilities"]),
+    default_input_modes=config["default_input_modes"],
+    default_output_modes=config["default_output_modes"],
+    skills=[
+        AgentSkill(id=sk["id"], name=sk["name"], description=sk["description"])
+        for sk in config["skills"]
+    ]
+)
+client = await create_client(card)
+
+# パターン3: 環境変数から URL を読み込み
+import os
+agent_url = os.environ.get("A2A_AGENT_URL", "http://localhost:9999/")
+
+card = AgentCard(
+    name="Environment-based Agent",
+    version="1.0.0",
+    supported_interfaces=[
+        AgentInterface(
+            url=agent_url,
+            protocol_binding="JSONRPC",
+            protocol_version="1.0"
+        )
+    ],
+    capabilities=AgentCapabilities(streaming=True),
+    default_input_modes=["text/plain"],
+    default_output_modes=["text/plain"],
+)
+client = await create_client(card)
+```
+
+###### Server 側：カスタムエンドポイント
+
+```python
+from fastapi import FastAPI
+from google.protobuf.json_format import MessageToDict
+from a2a.server.routes import create_jsonrpc_routes
+from a2a.types import AgentCard
+
+app = FastAPI()
+
+agent_card = AgentCard(...)
+
+# JSON カスタムエンドポイント
+@app.get("/api/agent/card.json")
+async def get_agent_card():
+    return MessageToDict(agent_card)
+
+# または Well-Known URI も並行して提供
+from a2a.server.routes import create_agent_card_routes
+card_routes = create_agent_card_routes(agent_card=agent_card)
+app.include_router(card_routes)
+```
+
+テスト：
+```bash
+# カスタムパスから取得
+curl http://localhost:9999/api/agent/card.json | jq .
+
+# Well-Known URI からも取得可
+curl http://localhost:9999/.well-known/agent-card.json | jq .
+```
+
+**3つの方式の比較**
+
+| 方式 | Client コード | Server コード | キャッシュ | 動的発見 |
+|------|--------------|--------------|----------|--------|
+| ① Well-Known | `create_client(url)` で自動取得 | `create_agent_card_routes()` で自動生成 | ✓ ETag / Cache-Control | ✓ |
+| ③ Direct | Card をハードコード / 設定から読み込み | カスタムエンドポイント (`@app.get()`) | △ (手動実装) | ✗ |
+
+> [!NOTE]
+> 方式②（Curated Registry）は現行仕様で標準 API が定められていないため、具体的なレジストリサービスが存在しない場合の実装例は省略。企業が独自実装する場合は、レジストリクライアント → `create_client(card)` の流れになる。
+
 ## Task (タスク) ― 状態を持つ作業単位
 https://a2a-protocol.org/latest/topics/life-of-a-task/
 
