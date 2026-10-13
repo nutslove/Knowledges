@@ -1443,6 +1443,110 @@ orchestrator = create_agent(
 > - **v0.3 の書き方** (`A2AClient` + `SendMessageRequest(params=MessageSendParams(...))` + `{"kind":"text"}` + `await client.send_message(...)`→単一レスポンス) は現在 **`a2a.compat.v0_3`** 配下の後方互換。旧記事はこちらが多い。SDK の `enable_v0_3_compat=True` フラグで対応。
 > - **本番のExecutor** は `new_task_from_user_message()` で Task を作成し enqueue してから `TaskUpdater` で `start_work()` → (必要なら) `add_artifact(...)` → `complete()` とライフサイクルを明示管理するのが定石。
 
+## Orchestrator パターン (Agent Card に基づいて振り分ける / Server かつ Client)
+
+**自分では実行せず**、複数のRemote Agentにつながり、**Agent Card の内容 (`name` / `description` / `skills`) を見てリクエストに合うAgentへ振り分ける**役割のAgent。A2A公式サンプル (a2a-samples) では **Host Agent** と呼ばれ、ほかに Supervisor / Router / Triage などの呼び名もある。
+
+> [!IMPORTANT]
+> **Orchestrator は A2A の Server であり、同時に Client でもある。** Client / Server は固定の種類ではなく **1回のやり取りごとの役割**なので、同じAgentが上流に対しては Server、下流に対しては Client になれる。
+
+```mermaid
+flowchart LR
+    Up["上流<br/>(UI / 別のAgent)"]
+    Orch["Orchestrator<br/>(Server兼Client)"]
+    A["専門Agent A<br/>(Server)"]
+    B["専門Agent B<br/>(Server)"]
+
+    Up -- "A2A (Orchestratorは Server)" --> Orch
+    Orch -- "A2A (Orchestratorは Client)" --> A
+    Orch -- "A2A (Orchestratorは Client)" --> B
+```
+
+### 実装の対応関係
+
+| 役割 | 何をするか | 使うもの |
+|---|---|---|
+| **Server側** (上流向け) | Agent Card を公開し、上流のリクエストを受ける | 前掲「Server として公開する」と同じ。`AgentExecutor.execute()` の中でOrchestratorのエージェントを呼ぶ |
+| **Client側** (下流向け) | 起動時に各Remote Agentの Card を取得し、選ばれたAgentに `SendMessage` する | `A2ACardResolver` / `create_client` |
+| **振り分け** | Card の内容を LLM に見せて、委譲先を選ばせる | 各Remote Agentを **description 付きのツール**にする (agent-as-tool) |
+
+つまり前掲の **Server化 (`WeatherExecutor`)** と **Client側 (`call_remote_agent`)** を **1つのプロセスに合体**させた形で、新しく必要なのは「**Card からツールを自動生成する部分**」だけ。
+
+### 概念コード: Card からツールを自動生成して LLM に選ばせる
+
+```python
+import re
+import httpx
+from uuid import uuid4
+from langchain.agents import create_agent
+from langchain_core.tools import StructuredTool
+from a2a.client import A2ACardResolver, create_client
+from a2a.types import Message, Part, Role, SendMessageRequest
+
+REMOTE_AGENT_URLS = ["http://localhost:10001", "http://localhost:10002"]  # 設定 / 環境変数で渡す
+
+def make_tool(url: str, card) -> StructuredTool:
+    async def _call(query: str) -> str:
+        client = await create_client(url)              # 毎回 Card を解決。使い回すなら Client を保持
+        msg = Message(role=Role.ROLE_USER, parts=[Part(text=query)], message_id=uuid4().hex)
+        chunks: list[str] = []
+        async for event in client.send_message(SendMessageRequest(message=msg)):
+            if event.message:
+                chunks += [p.text for p in event.message.parts if p.text]
+        return "".join(chunks)
+
+    # ★ ここが振り分けの肝: Card の description / skills がそのまま「ツールの説明」になる
+    skills = "\n".join(f"- {s.name}: {s.description}" for s in card.skills)
+    return StructuredTool.from_function(
+        coroutine=_call,
+        name=re.sub(r"\W", "_", card.name),            # ツール名は英数字と _ のみ
+        description=f"{card.description}\n得意なこと:\n{skills}",
+    )
+
+async def build_orchestrator():
+    tools = []
+    async with httpx.AsyncClient() as http:
+        for url in REMOTE_AGENT_URLS:                  # 1) 各Remote Agentの Card を取得
+            card = await A2ACardResolver(http, url).get_agent_card()
+            tools.append(make_tool(url, card))         # 2) Card → ツール
+    return create_agent(                               # 3) LLM がツールの説明を見て委譲先を選ぶ
+        model="anthropic:claude-opus-5-5",
+        tools=tools,
+        system_prompt="あなたは受付役。自分では答えず、依頼内容に合うエージェントのツールに委譲する。"
+                      "どれも合わない場合はその旨をユーザーに伝える。",
+    )
+
+# 4) Server側は前掲の WeatherExecutor と同じ形。agent_graph の代わりに build_orchestrator() の結果を呼ぶ
+#    (Agent Card の name / description / skills は「受付窓口としての能力」を書く)
+```
+
+> [!NOTE]
+> **コードの検証状況**: `create_client` / `A2ACardResolver(httpx_client, base_url).get_agent_card()` / `TaskUpdater.requires_input` が SDK に存在することは、ローカルにある `a2a-sdk` **1.1.0** のソースで確認した (Client側の呼び出し形は上の「Client 側」の節と同じ)。**上のコード全体を実際に動かしてはいない**ので概念コードとして読むこと。
+
+### 振り分けの方式 (一般的なパターンとの対応)
+
+| 方式 | 動き | 向いている場面 |
+|---|---|---|
+| **Supervisor (agent-as-tool)** ← 上の例 | 親Agentが会話の主導権を持ち、専門Agentをツールとして呼んで結果を統合する | 複数Agentの結果をまとめて回答したい / 1か所でガードレールをかけたい |
+| **Router** | 入力を分類して1つ (以上) の専門Agentへ振り分ける。小さなモデルで分類だけ行うとコストが低い | 振り分けだけでよい / 全Agentに投げる必要がない |
+| **Handoff** | 振り分け先が会話を引き継ぐ (Triage / Dispatch とも) | 選ばれた専門Agentがユーザーと直接やり取りを続けたい |
+
+組み合わせも一般的 (例: 先頭で Handoff して担当チームに渡し、チーム内では agent-as-tool で細かい処理を呼ぶ)。
+
+### Orchestrator ならではの注意点
+
+- **Task が2層になる**: 上流から受けた Task と、下流に投げる Task は**別物**。ID (`task_id` / `context_id`) の対応づけは自分で管理する。
+- **`input-required` の中継**: 下流が `input-required` を返したら、Orchestrator も自分の Task を `requires_input()` にして上流へ返し、ユーザーの返答を**同じ下流のTask/contextへ**送り直す。
+- **ストリーミングの中継**: 下流の `status_update` / `artifact_update` を、上流の `EventQueue` にどう流すか決める (上のコードは最終テキストだけ集めて返す最小形)。
+- **並列委譲**: LLM が複数ツールを同時に呼べば並列にできる。各下流のエラー・タイムアウトを個別に扱う。
+- **どれも合わない場合**: system prompt で挙動を決めておく (断る / 聞き返す)。
+- **Card は信頼できない入力**: 外部Agentの Card (`description` / `skills`) を LLM のプロンプト (ツール説明) に入れるため、細工された文言による**プロンプトインジェクション**になり得る。a2a-samples の README も、外部Agentからのデータ (Card・メッセージ・Artifact・Taskステータス) は untrusted として扱うよう注意している。信頼できる登録済みのAgentだけに接続し、必要なら文言を検査・サニタイズする。
+
+> [!TIP]
+> 参考実装: a2a-samples の Host Agent (`samples/python/agents/airbnb_planner_multiagent/host_agent` / `samples/python/hosts/multiagent`)。Google ADK ベースで、`A2ACardResolver` で各Agentの Card を取得し、ユーザーの依頼に合うAgentへ委譲する。(ソースの中身までは読んでいない。README の構成説明に基づく)
+> - [a2a-samples (GitHub)](https://github.com/a2aproject/a2a-samples)
+> - [Multi-agent パターンの比較 (LangChain)](https://www.langchain.com/blog/choosing-the-right-multi-agent-architecture) / [Agent orchestration (OpenAI Agents SDK)](https://openai.github.io/openai-agents-python/multi_agent/) / [AI Agent Orchestration Patterns (Azure)](https://learn.microsoft.com/en-us/azure/architecture/ai-ml/guide/ai-agent-design-patterns)
+
 ## DeepAgents (LangChain) から A2Aエージェントを呼ぶ
 
 > [!IMPORTANT]
