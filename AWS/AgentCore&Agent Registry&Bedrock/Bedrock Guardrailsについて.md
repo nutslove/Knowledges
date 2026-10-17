@@ -227,7 +227,8 @@ r = bedrock_runtime.apply_guardrail(
 | `sensitiveInformation` | PII 31 種類(EMAIL、US_SOCIAL_SECURITY_NUMBER など) | confidence |
 
 - スコアはどちらも {0, 0.2, 0.4, 0.6, 0.8, 1.0} の離散値。severity は内容の強さ、confidence は PII が存在する確からしさ
-- **Prompt Attack を単独かつカテゴリ指定で呼べる**(ApplyGuardrail では content filter に同梱)
+- **Prompt Attack を `checks` の独立した項目として指定でき、`JAILBREAK` / `PROMPT_INJECTION` / `PROMPT_LEAKAGE` のカテゴリも選べる**(boto3 の定義で確認済み)
+  - guardrail を使う方式(ApplyGuardrail など)では、Prompt Attack はコンテンツフィルタの設定の 1 項目(`type: PROMPT_ATTACK`)で、設定できるのは強度とアクションのみ。カテゴリを個別に選ぶ項目は、読んだ範囲では見つからず
 - PII 結果には `messageIndex`、`contentIndex`、`beginOffset`、`endOffset` が付くので、クライアント側でマスク処理できる
 - IAM: `bedrock:InvokeGuardrailChecks`、Resource は `"*"`(ブログの説明)。`aws:RequestedRegion` 等の条件で絞れる
 - 対応リージョン(発表ページ): us-east-1、us-east-2、us-west-2、London、Stockholm、Tokyo、Sydney
@@ -413,7 +414,7 @@ guardrails:
   - 通常の guardrail より安いのは content filter だけ($0.15 → $0.07)。PII は同額
   - prompt attack は通常の料金表に独立した行がない。content filter + prompt attack を併用すると $0.15 で、通常の content filter 単価と同じ
   - ApplyGuardrail 専用の料金表はなく、通常表が適用されると読める(明文なし)
-- **Prompt Attack 単体使用はこの API だけ** — 通常の guardrail では Content filter の中に組み込まれている
+- Prompt Attack は `checks` の独立した項目(`promptAttack`)で、カテゴリも選べる。通常の guardrail ではコンテンツフィルタの 1 項目
 - `guardrailIdentifier` と併用不可
 - `bedrock:InvokeGuardrailChecks` 権限が必要
 
