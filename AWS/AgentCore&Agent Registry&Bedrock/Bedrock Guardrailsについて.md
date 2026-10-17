@@ -44,6 +44,8 @@
 
 ## 2. 防御できる種類
 
+AWS ではこれらの個々の検査機能を **safeguard**(= フィルタ)と呼ぶ。「safeguard tier」は Standard/Classic の区別(対象は Content filters、Prompt attacks、Denied topics のみ)、料金の「safeguard ごと」は有効にした検査機能の数だけ課金される、という意味。
+
 | 種類 | 内容 |
 |---|---|
 | **コンテンツフィルタ** | Hate / Insults / Sexual / Violence / Misconduct の5カテゴリ。強度は NONE / LOW / MEDIUM / HIGH。画像対応。 |
