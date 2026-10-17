@@ -21,30 +21,47 @@
 
 - LiteLLM は内部で 2 または 3 を呼ぶ → [5 章](#5-litellm-との組み合わせ)。AgentCore Gateway に Policy Engine を attach すると、Gateway 経由のリクエストに対して Policy が 3 を呼ぶ(Gateway を通らない呼び出しは対象外) → [4.1](#41-agentcore-policy-の-guardrail-条件公式機能)
 - 3.3 には具体的なコード例はなく、説明のみ
-- `DRAFT` で試し、数値バージョンを作って本番で固定する運用
-- 料金は有効にしたフィルタごとの従量課金。1 text unit は最大1,000文字。Standard と Classic は同じ料金
+
+**運用**
+- `DRAFT` で試し、数値バージョンを作って本番で固定する
+
+**料金**
+- 有効にしたフィルタごとの従量課金。1 text unit は最大1,000文字。Standard と Classic は同じ料金
 
 | フィルタ | 料金 |
 |---|---|
 | コンテンツフィルタ(テキスト) | $0.15 / 1,000 units |
+| コンテンツフィルタ(画像) | $0.00075 / 枚 |
+| Prompt Attack | 独立した行なし(コンテンツフィルタの一部として扱われると読めるが、明記はない) |
 | Denied topics | $0.15 / 1,000 units |
-| PII | $0.10 / 1,000 units |
+| Sensitive information(PII) | $0.10 / 1,000 units |
+| Sensitive information(regex) | 無料 |
+| Word filters | 無料 |
 | Contextual grounding | $0.10 / 1,000 units |
 | Automated Reasoning | $0.17 / 1,000 units(ポリシー単位) |
-| 画像 | $0.00075 / 枚 |
-| Word filter / regex | 無料 |
 
-**InvokeGuardrailChecks 専用料金**(checks モード)：
+`InvokeGuardrailChecks` を使う場合の専用料金(1,000 units あたり):
 
-| チェック | 料金 |
+| フィルタ(`checks` のキー名) | 料金 |
 |---|---|
-| contentFilter | $0.07 / 1,000 units |
-| promptAttack | $0.08 / 1,000 units |
-| sensitiveInformation | $0.10 / 1,000 units |
+| コンテンツフィルタ(`contentFilter`) | $0.07 |
+| Prompt Attack(`promptAttack`) | $0.08 |
+| Sensitive information(PII)(`sensitiveInformation`) | $0.10 |
 
 ## 2. 防御できる種類
 
-AWS ではこれらの個々の検査機能を **safeguard**(= フィルタ)と呼ぶ。「safeguard tier」は Standard/Classic の区別(対象は Content filters、Prompt attacks、Denied topics のみ)、料金の「safeguard ごと」は有効にした検査機能の数だけ課金される、という意味。
+AWS ではこれらの個々の検査機能を **safeguard**(= フィルタ)と呼ぶ。
+
+**`InvokeGuardrailChecks` の `checks` との対応**(3.4)。検出する対象は同じだが、`checks` は guardrail を作らず毎回指定し、スコアを返すだけ(ブロックやマスクはしない)。判定の実装まで同一かは未確認。
+
+| フィルタ(この章) | `checks` のキー名 |
+|---|---|
+| コンテンツフィルタ | `contentFilter` |
+| Prompt Attack | `promptAttack` |
+| Sensitive information(PII) | `sensitiveInformation` |
+
+`checks` で指定できるのはこの 3 つだけ。Denied topics、Word filters、Contextual grounding、Automated Reasoning は含まれない。
+「safeguard tier」は Standard/Classic の区別(対象は Content filters、Prompt attacks、Denied topics のみ)、料金の「safeguard ごと」は有効にした検査機能の数だけ課金される、という意味。
 
 | 種類 | 内容 |
 |---|---|
