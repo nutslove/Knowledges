@@ -130,8 +130,8 @@ resp = bedrock_runtime.converse(
 ユーザー入力を入力タグで囲み、`amazon-bedrock-guardrailConfig` に `tagSuffix` を入れる。タグの仕様は公式(guardrails-tagging)で確認済み。
 
 ```python
-# 以下は公式の仕様に基づく例。boto3 の引数名(guardrailIdentifier 等)と
-# リクエスト body の形式(モデルごとに異なる)は未検証。実装前に boto3 のドキュメントで要確認
+# 引数名(guardrailIdentifier / guardrailVersion / trace)は boto3 1.43.114 の入力定義で確認済み。
+# 実際に AWS を呼んだ検証はしていない。body の形式はモデルごとに異なるため省略している
 import json
 import secrets
 
@@ -232,7 +232,9 @@ r = bedrock_runtime.apply_guardrail(
 - 料金は 1 節の表(content $0.07 / prompt attack $0.08 / PII $0.10、1,000 units あたり)
 
 ```python
-# ブログの記述に基づく例。パラメータ名は実装前に boto3 のドキュメントで要確認
+# AWS ブログの記述に基づく例。引数名と構造は boto3 1.43.114 の入力定義で確認済み
+# (古い boto3 には invoke_guardrail_checks がないので、boto3 を最新にすること)
+# 実際に AWS を呼んだ検証はしていない
 import boto3
 
 # 対応リージョン: us-east-1、us-east-2、us-west-2、London、Stockholm、Tokyo、Sydney
