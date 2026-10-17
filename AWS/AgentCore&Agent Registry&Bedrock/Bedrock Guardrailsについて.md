@@ -19,7 +19,7 @@
 |---|---|---|---|
 | 4 | 強制適用 | アプリのコードに guardrail を書かなくても、アカウント/組織の全 Bedrock 呼び出しに適用 → [詳細(3.3)](#33-強制適用enforcement) | 全社で統制したい場合 |
 
-- LiteLLM は内部で 2 または 3 を呼ぶ → [5 章](#5-litellm-との組み合わせ)。AgentCore Policy は 3 を呼ぶ → [4.1](#41-agentcore-policy-の-guardrail-条件公式機能)
+- LiteLLM は内部で 2 または 3 を呼ぶ → [5 章](#5-litellm-との組み合わせ)。AgentCore Gateway に Policy Engine を attach すると、Gateway 経由のリクエストに対して Policy が 3 を呼ぶ(Gateway を通らない呼び出しは対象外) → [4.1](#41-agentcore-policy-の-guardrail-条件公式機能)
 - 3.3 には具体的なコード例はなく、説明のみ
 - `DRAFT` で試し、数値バージョンを作って本番で固定する運用
 - 料金は有効にしたフィルタごとの従量課金。1 text unit は最大1,000文字。Standard と Classic は同じ料金
