@@ -175,7 +175,7 @@ r = bedrock_runtime.invoke_guardrail_checks(
 
 ## 4. AgentCore Gateway との組み合わせ
 
-Gateway 側に「guardrail ID を指定する」設定は読んだドキュメント範囲では見つからず。組み合わせ方は3通り。
+Gateway 自体に guardrail ID を指定する設定はない。公式の連携は AgentCore Policy の guardrail 条件(4.1)で、guardrail リソースは使わず `InvokeGuardrailChecks` をインラインで呼ぶ。Policy で使えない Denied topics・Word filter・PII マスクなどが必要なら、Interceptor Lambda から `ApplyGuardrail` を呼ぶ(4.2、自前実装)。
 
 ### 4.1 AgentCore Policy の guardrail 条件(公式機能)
 
@@ -255,7 +255,7 @@ when guardrails {
 - MCP ターゲットはボディが parsed JSON、HTTP/推論ターゲットは base64 文字列
 - Lambda 同期呼び出しは6MBが上限。推論応答は大きくなるため `RESPONSE_BODY` を payload filter で除外推奨
 
-### 4.3 Gateway の推論ターゲット
+### 4.3 推論ターゲットでの利用(4.1 の補足)
 
 - `/inference/v1/...` で OpenAI/Anthropic 互換エンドポイント提供、`bedrock-mantle`・`openai`・`anthropic` のコネクタに model 名で振り分け
 - Policy の guardrail 条件(4.1)は推論ターゲットの `/v1/chat/completions` 等にも使える
