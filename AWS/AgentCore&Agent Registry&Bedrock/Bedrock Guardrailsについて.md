@@ -11,7 +11,7 @@
 |---|---|---|---|
 | 1 | モデル呼び出しに同梱 | `Converse` / `InvokeModel` に guardrail ID とバージョンを渡すと、入力と出力を自動で検査 → [具体例(3.1)](#31-モデル呼び出しに同梱converse--invokemodel) | Bedrock のモデルを使うアプリ |
 | 2 | `ApplyGuardrail` を単体で呼ぶ | 検査したいテキストを渡して判定結果だけ受け取る。guardrail リソースを使う。モデルは呼ばない → [具体例(3.2)](#32-applyguardrail-api) | Bedrock 以外のモデル(OpenAI、自前モデルなど)、RAG の検索前など好きなタイミング |
-| 3 | `InvokeGuardrailChecks` を単体で呼ぶ | リソース不要で `checks` をインライン指定。検出のみで、判定はアプリ側 → [具体例(3.4)](#34-invokeguardrailchecks-api2026-06-16-発表) | エージェントのループ中の任意の地点 |
+| 3 | `InvokeGuardrailChecks` を単体で呼ぶ | guardrail を作らず、呼ぶたびに `checks`(どの検査をするかの指定。`contentFilter` / `promptAttack` / `sensitiveInformation` から選ぶ)をインラインで指定する。検出のみで、判定はアプリ側 → [具体例(3.4)](#34-invokeguardrailchecks-api2026-06-16-発表) | エージェントのループ中の任意の地点 |
 
 **コード変更なし(AWS 側の設定)**
 
