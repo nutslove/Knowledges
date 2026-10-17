@@ -233,6 +233,11 @@ r = bedrock_runtime.apply_guardrail(
 
 ```python
 # ブログの記述に基づく例。パラメータ名は実装前に boto3 のドキュメントで要確認
+import boto3
+
+# 対応リージョン: us-east-1、us-east-2、us-west-2、London、Stockholm、Tokyo、Sydney
+bedrock_runtime = boto3.client("bedrock-runtime", region_name="us-east-1")
+
 r = bedrock_runtime.invoke_guardrail_checks(
     messages=[{"role": "user", "content": [{"text": "..."}]}],
     checks={
