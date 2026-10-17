@@ -9,17 +9,18 @@
 
 | # | 方法 | 内容 | 向く場面 |
 |---|---|---|---|
-| 1 | モデル呼び出しに同梱 | `Converse` / `InvokeModel` に guardrail ID とバージョンを渡すと、入力と出力を自動で検査 | Bedrock のモデルを使うアプリ |
-| 2 | `ApplyGuardrail` を単体で呼ぶ | 検査したいテキストを渡して判定結果だけ受け取る。guardrail リソースを使う。モデルは呼ばない | Bedrock 以外のモデル(OpenAI、自前モデルなど)、RAG の検索前など好きなタイミング |
-| 3 | `InvokeGuardrailChecks` を単体で呼ぶ | リソース不要で `checks` をインライン指定。検出のみで、判定はアプリ側(3.4) | エージェントのループ中の任意の地点 |
+| 1 | モデル呼び出しに同梱 | `Converse` / `InvokeModel` に guardrail ID とバージョンを渡すと、入力と出力を自動で検査 → [具体例(3.1)](#31-converse-api) | Bedrock のモデルを使うアプリ |
+| 2 | `ApplyGuardrail` を単体で呼ぶ | 検査したいテキストを渡して判定結果だけ受け取る。guardrail リソースを使う。モデルは呼ばない → [具体例(3.2)](#32-applyguardrail-api) | Bedrock 以外のモデル(OpenAI、自前モデルなど)、RAG の検索前など好きなタイミング |
+| 3 | `InvokeGuardrailChecks` を単体で呼ぶ | リソース不要で `checks` をインライン指定。検出のみで、判定はアプリ側 → [具体例(3.4)](#34-invokeguardrailchecks-api2026-06-16-発表) | エージェントのループ中の任意の地点 |
 
 **コード変更なし(AWS 側の設定)**
 
 | # | 方法 | 内容 | 向く場面 |
 |---|---|---|---|
-| 4 | 強制適用 | アプリのコードに guardrail を書かなくても、アカウント/組織の全 Bedrock 呼び出しに適用(3.3) | 全社で統制したい場合 |
+| 4 | 強制適用 | アプリのコードに guardrail を書かなくても、アカウント/組織の全 Bedrock 呼び出しに適用 → [詳細(3.3)](#33-強制適用enforcement) | 全社で統制したい場合 |
 
-- LiteLLM は内部で 2 または 3 を呼ぶ(5 章)。AgentCore Policy は 3 を呼ぶ(4.1)
+- LiteLLM は内部で 2 または 3 を呼ぶ → [5 章](#5-litellm-との組み合わせ)。AgentCore Policy は 3 を呼ぶ → [4.1](#41-agentcore-policy-の-guardrail-条件公式機能)
+- 3.3 には具体的なコード例はなく、説明のみ
 - `DRAFT` で試し、数値バージョンを作って本番で固定する運用
 - 料金は有効にしたフィルタごとの従量課金。1 text unit は最大1,000文字。Standard と Classic は同じ料金
 
