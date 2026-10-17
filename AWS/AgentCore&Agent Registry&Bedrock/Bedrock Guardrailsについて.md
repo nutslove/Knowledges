@@ -9,7 +9,7 @@
 
 | # | 方法 | 内容 | 向く場面 |
 |---|---|---|---|
-| 1 | モデル呼び出しに同梱 | `Converse` / `InvokeModel` に guardrail ID とバージョンを渡すと、入力と出力を自動で検査 → [具体例(3.1)](#31-converse-api) | Bedrock のモデルを使うアプリ |
+| 1 | モデル呼び出しに同梱 | `Converse` / `InvokeModel` に guardrail ID とバージョンを渡すと、入力と出力を自動で検査 → [具体例(3.1)](#31-モデル呼び出しに同梱converse--invokemodel) | Bedrock のモデルを使うアプリ |
 | 2 | `ApplyGuardrail` を単体で呼ぶ | 検査したいテキストを渡して判定結果だけ受け取る。guardrail リソースを使う。モデルは呼ばない → [具体例(3.2)](#32-applyguardrail-api) | Bedrock 以外のモデル(OpenAI、自前モデルなど)、RAG の検索前など好きなタイミング |
 | 3 | `InvokeGuardrailChecks` を単体で呼ぶ | リソース不要で `checks` をインライン指定。検出のみで、判定はアプリ側 → [具体例(3.4)](#34-invokeguardrailchecks-api2026-06-16-発表) | エージェントのループ中の任意の地点 |
 
@@ -72,8 +72,10 @@
   - PII: 日本語 "Optimized and supported"(PII に tier の概念はなく、tier 非依存)
   - Word filter、Contextual grounding: **日本語未対応**(en/fr/es のみ)
   - AgentCore Policy 経由(ContentFilter / PromptAttack / SensitiveInformation)の言語対応は、公式に記載なし
-- **Prompt Attack は入力タグ必須**: `InvokeModel` では `guardContent` タグでユーザー入力を囲まないと検査されない。Converse では `guardContent` ブロック使用。
-  - タグなしだと system prompt とユーザー入力を区別できない
+- **Prompt Attack は入力タグ必須**(`InvokeModel` / `InvokeModelWithResponseStream`): ユーザー入力を `<amazon-bedrock-guardrails-guardContent_xyz>` 形式のタグで囲まないと、Prompt Attack は検査されない。他のフィルタはタグがなければ全文が検査される
+  - Converse API ではタグではなく `guardContent` ブロックを使う(XML タグは Converse では使えない)
+  - 開発者の system prompt とユーザー入力は見た目が似ていて区別できないため、タグでユーザー入力だけを指定する
+  - 具体例は 3.1 の InvokeModel
 - **tool use は全フィルタで評価対象外**(`Converse` / `InvokeModel` の `guardrailConfig` 経由の場合):
   - tool result(`toolResult`)、tool 定義(`toolSpec` の description / inputSchema)、モデルが生成した tool call 引数(`toolUse.input`)の 3 つとも、Prompt Attack・PII・Content filter・Denied topics・Word filter のいずれでも検査されない
   - エージェント用途での重要な穴。ツール入出力を検査したい場合は、`ApplyGuardrail` / `InvokeGuardrailChecks` / AgentCore Policy などで、検査したいテキストを明示的に渡す(これらの経路に「tool 除外」の記述はないが、渡したテキストが評価される旨の明文も未確認)
@@ -94,7 +96,9 @@
 
 ## 3. 基本的な使い方
 
-### 3.1 Converse API
+### 3.1 モデル呼び出しに同梱(Converse / InvokeModel)
+
+#### Converse API
 
 ```python
 resp = bedrock_runtime.converse(
@@ -114,6 +118,41 @@ resp = bedrock_runtime.converse(
 
 - `guardContent` が1つでもあると、**それ以外は検査されない**
 - `guardContent` 不使用の場合、メッセージ全体検査、system prompt は検査されない
+
+#### InvokeModel / InvokeModelWithResponseStream
+
+ユーザー入力を入力タグで囲み、`amazon-bedrock-guardrailConfig` に `tagSuffix` を入れる。タグの仕様は公式(guardrails-tagging)で確認済み。
+
+```python
+# 以下は公式の仕様に基づく例。boto3 の引数名(guardrailIdentifier 等)と
+# リクエスト body の形式(モデルごとに異なる)は未検証。実装前に boto3 のドキュメントで要確認
+import json, secrets
+
+suffix = secrets.token_hex(8)   # 英数字 1〜20 文字。リクエストごとにランダムにする
+tag = f"amazon-bedrock-guardrails-guardContent_{suffix}"
+
+user_input = "ユーザーの質問"
+prompt = f"""あなたは銀行アシスタントです。(system prompt。検査しない)
+次の質問に答えてください:
+<{tag}>{user_input}</{tag}>"""
+
+resp = bedrock_runtime.invoke_model(
+    modelId=model_id,
+    guardrailIdentifier=gid,
+    guardrailVersion="1",
+    trace="ENABLED",
+    body=json.dumps({
+        # モデル固有の body。プロンプト本文に上の prompt を入れる
+        "amazon-bedrock-guardrailConfig": {"tagSuffix": suffix},
+    }),
+)
+```
+
+- タグの接頭辞 `amazon-bedrock-guardrails-guardContent` は予約語。`_` の後ろが `tagSuffix` と一致する必要がある
+- **`tagSuffix` はリクエストごとにランダムにする**(推奨)。固定だと、悪意のあるユーザーがタグを閉じて、その後ろに攻撃文を付けられる
+- タグは複数回使えるが、**入れ子は不可**
+- **Prompt Attack を使うなら、タグは必須**。タグがないと Prompt Attack だけ検査されない
+- ストリーミング(`InvokeModelWithResponseStream`)でも同じタグを使う
 
 ### 3.2 ApplyGuardrail API
 
