@@ -101,6 +101,12 @@
 #### Converse API
 
 ```python
+import boto3
+
+bedrock_runtime = boto3.client("bedrock-runtime", region_name="us-east-1")
+model_id = "<モデルID>"
+gid = "<guardrail ID または ARN>"
+
 resp = bedrock_runtime.converse(
     modelId=model_id,
     messages=[{"role": "user", "content": [
@@ -126,7 +132,14 @@ resp = bedrock_runtime.converse(
 ```python
 # 以下は公式の仕様に基づく例。boto3 の引数名(guardrailIdentifier 等)と
 # リクエスト body の形式(モデルごとに異なる)は未検証。実装前に boto3 のドキュメントで要確認
-import json, secrets
+import json
+import secrets
+
+import boto3
+
+bedrock_runtime = boto3.client("bedrock-runtime", region_name="us-east-1")
+model_id = "<モデルID>"
+gid = "<guardrail ID または ARN>"
 
 suffix = secrets.token_hex(8)   # 英数字 1〜20 文字。リクエストごとにランダムにする
 tag = f"amazon-bedrock-guardrails-guardContent_{suffix}"
@@ -157,6 +170,11 @@ resp = bedrock_runtime.invoke_model(
 ### 3.2 ApplyGuardrail API
 
 ```python
+import boto3
+
+bedrock_runtime = boto3.client("bedrock-runtime", region_name="us-east-1")
+gid = "<guardrail ID または ARN>"
+
 r = bedrock_runtime.apply_guardrail(
     guardrailIdentifier=gid, guardrailVersion="1",
     source="INPUT",   # LLM応答検査なら "OUTPUT"
