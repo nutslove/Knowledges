@@ -30,9 +30,9 @@
 
 | フィルタ | 料金 |
 |---|---|
-| コンテンツフィルタ(テキスト) | $0.15 / 1,000 units |
-| コンテンツフィルタ(画像) | $0.00075 / 枚 |
-| Prompt Attack | 独立した行なし(コンテンツフィルタの一部として扱われると読めるが、明記はない) |
+| Content filters(テキスト) | $0.15 / 1,000 units |
+| Content filters(画像) | $0.00075 / 枚 |
+| Prompt Attack | 独立した行なし(Content filters の一部として扱われると読めるが、明記はない) |
 | Denied topics | $0.15 / 1,000 units |
 | Sensitive information(PII) | $0.10 / 1,000 units |
 | Sensitive information(regex) | 無料 |
@@ -44,7 +44,7 @@
 
 | フィルタ(`checks` のキー名) | 料金 |
 |---|---|
-| コンテンツフィルタ(`contentFilter`) | $0.07 |
+| Content filters(`contentFilter`) | $0.07 |
 | Prompt Attack(`promptAttack`) | $0.08 |
 | Sensitive information(PII)(`sensitiveInformation`) | $0.10 |
 
@@ -56,7 +56,7 @@ AWS ではこれらの個々の検査機能を **safeguard**(= フィルタ)と�
 
 | フィルタ(この章) | `checks` のキー名 |
 |---|---|
-| コンテンツフィルタ | `contentFilter` |
+| Content filters | `contentFilter` |
 | Prompt Attack | `promptAttack` |
 | Sensitive information(PII) | `sensitiveInformation` |
 
@@ -65,7 +65,7 @@ AWS ではこれらの個々の検査機能を **safeguard**(= フィルタ)と�
 
 | 種類 | 内容 |
 |---|---|
-| **コンテンツフィルタ** | Hate / Insults / Sexual / Violence / Misconduct の5カテゴリ。強度は NONE / LOW / MEDIUM / HIGH。画像対応。 |
+| **Content filters** | Hate / Insults / Sexual / Violence / Misconduct の5カテゴリ。強度は NONE / LOW / MEDIUM / HIGH。画像対応。 |
 | **Prompt Attack** | Jailbreak / Prompt Injection / **Prompt Leakage(Standard のみ)**。 |
 | **Denied topics** | 拒否トピックを自然言語で定義(最大30個)。単語やエンティティ検出には不向き。 |
 | **Word filters** | 完全一致の単語・フレーズ。競合名や profanity 用。 |
@@ -87,7 +87,7 @@ AWS ではこれらの個々の検査機能を **safeguard**(= フィルタ)と�
 | コード対応 | コメント、変数名、関数名、文字列内の害悪コンテンツ | なし |
 
 - **日本語対応**:
-  - コンテンツフィルタ、Prompt Attack(Jailbreak/Injection/Leakage)、Denied topics: Standard で "Optimized and supported"
+  - Content filters、Prompt Attack(Jailbreak/Injection/Leakage)、Denied topics: Standard で "Optimized and supported"
   - PII: 日本語 "Optimized and supported"(PII に tier の概念はなく、tier 非依存)
   - Word filter、Contextual grounding: **日本語未対応**(en/fr/es のみ)
   - AgentCore Policy 経由(ContentFilter / PromptAttack / SensitiveInformation)の言語対応は、公式に記載なし
@@ -232,6 +232,8 @@ r = bedrock_runtime.apply_guardrail(
 |---|---|---|
 | 用途 | ワークフローの特定地点での個別チェック | アプリ全体への一律適用 |
 | リソース | 不要(インライン) | guardrail の作成・バージョン管理が必要 |
+| 検査内容の項目 | 呼ぶたびに `checks` で明示的に指定 | guardrail を作るときに設定項目を選ぶ。guardrail に設定した項目はすべて検査される(呼び出し側で絞れない) |
+| 選べる範囲 | 3 種類(`contentFilter` / `promptAttack` / `sensitiveInformation`)から選ぶ | 2 章のフィルタを guardrail に設定できる(Denied topics、Word filters、Contextual grounding、Automated Reasoning も含む) |
 | 判定 | スコアを返すだけ | 設定した閾値で自動 block / mask |
 | 向く構成 | エージェント型 | 通常のリクエスト/レスポンス型 |
 
@@ -245,7 +247,7 @@ r = bedrock_runtime.apply_guardrail(
 
 - スコアはどちらも {0, 0.2, 0.4, 0.6, 0.8, 1.0} の離散値。severity は内容の強さ、confidence は PII が存在する確からしさ
 - **Prompt Attack を `checks` の独立した項目として指定でき、`JAILBREAK` / `PROMPT_INJECTION` / `PROMPT_LEAKAGE` のカテゴリも選べる**(boto3 の定義で確認済み)
-  - guardrail を使う方式(ApplyGuardrail など)では、Prompt Attack はコンテンツフィルタの設定の 1 項目(`type: PROMPT_ATTACK`)で、設定できるのは強度とアクションのみ。カテゴリを個別に選ぶ項目は、読んだ範囲では見つからず
+  - guardrail を使う方式(ApplyGuardrail など)では、Prompt Attack は Content filters の設定の 1 項目(`type: PROMPT_ATTACK`)で、設定できるのは強度とアクションのみ。カテゴリを個別に選ぶ項目は、読んだ範囲では見つからず
 - PII 結果には `messageIndex`、`contentIndex`、`beginOffset`、`endOffset` が付くので、クライアント側でマスク処理できる
 - IAM: `bedrock:InvokeGuardrailChecks`、Resource は `"*"`(ブログの説明)。`aws:RequestedRegion` 等の条件で絞れる
 - 対応リージョン(発表ページ): us-east-1、us-east-2、us-west-2、London、Stockholm、Tokyo、Sydney
@@ -383,13 +385,15 @@ guardrails:
 - `pre_call`: LLM 呼び出し前に入力検査
 - `post_call`: 呼び出し後に入出力検査
 - `during_call`: LLM と並列で入力検査、完了まで応答保留（汎用ページでは「ブロックのみ」。LLM と並列なので、マスクが間に合う保証がない）
-- `logging_only`: スキャン結果をログに記録、ブロックしない
-- `pre_mcp_call`、`during_mcp_call`、`post_mcp_call`: MCP ツール呼び出し用
+- `pre_mcp_call`、`during_mcp_call`: MCP ツール呼び出し用
+- 上記 5 つが、LiteLLM のソース(bedrock_guardrails.py の `get_supported_event_hooks`)に書かれた Bedrock 対応 mode
+- `logging_only`(スキャン結果をログに記録するだけでブロックしない)と `post_mcp_call` は LiteLLM 全体の mode としては存在するが、Bedrock の対応リストには含まれない。Bedrock で使えるかは未検証
+- ソースは GitHub の main ブランチを確認したもので、手元で使う LiteLLM のバージョンと一致するとは限らない
 - Enterprise では map ベース(`tags` と `default`)でリクエスト属性に応じて mode を切り替え可能
 
 **複数の mode を指定する場合**
 
-`mode` はリストで書ける(LiteLLM quick_start で確認)。guardrail のブロックを mode ごとに分けて書く必要はなく、1 ブロックで足りる。
+`mode` はリストで書ける(LiteLLM quick_start の原文に「A list is supported to run multiple modes, e.g. mode: [pre_call, post_call]」とあり、確認済み)。guardrail のブロックを mode ごとに分けて書く必要はなく、1 ブロックで足りる。
 
 ```yaml
 guardrails:
@@ -444,13 +448,43 @@ guardrails:
 ### 5.8 `checks` モード(guardrail リソース不要)
 
 - `guardrailIdentifier` の代わりに `checks` を指定、`InvokeGuardrailChecks` API で contentFilter・promptAttack・sensitiveInformation を直接使用可
+- **`guardrailIdentifier` と `checks` は併用できない**(LiteLLM 公式: "the two can't be combined")。どちらか一方だけを書く
+- 設定例(LiteLLM 公式ページの例):
+
+```yaml
+guardrails:
+  - guardrail_name: "bedrock-checks"
+    litellm_params:
+      guardrail: bedrock
+      mode: "pre_call"
+      aws_region_name: os.environ/AWS_REGION
+      checks:                          # guardrailIdentifier / guardrailVersion は書かない
+        contentFilter:
+          categories:
+            - category: VIOLENCE
+        promptAttack:
+          categories:
+            - category: JAILBREAK
+        sensitiveInformation:
+          entities:
+            - type: EMAIL
+      content_filter_threshold: 0.5
+      prompt_attack_threshold: 0.5
+      pii_confidence_threshold: 0.5
+```
+
+- `checks` は使いたい項目だけ書く。最低 1 つ必須。`promptAttack: {}` のように中身を空にすると、AWS の既定の設定でその検査が有効になる
 - 閾値キー: `content_filter_threshold`、`prompt_attack_threshold`、`pii_confidence_threshold`（既定すべて 0.5）
-- `null` にするとスコアだけ記録してブロックしない
+- スコアが閾値以上だと HTTP 400 でブロック。`null` にするとスコアだけ記録してブロックしない
+- PII の結果が途中で切れた(truncated)場合はブロックする(fail closed)
+- このモードでは、リクエスト側の guardrail パラメータは無視される(呼び出し側が検査を弱められない)。入力はすべて user の内容として検査される
+- テキストしか読めないため、画像はすべて検査不可の添付として扱われ HTTP 400 になる(`skip_unscannable_attachments: true` で回避可)
+- ブロック時のレスポンスには `bedrock_guardrail_checks`(`check`、`category`、`severityScore`)が入る
 - 料金(1,000 units あたり): contentFilter $0.07、promptAttack $0.08、PII $0.10
   - 通常の guardrail より安いのは content filter だけ($0.15 → $0.07)。PII は同額
   - prompt attack は通常の料金表に独立した行がない。content filter + prompt attack を併用すると $0.15 で、通常の content filter 単価と同じ
   - ApplyGuardrail 専用の料金表はなく、通常表が適用されると読める(明文なし)
-- Prompt Attack は `checks` の独立した項目(`promptAttack`)で、カテゴリも選べる。通常の guardrail ではコンテンツフィルタの 1 項目
+- Prompt Attack は `checks` の独立した項目(`promptAttack`)で、カテゴリも選べる。通常の guardrail では Content filters の 1 項目
 - `guardrailIdentifier` と併用不可
 - `bedrock:InvokeGuardrailChecks` 権限が必要
 
