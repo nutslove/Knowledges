@@ -385,8 +385,27 @@ guardrails:
 - `during_call`: LLM と並列で入力検査、完了まで応答保留（汎用ページでは「ブロックのみ」。LLM と並列なので、マスクが間に合う保証がない）
 - `logging_only`: スキャン結果をログに記録、ブロックしない
 - `pre_mcp_call`、`during_mcp_call`、`post_mcp_call`: MCP ツール呼び出し用
-- リスト指定も可: `mode: ["pre_call", "post_call"]`
 - Enterprise では map ベース(`tags` と `default`)でリクエスト属性に応じて mode を切り替え可能
+
+**複数の mode を指定する場合**
+
+`mode` はリストで書ける(LiteLLM quick_start で確認)。guardrail のブロックを mode ごとに分けて書く必要はなく、1 ブロックで足りる。
+
+```yaml
+guardrails:
+  - guardrail_name: "bedrock-guard"
+    litellm_params:
+      guardrail: bedrock
+      mode: ["pre_call", "post_call"]   # LLM に送る前と、回答を受け取った後の両方を検査
+      guardrailIdentifier: ff6ujrregl1q
+      guardrailVersion: "1"
+      aws_region_name: os.environ/AWS_REGION
+```
+
+- 入力と出力の両方を検査したい場合の典型例。`pre_call` で入力を LLM に送る前に止め、`post_call` で回答を検査する
+- `post_call` は入力も検査対象(Bedrock 個別ページの記載)。ただし LLM を呼んだ後の検査になるので、入力を LLM に送る前に止めたい場合は `pre_call` が必要
+- 入力用と出力用で別の guardrail(閾値や有効なフィルタが違うもの)を使いたい場合に限り、ブロックを 2 つに分ける。その場合はリクエストの `guardrails` に両方の `guardrail_name` を並べる
+- 未確認: `["pre_call", "post_call"]` にしたとき、入力が 2 回検査されて料金が二重にかかるかは、読んだ範囲では不明。Bedrock 個別ページの設定例で、リスト指定を実際に使った例は見つかっていない
 
 ### 5.3 リクエスト単位の指定
 
