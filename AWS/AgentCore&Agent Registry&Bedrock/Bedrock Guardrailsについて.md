@@ -469,6 +469,44 @@ guardrails:
 - LiteLLM の汎用ページ(custom_guardrail)の mode 表では、`post_call` もマスク可、`during_call` はブロックのみ
 - 迷ったら `pre_call` を使う(Bedrock 個別ページで明記されているのはこれだけ)
 - ドキュメント(PDF、ファイル)は書き換え不可。マスク対象になるとリクエストごとブロック
+- **マスクは `guardrailIdentifier` 方式でのみ有効**。`checks` モード(5.8)では効果がなく、警告ログが出るだけ（`InvokeGuardrailChecks` が detect-only で、書き換えた内容を返さないため。ソース bedrock_guardrails.py のコンストラクタで確認）。`checks` で PII を見つけたときの動作は、ブロックかログのみの二択
+
+設定例（LiteLLM 公式ページ「PII Masking with Bedrock Guardrails」の例）:
+
+```yaml
+guardrails:
+  - guardrail_name: "bedrock-pre-guard"
+    litellm_params:
+      guardrail: bedrock
+      mode: "pre_call"  # Important: must use pre_call mode for masking
+      guardrailIdentifier: wf0hkdb5x07f
+      guardrailVersion: "DRAFT"
+      aws_region_name: os.environ/AWS_REGION
+      aws_role_name: os.environ/AWS_ROLE_ARN
+      mask_request_content: true    # Enable masking in user requests
+      mask_response_content: true   # Enable masking in model responses
+```
+
+- Bedrock の guardrail が介入したとき、LiteLLM は guardrail が返したマスク済みの出力を読み取り、それをモデルに送る
+- マスクの例: 「My email is john.doe@example.com and my phone number is 555-123-4567」を送ると、モデルには「My email is [EMAIL] and my phone number is [PHONE_NUMBER]」と送られる
+- この例の `guardrailIdentifier` は guardrail 側で PII の ANONYMIZE を設定している前提（マスクの判断基準は、guardrail に設定した PII のタイプとアクション）
+- `mask_response_content: true` にすると、ストリーミングはチャンクを逐次流さず、バッファしてから返す（ソースの `_streams_incrementally` で確認）
+
+**Bedrock　Guardrails側のアクション設定と LiteLLM の挙動**
+
+Bedrock Guardrails側のアクションは、コンソールの表示名と API の値が違う（コンソールは実機で確認済み）。
+
+| 動作 | コンソールの表示 | Bedrock Guardrailsの設定値(API) | 判定結果(ApplyGuardrail のレスポンス) |
+|---|---|---|---|
+| ブロック | Block | `BLOCK` | `BLOCKED` |
+| マスク | Mask | `ANONYMIZE` | `ANONYMIZED` |
+| 検出のみ | Detect (no action) | `NONE` | (介入なし) |
+
+- LiteLLM が HTTP 400 を返すのは、Bedrock 側のアクションが Block のとき（判定結果では `BLOCKED`）だけ。マスクや検出のみのときは 400 にならない（ソースの `_should_raise_guardrail_blocked_exception` で確認）
+- **マスクにするには、Bedrock 側で PII のアクションを Mask にする**。Block のままだと、LiteLLM で `mask_request_content` / `mask_response_content` を `true` にしてもブロックされる
+- PII は入力と出力でアクションを別々に設定できる（コンソールの Input action / Output action）。マスクしたい側を Mask にする
+- Prompt Attack は Block と Detect (no action) の 2 択で、Mask はない
+- ソースには、guardrail がマスク済みの出力を返したときはフラグの値に関係なくそれを適用する、というコメントがある。ただしこれが全経路（`pre_call`、`post_call`、ストリーミング）で成り立つかは未確認。公式の手順どおり、フラグも `true` にしておく
 
 ### 5.5 ストリーミング
 
