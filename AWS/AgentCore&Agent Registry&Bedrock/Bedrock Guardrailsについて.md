@@ -7,17 +7,17 @@
 
 **アプリのコードから呼ぶ(SDK / API)**
 
-| # | 方法 | 内容 | 向く場面 |
-|---|---|---|---|
-| 1 | モデル呼び出しに同梱 | `Converse` / `InvokeModel` に guardrail ID とバージョンを渡すと、入力と出力を自動で検査 → [具体例(3.1)](#31-モデル呼び出しに同梱converse--invokemodel) | Bedrock のモデルを使うアプリ |
-| 2 | `ApplyGuardrail` を単体で呼ぶ | 検査したいテキストを渡して判定結果だけ受け取る。guardrail リソースを使う。モデルは呼ばない → [具体例(3.2)](#32-applyguardrail-api) | Bedrock 以外のモデル(OpenAI、自前モデルなど)、RAG の検索前など好きなタイミング |
-| 3 | `InvokeGuardrailChecks` を単体で呼ぶ | guardrail を作らず、呼ぶたびに `checks`(どの検査をするかの指定。`contentFilter` / `promptAttack` / `sensitiveInformation` から選ぶ)をインラインで指定する。検出のみで、判定はアプリ側 → [具体例(3.4)](#34-invokeguardrailchecks-api2026-06-16-発表) | エージェントのループ中の任意の地点 |
+| # | 方法 | 内容 | 向く場面 | 検出したとき |
+|---|---|---|---|---|
+| 1 | モデル呼び出しに同梱 | `Converse` / `InvokeModel` に guardrail ID とバージョンを渡すと、入力と出力を自動で検査 → [具体例(3.1)](#31-モデル呼び出しに同梱converse--invokemodel) | Bedrock のモデルを使うアプリ | guardrail に設定した強度・閾値・アクションに従って、自動でブロックまたはマスク。Converse は `stopReason: guardrail_intervened` になり、定型メッセージが返る |
+| 2 | `ApplyGuardrail` を単体で呼ぶ | 検査したいテキストを渡して判定結果だけ受け取る。guardrail リソースを使う。モデルは呼ばない → [具体例(3.2)](#32-applyguardrail-api) | Bedrock 以外のモデル(OpenAI、自前モデルなど)、RAG の検索前など好きなタイミング | guardrail の設定に従った結果(`action: GUARDRAIL_INTERVENED`、`outputs` に定型メッセージまたはマスク済みテキスト)を返す。実際に止めるかはアプリが判断 |
+| 3 | `InvokeGuardrailChecks` を単体で呼ぶ | guardrail を作らず、呼ぶたびに `checks`(どの検査をするかの指定。`contentFilter` / `promptAttack` / `sensitiveInformation` から選ぶ)をインラインで指定する。検出のみで、判定はアプリ側 → [具体例(3.4)](#34-invokeguardrailchecks-api2026-06-16-発表) | エージェントのループ中の任意の地点 | スコアだけ返す。基準(閾値)も動作もアプリが決める |
 
 **コード変更なし(AWS 側の設定)**
 
-| # | 方法 | 内容 | 向く場面 |
-|---|---|---|---|
-| 4 | 強制適用 | アプリのコードに guardrail を書かなくても、アカウント/組織の全 Bedrock 呼び出しに適用 → [詳細(3.3)](#33-強制適用enforcement) | 全社で統制したい場合 |
+| # | 方法 | 内容 | 向く場面 | 検出したとき |
+|---|---|---|---|---|
+| 4 | 強制適用 | アプリのコードに guardrail を書かなくても、アカウント/組織の全 Bedrock 呼び出しに適用 → [詳細(3.3)](#33-強制適用enforcement) | 全社で統制したい場合 | guardrail に設定した強度・閾値・アクションに従って、モデル呼び出し側で自動でブロックまたはマスク |
 
 - LiteLLM は内部で 2 または 3 を呼ぶ → [5 章](#5-litellm-との組み合わせ)。AgentCore Gateway に Policy Engine を attach すると、Gateway 経由のリクエストに対して Policy が 3 を呼ぶ(Gateway を通らない呼び出しは対象外) → [4.1](#41-agentcore-policy-の-guardrail-条件公式機能)
 - 3.3 には具体的なコード例はなく、説明のみ
@@ -243,7 +243,19 @@ r = bedrock_runtime.apply_guardrail(
 |---|---|---|
 | `contentFilter` | HATE / VIOLENCE / SEXUAL / INSULTS / MISCONDUCT | severity |
 | `promptAttack` | JAILBREAK / PROMPT_INJECTION / PROMPT_LEAKAGE | severity |
-| `sensitiveInformation` | PII 31 種類(EMAIL、US_SOCIAL_SECURITY_NUMBER など) | confidence |
+| `sensitiveInformation` | PII 31 種類(下記) | confidence |
+
+`sensitiveInformation` の `type` に指定できる PII の全タイプ(31 種類)。boto3 1.43.114 の入力定義と、AgentCore Policy の公式ページ(policy-guardrails-in-policies)の一覧が、過不足なく一致することを確認済み。
+
+| 分類 | タイプ |
+|---|---|
+| 個人情報(11) | `ADDRESS`, `AGE`, `NAME`, `EMAIL`, `PHONE`, `USERNAME`, `PASSWORD`, `PIN`, `DRIVER_ID`, `LICENSE_PLATE`, `VEHICLE_IDENTIFICATION_NUMBER` |
+| 金融(7) | `CREDIT_DEBIT_CARD_NUMBER`, `CREDIT_DEBIT_CARD_CVV`, `CREDIT_DEBIT_CARD_EXPIRY`, `US_BANK_ACCOUNT_NUMBER`, `US_BANK_ROUTING_NUMBER`, `INTERNATIONAL_BANK_ACCOUNT_NUMBER`, `SWIFT_CODE` |
+| 政府・医療(8) | `US_SOCIAL_SECURITY_NUMBER`, `US_PASSPORT_NUMBER`, `US_INDIVIDUAL_TAX_IDENTIFICATION_NUMBER`, `CA_SOCIAL_INSURANCE_NUMBER`, `CA_HEALTH_NUMBER`, `UK_NATIONAL_INSURANCE_NUMBER`, `UK_NATIONAL_HEALTH_SERVICE_NUMBER`, `UK_UNIQUE_TAXPAYER_REFERENCE_NUMBER` |
+| 認証情報・ネットワーク(5) | `AWS_ACCESS_KEY`, `AWS_SECRET_KEY`, `IP_ADDRESS`, `MAC_ADDRESS`, `URL` |
+
+- 各タイプの定義(形式、桁数など)は、公式の [Sensitive information filters](https://docs.aws.amazon.com/bedrock/latest/userguide/guardrails-sensitive-filters.html) に載っている
+- 同ページの PII 一覧と `checks` の 31 種類が完全に同じかは未確認(Policy の一覧とは一致)。ただし独自 regex は `checks` では使えない(`type` は上記の列挙値のみ)
 
 - スコアはどちらも {0, 0.2, 0.4, 0.6, 0.8, 1.0} の離散値。severity は内容の強さ、confidence は PII が存在する確からしさ
 - **Prompt Attack を `checks` の独立した項目として指定でき、`JAILBREAK` / `PROMPT_INJECTION` / `PROMPT_LEAKAGE` のカテゴリも選べる**(boto3 の定義で確認済み)
@@ -252,6 +264,37 @@ r = bedrock_runtime.apply_guardrail(
 - IAM: `bedrock:InvokeGuardrailChecks`、Resource は `"*"`(ブログの説明)。`aws:RequestedRegion` 等の条件で絞れる
 - 対応リージョン(発表ページ): us-east-1、us-east-2、us-west-2、London、Stockholm、Tokyo、Sydney
 - 料金は 1 節の表(content $0.07 / prompt attack $0.08 / PII $0.10、1,000 units あたり)
+
+**閾値と違反時の扱い**
+
+- `InvokeGuardrailChecks` 自体には閾値の引数がない。API はスコアを返すだけで、ブロックもエラーもしない。違反かどうかの判定と、その後の動作(ブロック / 再試行 / ログ / 人に回す)はすべてアプリ側で実装する
+- 閾値は呼び出し側が決める。ブログの例は、0.8 以上でブロック、0.4 以上で escalate、それ未満はログのみ。金融系アプリは 0.4 でブロック、創作系は 0.8 でブロック、のように用途で変える
+- 検出がない(スコア 0 のみ)場合の `results` が空配列になるか、0 を返すかは未確認
+- 閾値を API に渡す形式にしたい場合は、LiteLLM の checks モード(5.8)を使う。LiteLLM が閾値を持ち、超えたら HTTP 400 を返す
+
+判定のコード例（ブログの「ブロック / escalate / ログ」の考え方を元にした例。実際に AWS を呼んでの検証はしていない）:
+
+```python
+BLOCK_AT = 0.8      # 以上ならブロック
+ESCALATE_AT = 0.4   # 以上なら人に回す / 再確認
+
+def judge(response):
+    worst = 0.0
+    for name in ("contentFilter", "promptAttack"):
+        for f in response["results"].get(name, {}).get("results", []):
+            worst = max(worst, f["severityScore"])
+    pii = [
+        p for p in response["results"].get("sensitiveInformation", {}).get("results", [])
+        if p["confidenceScore"] >= ESCALATE_AT
+    ]
+    if worst >= BLOCK_AT:
+        return "block"
+    if worst >= ESCALATE_AT or pii:
+        return "escalate"
+    return "allow"
+
+action = judge(r)   # r は下の invoke_guardrail_checks の戻り値
+```
 
 ```python
 # AWS ブログの記述に基づく例。引数名と構造は boto3 1.43.114 の入力定義で確認済み
@@ -474,8 +517,26 @@ guardrails:
 ```
 
 - `checks` は使いたい項目だけ書く。最低 1 つ必須。`promptAttack: {}` のように中身を空にすると、AWS の既定の設定でその検査が有効になる
-- 閾値キー: `content_filter_threshold`、`prompt_attack_threshold`、`pii_confidence_threshold`（既定すべて 0.5）
-- スコアが閾値以上だと HTTP 400 でブロック。`null` にするとスコアだけ記録してブロックしない
+- 閾値キー: `content_filter_threshold`、`prompt_attack_threshold`、`pii_confidence_threshold`
+  - **3 つとも指定は任意**。省略すると 0.5 になる（LiteLLM 公式の記述と、ソースの既定値 `= 0.5` の両方で確認済み）
+  - 上の例のように 0.5 を明示するのは、値を変えやすくするため。省略しても同じ動作
+  - `checks` に書いていない検査の閾値キーは使われない(ソースで確認済み。`checks` にない検査は判定をスキップする)
+- スコアが閾値以上だと HTTP 400 でブロック
+- **`null` にするのは、閾値のキー(`litellm_params` 直下の `content_filter_threshold` など)の値**。その検査だけ、スコアを記録してブロックしない。他の検査は通常どおりブロックする
+
+```yaml
+      checks:
+        contentFilter:
+          categories:
+            - category: VIOLENCE
+        promptAttack:
+          categories:
+            - category: JAILBREAK
+      content_filter_threshold: null   # contentFilter はスコアを記録するだけ(ブロックしない)
+      prompt_attack_threshold: 0.5     # promptAttack は 0.5 以上でブロック
+```
+
+- ソース(bedrock_guardrails.py)では、閾値が `None` の検査は判定をスキップする実装になっている
 - PII の結果が途中で切れた(truncated)場合はブロックする(fail closed)
 - このモードでは、リクエスト側の guardrail パラメータは無視される(呼び出し側が検査を弱められない)。入力はすべて user の内容として検査される
 - テキストしか読めないため、画像はすべて検査不可の添付として扱われ HTTP 400 になる(`skip_unscannable_attachments: true` で回避可)
