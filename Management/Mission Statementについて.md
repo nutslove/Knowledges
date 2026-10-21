@@ -1,0 +1,1 @@
+- https://www.atlassian.com/work-management/strategic-planning/mission-statement
