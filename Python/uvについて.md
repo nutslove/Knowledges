@@ -35,8 +35,15 @@ pipx install uv
 
 ### アップデート / アンインストール
 ```bash
-uv self update         # 公式インストーラで入れた場合
-uv self uninstall
+uv self update         # 公式インストーラで入れた場合 (pip / Homebrew 等で入れた場合は無効。各パッケージマネージャで更新)
+
+# アンインストール (`uv self uninstall` というコマンドは存在しない)
+# 1. 先にデータを削除 (バイナリを消すとuvコマンドが使えなくなるため)
+uv cache clean
+rm -r "$(uv python dir)"
+rm -r "$(uv tool dir)"
+# 2. バイナリを削除
+rm ~/.local/bin/uv ~/.local/bin/uvx
 ```
 
 ---
@@ -60,7 +67,7 @@ uv venv --python 3.12
 ```
 
 > [!NOTE]
-> `.python-version` ファイルでパッチバージョンまで指定すると、自動アップグレードが無効化される (uv 0.11.11〜)。
+> `.python-version` ファイルでパッチバージョンまで指定すると、自動アップグレードが無効化される (uv 0.11.8〜)。
 
 ---
 
@@ -85,13 +92,18 @@ my-project/
         └── __init__.py    # main() エントリーポイントを含む
 ```
 
-最初に `uv run` / `uv sync` / `uv lock` を実行すると `.venv/` と `uv.lock` が生成される。
+最初に `uv run` / `uv sync` を実行すると `.venv/` と `uv.lock` が生成される (`uv lock` は `uv.lock` のみ生成し、`.venv/` は作らない)。
 
-生成される `pyproject.toml` の中身:
+生成される `pyproject.toml` の中身 (uv 0.13.6 で確認。`uv_build` のバージョンは使用したuvのバージョンに追従する):
 ```toml
 [project]
 name = "my-project"
 version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "Your Name", email = "you@example.com" }   # git config から取得される
+]
 requires-python = ">=3.13"
 dependencies = []
 
@@ -99,9 +111,12 @@ dependencies = []
 my-project = "my_project:main"
 
 [build-system]
-requires = ["uv_build>=0.12.12,<0.13"]
+requires = ["uv_build>=0.13.6,<0.14.0"]
 build-backend = "uv_build"
 ```
+
+> [!NOTE]
+> `uv_build` の上限 (`<0.14.0` など) はuvのマイナーバージョンごとに上げる必要がある。uvをアップグレードして `uv build` が失敗する場合は、`requires` の上限を緩める (例: `uv_build>=0.13.0,<0.14`)。
 
 #### `[build-system]` とは
 
@@ -351,7 +366,7 @@ CLIツールを隔離環境にインストール。
 ```bash
 # 一時実行 (uvxは uv tool run のエイリアス)
 uvx ruff check .
-uvx --from 'huggingface_hub[cli]' huggingface-cli
+uvx --from huggingface_hub hf download <repo_id>   # huggingface-cli は huggingface_hub v1.0 で削除され hf に置き換え
 
 # 永続インストール
 uv tool install ruff
@@ -467,7 +482,7 @@ permissions:
   id-token: write    # OIDCトークン取得に必須
 
 steps:
-  - uses: astral-sh/setup-uv@v10
+  - uses: astral-sh/setup-uv@v10.3.3   # 浮動タグ (@v10) は存在しない。公式docsはコミットSHA固定
   - run: uv build
   - run: uv publish   # トークン未指定 → GitHub Actions環境を自動検出しOIDCで認証
 ```
@@ -606,9 +621,9 @@ USER app
 
 ### GitHub Actions
 ```yaml
-- uses: astral-sh/setup-uv@v10
+- uses: astral-sh/setup-uv@v10.3.3   # 浮動タグ (@v10) は存在しない。公式docsはコミットSHA固定
   with:
-    enable-cache: true    # GitHub-hostedランナーではデフォルトauto (省略可)
+    enable-cache: true    # デフォルトは auto (省略可)
 - run: uv sync --frozen
 - run: uv run pytest
 ```
@@ -628,7 +643,7 @@ USER app
 | `UV_PYTHON` | デフォルトPythonバージョン |
 | `UV_CACHE_DIR` | キャッシュディレクトリ変更 |
 | `UV_PROJECT_ENVIRONMENT` | プロジェクトvenvのパス変更 |
-| `UV_KEYRING_PROVIDER=native` | OS keyringから認証情報を取得 |
+| `UV_KEYRING_PROVIDER=subprocess` | `keyring` コマンド経由で認証情報を取得 (値は `disabled` / `subprocess` のみ) |
 
 ---
 
@@ -656,10 +671,9 @@ uv init
 uv add -r requirements.txt
 ```
 
-### Poetry から
+### Poetry / Pipenv / pip-tools から
 ```bash
-# pdm-backend経由で変換するツールがある
-# または手動で pyproject.toml の [project] セクションを書き換え
+# migrate-to-uv が pyproject.toml を変換し、uv lock まで実行する (PDMは非対応)
 uvx migrate-to-uv
 ```
 
