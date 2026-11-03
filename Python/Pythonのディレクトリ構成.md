@@ -814,6 +814,19 @@ docs/
 
 `backend/` の中に前述の構成（`pyproject.toml` / `uv.lock` / `src/` / `tests/`）をそのまま置く。
 
+**作り方: `uv init` は `backend/` の中ではなく、リポジトリのルートで実行する。**
+
+```bash
+mkdir my_product && cd my_product
+git init                          # ← 先に実行する（下記の注意を参照）
+uv init --package backend         # ルートで実行。backend/ が作られ、その中に pyproject.toml や src/ ができる
+mkdir frontend                    # フロントは uv と無関係。Vite などの雛形コマンドで別途作る
+```
+
+- ルート直下には `pyproject.toml` は作られず、`backend/` の中だけに作られる。
+- **`git init` を先に実行する**。git 管理外のディレクトリで `uv init` を実行すると `backend/.git` が作られてしまう（手元で確認）。ルートで `git init` 済みなら、`backend/` に `.git` は作られない。ルートの `.gitignore` で管理するなら、`--vcs none` を付けると `backend/.git` も `backend/.gitignore` も作られない。
+- 以降の `uv add` / `uv sync` などは `backend/` に入って実行する（またはルートから `--project backend`）。
+
 ```text
 my_product/
 ├── backend/                    ← uv プロジェクト（この記事のここまでの構成がそのまま入る）
@@ -844,6 +857,20 @@ my_product/
 ### パターンB: ルートに uv workspace を置く
 
 Python パッケージが複数ある場合や、ロックファイルを1つにまとめたい場合は、リポジトリルートを workspace のルートにする。
+
+**作り方: こちらも `uv init` は `backend/` の中ではなく、リポジトリのルートで実行する。**
+
+```bash
+mkdir my_product && cd my_product
+git init
+printf '[tool.uv.workspace]\nmembers = []\n' > pyproject.toml   # workspace の定義だけを先に作る
+uv init --package backend         # ルートで実行。ルートの members に "backend" が自動で追加される
+uv sync                           # ルート直下に .venv と uv.lock ができる
+```
+
+- ルートに `pyproject.toml` がある状態で `uv init --package backend` を実行すると、`backend/` が作られ、**ルートの `[tool.uv.workspace].members` に `backend` が自動で追記される**（手元で確認）。`members` を手で書かなくてよい。
+- `[tool.uv.workspace]` を手で書かずに、ルートで `uv init --bare` を先に実行してもよい。ただしこの場合は `[project]` 付きの `pyproject.toml` ができ、**ルート自身も member（Python パッケージ）になる**（ルートに `src/` などは作られない）。ルートを Python パッケージにしたくないなら、上のように `[tool.uv.workspace]` だけを書く。
+- 先に `backend/` だけを `uv init --package backend` で作ってから、あとでルートに `[tool.uv.workspace] members = ["backend"]` を書く順序でも動く（手元で確認）。
 
 ```text
 my_product/
