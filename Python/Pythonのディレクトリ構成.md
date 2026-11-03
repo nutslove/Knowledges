@@ -96,6 +96,7 @@ my_app/                  ← プロジェクト（リポジトリ）全体の入
 4. **ルートが散らからない**  
    ルート直下にパッケージコードを置くと、`tests/`・`docs/`・設定ファイルとコードが混在する。`src/`に閉じ込めることでコードと周辺ファイルが明確に分離される。
 
+> [!NOTE]
 > シンプルなスクリプトや小さなツールであれば `src/` を挟まないフラットレイアウトでもよい。**ライブラリとして配布する・きちんとテストしたい場合**に src layout が推奨される（PyPA公式も推奨）。
 
 ## アプリケーション系のレイヤー構成
@@ -247,13 +248,13 @@ Python 3.3以降、**Namespace Packages**（PEP 420）が導入され、`__init_
 
    ```python
    # src/my_app/__init__.py
-   from my_app.config import settings
-   from my_app.logger import setup_logging
+   from importlib.metadata import version
 
-   __version__ = "0.1.0"
-
-   setup_logging()
+   __version__ = version("my_app")  # pyproject.toml の version を単一の情報源にする
    ```
+
+   > [!CAUTION]
+   > `__init__.py` で設定の読み込み（`Settings()` の生成）やログ初期化のような副作用の大きい処理をすると、`import my_app` した時点で実行される。必須の環境変数（例: Langfuseのキー）が無い環境（テスト・CI・`uv build` など）では **import だけで落ちる**ので、そうした処理は `main.py` の起動時や `get_settings()` の呼び出し側に置く。
 
 4. **パブリックAPIを定義できる**
    `__all__` や再エクスポートで、パッケージの外向けインターフェースを明示できる。
@@ -288,17 +289,22 @@ Python 3.3以降、**Namespace Packages**（PEP 420）が導入され、`__init_
 
 ### `pyproject.toml`は手動作成ではなく `uv init` で自動作成される
 
-uvを使う場合、**`uv init` を実行すると、必要最小限の `pyproject.toml` が自動作成される**（あわせて `.python-version` / `README.md` / エントリポイント用の `main.py` なども作成される）。下の「全体像」は、そこから `uv add` などで依存やツール設定を育てていった結果のイメージだと捉えるとよい。
+uvを使う場合、**`uv init` を実行すると、必要最小限の `pyproject.toml` が自動作成される**（あわせて `.python-version` / `README.md` / `.gitignore` / `src/<name>/__init__.py` なども作成される）。下の「全体像」は、そこから `uv add` などで依存やツール設定を育てていった結果のイメージだと捉えるとよい。
 
 `uv init` のモードによって作成される内容が変わる:
 
 | コマンド | レイアウト | `[build-system]` | 用途 |
 |---|---|---|---|
-| `uv init`（= `--app`、既定） | ルート直下に `main.py` | なし（非パッケージ） | スクリプト・CLI・Webサーバなど、配布しないアプリ |
-| `uv init --package` | `src/` レイアウト | あり（`uv_build`） | テスト付き・配布する（=インストールする）アプリ |
-| `uv init --lib` | `src/` レイアウト | あり（`uv_build`）＋ `py.typed` | ライブラリとして配布する |
+| `uv init`（= `--app`、既定） | `src/` レイアウト | あり（`uv_build`）＋ `[project.scripts]` | Webサーバ・CLI・バッチなど、実行するアプリ |
+| `uv init --package` | `src/` レイアウト | あり（`uv_build`）＋ `[project.scripts]` | 既定とほぼ同じ（パッケージ化を明示したいとき） |
+| `uv init --lib` | `src/` レイアウト | あり（`uv_build`）＋ `py.typed`（`[project.scripts]` なし） | ライブラリとして配布する |
+| `uv init --no-package` | ルート直下に `main.py` | なし（非パッケージ） | 配布・インストールしない簡易スクリプト |
+| `uv init --bare` | なし | なし | `pyproject.toml` だけを作る最小構成 |
 
-> このドキュメントの構成（src layout・テスト同梱）なら `uv init --package` または `uv init --lib` を使う。素の `uv init` は `[build-system]` を作成しないため、インストールして使うパッケージには向かない。
+> [!NOTE]
+> uv 0.12より前は、素の `uv init`（アプリ）は `[build-system]` を作らず `main.py` をルート直下に置いていた。現在は既定でも `src/` レイアウト＋ビルドシステムありになり、旧来の挙動は `--no-package` で得られる（`--build-backend` を指定すると `--package` 扱いになる）。
+>
+> このドキュメントの構成（src layout・テスト同梱）なら、素の `uv init` / `uv init --package` / `uv init --lib` のいずれでもよい。
 
 #### `--package` と `--lib` の使い分け
 
@@ -313,9 +319,10 @@ uvを使う場合、**`uv init` を実行すると、必要最小限の `pyproje
 └─ import される（共通部品/SDK/公開pkg） … --lib
 ```
 
-両者の構成（src layout＋`[build-system]`あり）はほぼ同じで、**実質的な違いは `py.typed` の有無だけ**。`py.typed` は「このパッケージは型ヒント付き」というマーカーで、**import側の型チェッカー（mypy等）が型情報を読み取れるようにする**もの。他人に import される前提の `--lib` には付き、自分で動かす `--package` には付かない。
+両者の構成（src layout＋`[build-system]`あり）はほぼ同じで、**実質的な違いは `py.typed` の有無と `[project.scripts]`（実行コマンド）の有無の2点**。`--package` には `[project.scripts]` が生成され、`--lib` には生成されない。`py.typed` は「このパッケージは型ヒント付き」というマーカーで、**import側の型チェッカー（mypy等）が型情報を読み取れるようにする**もの。他人に import される前提の `--lib` には付き、自分で動かす `--package` には付かない。
 
-> 「アプリだが他プロジェクトからも import される」中間ケースは、`--package` で作って後から `py.typed` を手で追加すればよい（差はそれだけ）。
+> [!TIP]
+> 「アプリだが他プロジェクトからも import される」中間ケースは、`--package` で作って後から `py.typed` を手で追加すればよい（`[project.scripts]` はそのまま残して使える）。
 
 `uv init --package my_app` 直後に自動作成される `pyproject.toml` は、おおむね次のような **最小の状態**になっている:
 
@@ -332,7 +339,7 @@ dependencies = []            # 依存はまだ空
 my-app = "my_app:main"
 
 [build-system]
-requires = ["uv_build>=0.11,<0.12"]
+requires = ["uv_build>=0.13.6,<0.14.0"]   # 値は uv のバージョンに応じて変わる
 build-backend = "uv_build"
 ```
 
@@ -352,6 +359,7 @@ build-backend = "uv_build"
 - **バージョン制約を変更**: 新しい制約で `uv add` をやり直す（例 `uv add "fastapi>=0.116"`）。最新へ上げたいだけなら `uv add --upgrade-package fastapi`
 - **`requires-python` や `[tool.*]` 設定**: これらはCLIでは触れないので **`pyproject.toml`を直接編集**し、依存に関わる変更なら `uv sync` を実行して反映する
 
+> [!TIP]
 > まとめ: **依存は `uv add` / `uv remove`（手書きしない）、ツール設定やメタ情報（`requires-python`・`[tool.ruff]`など）は直接編集 → `uv sync`**。どちらの場合も `uv.lock` は自動でメンテされるのでコミットすればよい。
 
 以下が、こうして育てた `pyproject.toml` の全体像:
@@ -364,6 +372,9 @@ description = "AI Agent for Root Cause Analysis"
 requires-python = ">=3.12"
 dependencies = [
     "fastapi>=0.115",
+    "uvicorn>=0.54.0",       # fastapi 単体では入らない（DockerのCMD・main.pyで使用）
+    "httpx>=0.28.1",         # infrastructure/prometheus_client.py で使用
+    "langfuse>=5.1.0",       # infrastructure/langfuse_client.py で使用
     "pydantic>=2.9",
     "pydantic-settings>=2.5",
     "langgraph>=0.2",
@@ -456,6 +467,7 @@ addopts = "--import-mode=importlib --cov=my_app --cov-report=term-missing"
 - **どう**: `addopts` に常用フラグ（カバレッジ等）を入れておくと毎回打たずに済む。カバレッジは **`--cov=src`（パス指定）ではなく `--cov=my_app`（パッケージ名指定）** にする。src layoutでは「インストール済みパッケージ」を対象にテストするため、パスではなく `import` 名で計測対象を指す方がインストール先に追従して正確（CIやDockerで実際にwheelを入れてテストしてもズレない）
 - **`--import-mode=importlib` を推奨**: src layoutではpytest公式（Good Integration Practices）が `importlib` モードを推奨。これにより **`tests/`配下に `__init__.py` を一切置かなくても、同名のテストファイル（`unit/test_x.py` と `integration/test_x.py`）が衝突しない**。既定の `prepend` モードだと衝突回避のために `__init__.py` が必要になる
 
+> [!TIP]
 > どこに書くか迷ったら原則: **ツール固有の設定は `[tool.<ツール名>]`、パッケージ自体の情報は `[project]`、依存は `[project]`（本番）か `[dependency-groups]`（開発）**。
 
 ## 必須の補助ファイル
@@ -507,12 +519,12 @@ Pythonバージョンを固定するファイル（uvが自動生成）。
 ```bash
 # AWS
 AWS_REGION=ap-northeast-1
-BEDROCK_MODEL_ID=apac.anthropic.claude-sonnet-4-5-20250929-v1:0
+BEDROCK_MODEL_ID=global.anthropic.claude-sonnet-5-5
 
 # Langfuse
 LANGFUSE_PUBLIC_KEY=
 LANGFUSE_SECRET_KEY=
-LANGFUSE_HOST=https://cloud.langfuse.com
+LANGFUSE_BASE_URL=https://cloud.langfuse.com
 
 # Application
 LOG_LEVEL=INFO
@@ -523,20 +535,21 @@ LOG_LEVEL=INFO
 ```yaml
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.11.0
+    rev: v0.17.3
     hooks:
       - id: ruff-check
         args: [--fix]
       - id: ruff-format
 
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.13.0
+    rev: v2.4.1
     hooks:
       - id: mypy
         additional_dependencies: [pydantic, types-requests]
 ```
 
-> リンタのフックIDは ruff-pre-commit v0.11.0（2025年3月）以降 **`ruff-check`** にリネームされた。旧来の `ruff` はレガシーエイリアスとして今も動くが、現行は `ruff-check` を使う。`--fix`を使う場合は `ruff-check` を `ruff-format` より**前**に置くこと。
+> [!NOTE]
+> リンタのフックIDは ruff-pre-commit v0.11.10（2025年5月）以降 **`ruff-check`** にリネームされた（それ以前の `rev` には `ruff-check` が存在せず、指定するとエラーになる）。旧来の `ruff` はレガシーエイリアスとして今も動くが、現行は `ruff-check` を使う。`rev` は上記の値（記事執筆時点の最新）に固定されるので、定期的に `uv run pre-commit autoupdate` で更新する。`--fix`を使う場合は `ruff-check` を `ruff-format` より**前**に置くこと。
 
 セットアップ:
 
@@ -557,6 +570,7 @@ pre-commit sample-config > .pre-commit-config.yaml
 
 ただし結局そこから自分で編集して使うフックを足していくことになる。
 
+> [!WARNING]
 > 設定ファイルが無い状態で `pre-commit install` してもフックは何も実行されない（むしろ commit 時にエラーになる）。**「設定ファイルを手動で用意」→「install で Git に組み込む」** の2段構え。
 
 #### `pre-commit install` が具体的にすること
@@ -668,6 +682,7 @@ docs/
 
 ## 各サブディレクトリの役割と実装例
 
+> [!NOTE]
 > この章は **AI Agentを題材にしたコードの詳解**。各レイヤーに実際どんなコードを書くかを具体例で示す。**設定や全体像だけ知りたい場合はこの章を飛ばして「pyproject.tomlの設定例」以降へ進んでよい。**
 
 以降は **AI Agentの例** を題材に各レイヤーのコードを見ていく（`agents/`以外は通常のWeb APIでもほぼ同じ）。`services`は`infrastructure`を呼ぶが逆はNG、`domain`は誰にも依存しない純粋なモデル層、という依存方向は両構成に共通する。
@@ -692,12 +707,12 @@ class Settings(BaseSettings):
 
     # AWS
     aws_region: str = "ap-northeast-1"
-    bedrock_model_id: str = "apac.anthropic.claude-sonnet-4-5-20250929-v1:0"
+    bedrock_model_id: str = "global.anthropic.claude-sonnet-5-5"
 
     # Langfuse
     langfuse_public_key: str
     langfuse_secret_key: str
-    langfuse_host: str = "https://cloud.langfuse.com"
+    langfuse_base_url: str = "https://cloud.langfuse.com"
 
     # Prometheus
     prometheus_url: str = "http://prometheus:9090"
@@ -725,10 +740,10 @@ def get_settings() -> Settings:
 # src/my_app/domain/models.py
 from dataclasses import dataclass
 from datetime import datetime
-from enum import Enum
+from enum import StrEnum
 
 
-class IncidentSeverity(str, Enum):
+class IncidentSeverity(StrEnum):
     LOW = "low"
     MEDIUM = "medium"
     HIGH = "high"
@@ -834,6 +849,7 @@ class RCASummary(BaseModel):
 - **ビジネスロジックの置き場所が明確になる**: 判断や計算は`domain`のメソッドに集約され、`schemas`は単なるデータの入れ物に保てる
 - **テストしやすい**: `domain`はPydanticにもフレームワークにも依存しないので、純粋な単体テストが書ける
 
+> [!TIP]
 > 小規模なアプリなら、`domain`を省いて`schemas`（Pydantic）だけで済ませることも多い。**ビジネスロジックが薄いうち**はそれで十分で、ロジックが育って「APIの形」と「内部の本質」を分けたくなった段階で`domain`を導入すればよい。
 
 ### `infrastructure/` — 外部連携
@@ -842,19 +858,25 @@ class RCASummary(BaseModel):
 
 ```python
 # src/my_app/infrastructure/bedrock_client.py
-from langchain_aws import ChatBedrock
+from langchain_aws import ChatBedrockConverse
 from my_app.config import get_settings
 
 
-def create_bedrock_chat() -> ChatBedrock:
+def create_bedrock_chat() -> ChatBedrockConverse:
     """LangChain用のBedrockクライアントを生成"""
     settings = get_settings()
-    return ChatBedrock(
-        model_id=settings.bedrock_model_id,
+    return ChatBedrockConverse(
+        model=settings.bedrock_model_id,
         region_name=settings.aws_region,
-        model_kwargs={"temperature": 0.0, "max_tokens": 4096},
+        max_tokens=4096,
     )
 ```
+
+> [!NOTE]
+> **`ChatBedrockConverse` を使う理由**: LangChain公式はConverse APIベースの `ChatBedrockConverse` を推奨しており、従来の `ChatBedrock`（InvokeModel API）はカスタムモデルが必要な場合向け。引数名も `model_id` ではなく `model` になる。
+
+> [!CAUTION]
+> Claude 5系（Sonnet 5 / 5.5 など）は `temperature` / `top_p` / `top_k` を**既定値以外で指定すると400エラー**になるため、`temperature: 0.0` は渡さない。また `global.` はクロスリージョン推論プロファイルのID（モデルID単体では呼べない）。Sonnet 5.5 には `apac.` / `jp.` プロファイルが無く、東京リージョンからも `global.` で呼べる。
 
 ```python
 # src/my_app/infrastructure/prometheus_client.py
@@ -903,7 +925,7 @@ def create_langfuse() -> Langfuse:
     return Langfuse(
         public_key=settings.langfuse_public_key,
         secret_key=settings.langfuse_secret_key,
-        host=settings.langfuse_host,
+        base_url=settings.langfuse_base_url,
     )
 ```
 
@@ -1002,6 +1024,7 @@ def summarizer_node(state: RCAState) -> dict:
 
 ```python
 # src/my_app/agents/graph.py
+from langchain_core.messages import AIMessage
 from langgraph.graph import StateGraph, START, END
 from langgraph.prebuilt import ToolNode
 from my_app.agents.nodes import planner_node, summarizer_node
@@ -1016,7 +1039,8 @@ def should_continue(state: RCAState) -> str:
         return "summarize"
     # ツール呼び出しが残っていればツール実行へ、なければまとめへ
     last_message = state["messages"][-1]
-    if last_message.tool_calls:
+    # messages の要素は AIMessage 以外も取り得るため、isinstance で絞ってから tool_calls を見る（mypy strict 対応）
+    if isinstance(last_message, AIMessage) and last_message.tool_calls:
         return "tools"
     return "summarize"
 
