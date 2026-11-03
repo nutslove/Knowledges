@@ -11,8 +11,9 @@ uvを使ったPythonプロジェクトの推奨構成と運用方法のまとめ
 5. **必須の補助ファイル** — .gitignore / .python-version / .env.example / pre-commit
 6. **テストの構成**
 7. **Dockerでの利用**
-8. **各サブディレクトリの役割と実装例** — AI Agentを題材にしたコード詳解（設定だけ知りたい人は飛ばしてOK）
-9. **ベストプラクティスのまとめ**
+8. **フロントエンドとバックエンドを1リポジトリで管理する場合（モノレポ）** — `backend/` と `frontend/` の構成、uv workspace の使いどころ
+9. **各サブディレクトリの役割と実装例** — AI Agentを題材にしたコード詳解（設定だけ知りたい人は飛ばしてOK）
+10. **ベストプラクティスのまとめ**
 
 ## 基本構成（src layout）
 
@@ -253,8 +254,8 @@ Python 3.3以降、**Namespace Packages**（PEP 420）が導入され、`__init_
    __version__ = version("my_app")  # pyproject.toml の version を単一の情報源にする
    ```
 
-   > [!CAUTION]
-   > `__init__.py` で設定の読み込み（`Settings()` の生成）やログ初期化のような副作用の大きい処理をすると、`import my_app` した時点で実行される。必須の環境変数（例: Langfuseのキー）が無い環境（テスト・CI・`uv build` など）では **import だけで落ちる**ので、そうした処理は `main.py` の起動時や `get_settings()` の呼び出し側に置く。
+> [!CAUTION]
+> `__init__.py` で設定の読み込み（`Settings()` の生成）やログ初期化のような副作用の大きい処理をすると、`import my_app` した時点で実行される。必須の環境変数（例: Langfuseのキー）が無い環境（テスト・CI・`uv build` など）では **import だけで落ちる**ので、そうした処理は `main.py` の起動時や `get_settings()` の呼び出し側に置く。
 
 4. **パブリックAPIを定義できる**
    `__all__` や再エクスポートで、パッケージの外向けインターフェースを明示できる。
@@ -644,7 +645,8 @@ COPY pyproject.toml uv.lock ./
 # 依存のみインストール（プロジェクト本体はまだ入れない）
 RUN uv sync --frozen --no-dev --no-install-project
 
-# アプリケーションコードをコピー
+# アプリケーションコードをコピー（README.md は pyproject.toml の readme が参照するため必須）
+COPY README.md ./
 COPY src/ ./src/
 
 # ソースを入れた後にプロジェクト本体をインストール
@@ -661,6 +663,7 @@ CMD ["uvicorn", "my_app.main:app", "--host", "0.0.0.0", "--port", "8000"]
 
 - `--frozen`は`uv.lock`を変更しないモード、`--no-dev`は開発依存をスキップする
 - **`uv sync`はデフォルトでプロジェクト自身も（editableで）インストールしようとする**ため、ソースをコピーする前に実行すると失敗する。そこで依存だけ入れる層で`--no-install-project`を付け、ソースをコピーした後にもう一度`uv sync`してプロジェクト本体を入れる（uv公式のDocker統合ガイド推奨の2段構成）。これにより依存関係の層がソース変更で無効化されず、ビルドキャッシュが効く
+- **`README.md` を `COPY` しないとビルドが失敗する**。`uv init` が生成する `pyproject.toml` には `readme = "README.md"` があり、プロジェクト本体のインストール（2回目の `uv sync`）時にビルドバックエンドがこのファイルを読むため、無いと `failed to open file '/app/README.md'`（hatchling なら `Readme file does not exist: README.md`）で落ちる。`.dockerignore` に `*.md` を入れている場合は `!README.md` で除外を解除しないと、`COPY README.md` 自体が失敗する。依存だけの1回目（`--no-install-project`）は README が無くても通るので、**ソースをコピーした後にだけ発覚する**点に注意。
 
 ### .dockerignore
 
@@ -678,7 +681,305 @@ __pycache__/
 tests/
 docs/
 *.md
+# pyproject.toml の readme が参照するので README.md は除外しない
+!README.md
 ```
+
+## フロントエンドとバックエンドを1リポジトリで管理する場合（モノレポ）
+
+フロントエンド（React / Vue など）とバックエンド（Python）を1つのリポジトリに同居させる構成。
+
+### まず「モノレポにすべきか」
+
+「uv を使うからモノレポ」ではなく、**変更が両方にまたがるか／別々にデプロイするか**で決める。
+
+| | モノレポが向く | 別リポジトリが向く |
+|---|---|---|
+| 変更の単位 | 1つの機能で API と UI を同時に変えることが多い | 片方だけ変わることがほとんど |
+| デプロイ | 一緒に出す、または同じパイプラインで出し分けられる | リリース周期・担当チームが別 |
+| 型の共有 | OpenAPI から生成したクライアントを同じ PR で更新できる | 別リポジトリだと生成物のバージョン管理が別途必要 |
+
+- 1人〜小さなチームで、API と UI が密結合なら、モノレポの方が PR・レビュー・ブランチが1つで済む。
+- モノレポでも**デプロイは独立にできる**（CI で出し分ければよい）。逆に「A だけデプロイすると B が壊れる」状態なら、リポジトリを分けても境界は偽物（分散モノリス）。
+
+### 前提: uv が扱うのは Python だけ
+
+- **uv が管理するのは Python の依存だけ**。フロントエンドの依存は npm / pnpm / bun など JS 側のツールで別に管理する（uv は `package.json` を扱わない）。
+- uv の **workspace は「複数の Python パッケージ」を1つのロックファイルで束ねる機能**で、フロントエンドを束ねる機能ではない。
+- したがって `frontend/` と `backend/` は**それぞれのツールのプロジェクトとして並べる**だけで、uv 側から見て `frontend/` は存在しないものとして扱う。
+
+### 構成の選択肢
+
+**どちらも実在する構成で、優劣ではなく「Python パッケージがいくつあるか」で選ぶ。**
+
+| | パターンA（独立プロジェクト） | パターンB（ルートに workspace） |
+|---|---|---|
+| Python パッケージの数 | 1つで足りる | 複数（API / ワーカー / 共有ライブラリなど）、または将来増える見込み |
+| `pyproject.toml` / `uv.lock` / `.venv` | すべて `backend/` | `pyproject.toml`（workspace 定義）・`uv.lock`・`.venv` はルート、各 member に `pyproject.toml` |
+| コマンドの実行場所 | `backend/`（ルートからは `uv run --project backend`） | ルートでも member のディレクトリ内でもよい |
+| Dockerfile | `backend/` に置き、ビルドコンテキストも `backend/` | `backend/` に置いても、**ビルドコンテキストはルート**にする |
+| 採用例 | — | FastAPI 公式の [full-stack-fastapi-template](https://github.com/fastapi/full-stack-fastapi-template) |
+
+> [!TIP]
+> 迷ったらパターンA で始め、Python パッケージが2つ目（ワーカー・共有ライブラリなど）になった時点でパターンB に移行する。移行は「ルートに `[tool.uv.workspace]` だけの `pyproject.toml` を足す」程度で済む。
+
+### パターンA: `backend/` を独立した uv プロジェクトにする
+
+`backend/` の中に前述の構成（`pyproject.toml` / `uv.lock` / `src/` / `tests/`）をそのまま置く。
+
+```text
+my_product/
+├── backend/                    ← uv プロジェクト（この記事のここまでの構成がそのまま入る）
+│   ├── src/
+│   │   └── my_app/
+│   ├── tests/
+│   ├── pyproject.toml
+│   ├── uv.lock
+│   ├── .python-version
+│   ├── README.md
+│   └── Dockerfile
+├── frontend/                   ← JS 側のプロジェクト（uv は関与しない）
+│   ├── src/
+│   ├── package.json
+│   ├── bun.lock                （npm なら package-lock.json、pnpm なら pnpm-lock.yaml）
+│   └── Dockerfile
+├── compose.yml                 ← 両方をまとめて起動
+├── .env.example
+├── .gitignore                  ← .venv/ と node_modules/ の両方を除外
+├── .pre-commit-config.yaml
+└── README.md
+```
+
+- **コマンドは `backend/` に入って実行**するのが基本（`cd backend && uv sync && uv run pytest`）。ルートから実行したいときは `uv run --project backend ...`（手元で動作確認済み）。
+- Dockerfile はそれぞれのディレクトリに置き、`compose.yml` で `build: ./backend` / `build: ./frontend` と指定する。**ビルドコンテキストが `backend/` になるので、前章の Dockerfile をそのまま使える**。
+- フロントとバックエンドを別々にデプロイする（フロントは静的ホスティング、バックエンドはコンテナ、など）場合に素直。
+
+### パターンB: ルートに uv workspace を置く
+
+Python パッケージが複数ある場合や、ロックファイルを1つにまとめたい場合は、リポジトリルートを workspace のルートにする。
+
+```text
+my_product/
+├── pyproject.toml              ← workspace の定義だけ（[tool.uv.workspace]）
+├── uv.lock                     ← ロックファイルはルートに1つだけ
+├── .python-version
+├── backend/                    ← workspace member（Python パッケージ）
+│   ├── src/
+│   │   └── my_app/
+│   ├── tests/
+│   ├── pyproject.toml
+│   ├── README.md
+│   └── Dockerfile              ← 置き場所は backend/ でよい（ビルドコンテキストはルート）
+├── frontend/                   ← members に含めない
+│   ├── src/
+│   ├── package.json
+│   └── Dockerfile
+├── compose.yml
+├── .env.example
+└── README.md
+```
+
+ルートの `pyproject.toml`:
+
+```toml
+# my_product/pyproject.toml（workspace のルート）
+[tool.uv.workspace]
+members = ["backend"]           # Python パッケージだけを明示する
+```
+
+`backend/pyproject.toml` は通常の uv プロジェクトと同じ（`uv init --package backend` で作れる）。
+
+> [!NOTE]
+> uv 公式ドキュメントの例はすべてルートにも `[project]` を持たせており、上のような「`[project]` を書かないルート」を説明するページは見当たらない。ただし FastAPI 公式テンプレートがこの形で、手元の uv 0.13.6 でも `uv sync` / `uv lock` / `uv run` が問題なく動いた。ルートも Python パッケージにしたい場合は、通常どおり `[project]` を足し、`members` にルート自身を含める（ルートは常に member になる）。
+
+```bash
+uv sync                           # ルートで実行。.venv と uv.lock はルート直下に作られる
+uv sync --package my-app          # 特定の member（と、その依存する member）だけ同期する
+uv run --package my-app pytest    # member を指定して実行
+uv add --package my-app fastapi   # member に依存を追加
+uv add --package my-app shared    # member 同士の依存。`{ workspace = true }` が自動で付く
+```
+
+手元で複数 member（`api` / `worker` / `shared`）を作って確認した動作:
+
+- **ルートで素の `uv sync` を実行すると、全 member がインストールされる**（`--package` を付けなくてよい）。`--package` は「一部だけ入れたい」ときに使う（例: `--package api` だと `worker` は入らない）。
+- `backend/` の中に入って `uv sync` / `uv run` を実行しても、**`.venv` と `uv.lock` は常にルートのものが使われる**（`backend/.venv` は作られない）。
+- member の `[dependency-groups]` の `dev`（pytest など）は、ルートでの `uv sync` で既定で入る。本番イメージでは `--no-dev` で外す。
+- `uv add --package api shared` のように member 同士の依存を足すと、`api/pyproject.toml` に `shared = { workspace = true }` が自動で書かれる（手書き不要）。
+
+> [!IMPORTANT]
+> - `--package` に渡すのは**ディレクトリ名ではなく `pyproject.toml` の `[project].name`**。`uv init --package backend --name my_app` のようにディレクトリ名と `name` が違うなら `--package my_app`（`--package backend` だと `The workspace does not have a member backend` になる）。
+> - workspace 全体で **`requires-python` は全 member の共通部分**が使われ、依存も1つの解決結果に揃う。member 同士で依存が衝突する、member ごとに別の仮想環境が必要、という場合は workspace を避け、各パッケージを独立プロジェクトにして `path` 依存でつなぐ（`uv run --package` は使えなくなり、各パッケージのディレクトリ内で実行することになる）。
+> - Python は依存を隔離しないので、uv は member が**他の member だけが宣言している依存を import してしまう**ことを防げない。member ごとに依存をきちんと宣言すること。
+
+#### `frontend/` を members に一致させない
+
+`members` のパターンに一致したディレクトリは `pyproject.toml` を必須とするため、`package.json` しか無い `frontend/` が一致すると `uv lock` が失敗する（手元で確認済み）。
+
+```text
+error: Workspace member `.../apps/web` missing a `pyproject.toml` (matches: `apps/*`)
+```
+
+回避策は3つ（いずれも手元で動作確認済み）:
+
+1. **`members` に Python のディレクトリだけを明示する**（`members = ["backend"]`）。最も単純で、上の構成はこれ。
+2. **`frontend/` を `apps/` の外に置く**。`members = ["apps/*"]` のようにグロブを使いたいときは、フロントを `apps/` 配下に置かない。
+3. **グロブを使いつつ `exclude` で除外する**: `members = ["apps/*"]` + `exclude = ["apps/web"]`。
+
+#### フロントエンドも含めて1つのイメージにする Dockerfile 例（パターンB）
+
+**ビルドコンテキストはリポジトリルート**にする（`uv.lock` と workspace の `pyproject.toml` がルートにあるため）。Dockerfile 自体は `backend/` に置いてよく、その場合は `docker build -f backend/Dockerfile .` のようにコンテキストだけをルートにする。フロントエンドをビルドして成果物を Python 側のイメージに取り込むマルチステージの形:
+
+```dockerfile
+# --- ステージ1: フロントエンドをビルド ---
+FROM oven/bun:1 AS frontend-build
+WORKDIR /app/frontend
+COPY frontend/package.json frontend/bun.lock ./
+RUN bun install --frozen-lockfile
+COPY frontend/ ./
+RUN bun run build                       # 成果物は dist/ に出力される想定
+
+# --- ステージ2: Python アプリ ---
+FROM python:3.12-slim
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy
+ENV PATH="/app/.venv/bin:$PATH"
+WORKDIR /app
+
+# 依存だけ先にインストール（member 自身は入れない → コード変更でキャッシュが効く）
+COPY pyproject.toml uv.lock ./
+COPY backend/pyproject.toml ./backend/
+RUN uv sync --frozen --no-dev --no-install-workspace --package my_app
+
+# アプリ本体とフロントの成果物をコピーして、member 自身をインストール
+COPY backend/README.md ./backend/          # pyproject の readme を参照するため必須
+COPY backend/src ./backend/src
+COPY --from=frontend-build /app/frontend/dist ./backend/src/my_app/static
+RUN uv sync --frozen --no-dev --package my_app
+
+CMD ["uvicorn", "my_app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+```
+
+> [!NOTE]
+> - workspace では前章の `--no-install-project` ではなく **`--no-install-workspace`** を使う（ルートだけでなく member も除外して、依存だけの層を作る）。`--package my_app` で必要な member だけを同期する。
+> - **1回目は `--frozen`、2回目は `--locked`（または `--frozen`）**。uv 公式は「member の `pyproject.toml` が無いと `uv.lock` が最新か検証できないので、最初の sync は `--locked` ではなく `--frozen` を使う」と説明している。手元でも、member の `pyproject.toml` が欠けた状態の `--locked` は `missing a pyproject.toml` で失敗した。全 member の `pyproject.toml` を `COPY` した後なら `--locked` が使え、ロックと `pyproject.toml` のずれを検出できる。
+> - `pyproject.toml` に `readme = "README.md"` がある（`uv init` の既定）ので、**2回目の `uv sync` の前に `backend/README.md` もコピーする**。コピーしないと `failed to open file '/app/backend/README.md'` でビルドが失敗する（実際に踏んだ）。`.dockerignore` に `*.md` を入れている場合は `!backend/README.md` で除外を解除すること。
+> - この Dockerfile は手元でビルドして、コンテナ起動後に `/openapi.json` が HTTP 200 を返し、フロントのビルド成果物が `static/` に入っていることを確認した。フロントのビルド出力先や静的ファイルの配信方法（FastAPI の `StaticFiles` か nginx か）はプロジェクトに合わせて調整すること。
+> - 実運用の例は FastAPI 公式テンプレートの `backend/Dockerfile`。そちらは `fastapi run` を使っている。FastAPI 公式ドキュメントは、`CMD` を必ず **exec 形式**（`["fastapi", "run", ...]`）で書くこと（シェル形式だと graceful shutdown や lifespan イベントが正しく動かない）、ロードバランサ / nginx の背後では `--proxy-headers` を付けることを案内している。
+
+### 型・API クライアントの共有
+
+Python と TypeScript はコードを直接共有できないので、**FastAPI が出力する OpenAPI スキーマから TypeScript のクライアント／型を生成**するのが定番。
+
+- 手順は「バックエンドの OpenAPI JSON を出力 → フロントのクライアントを生成 → **生成物をコミット**」。FastAPI 公式テンプレートは `scripts/generate-client.sh` でこれをやっていて、`app.openapi()` を `uv run python -c` で出力し（サーバや DB の起動は不要）、フロントの `generate-client` スクリプトを実行している。
+- 生成ツールは `@hey-api/openapi-ts`（SDK と TanStack Query のオプションまで生成）や `openapi-typescript` + `openapi-fetch`（型だけ生成）などが使われている。
+- **CI で「再生成して差分が出たら失敗」させる**と、バックエンドの API を変えたのにフロントの型を更新し忘れる事故を防げる。ここがモノレポの最大の利点を活かすところ。
+- FastAPI の OpenAPI には `servers` が含まれず、生成されたクライアントに `baseUrl` が入らないので、フロント側で設定する。
+
+### 共通の注意点
+
+- **`.gitignore`**: Python 側（`.venv/` など）に加えて、`node_modules/`、フロントのビルド成果物（`dist/`）も除外する。
+- **`.env` / `.env.example`**: バックエンド用の変数（Bedrock・Langfuse のキーなど）はサーバ側だけに置く。Vite は `VITE_` で始まる変数をビルド時にバンドルへ埋め込み、**ブラウザから見えてしまう**（Vite 公式も「API キーなどの機密情報を入れてはいけない」としている）。フロントに渡す変数に秘密情報を入れない。
+- **pre-commit**: 設定ファイルはルートに1つ置き、ruff / mypy のフックには `files: ^backend/` を付けて対象を絞る（手元で、`frontend/` の違反が無視され `backend/` だけ検出されることを確認）。フロント用のフック（prettier / eslint など）も同じファイルに並べられる。
+- **タスクランナー**: `cd backend && uv run ...` と `cd frontend && bun run ...` を行き来するのが面倒になったら、ルートに `Makefile` や `justfile` を置いて `make test` / `make dev` にまとめるとよい。
+
+### CI（GitHub Actions）
+
+**変更パスで出し分けたいからといって、workflow 全体に `on.pull_request.paths` を付けてはいけない。**
+
+> [!CAUTION]
+> パスフィルタ・ブランチフィルタ・コミットメッセージで **workflow 全体がスキップされると、そのチェックは「Pending」のまま**になり、そのチェックを必須（required）にしている PR は**マージできなくなる**（[GitHub 公式](https://docs.github.com/actions/using-workflows/workflow-syntax-for-github-actions)）。一方、workflow 内の**ジョブが `if:` でスキップされた場合は「Success」扱い**になる。
+
+推奨される形:
+
+1. **workflow には `paths:` を付けず、常に起動させる**。
+2. 最初のジョブで変更ファイルを判定する（[dorny/paths-filter](https://github.com/dorny/paths-filter) など）。
+3. `backend` / `frontend` のジョブは、判定結果で **ジョブレベルの `if:`** を使って実行／スキップする。
+4. **必須チェックは、常に走る「集約ジョブ」（例: `ci-gate`）1つだけ**にし、他のジョブが成功またはスキップのときに成功させる。
+
+```yaml
+# .github/workflows/ci.yml（骨子）
+on:
+  pull_request:
+  push:
+    branches: [main]            # workflow に paths: は付けない
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read       # paths-filter が PR の変更ファイル一覧を API で取得するのに必要
+    outputs:
+      backend: ${{ steps.f.outputs.backend }}
+      frontend: ${{ steps.f.outputs.frontend }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dorny/paths-filter@v4
+        id: f
+        with:
+          filters: |
+            backend:
+              - 'backend/**'
+              - 'pyproject.toml'
+              - 'uv.lock'
+            frontend:
+              - 'frontend/**'
+
+  backend:
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10
+        with:
+          enable-cache: true
+      - run: uv sync --locked          # パターンB はルート、パターンA は working-directory: backend
+      - run: uv run --package my_app pytest
+
+  frontend:
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile && bun run build && bun test
+
+  ci-gate:                          # ← ブランチ保護の必須チェックはこれだけ
+    if: always()
+    needs: [backend, frontend]
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          [[ "${{ contains(needs.*.result, 'failure') }}" == "false" && "${{ contains(needs.*.result, 'cancelled') }}" == "false" ]]
+```
+
+> [!NOTE]
+> - 上の YAML は骨子で、アクションのバージョンは記事執筆時点の最新メジャー（`checkout` v7、`setup-uv` v10、`paths-filter` v4）。実運用では commit SHA 固定が推奨される（uv 公式ガイドも `setup-uv` を SHA 固定している）。FastAPI 公式テンプレートの `test-backend.yml` は `paths:` を使わず、常に全テストを走らせている。**小規模なら出し分けずに常に全部走らせる**のも立派な選択。
+> - `astral-sh/setup-uv` の `cache-dependency-glob` は既定で `**/uv.lock` や `**/pyproject.toml` などを拾うので、モノレポの深い階層の lockfile も対象になる。`working-directory` で `pyproject.toml` を探すディレクトリを変えられる。
+
+### Dependabot
+
+`.github/dependabot.yml` で、バックエンド（uv）とフロントエンド（npm など）を**別々の ecosystem エントリ**として登録する。
+
+```yaml
+version: 2
+updates:
+  - package-ecosystem: "uv"
+    directory: "/backend"           # パターンB は "/"（workspace ルートに uv.lock がある）
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "npm"
+    directory: "/frontend"
+    schedule:
+      interval: "weekly"
+```
+
+- `directory` は **`pyproject.toml` と `uv.lock` がある場所**を指す。uv workspace は `uv.lock` がルートに1つだけなので、**member ごとに並べず、workspace ルートの1エントリ**にする。
+- 複数ディレクトリは `directories:`（複数形）で書け、グロブも使える（単数形の `directory` はグロブ不可）。同じ ecosystem のエントリ同士でディレクトリが重複しないようにする。
+- uv workspace まわりは Dependabot 側にまだ既知の不具合報告がある（[dependabot-core #12072](https://github.com/dependabot/dependabot-core/issues/12072)）ので、導入したら実際に PR が作られるかを確認すること。
 
 ## 各サブディレクトリの役割と実装例
 
