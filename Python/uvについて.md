@@ -144,10 +144,12 @@ my-project = "my_project:main"
 
 「**`my-project` というコマンドを叩いたら、`my_project` パッケージの `main()` 関数を呼び出す**」というエントリーポイント (入口) の定義。
 
-`uv sync` すると `.venv/bin/my-project` という実行可能ファイルが自動生成される (中身はざっくり `from my_project import main; main()` 相当)。なので:
+`uv sync` すると `.venv/bin/my-project` という実行可能ファイルが自動生成される (中身はざっくり `from my_project import main; main()` 相当)。
+
+この実行可能ファイルを `uv run` 経由で実行するのが、次のコマンド。
 
 ```bash
-uv run my-project        # [project.scripts]で定義したコマンド名を実行 → main()が呼ばれる
+uv run my-project        # .venv/bin/my-project が実行され、main()が呼ばれる
 ```
 
 以前の `uv run python main.py` (スクリプトファイルを直接指定して実行) とは違い、「**コマンドとしてインストールされたエントリーポイントを叩く**」という発想になっている (`pip install`後の `black` や `ruff` コマンドと同じ仕組み)。
