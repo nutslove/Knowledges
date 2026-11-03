@@ -314,8 +314,9 @@ uv lock --upgrade-package fastapi     # 特定パッケージのみアップグ�
 
 ### コマンド実行
 ```bash
+# いずれも my-project/ (pyproject.tomlのあるディレクトリ) で実行する
 uv run my-project                     # [project.scripts]のエントリーポイントを実行 (packaged-by-defaultの場合)
-uv run python -m my_project           # モジュールとして実行
+uv run python -m my_project           # ※ __main__.py を作った場合のみ動く (下の「エントリーポイントの変更」参照)
 uv run python main.py                 # --no-packageで作成した場合はこちら
 uv run pytest
 uv run --no-project ruff check        # プロジェクトを無視して実行
@@ -324,6 +325,85 @@ uv run --with rich python -c "..."    # 一時的に依存を追加して実行
 
 > [!NOTE]
 > `uv run` は実行前に毎回 `pyproject.toml` ↔ `uv.lock` ↔ 環境 の整合性を自動チェックする。venvのactivate不要。
+
+### ファイルの追加と `uv run` の実行場所
+
+#### ファイルの追加 (デフォルトのパッケージ構成)
+
+自分のコードは `src/<パッケージ名>/` 配下に追加する (`pyproject.toml` と同じ階層には置かない)。
+
+```
+my-project/
+├── pyproject.toml
+└── src/
+    └── my_project/
+        ├── __init__.py    # main() が入っている
+        └── utils.py       ← ここに追加
+```
+
+追加したファイルは `my_project.` 始まりでimportする。
+
+```python
+# src/my_project/__init__.py
+from my_project.utils import foo    # 絶対import (推奨)
+# from .utils import foo            # 相対importでもOK
+
+def main() -> None:
+    foo()
+```
+
+> [!NOTE]
+> プロジェクト自体が `.venv/` に editable でインストールされるため、ファイルを追加・編集しても再インストールは不要。そのまま `uv run my-project` で反映される。
+
+#### `--no-package` で作った場合
+
+`pyproject.toml` と同じ階層 (`main.py` の隣) にファイルを置く。
+
+```
+my-project/
+├── pyproject.toml
+├── main.py
+└── utils.py    ← ここに追加
+```
+
+```python
+# main.py
+from utils import foo
+```
+
+#### `uv run` はどこで実行するか
+
+**プロジェクトルート (`pyproject.toml` のある場所) で実行するのが基本。** サブディレクトリ (`src/my_project/` など) からでも、uvが親ディレクトリの `pyproject.toml` を探して動く。別の場所から実行したい場合は `--project` / `--directory` を使う。
+
+```bash
+uv run --project ~/my-project my-project     # プロジェクトを指定
+uv run --directory ~/my-project my-project   # 作業ディレクトリごと移動して実行
+```
+
+#### エントリーポイントの変更 (`main()` は必須ではない)
+
+`__init__.py` の `main()` が入口になっているのは、`uv init` が生成する `[project.scripts]` がそう指しているだけで、Python/uvの決まりではない。書式は `"パッケージ.モジュール:関数名"`。
+
+```toml
+[project.scripts]
+my-project = "my_project:main"       # デフォルト = __init__.py の main()
+# my-project = "my_project.cli:run"  # src/my_project/cli.py の run() に変更
+# my-tool    = "my_project.tool:run" # コマンドを複数定義してもよい
+```
+
+`pyproject.toml` を変更したあとの `uv run` は自動で再同期するので、`uv sync` を打ち直す必要はない。
+
+`python -m` で実行したい場合は `__main__.py` が必要 (`__init__.py` だけだとエラーになる)。
+
+```python
+# src/my_project/__main__.py
+from my_project import main
+main()
+```
+
+```bash
+uv run python -m my_project       # __main__.py があれば動く
+```
 
 ---
 
