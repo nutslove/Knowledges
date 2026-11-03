@@ -62,10 +62,10 @@ my_project/
 
 ### なぜ `src/` の中にさらに同名のディレクトリを作るのか
 
-`my_project/src/my_package/` のように外側と内側で同名になるのは偶然ではなく、**`uv init` がプロジェクト名からパッケージ名（`src/` 直下のディレクトリ名）を自動で決める**ため。ビルドバックエンドも、既定ではこの名前の一致を前提にしている。ただし、同名なのは「名前」だけで、**両者の役割は別物**。
+`my_project/src/my_package/` のように外側と内側で同名になるのは偶然ではなく、**`uv init` がプロジェクト名からパッケージ名（`src/` 直下のディレクトリ名）を自動で決める**ため。ビルドバックエンドも、デフォルトではこの名前の一致を前提にしている。ただし、同名なのは「名前」だけで、**両者の役割は別物**。
 
 - **名前の変換ルール**: `uv init --package my-app` のようにハイフンやドットを含む名前を渡しても、パッケージ名は小文字・アンダースコアに正規化される（`my-app` / `My.App` / `my_app` はいずれも `src/my_app/` になる。手元で確認）。`pyproject.toml` の `name` は `my-app` のようにハイフン区切りに正規化されるが、`import` するときは `my_app` になる。
-- **一致が必要な理由**: `uv_build`（uv の既定）は `src/<正規化したプロジェクト名>/__init__.py` を探す。ディレクトリを `src/renamed/` に改名してビルドすると `Expected a Python module at: src/<プロジェクト名>/__init__.py` で失敗する（手元で確認）。hatchling も同様に `src/<プロジェクト名>/` を自動検出し、一致しない場合は明示設定が必要（後述）。
+- **一致が必要な理由**: `uv_build`（uv のデフォルト）は `src/<正規化したプロジェクト名>/__init__.py` を探す。ディレクトリを `src/renamed/` に改名してビルドすると `Expected a Python module at: src/<プロジェクト名>/__init__.py` で失敗する（手元で確認）。hatchling も同様に `src/<プロジェクト名>/` を自動検出し、一致しない場合は明示設定が必要（後述）。
 - **ずらしたいとき**: プロジェクト名（配布名）と `import` 名を意図的に変えたい場合は、`uv_build` なら `[tool.uv.build-backend] module-name = "..."`、hatchling なら `[tool.hatch.build.targets.wheel] packages = [...]` で指定する。
 
 ```
@@ -101,7 +101,7 @@ my_app/                  ← プロジェクト（リポジトリ）全体の入
    | 状況 | flat layout | src layout |
    |---|---|---|
    | インストールせず `python -m pytest` | 通る（見逃す） | import エラー（気づける） |
-   | editable install（`uv sync` の既定）でテスト | — | **通る（見逃す）** |
+   | editable install（`uv sync` のデフォルト）でテスト | — | **通る（見逃す）** |
    | 通常インストール（`uv sync --no-editable` / wheel）でテスト | — | **失敗（気づける）** |
 
    つまり、src layout が防ぐのは「インストールせずに動いてしまう」ことで、「**wheel の中身が正しいか**」を検証するには別途、**editable ではない通常インストールの状態でテストを走らせる**必要がある。CI では次のようにするとよい。
@@ -131,7 +131,7 @@ my_app/                  ← プロジェクト（リポジトリ）全体の入
 
 #### ① サブパッケージ（普通のやり方）
 
-`src/my_app/api/`・`services/`・`domain/` のように、**1つのパッケージの下にディレクトリを増やす**。この記事のレイヤー構成がこれで、設定は要らない。`my_app/services/__init__.py` があれば wheel に含まれ、`import my_app.services` で使える。
+`src/my_app/api/`、`src/my_app/services/`、`src/my_app/domain/` のように、**1つのパッケージの下にディレクトリを増やす**。この記事のレイヤー構成がこれで、設定は要らない。`my_app/services/__init__.py` があれば wheel に含まれ、`import my_app.services` で使える。
 
 #### ② トップレベルパッケージを複数置く
 
@@ -140,15 +140,15 @@ my_app/                  ← プロジェクト（リポジトリ）全体の入
 ```text
 my_project/
 └── src/
-    ├── my_project/   ← プロジェクト名と同じ（既定で wheel に入る）
+    ├── my_project/   ← プロジェクト名と同じ（デフォルトで wheel に入る）
     ├── foo/
     └── bar/
 ```
 
 > [!WARNING]
-> `uv_build` は既定だと、**プロジェクト名と一致する1つのパッケージしか wheel に入れない**。`src/foo` や `src/bar` を足しても、ビルドは成功するのに wheel には `my_project/` しか入らず、インストールすると `import foo` が失敗する（手元で確認）。ビルドが成功するため気づきにくい。
+> `uv_build` はデフォルトだと、**プロジェクト名と一致する1つのパッケージしか wheel に入れない**。`src/foo` や `src/bar` を足しても、ビルドは成功するのに wheel には `my_project/` しか入らず、インストールすると `import foo` が失敗する（手元で確認）。ビルドが成功するため気づきにくい。
 
-使っているビルドバックエンドに応じて、含めるパッケージを明示する。
+使っているビルドバックエンドに応じて、含めるパッケージを**明示**すると、上の Warning の問題（`foo` / `bar` が wheel に入らない）は解消する。
 
 ```toml
 # uv_build の場合（リストで指定。手元で3つとも wheel に入り、import できることを確認）
@@ -162,6 +162,18 @@ module-name = ["my_project", "foo", "bar"]
 packages = ["src/foo", "src/bar"]
 ```
 
+ただし、**明示すれば絶対に安全というわけではない**。手元で試した結果は次のとおり。
+
+| 状況 | `uv_build` | hatchling |
+|---|---|---|
+| 設定に書いた名前が正しい | 全部 wheel に入る | 全部 wheel に入る |
+| リストに**書き忘れた**パッケージがある | **ビルドは成功し、wheel には入らない** | **ビルドは成功し、wheel には入らない** |
+| **存在しない**名前・パスを書いた | **ビルド失敗**（`Expected a Python module at: ...`） | **ビルドは成功し、wheel は空**（`dist-info` しか入らない） |
+| あとから `src/baz/` を足したが設定に追記し忘れた | wheel に入らず、`import baz` が失敗 | 同左 |
+
+- つまり、明示しても「**書き忘れ**」は防げず、しかもビルドは成功してしまう。hatchling は**綴りを間違えても気づけない**（`uv_build` は失敗するので気づける）。
+- 対策は、前述の **`uv sync --no-editable` + `uv run --no-sync pytest`** のように、**wheel をインストールした状態で `import` するテスト**を CI に入れること。`src/foo` を足したのに設定へ追記し忘れた場合も、`import foo` の失敗として検出できる。
+
 > [!NOTE]
 > `uv_build` の `module-name` にリストを渡せることは、uv 公式の [Build backend](https://docs.astral.sh/uv/concepts/build-backend/) に記載がある。トップレベル名は、他のライブラリと衝突すると `import` が壊れるため、汎用的な名前（`utils`、`common` など）は避ける。**名前空間を分けたいだけなら、②よりも①のサブパッケージの方が素直**。
 
@@ -171,7 +183,7 @@ packages = ["src/foo", "src/bar"]
 
 #### どれを選ぶか
 
-- **ふつうのアプリは①で十分**。
+- **普通のアプリは①で十分**。
 - **②は、同じ配布物にまとめたいが `import` 名は分けたい場合**（既存コードの移行途中など）に限る。
 - **③は、別々にバージョンを付けて配布したい場合**。
 
@@ -349,12 +361,12 @@ Python 3.3以降、**Namespace Packages**（PEP 420）が導入され、`__init_
 
 `tests/`ディレクトリには **`__init__.py`を置かないのが推奨**。テストをパッケージ化しないことで余計な依存関係が発生せず、src layoutの「インストール済みパッケージを対象にテストする」という利点を濁さない。
 
-注意点として、pytest既定の `prepend` importモードでは、テストファイルのベース名が一意でないと衝突する（例: `tests/unit/test_logic.py` と `tests/integration/test_logic.py` はどちらも `test_logic` でモジュール名が衝突しエラーになる）。これを避けるには各ディレクトリに `__init__.py` を置く方法もあるが、**`pyproject.toml`で `--import-mode=importlib` を指定するのが現代的な推奨**（前掲の `[tool.pytest.ini_options]` 参照）。importlibモードなら **`__init__.py` を一切置かずに同名衝突も回避できる**ので、`tests/`は常に `__init__.py` なしで統一できる。
+注意点として、pytestデフォルトの `prepend` importモードでは、テストファイルのベース名が一意でないと衝突する（例: `tests/unit/test_logic.py` と `tests/integration/test_logic.py` はどちらも `test_logic` でモジュール名が衝突しエラーになる）。これを避けるには各ディレクトリに `__init__.py` を置く方法もあるが、**`pyproject.toml`で `--import-mode=importlib` を指定するのが現代的な推奨**（前掲の `[tool.pytest.ini_options]` 参照）。importlibモードなら **`__init__.py` を一切置かずに同名衝突も回避できる**ので、`tests/`は常に `__init__.py` なしで統一できる。
 
 ### まとめ
 
 - `src/my_package/`配下のディレクトリには **必ず`__init__.py`を置く**（空でOK）
-- `tests/`配下は **置かない**。`--import-mode=importlib` を設定すれば名前衝突も起きないので常に不要（既定モードのまま同名ファイルを衝突させたくない場合のみ置く）
+- `tests/`配下は **置かない**。`--import-mode=importlib` を設定すれば名前衝突も起きないので常に不要（デフォルトモードのまま同名ファイルを衝突させたくない場合のみ置く）
 - 必須ではないが、ツール互換性と意図の明確化のために（`src/`配下では）置くのが現代的なベストプラクティス
 
 ## pyproject.tomlの設定例
@@ -371,14 +383,14 @@ uvを使う場合、**`uv init` を実行すると、必要最小限の `pyproje
 
 | コマンド | レイアウト | `[build-system]` | 用途 |
 |---|---|---|---|
-| `uv init`（= `--app`、既定） | `src/` レイアウト | あり（`uv_build`）＋ `[project.scripts]` | Webサーバ・CLI・バッチなど、実行するアプリ |
-| `uv init --package` | `src/` レイアウト | あり（`uv_build`）＋ `[project.scripts]` | 既定とほぼ同じ（パッケージ化を明示したいとき） |
+| `uv init`（= `--app`、デフォルト） | `src/` レイアウト | あり（`uv_build`）＋ `[project.scripts]` | Webサーバ・CLI・バッチなど、実行するアプリ |
+| `uv init --package` | `src/` レイアウト | あり（`uv_build`）＋ `[project.scripts]` | デフォルトとほぼ同じ（パッケージ化を明示したいとき） |
 | `uv init --lib` | `src/` レイアウト | あり（`uv_build`）＋ `py.typed`（`[project.scripts]` なし） | ライブラリとして配布する |
 | `uv init --no-package` | ルート直下に `main.py` | なし（非パッケージ） | 配布・インストールしない簡易スクリプト |
 | `uv init --bare` | なし | なし | `pyproject.toml` だけを作る最小構成 |
 
 > [!NOTE]
-> uv 0.12より前は、素の `uv init`（アプリ）は `[build-system]` を作らず `main.py` をルート直下に置いていた。現在は既定でも `src/` レイアウト＋ビルドシステムありになり、旧来の挙動は `--no-package` で得られる（`--build-backend` を指定すると `--package` 扱いになる）。
+> uv 0.12より前は、素の `uv init`（アプリ）は `[build-system]` を作らず `main.py` をルート直下に置いていた。現在はデフォルトでも `src/` レイアウト＋ビルドシステムありになり、旧来の挙動は `--no-package` で得られる（`--build-backend` を指定すると `--package` 扱いになる）。
 >
 > このドキュメントの構成（src layout・テスト同梱）なら、素の `uv init` / `uv init --package` / `uv init --lib` のいずれでもよい。
 
@@ -419,7 +431,7 @@ requires = ["uv_build>=0.13.6,<0.14.0"]   # 値は uv のバージョンに応�
 build-backend = "uv_build"
 ```
 
-- **ビルドバックエンド**: 最近のuvが既定で入れるのは `uv_build`。`hatchling` を使いたい場合は `--build-backend hatchling` を付けて `uv init` するか、あとから `[build-system]` を書き換える（このドキュメントの全体像では `hatchling` の例を採用している）。
+- **ビルドバックエンド**: 最近のuvがデフォルトで入れるのは `uv_build`。`hatchling` を使いたい場合は `--build-backend hatchling` を付けて `uv init` するか、あとから `[build-system]` を書き換える（このドキュメントの全体像では `hatchling` の例を採用している）。
 - `dependencies` や各ツール設定（`[tool.ruff]` など）は **初期状態では入っていない**。次の「自動作成後の修正方法」で育てていく。
 
 ### `uv init` で自動作成された後の修正方法（特に依存関係）
@@ -512,7 +524,7 @@ addopts = "--import-mode=importlib --cov=my_app --cov-report=term-missing"
 #### `[build-system]` — ビルドバックエンド
 
 - **何を**: パッケージをビルドするツール（バックエンド）の指定
-- **どう**: uvが既定で生成するのは `uv_build`（uv公式のビルドバックエンド）。`hatchling` もシンプルで広く使われており、`uv init --build-backend hatchling` で選べる。いずれも `uv init`（`--package`/`--lib`）が自動生成するので通常はそのままでよい（この全体像の例では `hatchling` を採用）
+- **どう**: uvがデフォルトで生成するのは `uv_build`（uv公式のビルドバックエンド）。`hatchling` もシンプルで広く使われており、`uv init --build-backend hatchling` で選べる。いずれも `uv init`（`--package`/`--lib`）が自動生成するので通常はそのままでよい（この全体像の例では `hatchling` を採用）
 - **補足（src layoutの注意・hatchlingの場合）**: **プロジェクト名（正規化後）とパッケージのディレクトリ名が一致していれば** hatchlingは `src/<name>/` を自動検出するので追加設定は不要。一致しない場合（例: `name = "my-cool-app"` だがディレクトリが `src/coolapp/`）は明示が必要
 
   ```toml
@@ -541,7 +553,7 @@ addopts = "--import-mode=importlib --cov=my_app --cov-report=term-missing"
 
 - **何を**: テストの探索パス（`testpaths`）、importモード（`--import-mode`）、デフォルトオプション（`addopts`）、pytest-asyncioのモード（`asyncio_mode`）
 - **どう**: `addopts` に常用フラグ（カバレッジ等）を入れておくと毎回打たずに済む。カバレッジは **`--cov=src`（パス指定）ではなく `--cov=my_app`（パッケージ名指定）** にする。src layoutでは「インストール済みパッケージ」を対象にテストするため、パスではなく `import` 名で計測対象を指す方がインストール先に追従して正確（CIやDockerで実際にwheelを入れてテストしてもズレない）
-- **`--import-mode=importlib` を推奨**: src layoutではpytest公式（Good Integration Practices）が `importlib` モードを推奨。これにより **`tests/`配下に `__init__.py` を一切置かなくても、同名のテストファイル（`unit/test_x.py` と `integration/test_x.py`）が衝突しない**。既定の `prepend` モードだと衝突回避のために `__init__.py` が必要になる
+- **`--import-mode=importlib` を推奨**: src layoutではpytest公式（Good Integration Practices）が `importlib` モードを推奨。これにより **`tests/`配下に `__init__.py` を一切置かなくても、同名のテストファイル（`unit/test_x.py` と `integration/test_x.py`）が衝突しない**。デフォルトの `prepend` モードだと衝突回避のために `__init__.py` が必要になる
 
 > [!TIP]
 > どこに書くか迷ったら原則: **ツール固有の設定は `[tool.<ツール名>]`、パッケージ自体の情報は `[project]`、依存は `[project]`（本番）か `[dependency-groups]`（開発）**。
@@ -879,7 +891,7 @@ uv add --package my-app shared    # member 同士の依存。`{ workspace = true
 
 - **ルートで素の `uv sync` を実行すると、全 member がインストールされる**（`--package` を付けなくてよい）。`--package` は「一部だけ入れたい」ときに使う（例: `--package api` だと `worker` は入らない）。
 - `backend/` の中に入って `uv sync` / `uv run` を実行しても、**`.venv` と `uv.lock` は常にルートのものが使われる**（`backend/.venv` は作られない）。
-- member の `[dependency-groups]` の `dev`（pytest など）は、ルートでの `uv sync` で既定で入る。本番イメージでは `--no-dev` で外す。
+- member の `[dependency-groups]` の `dev`（pytest など）は、ルートでの `uv sync` でデフォルトで入る。本番イメージでは `--no-dev` で外す。
 - `uv add --package api shared` のように member 同士の依存を足すと、`api/pyproject.toml` に `shared = { workspace = true }` が自動で書かれる（手書き不要）。
 
 > [!IMPORTANT]
@@ -938,7 +950,7 @@ CMD ["uvicorn", "my_app.main:app", "--host", "0.0.0.0", "--port", "8000"]
 > [!NOTE]
 > - workspace では前章の `--no-install-project` ではなく **`--no-install-workspace`** を使う（ルートだけでなく member も除外して、依存だけの層を作る）。`--package my_app` で必要な member だけを同期する。
 > - **1回目は `--frozen`、2回目は `--locked`（または `--frozen`）**。uv 公式は「member の `pyproject.toml` が無いと `uv.lock` が最新か検証できないので、最初の sync は `--locked` ではなく `--frozen` を使う」と説明している。手元でも、member の `pyproject.toml` が欠けた状態の `--locked` は `missing a pyproject.toml` で失敗した。全 member の `pyproject.toml` を `COPY` した後なら `--locked` が使え、ロックと `pyproject.toml` のずれを検出できる。
-> - `pyproject.toml` に `readme = "README.md"` がある（`uv init` の既定）ので、**2回目の `uv sync` の前に `backend/README.md` もコピーする**。コピーしないと `failed to open file '/app/backend/README.md'` でビルドが失敗する（実際に踏んだ）。`.dockerignore` に `*.md` を入れている場合は `!backend/README.md` で除外を解除すること。
+> - `pyproject.toml` に `readme = "README.md"` がある（`uv init` のデフォルト）ので、**2回目の `uv sync` の前に `backend/README.md` もコピーする**。コピーしないと `failed to open file '/app/backend/README.md'` でビルドが失敗する（実際に踏んだ）。`.dockerignore` に `*.md` を入れている場合は `!backend/README.md` で除外を解除すること。
 > - この Dockerfile は手元でビルドして、コンテナ起動後に `/openapi.json` が HTTP 200 を返し、フロントのビルド成果物が `static/` に入っていることを確認した。フロントのビルド出力先や静的ファイルの配信方法（FastAPI の `StaticFiles` か nginx か）はプロジェクトに合わせて調整すること。
 > - 実運用の例は FastAPI 公式テンプレートの `backend/Dockerfile`。そちらは `fastapi run` を使っている。FastAPI 公式ドキュメントは、`CMD` を必ず **exec 形式**（`["fastapi", "run", ...]`）で書くこと（シェル形式だと graceful shutdown や lifespan イベントが正しく動かない）、ロードバランサ / nginx の背後では `--proxy-headers` を付けることを案内している。
 
@@ -1033,7 +1045,7 @@ jobs:
 
 > [!NOTE]
 > - 上の YAML は骨子で、アクションのバージョンは記事執筆時点の最新メジャー（`checkout` v7、`setup-uv` v10、`paths-filter` v4）。実運用では commit SHA 固定が推奨される（uv 公式ガイドも `setup-uv` を SHA 固定している）。FastAPI 公式テンプレートの `test-backend.yml` は `paths:` を使わず、常に全テストを走らせている。**小規模なら出し分けずに常に全部走らせる**のも立派な選択。
-> - `astral-sh/setup-uv` の `cache-dependency-glob` は既定で `**/uv.lock` や `**/pyproject.toml` などを拾うので、モノレポの深い階層の lockfile も対象になる。`working-directory` で `pyproject.toml` を探すディレクトリを変えられる。
+> - `astral-sh/setup-uv` の `cache-dependency-glob` はデフォルトで `**/uv.lock` や `**/pyproject.toml` などを拾うので、モノレポの深い階層の lockfile も対象になる。`working-directory` で `pyproject.toml` を探すディレクトリを変えられる。
 
 ### Dependabot
 
@@ -1252,7 +1264,7 @@ def create_bedrock_chat() -> ChatBedrockConverse:
 > **`ChatBedrockConverse` を使う理由**: LangChain公式はConverse APIベースの `ChatBedrockConverse` を推奨しており、従来の `ChatBedrock`（InvokeModel API）はカスタムモデルが必要な場合向け。引数名も `model_id` ではなく `model` になる。
 
 > [!CAUTION]
-> Claude 5系（Sonnet 5 / 5.5 など）は `temperature` / `top_p` / `top_k` を**既定値以外で指定すると400エラー**になるため、`temperature: 0.0` は渡さない。また `global.` はクロスリージョン推論プロファイルのID（モデルID単体では呼べない）。Sonnet 5.5 には `apac.` / `jp.` プロファイルが無く、東京リージョンからも `global.` で呼べる。
+> Claude 5系（Sonnet 5 / 5.5 など）は `temperature` / `top_p` / `top_k` を**デフォルト値以外で指定すると400エラー**になるため、`temperature: 0.0` は渡さない。また `global.` はクロスリージョン推論プロファイルのID（モデルID単体では呼べない）。Sonnet 5.5 には `apac.` / `jp.` プロファイルが無く、東京リージョンからも `global.` で呼べる。
 
 ```python
 # src/my_app/infrastructure/prometheus_client.py
