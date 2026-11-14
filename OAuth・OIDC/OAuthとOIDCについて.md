@@ -25,7 +25,7 @@ sequenceDiagram
     U->>C: 7b. リダイレクトエンドポイントにアクセス <br/>GET /callback?code=ABC123...&state=xyz789
     
     Note over C: client_secret使用で<br/>バックエンドで安全に実行
-    C->>AS: 8. 発行された認可コードでトークン要求<br/>POST /oauth/token<br/>grant_type=authorization_code&<br/>code=ABC123&<br/>client_id=xxx&<br/>client_secret=xxx
+    C->>AS: 8. 発行された認可コードでトークン要求<br/>POST /oauth/token<br/>grant_type=authorization_code&<br/>code=ABC123&<br/>redirect_uri=xxx&<br/>client_id=xxx&<br/>client_secret=xxx
     
     AS->>C: 9. IDトークン・アクセストークン発行<br/>・access_token <br/>・id_token (JWT)<br/>・refresh_token
     
@@ -54,7 +54,7 @@ sequenceDiagram
     
     alt アクセストークンの有効期限切れ時
         C->>AS: 17. トークンリフレッシュ<br/>POST /oauth/token<br/>grant_type=refresh_token&<br/>refresh_token=REFRESH_TOKEN
-        AS->>C: 18. 新しいトークン発行<br/>・新しいaccess_token<br/>・新しいrefresh_token
+        AS->>C: 18. 新しいトークン発行<br/>・新しいaccess_token<br/>・新しいrefresh_token（ローテーションする場合のみ）
     end
 ```
 
@@ -72,6 +72,9 @@ sequenceDiagram
   - アクセストークンと一緒に認可サーバーから発行されて、クライアントに渡される
   - アクセストークンは通常短期間（数分～数時間）で期限切れになるため、リフレッシュトークン（アクセストークンより長期間有効）を使用して新しいアクセストークンを取得する
   - リフレッシュトークンの発行は必須ではなく、オプションであり、認可サーバーの設定による
+  - リフレッシュ時に新しいリフレッシュトークンを発行するかどうかも認可サーバー次第（RFC 6749では`MAY`）
+    - ただしRFC 9700では、パブリッククライアントのリフレッシュトークンは**ローテーション（使用ごとに新しいものを発行し古いものを無効化）または送信者制約（DPoP / mTLS）のいずれかが必須（MUST）**とされている
+  - OIDCでは、オフラインアクセス（ユーザーが不在でもトークンを更新し続ける用途）を要求するスコープとして`offline_access`が定義されている。実際にリフレッシュトークンを発行する条件は認可サーバーの実装・設定による（例: 上の図の`scope=openid profile email`のみでは発行されない実装もある）
 
 # OAuth 2.0
 - **認可**のプロトコル
@@ -107,7 +110,8 @@ sequenceDiagram
   - `client_id`: クライアント識別子
   - `redirect_uri`: リダイレクト先URL
   - `scope`: 要求するスコープ
-  - `state`: CSRF対策用のランダム値
+  - `state`: CSRF対策用のランダム値（認可サーバーがPKCEに対応していると確認できているクライアントは、CSRF対策をPKCEに任せることもできる（RFC 9700 §2.1）。PKCEを使わない場合は`state`（OIDCでは`nonce`）が必須）
+  - `code_challenge` / `code_challenge_method`: （PKCE）後述のPKCEで使用
   - `nonce`: （OIDC）IDトークンのリプレイ攻撃対策用のランダム値。認可リクエストで送った値がIDトークンにそのまま含まれて返るため、クライアントは一致を検証する
 
 ### **トークンエンドポイント（Token Endpoint）**
@@ -119,6 +123,8 @@ sequenceDiagram
 - 主なリクエストパラメータ:
   - `grant_type`: `authorization_code` または `refresh_token`
   - `code`: 認可コード
+  - `redirect_uri`: 認可リクエストに`redirect_uri`を含めた場合は必須（RFC 6749 §4.1.3）。認可リクエストと同じ値を指定する
+  - `code_verifier`: （PKCE）認可リクエストの`code_challenge`に対応する元の値
   - `client_id` / `client_secret`: クライアント認証情報
 
 ### **リダイレクトエンドポイント（Redirection Endpoint / Redirect URI）**
@@ -127,6 +133,29 @@ sequenceDiagram
 - **認可サーバーが認可コード（またはエラー）を返す先のURL**
 - **クライアントが事前に認可サーバーに登録しておく必要がある**
 - 認可リクエスト時に `redirect_uri` パラメータで指定
+
+## OAuthのフロー（グラントタイプ）
+アクセストークンを取得する方法（グラントタイプ）は複数あり、クライアントの種類やユーザー操作の有無によって使い分ける
+
+| フロー | `grant_type` / `response_type` | 用途 | 現状 |
+| --- | --- | --- | --- |
+| **認可コードフロー（Authorization Code）** | `response_type=code` → `grant_type=authorization_code` | ユーザーの代わりにリソースへアクセスする標準的なフロー（Webアプリ、モバイルアプリ、SPAなど） | **推奨**。全クライアントでPKCEの併用が推奨される（後述） |
+| **クライアントクレデンシャルフロー（Client Credentials）** | `grant_type=client_credentials` | ユーザーが介在しないマシン間通信（M2M）。クライアント自身がリソースオーナーとして振る舞う | 現役。コンフィデンシャルクライアントのみ。リフレッシュトークンは通常発行しない |
+| **デバイスコードフロー（Device Authorization）** | `grant_type=urn:ietf:params:oauth:grant-type:device_code`（RFC 8628） | ブラウザや文字入力が困難なデバイス（スマートTV、CLIなど） | 現役 |
+| **リフレッシュトークンフロー（Refresh Token）** | `grant_type=refresh_token` | アクセストークンの期限切れ時に、再認可なしで新しいトークンを取得 | 現役。パブリッククライアントではローテーションまたは送信者制約が必須（RFC 9700） |
+| **Implicitフロー** | `response_type=token` | 認可エンドポイントから直接アクセストークンをURLフラグメントで返す（かつてSPA向け） | **非推奨**。RFC 9700では使用しないこと（SHOULD NOT）とされ、OAuth 2.1ドラフトでは削除されている |
+| **ROPC（Resource Owner Password Credentials）** | `grant_type=password` | クライアントがユーザーのID/パスワードを直接受け取ってトークンを取得 | **非推奨**。RFC 9700では使用してはならない（MUST NOT）とされ、OAuth 2.1ドラフトでは削除されている |
+
+- Implicitフローが非推奨になった理由（RFC 9700 §2.1.2）: アクセストークンが認可レスポンス（URL）に含まれるため、漏洩やリプレイのリスクがある。また、このレスポンスで発行されるトークンを特定のクライアントに紐付ける（送信者制約）標準的な方法がない。現在はSPAでも**認可コードフロー＋PKCE**を使う
+- ROPCが禁止された理由（RFC 9700 §2.4）: クライアントがユーザーの認証情報を直接扱うため、認証情報が漏洩する箇所が増える。ユーザーが認可サーバー以外にパスワードを入力する習慣もつき、フィッシングされやすくなる。多要素認証やWebAuthnなどにも対応できない
+
+### デバイスコードフローの流れ
+1. デバイスが認可サーバーのデバイス認可エンドポイントにリクエスト
+2. 認可サーバーが`device_code`、`user_code`、`verification_uri`を返す
+3. デバイスが`user_code`と`verification_uri`を画面に表示
+4. ユーザーが別の端末（スマホ、PCなど）で`verification_uri`にアクセスし、`user_code`を入力して認証・認可
+5. その間、デバイスはトークンエンドポイントに`device_code`で定期的にポーリング
+6. ユーザーが認可を完了すると、トークンエンドポイントがアクセストークンを発行
 
 ---
 
@@ -142,6 +171,18 @@ sequenceDiagram
   - SSO
   - ユーザログイン
 
+## OIDCのフロー
+OIDCでは、`response_type`の値によって3つのフローに分類される（OIDC Core）
+
+| フロー | `response_type` | IDトークンの受け取り先 | 備考 |
+| --- | --- | --- | --- |
+| **認可コードフロー（Authorization Code Flow）** | `code` | トークンエンドポイント（バックチャネル） | **推奨**。上のシーケンス図のフロー。`nonce`は任意 |
+| **Implicitフロー** | `id_token` / `id_token token` | 認可エンドポイントのレスポンス（フロントチャネル）。トークンエンドポイントは使わない | 非推奨。`id_token token`はアクセストークンが認可レスポンスで返るため、OAuthのImplicitと同じ問題がある（`id_token`のみの場合はアクセストークンは返らない）。`nonce`必須 |
+| **Hybridフロー** | `code id_token` / `code token` / `code id_token token` | 認可エンドポイントとトークンエンドポイントの両方（`code id_token`と`code id_token token`では、IDトークンが両方から返る） | 認可コードに加えて、IDトークンやアクセストークンを認可レスポンスで受け取れる。`nonce`の必須度は`response_type`による |
+
+- 認可コードフローでは、すべてのトークンがトークンエンドポイントから返り、ユーザーエージェント（ブラウザ）には渡らない。Implicit / Hybridでは、トークンの一部または全部がブラウザ経由で渡る
+- RFC 9700は、アクセストークンを認可レスポンスで返す`response_type`（`token`など）を避け、`code`（または`code id_token`）を使うよう勧めている。現在は認可コードフロー＋PKCEが主流
+
 ## nonce（ノンス）
 - **IDトークンのリプレイ攻撃を防ぐための、OIDC固有のパラメータ**
 - クライアントがランダムな値を生成して認可リクエストの `nonce` パラメータに含める
@@ -152,14 +193,20 @@ sequenceDiagram
   - **`nonce`**: IDトークンを「今回のログイン試行」に紐付ける → IDトークンのリプレイ攻撃対策
 - 仕様上の必須度はフローによって異なる
   - **認可コードフロー**: `nonce` は任意（OPTIONAL）。ただしリプレイ対策として送信が推奨される
-  - **Implicit / Hybrid フロー**: `nonce` は必須（REQUIRED）
+  - **Implicit フロー**: `nonce` は必須（REQUIRED）
+  - **Hybrid フロー**: `response_type` が `code id_token` または `code id_token token` の場合は必須（REQUIRED）。`code token` の場合は任意（OPTIONAL）
   - `nonce` を送信した場合は、IDトークンの `nonce` クレームの検証が必須
 
 ## IDトークンの検証項目
+以下は主な項目（全項目はOIDC Core 3.1.3.7を参照）
 - **署名検証**: OpenIDプロバイダーの公開鍵で署名を検証
+  - 認可コードフローで、トークンエンドポイントからTLS経由で直接受け取ったIDトークンについては、TLSのサーバー検証で署名検証を代替してもよい（MAY）とされている
+- **`alg`（署名アルゴリズム）**: クライアント登録時に合意したアルゴリズム（未指定の場合はRS256）と一致するか
 - **`iss`（発行者）**: 期待するOpenIDプロバイダーの識別子と一致するか
 - **`aud`（Audience）**: 自分の `client_id` が含まれているか
+- **`azp`（Authorized Party）**: 存在する場合、自分の `client_id` と一致するか（SHOULD）
 - **`exp`（有効期限）**: 有効期限が切れていないか
+- **`iat`（発行時刻）**: 現在時刻から離れすぎた時刻に発行されたトークンを拒否するために使用（許容範囲はクライアントごとに決める）
 - **`nonce`**: 認可リクエストで送った値と一致するか（`nonce` を送った場合は検証必須）
 
 ## IDトークンの検証で使われる鍵
@@ -206,8 +253,9 @@ sequenceDiagram
 - PKCE（Proof Key for Code Exchange）は、OAuth 2.0のセキュリティ拡張仕様の一つで、認可コードグラントフローを安全に実行するための仕組み
   - もともとはクライアントシークレットを安全に保管できないパブリッククライアント（モバイルアプリ、SPAなど）向けに導入された
   - **ただし現在は、パブリッククライアントに限らず全てのクライアントで推奨されている**
-    - **OAuth 2.1** および **RFC 9700（OAuth 2.0 Security Best Current Practice、2025年1月発行）** では、コンフィデンシャルクライアントを含む全クライアントの認可コードフローでPKCEが必須/推奨とされている
-    - クライアントシークレットはトークンエンドポイントを保護するが、PKCEは**認可コードインジェクション攻撃**（攻撃者が自分の認可コードを被害者のセッションに注入する攻撃）を防ぐ。これはシークレットの有無に関係なく発生し得るため
+    - **RFC 9700（OAuth 2.0 Security Best Current Practice、2025年1月発行、BCP 240）** では、パブリッククライアントはPKCEが必須（MUST）、コンフィデンシャルクライアントも推奨（RECOMMENDED）とされている（OIDCのコンフィデンシャルクライアントは、追加の対策を講じた上で`nonce`での代替も可）。認可サーバーはPKCEのサポートが必須（MUST）
+    - **OAuth 2.1**（策定中のInternet-Draft。2026年11月時点でdraft-17、未RFC化）でも、PKCEの利用が要件に含まれている
+    - クライアントシークレットはトークンエンドポイントを保護するが、PKCEは**認可コードインジェクション攻撃**（攻撃者が被害者宛てに発行された認可コードを盗み、正規クライアントにおける自分のセッションに注入する攻撃）を防ぐ。これはシークレットの有無に関係なく発生し得るため
 ## PKCEが必要な理由
 - 通常のOAuth 2.0の認可コードフローでは、以下のような流れでアクセストークンを取得する  
   1. クライアント → 認可サーバに認可リクエスト（code を要求）
